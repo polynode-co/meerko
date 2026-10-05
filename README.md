@@ -44,6 +44,7 @@ Tools: `list_tables`, `create_table`, `add_column`, `import_rows`, `query_rows`.
 | Path | What it is |
 |---|---|
 | `apps/api` | Hono REST API (`/v1`, bearer API-key auth) |
+| `apps/web` | Landing page (Next.js + Tailwind v4) — `pnpm --filter @meerko/web dev`, then open http://localhost:3000 |
 | `packages/db` | Drizzle schema and migrations (Postgres) |
 | `packages/core` | Domain logic: tables, column inference, API keys |
 | `packages/sdk` | Typed HTTP client shared by the CLI and MCP server |
