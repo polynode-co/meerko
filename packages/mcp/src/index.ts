@@ -327,6 +327,41 @@ server.registerTool(
 );
 
 server.registerTool(
+  "draft_reply",
+  {
+    description: `Save a draft answer to a reply (from list_replies). Nothing is sent: the user reviews it first.
+Write like a person answering an email: short, specific to what they said, in their language, with one clear next step (e.g. two meeting times or a booking link if the user gave you one). Sign off with the sender's first name: Gmail doesn't add the user's signature to emails sent through Meerko. Drafting again for the same reply replaces the pending draft.`,
+    inputSchema: { reply_id: z.string(), body: z.string().describe("Plain text") },
+  },
+  ({ reply_id, body }) => run(() => client().draftReply(reply_id, body)),
+);
+
+server.registerTool(
+  "list_drafts",
+  {
+    description: "Pending drafts with the reply each answers, the thread so far and the prospect's row. Show them to the user for approval.",
+    inputSchema: {},
+  },
+  () => run(() => client().listDrafts()),
+);
+
+server.registerTool(
+  "approve_draft",
+  {
+    description:
+      "Send a draft as a reply in the same email thread, from the user's mailbox. Only call this after the user has read this specific draft and explicitly said to send it. Pass `body` if the user edited the text.",
+    inputSchema: { draft_id: z.string(), body: z.string().optional() },
+  },
+  ({ draft_id, body }) => run(() => client().approveDraft(draft_id, body)),
+);
+
+server.registerTool(
+  "discard_draft",
+  { description: "Throw a pending draft away.", inputSchema: { draft_id: z.string() } },
+  ({ draft_id }) => run(() => client().discardDraft(draft_id)),
+);
+
+server.registerTool(
   "get_credits",
   { description: "Show the workspace's credit balance (null when self-hosted with your own provider keys).", inputSchema: {} },
   () => run(() => client().getCredits()),

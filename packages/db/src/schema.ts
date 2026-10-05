@@ -225,3 +225,20 @@ export const suppressions = pgTable(
   },
   (t) => [uniqueIndex("suppressions_workspace_email_idx").on(t.workspaceId, t.email)],
 );
+
+/** An answer the user's agent drafted for an inbound reply. Sent only when a human approves it. */
+export const replyDrafts = pgTable(
+  "reply_drafts",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    replyId: uuid("reply_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    status: text("status").$type<"pending" | "sent" | "discarded">().notNull().default("pending"),
+    sentMessageId: uuid("sent_message_id").references(() => messages.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  // At most one pending draft per reply; drafting again replaces it.
+  (t) => [uniqueIndex("reply_drafts_pending_idx").on(t.replyId).where(sql`${t.status} = 'pending'`)],
+);

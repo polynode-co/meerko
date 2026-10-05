@@ -339,6 +339,47 @@ replies
     console.log(`Marked ${r.reply.intent}${r.reply.handledAt ? " (handled)" : ""}.`);
   });
 
+replies
+  .command("draft <replyId> <file>")
+  .description("save a draft answer to a reply from a text file (nothing is sent until approved)")
+  .action(async (id: string, file: string) => {
+    const d = await MeerkoClient.fromEnv().draftReply(id, readFileSync(file, "utf8"));
+    console.log(`Draft ${d.id} saved. Review with \`meerko drafts\`, send with \`meerko drafts approve ${d.id}\`.`);
+  });
+
+const drafts = program.command("drafts").description("answers to replies, waiting for your approval");
+
+drafts
+  .command("ls", { isDefault: true })
+  .description("list pending drafts with the reply they answer")
+  .action(async () => {
+    const list = await MeerkoClient.fromEnv().listDrafts();
+    if (json()) return console.log(JSON.stringify(list, null, 2));
+    if (list.length === 0) return console.log("No drafts waiting.");
+    for (const d of list) {
+      console.log(`\n[${d.id}] to ${d.to}${d.intent ? ` · ${d.intent}` : ""}`);
+      console.log(`  They wrote:\n${d.replyBody.split("\n").map((l) => `    ${l}`).join("\n")}`);
+      console.log(`  Draft:\n${d.body.split("\n").map((l) => `    ${l}`).join("\n")}`);
+    }
+  });
+
+drafts
+  .command("approve <draftId>")
+  .description("send the draft as a reply in the same thread")
+  .option("-f, --file <file>", "send this edited text instead of the draft")
+  .action(async (id: string, opts: { file?: string }) => {
+    const res = await MeerkoClient.fromEnv().approveDraft(id, opts.file ? readFileSync(opts.file, "utf8") : undefined);
+    console.log(`Sent to ${res.to}: "${res.subject}".`);
+  });
+
+drafts
+  .command("discard <draftId>")
+  .description("throw a draft away")
+  .action(async (id: string) => {
+    await MeerkoClient.fromEnv().discardDraft(id);
+    console.log("Draft discarded.");
+  });
+
 const keys = program.command("keys").description("bring your own provider keys (calls through them cost no credits)");
 
 keys

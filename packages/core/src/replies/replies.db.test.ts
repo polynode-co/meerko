@@ -6,7 +6,9 @@ import { SecretBox } from "../provider-keys.ts";
 import { runSendTick } from "../sending/sender.ts";
 import { createSequence, enrollRows, sequenceStats, setSequenceStatus } from "../sequences.ts";
 import { createTable, insertRows } from "../tables.ts";
-import { classifyReply, listReplies, runReplyTick } from "./replies.ts";
+import { approveDraft, discardDraft, draftReply, listDrafts } from "./drafts.ts";
+import { classifyReply, listReplies, ReplyError, runReplyTick } from "./replies.ts";
+import { unsubscribe } from "../sending/sender.ts";
 
 const MON_1030 = new Date("2026-10-05T08:30:00Z");
 const later = (m: number) => new Date(MON_1030.getTime() + m * 60_000);
@@ -20,6 +22,7 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
   let fullFetches: string[];
   let queries: string[];
   let threadOf: Record<string, string>;
+  let sends: { raw: string; threadId?: string }[];
   const deliver = (m: { from: string; thread: string; subject?: string; text: string; headers?: Record<string, string> }) => {
     const headers = { From: m.from, Subject: m.subject ?? "Re: Quick question, Pia", ...m.headers };
     inbox.push({
@@ -28,7 +31,7 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
       internalDate: String(later(30).getTime()),
       payload: {
         mimeType: "text/plain",
-        headers: Object.entries(headers).map(([name, value]) => ({ name, value })),
+        headers: Object.entries({ "Message-ID": `<reply-${inbox.length + 1}@slalom.example>`, ...headers }).map(([name, value]) => ({ name, value })),
         body: { data: Buffer.from(m.text).toString("base64url") },
       },
     });
@@ -37,10 +40,12 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     if (url.includes("oauth2.googleapis.com")) return Response.json({ access_token: "a", scope: GMAIL_SCOPES.join(" "), expires_in: 3600 });
     const u = new URL(url);
     if (u.pathname.endsWith("/messages/send")) {
-      const raw = Buffer.from(JSON.parse(String(init!.body)).raw, "base64url").toString();
+      const payload = JSON.parse(String(init!.body));
+      const raw = Buffer.from(payload.raw, "base64url").toString();
+      sends.push({ raw, threadId: payload.threadId });
       const to = raw.match(/^To: (.+)$/m)![1]!.trim();
       threadOf[to] ??= `thread-${to}`;
-      return Response.json({ id: `out-${to}`, threadId: threadOf[to] });
+      return Response.json({ id: `out-${sends.length}`, threadId: threadOf[to] });
     }
     if (u.pathname.endsWith("/messages")) {
       queries.push(u.searchParams.get("q")!);
@@ -62,6 +67,7 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     fullFetches = [];
     queries = [];
     threadOf = {};
+    sends = [];
     ws = (await db.insert(workspaces).values({ name: "replies-test" }).returning())[0]!.id;
     const [mb] = await db
       .insert(mailboxes)
@@ -148,5 +154,44 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     expect(fullFetches).toEqual(["in-1"]); // the newsletter was only checked by its From header
     const stored = await db.select().from(messages).where(eq(messages.workspaceId, ws));
     expect(stored.some((m) => m.fromEmail === "newsletter@somewhere.com")).toBe(false);
+  });
+
+  it("sends an approved draft as a threaded reply, once, and refuses suppressed addresses", async () => {
+    deliver({ from: "Pia Moll <pia@slalom.example>", thread: threadOf["pia@slalom.example"]!, text: "Interesting, what does it cost?" });
+    deliver({ from: "orion@estudio404.example", thread: threadOf["orion@estudio404.example"]!, text: "Tell me more" });
+    await scan();
+    const replies = await listReplies(db, ws);
+    const pia = replies.find((r) => r.from === "pia@slalom.example")!;
+    const orion = replies.find((r) => r.from === "orion@estudio404.example")!;
+
+    await draftReply(db, ws, pia.id, "First try");
+    const draft = await draftReply(db, ws, pia.id, "Hi Pia, it's $5 per account. Tuesday at 10?\n\nIker");
+    const pending = await listDrafts(db, ws);
+    expect(pending).toHaveLength(1); // the second draft replaced the first
+    expect(pending[0]).toMatchObject({ to: "pia@slalom.example", replyBody: "Interesting, what does it cost?" });
+    expect(pending[0]!.thread.map((t) => t.direction)).toEqual(["out", "in"]);
+
+    const before = sends.length;
+    const res = await approveDraft(db, ws, draft.id, { box, oauth, fetch }, "Hi Pia, it's $5 per account. Wednesday at 10?\n\nIker");
+    expect(res).toMatchObject({ sent: true, to: "pia@slalom.example", subject: "Re: Quick question, Pia" });
+    const sent = sends.at(-1)!;
+    expect(sends.length).toBe(before + 1);
+    expect(sent.threadId).toBe(threadOf["pia@slalom.example"]);
+    expect(sent.raw).toContain("In-Reply-To: <reply-1@slalom.example>");
+    expect(sent.raw).toMatch(/References: <[^>]+> <reply-1@slalom\.agency>/);
+    expect(Buffer.from(sent.raw.split("\r\n\r\n")[1]!.replace(/\r\n/g, ""), "base64").toString()).toContain("Wednesday");
+
+    // Approving twice doesn't send twice; the reply is handled.
+    await expect(approveDraft(db, ws, draft.id, { box, oauth, fetch })).rejects.toBeInstanceOf(ReplyError);
+    expect(sends.length).toBe(before + 1);
+    expect(await listDrafts(db, ws)).toEqual([]);
+    expect((await listDrafts(db, ws, "sent"))[0]!.body).toContain("Wednesday");
+
+    // Someone who unsubscribed after replying can't be emailed, and discarding works.
+    const orionDraft = await draftReply(db, ws, orion.id, "Sure!");
+    await unsubscribe(db, ws, "orion@estudio404.example");
+    await expect(approveDraft(db, ws, orionDraft.id, { box, oauth, fetch })).rejects.toThrow(/do-not-email/);
+    await discardDraft(db, ws, orionDraft.id);
+    expect(await listDrafts(db, ws)).toEqual([]);
   });
 });

@@ -7,6 +7,10 @@ import {
   createTable,
   enrichRows,
   AGENT_INTENTS,
+  approveDraft,
+  discardDraft,
+  draftReply,
+  listDrafts,
   classifyReply,
   connectGmail,
   listReplies,
@@ -378,6 +382,26 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.post("/replies/:id/classify", async (c) => {
     const { intent, handled } = await parse(z.object({ intent: z.enum(AGENT_INTENTS), handled: z.boolean().optional() }), await c.req.json());
     return c.json({ reply: await classifyReply(db, c.var.workspaceId, c.req.param("id"), intent, handled) });
+  });
+
+  v1.post("/replies/:id/draft", async (c) => {
+    const { body } = await parse(z.object({ body: z.string().min(1).max(20_000) }), await c.req.json());
+    return c.json({ draft: await draftReply(db, c.var.workspaceId, c.req.param("id"), body) }, 201);
+  });
+
+  v1.get("/drafts", async (c) => {
+    const { status } = await parse(z.object({ status: z.enum(["pending", "sent", "discarded"]).optional() }), c.req.query());
+    return c.json({ drafts: await listDrafts(db, c.var.workspaceId, status) });
+  });
+
+  v1.post("/drafts/:id/approve", async (c) => {
+    const { body } = await parse(z.object({ body: z.string().min(1).max(20_000).optional() }), await c.req.json().catch(() => ({})));
+    return c.json(await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: googleOAuth(), fetch: deps.gmailFetch }, body));
+  });
+
+  v1.post("/drafts/:id/discard", async (c) => {
+    await discardDraft(db, c.var.workspaceId, c.req.param("id"));
+    return c.json({ discarded: true });
   });
 
   v1.get("/provider-keys", async (c) => c.json({ keys: await listProviderKeys(db, c.var.workspaceId) }));

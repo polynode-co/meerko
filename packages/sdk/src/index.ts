@@ -90,6 +90,20 @@ export interface Reply {
   thread: { direction: "in" | "out"; body: string; sentAt: string }[];
 }
 
+export interface Draft {
+  id: string;
+  body: string;
+  status: "pending" | "sent" | "discarded";
+  updatedAt: string;
+  replyId: string;
+  to: string;
+  replySubject: string | null;
+  replyBody: string;
+  intent: string | null;
+  row: Record<string, unknown> | null;
+  thread: { direction: "in" | "out"; body: string; sentAt: string }[];
+}
+
 export interface MeerkoConfig { apiUrl: string; apiKey: string }
 
 export const CONFIG_PATH = join(homedir(), ".meerko", "config.json");
@@ -267,6 +281,24 @@ export class MeerkoClient {
 
   classifyReply(id: string, intent: ReplyIntent, handled?: boolean) {
     return this.request<{ reply: { id: string; intent: string; handledAt: string | null } }>("POST", `/replies/${id}/classify`, { intent, handled });
+  }
+
+  /** Saves a draft answer to a reply (replaces an earlier pending draft). Nothing is sent until approved. */
+  draftReply(replyId: string, body: string) {
+    return this.request<{ draft: { id: string; body: string } }>("POST", `/replies/${replyId}/draft`, { body }).then((r) => r.draft);
+  }
+
+  listDrafts(status?: Draft["status"]) {
+    return this.request<{ drafts: Draft[] }>("GET", `/drafts${status ? `?status=${status}` : ""}`).then((r) => r.drafts);
+  }
+
+  /** Sends the draft (or `body`, if the human edited it) as a reply in the same thread. */
+  approveDraft(id: string, body?: string) {
+    return this.request<{ sent: boolean; to: string; subject: string }>("POST", `/drafts/${id}/approve`, body ? { body } : {});
+  }
+
+  discardDraft(id: string) {
+    return this.request<{ discarded: boolean }>("POST", `/drafts/${id}/discard`);
   }
 
   listProviderKeys() {
