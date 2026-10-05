@@ -5,6 +5,9 @@ import {
   addColumn,
   countLeads,
   createTable,
+  enrichRows,
+  getBalance,
+  icypeasProvider,
   getTable,
   IcypeasError,
   insertRows,
@@ -13,6 +16,7 @@ import {
   queryRows,
   searchLeads,
   verifyApiKey,
+  type CreditPolicy,
   type IcypeasClient,
   type IcypeasQuery,
 } from "@meerko/core";
@@ -52,6 +56,13 @@ const searchInput = z.object({
   table_name: z.string().min(1).optional(),
 });
 const countInput = z.object({ query: leadQuery });
+const enrichInput = z.object({
+  fields: z.array(z.enum(["email", "email_verification"])).min(1).default(["email", "email_verification"]),
+  filter: z.record(z.string(), z.unknown()).optional(),
+  // Rows are enriched synchronously, one at a time (~3s each), so keep calls small.
+  limit: z.number().int().min(1).max(50).default(25),
+  overwrite: z.boolean().default(false),
+});
 
 async function parse<T extends z.ZodType>(schema: T, data: unknown): Promise<z.infer<T>> {
   const result = await schema.safeParseAsync(data);
@@ -62,6 +73,8 @@ async function parse<T extends z.ZodType>(schema: T, data: unknown): Promise<z.i
 export interface AppDeps {
   /** Unset when ICYPEAS_API_KEY isn't configured; search routes then return 503. */
   icypeas?: IcypeasClient;
+  /** Cloud meters enrichment in credits; self-host (BYOK) leaves this off. */
+  credits?: CreditPolicy;
 }
 
 export function createApp(db: Db, deps: AppDeps = {}) {
@@ -105,6 +118,18 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.get("/tables/:id/rows", async (c) => {
     const opts = await parse(queryInput, c.req.query());
     return c.json({ rows: await queryRows(db, c.var.workspaceId, c.req.param("id"), opts) });
+  });
+
+  const credits = deps.credits ?? { enabled: false };
+
+  v1.get("/credits", async (c) =>
+    c.json({ enabled: credits.enabled, balance: credits.enabled ? await getBalance(db, c.var.workspaceId) : null }),
+  );
+
+  v1.post("/tables/:id/enrich", async (c) => {
+    const input = await parse(enrichInput, await c.req.json());
+    const providers = [icypeasProvider(icypeas())];
+    return c.json(await enrichRows(db, c.var.workspaceId, c.req.param("id"), providers, input, credits));
   });
 
   for (const kind of ["people", "companies"] as const) {

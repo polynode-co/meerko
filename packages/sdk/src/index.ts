@@ -18,6 +18,19 @@ export interface SearchResult {
   addedColumns: Column[];
 }
 
+export type EnrichField = "email" | "email_verification";
+export interface EnrichResult {
+  processed: number;
+  found: Record<EnrichField, number>;
+  notFound: number;
+  errors: number;
+  firstError?: string;
+  creditsSpent: number;
+  remaining: number;
+  stoppedReason?: "insufficient_credits";
+  balance?: number;
+}
+
 export interface MeerkoConfig { apiUrl: string; apiKey: string }
 
 export const CONFIG_PATH = join(homedir(), ".meerko", "config.json");
@@ -94,6 +107,18 @@ export class MeerkoClient {
       table_id: input.tableId,
       table_name: input.tableName,
     });
+  }
+
+  /** Finds and/or verifies emails for rows that don't have them yet. Call again while `remaining > 0`. */
+  enrichRows(
+    tableId: string,
+    input: { fields?: EnrichField[]; filter?: Record<string, unknown>; limit?: number; overwrite?: boolean } = {},
+  ) {
+    return this.request<EnrichResult>("POST", `/tables/${tableId}/enrich`, input);
+  }
+
+  getCredits() {
+    return this.request<{ enabled: boolean; balance: number | null }>("GET", "/credits");
   }
 
   queryRows(tableId: string, opts: { filter?: Record<string, unknown>; limit?: number; offset?: number } = {}) {

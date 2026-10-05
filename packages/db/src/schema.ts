@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, index, integer, jsonb, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export type ColumnType = "text" | "number" | "email" | "url" | "boolean" | "json";
 
@@ -53,4 +53,35 @@ export const tableRows = pgTable(
     // Powers `data @> {...}` containment filters.
     index("table_rows_data_gin_idx").using("gin", t.data),
   ],
+);
+
+/** Append-only. A workspace's balance is the sum of `delta`; grants are positive, charges negative. */
+export const creditLedger = pgTable(
+  "credit_ledger",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    delta: integer("delta").notNull(),
+    reason: text("reason").notNull(),
+    refId: uuid("ref_id"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("credit_ledger_workspace_id_idx").on(t.workspaceId)],
+);
+
+/** One row per provider call during enrichment, kept for auditing and margin tracking. */
+export const enrichmentRuns = pgTable(
+  "enrichment_runs",
+  {
+    id: id(),
+    rowId: uuid("row_id").notNull().references(() => tableRows.id, { onDelete: "cascade" }),
+    field: text("field").notNull(),
+    provider: text("provider"),
+    outcome: text("outcome").notNull(),
+    result: jsonb("result"),
+    providerCost: numeric("provider_cost", { mode: "number" }).notNull().default(0),
+    costCredits: integer("cost_credits").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("enrichment_runs_row_id_idx").on(t.rowId)],
 );

@@ -112,4 +112,28 @@ To get decision-makers at the found companies, pass their company_urn values to 
     ),
 );
 
+server.registerTool(
+  "enrich_rows",
+  {
+    description: `Find work emails (from first_name, last_name and domain or company columns) and verify them, writing email, email_certainty and email_verification back to each row.
+Only rows missing a result are processed, at most \`limit\` per call (~3s per row). Keep calling while \`remaining\` > 0.
+Costs: 8 credits per email found, 1 per verification; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost.
+email_certainty values: ultra_sure, very_sure, probable (deliverability unconfirmed), not_found, missing_input (row lacks a name or domain).`,
+    inputSchema: {
+      table_id: z.string(),
+      fields: z.array(z.enum(["email", "email_verification"])).optional().describe("Default: both"),
+      filter: z.record(z.string(), z.unknown()).optional().describe("Only enrich rows matching this exact-match filter"),
+      limit: z.number().int().min(1).max(50).optional().describe("Rows per call (default 25)"),
+      overwrite: z.boolean().optional().describe("Re-run rows that already have a result"),
+    },
+  },
+  ({ table_id, ...input }) => run(() => client().enrichRows(table_id, input)),
+);
+
+server.registerTool(
+  "get_credits",
+  { description: "Show the workspace's credit balance (null when self-hosted with your own provider keys).", inputSchema: {} },
+  () => run(() => client().getCredits()),
+);
+
 await server.connect(new StdioServerTransport());

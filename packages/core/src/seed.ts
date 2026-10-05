@@ -1,11 +1,13 @@
 // Creates a workspace and prints a fresh API key. Run once after migrating a new database.
 import { createDb, workspaces } from "@meerko/db";
 import { createApiKey } from "./api-keys.ts";
+import { FREE_TIER_CREDITS, grantCredits } from "./credits.ts";
 
 const name = process.argv[2] ?? "Default workspace";
 const db = createDb();
 const [workspace] = await db.insert(workspaces).values({ name }).returning();
 const { key } = await createApiKey(db, workspace!.id, "seed");
+await grantCredits(db, workspace!.id, FREE_TIER_CREDITS, "free_tier");
 await db.close();
 
 console.log(`Workspace: ${workspace!.name} (${workspace!.id})`);

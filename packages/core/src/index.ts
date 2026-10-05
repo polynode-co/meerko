@@ -5,3 +5,5 @@ export * from "./enrichment/icypeas.ts";
 export * from "./enrichment/types.ts";
 export * from "./enrichment/waterfall.ts";
 export * from "./search.ts";
+export * from "./credits.ts";
+export * from "./enrich.ts";

@@ -110,6 +110,49 @@ program
     console.log(`Saved ${res.inserted} of ${res.total} matching ${kind} to "${res.tableName}" (${res.tableId}).`);
   });
 
+program
+  .command("enrich <tableId>")
+  .description("find and verify emails for rows that don't have them yet")
+  .option("--fields <list>", "comma-separated: email, email_verification", "email,email_verification")
+  .option("-f, --filter <json>", "only enrich rows matching this exact-match filter")
+  .option("-l, --limit <n>", "rows per batch (max 50)", "25")
+  .option("--all", "keep going in batches until no rows remain")
+  .option("--overwrite", "re-run rows that already have a result")
+  .action(async (tableId: string, opts: { fields: string; filter?: string; limit: string; all?: boolean; overwrite?: boolean }) => {
+    const client = MeerkoClient.fromEnv();
+    const input = {
+      fields: opts.fields.split(",").map((f) => f.trim()) as ("email" | "email_verification")[],
+      filter: opts.filter ? JSON.parse(opts.filter) : undefined,
+      limit: Number(opts.limit),
+      overwrite: opts.overwrite,
+    };
+    while (true) {
+      const res = await client.enrichRows(tableId, input);
+      if (json()) console.log(JSON.stringify(res));
+      else
+        console.log(
+          `Processed ${res.processed}: ${res.found.email} emails found, ${res.found.email_verification} verified, ` +
+            `${res.notFound} not found, ${res.errors} errors. ${res.creditsSpent} credits` +
+            (res.balance !== undefined ? ` (balance ${res.balance})` : "") +
+            `. ${res.remaining} rows remaining.` +
+            (res.firstError ? `\n  First error: ${res.firstError}` : ""),
+        );
+      if (res.stoppedReason === "insufficient_credits") throw new Error("Out of credits");
+      // Overwrite re-selects the same rows every batch, so it never loops.
+      if (!opts.all || opts.overwrite || res.remaining === 0 || res.processed === 0) break;
+      if (res.errors === res.processed) throw new Error("Every row in the batch failed; stopping");
+    }
+  });
+
+program
+  .command("credits")
+  .description("show the workspace credit balance")
+  .action(async () => {
+    const res = await MeerkoClient.fromEnv().getCredits();
+    if (json()) return console.log(JSON.stringify(res));
+    console.log(res.enabled ? `${res.balance} credits` : "Credits are off (self-hosted with your own provider keys).");
+  });
+
 program.parseAsync().catch((err: Error) => {
   console.error(`Error: ${err.message}`);
   process.exit(1);
