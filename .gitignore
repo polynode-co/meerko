@@ -15,3 +15,6 @@ next-env.d.ts
 *.tfvars.json
 !*.tfvars.example
 tfplan
+
+# Local lead exports (personal data, never commit)
+data/
