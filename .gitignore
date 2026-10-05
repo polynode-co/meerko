@@ -8,3 +8,10 @@ dist
 .next
 next-env.d.ts
 *.tsbuildinfo
+
+# Terraform
+.terraform*
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+tfplan
