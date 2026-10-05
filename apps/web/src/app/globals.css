@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* Design tokens from the Meerko landing page (.pen "Option A — Dark Amber"). */
+@theme {
+  --color-ink: #0e0c0a;
+  --color-raised: #17140f;
+  --color-sand: #f4ebdd;
+  --color-line: #2a251e;
+  --color-fg: #f6f1e9;
+  --color-muted: #a89f92;
+  --color-dark: #1a1611;
+  --color-dark-muted: #5e554a;
+  --color-accent: #f2a93b;
+  --color-accent-soft: #f2a93b1f;
+  --color-accent-deep: #b36f12;
+  --color-signal: #3dd6b5;
+}
+
+@theme inline {
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-ink text-fg font-sans antialiased;
+  }
+}
