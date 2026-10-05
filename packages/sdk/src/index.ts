@@ -1,0 +1,81 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+export type ColumnType = "text" | "number" | "email" | "url" | "boolean" | "json";
+export interface Column { key: string; name: string; type: ColumnType }
+export interface Table { id: string; name: string; columns: Column[]; rowCount: number; createdAt: string }
+export interface Row { id: string; data: Record<string, unknown>; createdAt: string }
+
+export interface MeerkoConfig { apiUrl: string; apiKey: string }
+
+export const CONFIG_PATH = join(homedir(), ".meerko", "config.json");
+export const DEFAULT_API_URL = "http://localhost:8787";
+
+/** Env vars win over ~/.meerko/config.json, so agents can be configured without a login step. */
+export function loadConfig(): Partial<MeerkoConfig> {
+  let file: Partial<MeerkoConfig> = {};
+  try {
+    file = JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
+  } catch {}
+  return {
+    apiUrl: process.env.MEERKO_API_URL ?? file.apiUrl ?? DEFAULT_API_URL,
+    apiKey: process.env.MEERKO_API_KEY ?? file.apiKey,
+  };
+}
+
+export class MeerkoApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+export class MeerkoClient {
+  constructor(private config: MeerkoConfig) {}
+
+  static fromEnv(): MeerkoClient {
+    const { apiUrl, apiKey } = loadConfig();
+    if (!apiKey) throw new Error("No API key. Run `meerko login --key <key>` or set MEERKO_API_KEY.");
+    return new MeerkoClient({ apiUrl: apiUrl!, apiKey });
+  }
+
+  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const res = await fetch(new URL(`/v1${path}`, this.config.apiUrl), {
+      method,
+      headers: { authorization: `Bearer ${this.config.apiKey}`, "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const json = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) throw new MeerkoApiError(res.status, json.error ?? res.statusText);
+    return json as T;
+  }
+
+  listTables() {
+    return this.request<{ tables: Table[] }>("GET", "/tables").then((r) => r.tables);
+  }
+
+  getTable(id: string) {
+    return this.request<{ table: Table }>("GET", `/tables/${id}`).then((r) => r.table);
+  }
+
+  createTable(input: { name: string; columns?: { name: string; type?: ColumnType }[] }) {
+    return this.request<{ table: Table }>("POST", "/tables", input).then((r) => r.table);
+  }
+
+  addColumn(tableId: string, column: { name: string; type?: ColumnType }) {
+    return this.request<{ table: Table }>("POST", `/tables/${tableId}/columns`, column).then((r) => r.table);
+  }
+
+  insertRows(tableId: string, rows: Record<string, unknown>[]) {
+    return this.request<{ inserted: number; addedColumns: Column[] }>("POST", `/tables/${tableId}/rows`, { rows });
+  }
+
+  queryRows(tableId: string, opts: { filter?: Record<string, unknown>; limit?: number; offset?: number } = {}) {
+    const params = new URLSearchParams();
+    if (opts.filter) params.set("filter", JSON.stringify(opts.filter));
+    if (opts.limit !== undefined) params.set("limit", String(opts.limit));
+    if (opts.offset !== undefined) params.set("offset", String(opts.offset));
+    const qs = params.size ? `?${params}` : "";
+    return this.request<{ rows: Row[] }>("GET", `/tables/${tableId}/rows${qs}`).then((r) => r.rows);
+  }
+}
