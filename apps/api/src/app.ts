@@ -1,7 +1,21 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
-import { addColumn, createTable, getTable, insertRows, listTables, NotFoundError, queryRows, verifyApiKey } from "@meerko/core";
+import {
+  addColumn,
+  countLeads,
+  createTable,
+  getTable,
+  IcypeasError,
+  insertRows,
+  listTables,
+  NotFoundError,
+  queryRows,
+  searchLeads,
+  verifyApiKey,
+  type IcypeasClient,
+  type IcypeasQuery,
+} from "@meerko/core";
 import type { Db } from "@meerko/db";
 
 type Env = { Variables: { workspaceId: string } };
@@ -26,6 +40,18 @@ const queryInput = z.object({
   limit: z.coerce.number().int().min(1).max(1000).optional(),
   offset: z.coerce.number().int().min(0).optional(),
 });
+// Filters are passed through to Icypeas, which validates field names and shapes itself.
+const leadQuery = z.record(z.string(), z.record(z.string(), z.unknown())).refine((q) => Object.keys(q).length > 0, {
+  message: "query needs at least one filter",
+});
+const searchInput = z.object({
+  query: leadQuery,
+  // Hard cap per call to bound credit spend until the credit ledger lands.
+  limit: z.number().int().min(1).max(1000).default(25),
+  table_id: z.string().optional(),
+  table_name: z.string().min(1).optional(),
+});
+const countInput = z.object({ query: leadQuery });
 
 async function parse<T extends z.ZodType>(schema: T, data: unknown): Promise<z.infer<T>> {
   const result = await schema.safeParseAsync(data);
@@ -33,7 +59,16 @@ async function parse<T extends z.ZodType>(schema: T, data: unknown): Promise<z.i
   return result.data;
 }
 
-export function createApp(db: Db) {
+export interface AppDeps {
+  /** Unset when ICYPEAS_API_KEY isn't configured; search routes then return 503. */
+  icypeas?: IcypeasClient;
+}
+
+export function createApp(db: Db, deps: AppDeps = {}) {
+  const icypeas = () => {
+    if (!deps.icypeas) throw new HTTPException(503, { message: "Lead search is not configured (set ICYPEAS_API_KEY)" });
+    return deps.icypeas;
+  };
   const app = new Hono<Env>();
 
   app.get("/health", (c) => c.json({ ok: true }));
@@ -72,11 +107,37 @@ export function createApp(db: Db) {
     return c.json({ rows: await queryRows(db, c.var.workspaceId, c.req.param("id"), opts) });
   });
 
+  for (const kind of ["people", "companies"] as const) {
+    v1.post(`/search/${kind}/count`, async (c) => {
+      const { query } = await parse(countInput, await c.req.json());
+      return c.json({ total: await countLeads(icypeas(), kind, query as IcypeasQuery) });
+    });
+
+    v1.post(`/search/${kind}`, async (c) => {
+      const input = await parse(searchInput, await c.req.json());
+      const result = await searchLeads(db, c.var.workspaceId, icypeas(), {
+        kind,
+        query: input.query as IcypeasQuery,
+        limit: input.limit,
+        tableId: input.table_id,
+        tableName: input.table_name,
+      });
+      return c.json(result, 201);
+    });
+  }
+
   app.route("/v1", v1);
 
   app.onError((err, c) => {
     if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
+    if (err instanceof IcypeasError) {
+      // Rejected filters are the caller's fault; anything else is an upstream failure.
+      if (err.code === "insufficient_funds") return c.json({ error: "Lead search provider is out of credits" }, 402);
+      if (err.validation) return c.json({ error: `Invalid search: ${err.message}` }, 400);
+      console.error(err);
+      return c.json({ error: "Lead search provider failed" }, 502);
+    }
     // Postgres "invalid input syntax for type uuid" -> treat as not found.
     if ((err as { code?: string }).code === "22P02" || (err as { cause?: { code?: string } }).cause?.code === "22P02")
       return c.json({ error: "Not found" }, 404);

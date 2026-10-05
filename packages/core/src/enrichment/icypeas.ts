@@ -32,6 +32,8 @@ export class IcypeasError extends Error {
     message: string,
     readonly code: string,
     readonly status?: number,
+    /** True when Icypeas rejected the request itself (bad filter, missing field): a caller error. */
+    readonly validation = false,
   ) {
     super(message);
   }
@@ -142,6 +144,7 @@ export class IcypeasClient {
         first ? `${first.field ?? "request"}: ${first.message ?? first.type}` : "Icypeas request failed",
         first?.type ?? "validation_error",
         res.status,
+        true,
       );
     }
     return json as T;

@@ -7,6 +7,17 @@ export interface Column { key: string; name: string; type: ColumnType }
 export interface Table { id: string; name: string; columns: Column[]; rowCount: number; createdAt: string }
 export interface Row { id: string; data: Record<string, unknown>; createdAt: string }
 
+export type LeadKind = "people" | "companies";
+/** Icypeas filters, e.g. { currentJobTitle: { include: ["CTO"] }, "currentCompany.headcount": { ">=": 20 } }. */
+export type LeadQuery = Record<string, Record<string, unknown>>;
+export interface SearchResult {
+  tableId: string;
+  tableName: string;
+  total: number;
+  inserted: number;
+  addedColumns: Column[];
+}
+
 export interface MeerkoConfig { apiUrl: string; apiKey: string }
 
 export const CONFIG_PATH = join(homedir(), ".meerko", "config.json");
@@ -68,6 +79,21 @@ export class MeerkoClient {
 
   insertRows(tableId: string, rows: Record<string, unknown>[]) {
     return this.request<{ inserted: number; addedColumns: Column[] }>("POST", `/tables/${tableId}/rows`, { rows });
+  }
+
+  /** Free: how many leads match, before spending credits on a search. */
+  countLeads(kind: LeadKind, query: LeadQuery) {
+    return this.request<{ total: number }>("POST", `/search/${kind}/count`, { query }).then((r) => r.total);
+  }
+
+  /** Searches people or companies and writes the results into `tableId`, or a new table named `tableName`. */
+  searchLeads(kind: LeadKind, input: { query: LeadQuery; limit?: number; tableId?: string; tableName?: string }) {
+    return this.request<SearchResult>("POST", `/search/${kind}`, {
+      query: input.query,
+      limit: input.limit,
+      table_id: input.tableId,
+      table_name: input.tableName,
+    });
   }
 
   queryRows(tableId: string, opts: { filter?: Record<string, unknown>; limit?: number; offset?: number } = {}) {

@@ -89,6 +89,27 @@ tables
     console.table(rows.map((r) => r.data), keys);
   });
 
+program
+  .command("find <kind>")
+  .description("search Icypeas for people or companies and save the results to a table")
+  .requiredOption("-q, --query <json>", `filters, e.g. '{"currentJobTitle":{"include":["CTO"]},"location":{"include":["ES"]}}'`)
+  .option("-l, --limit <n>", "max results to fetch (costs credits)", "25")
+  .option("-t, --table <tableId>", "append to an existing table")
+  .option("-n, --name <tableName>", "name for the new table")
+  .option("-c, --count", "only count matches (free)")
+  .action(async (kind: string, opts: { query: string; limit: string; table?: string; name?: string; count?: boolean }) => {
+    if (kind !== "people" && kind !== "companies") throw new Error("kind must be `people` or `companies`");
+    const client = MeerkoClient.fromEnv();
+    const query = JSON.parse(opts.query);
+    if (opts.count) {
+      const total = await client.countLeads(kind, query);
+      return console.log(json() ? JSON.stringify({ total }) : `${total} ${kind} match.`);
+    }
+    const res = await client.searchLeads(kind, { query, limit: Number(opts.limit), tableId: opts.table, tableName: opts.name });
+    if (json()) return console.log(JSON.stringify(res, null, 2));
+    console.log(`Saved ${res.inserted} of ${res.total} matching ${kind} to "${res.tableName}" (${res.tableId}).`);
+  });
+
 program.parseAsync().catch((err: Error) => {
   console.error(`Error: ${err.message}`);
   process.exit(1);
