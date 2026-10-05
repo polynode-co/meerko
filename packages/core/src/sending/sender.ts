@@ -18,6 +18,7 @@ import { GmailClient, GmailError, type GoogleOAuth } from "../mail/gmail.ts";
 import { buildMime } from "../mail/mime.ts";
 import { markMailboxError } from "../mailboxes.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "../provider-keys.ts";
+import { advanceStage } from "../pipeline.ts";
 import { renderTemplate } from "../template.ts";
 import { nextWindowStart, type SendWindow } from "./window.ts";
 
@@ -228,6 +229,7 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
       body,
       sentAt: now,
     });
+    await advanceStage(tx, [en.rowId], "contacted");
     const next = steps[en.nextStep + 1];
     await tx
       .update(enrollments)

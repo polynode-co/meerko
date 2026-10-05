@@ -1,4 +1,4 @@
-import { and, dataTables, desc, eq, sql, tableRows, type ColumnDef, type Db } from "@meerko/db";
+import { and, dataTables, desc, eq, sql, tableRows, type ColumnDef, type Db, type Stage } from "@meerko/db";
 import { coerceRow, inferNewColumns, normalizeRow, toColumnKey } from "./columns.ts";
 import { renderTemplate } from "./template.ts";
 
@@ -74,14 +74,15 @@ export async function queryRows(
   db: Db,
   workspaceId: string,
   tableId: string,
-  opts: { filter?: Record<string, unknown>; limit?: number; offset?: number } = {},
+  opts: { filter?: Record<string, unknown>; stage?: Stage; limit?: number; offset?: number } = {},
 ) {
   await getTable(db, workspaceId, tableId);
-  const where = opts.filter && Object.keys(opts.filter).length > 0
-    ? and(eq(tableRows.tableId, tableId), sql`${tableRows.data} @> ${JSON.stringify(opts.filter)}::jsonb`)
-    : eq(tableRows.tableId, tableId);
+  const conds = [eq(tableRows.tableId, tableId)];
+  if (opts.filter && Object.keys(opts.filter).length > 0) conds.push(sql`${tableRows.data} @> ${JSON.stringify(opts.filter)}::jsonb`);
+  if (opts.stage) conds.push(eq(tableRows.stage, opts.stage));
+  const where = and(...conds);
   return db
-    .select({ id: tableRows.id, data: tableRows.data, createdAt: tableRows.createdAt })
+    .select({ id: tableRows.id, data: tableRows.data, stage: tableRows.stage, stageChangedAt: tableRows.stageChangedAt, createdAt: tableRows.createdAt })
     .from(tableRows)
     .where(where)
     .orderBy(tableRows.seq)

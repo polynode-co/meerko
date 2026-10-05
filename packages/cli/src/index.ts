@@ -5,7 +5,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { dirname } from "node:path";
 import { Command } from "commander";
 import { parse as parseCsv } from "csv-parse/sync";
-import { CONFIG_PATH, DEFAULT_API_URL, MeerkoClient, REPLY_INTENTS, type ReplyIntent, type Row } from "@meerko/sdk";
+import { CONFIG_PATH, DEFAULT_API_URL, MeerkoClient, REPLY_INTENTS, STAGES, type ReplyIntent, type Row, type Stage } from "@meerko/sdk";
 
 const program = new Command("meerko").description("Meerko — the open-source GTM agent.").version("0.0.0");
 const json = () => program.opts<{ json?: boolean }>().json;
@@ -79,17 +79,19 @@ tables
   .option("-f, --filter <json>", `exact-match filter, e.g. '{"country":"Spain"}'`)
   .option("-l, --limit <n>", "max rows", "50")
   .option("-o, --offset <n>", "rows to skip", "0")
-  .action(async (tableId: string, opts: { filter?: string; limit: string; offset: string }) => {
+  .option("-s, --stage <stage>", `only rows at this pipeline stage (${STAGES.join(", ")})`)
+  .action(async (tableId: string, opts: { filter?: string; limit: string; offset: string; stage?: Stage }) => {
     const client = MeerkoClient.fromEnv();
     const rows: Row[] = await client.queryRows(tableId, {
       filter: opts.filter ? JSON.parse(opts.filter) : undefined,
+      stage: opts.stage,
       limit: Number(opts.limit),
       offset: Number(opts.offset),
     });
     if (json()) return console.log(JSON.stringify(rows, null, 2));
     if (rows.length === 0) return console.log("No rows.");
     const keys = (await client.getTable(tableId)).columns.map((c) => c.key);
-    console.table(rows.map((r) => r.data), keys);
+    console.table(rows.map((r) => ({ stage: r.stage, ...r.data })), ["stage", ...keys]);
   });
 
 tables
@@ -107,6 +109,25 @@ tables
   .action(async (tableId: string, file: string) => {
     const res = await MeerkoClient.fromEnv().updateRows(tableId, JSON.parse(readFileSync(file, "utf8")));
     console.log(json() ? JSON.stringify(res) : `Updated ${res.updated} rows.`);
+  });
+
+tables
+  .command("stage <tableId> <stage> <rowIds...>")
+  .description(`move rows to a pipeline stage: ${STAGES.join(" | ")}`)
+  .action(async (tableId: string, stage: string, rowIds: string[]) => {
+    if (!STAGES.includes(stage as Stage)) throw new Error(`stage must be one of: ${STAGES.join(", ")}`);
+    const { moved } = await MeerkoClient.fromEnv().moveStage(tableId, rowIds, stage as Stage);
+    console.log(`Moved ${moved} row(s) to ${stage}.`);
+  });
+
+program
+  .command("pipeline")
+  .description("lead counts per stage")
+  .option("-t, --table <tableId>", "only this table")
+  .action(async (opts: { table?: string }) => {
+    const p = await MeerkoClient.fromEnv().pipeline(opts.table);
+    if (json()) return console.log(JSON.stringify(p, null, 2));
+    console.log(STAGES.map((s) => `${s} ${p.stages[s]}`).join("  ·  ") + `   (${p.total} leads)`);
   });
 
 program

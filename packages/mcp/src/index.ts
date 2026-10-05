@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { MeerkoClient, REPLY_INTENTS } from "@meerko/sdk";
+import { MeerkoClient, REPLY_INTENTS, STAGES } from "@meerko/sdk";
 
 const columnType = z.enum(["text", "number", "email", "url", "boolean", "json"]);
 const server = new McpServer({ name: "meerko", version: "0.0.0" });
@@ -92,10 +92,11 @@ server.registerTool(
 server.registerTool(
   "query_rows",
   {
-    description: "Read rows from a table. `filter` is an exact-match object on column keys, e.g. {\"country\": \"Spain\"}.",
+    description: `Read rows from a table, each with its pipeline stage. \`filter\` is an exact-match object on column keys, e.g. {"country": "Spain"}; \`stage\` filters by stage (${STAGES.join(", ")}).`,
     inputSchema: {
       table_id: z.string(),
       filter: z.record(z.string(), z.unknown()).optional(),
+      stage: z.enum(STAGES).optional(),
       limit: z.number().int().min(1).max(1000).optional(),
       offset: z.number().int().min(0).optional(),
     },
@@ -359,6 +360,24 @@ server.registerTool(
   "discard_draft",
   { description: "Throw a pending draft away.", inputSchema: { draft_id: z.string() } },
   ({ draft_id }) => run(() => client().discardDraft(draft_id)),
+);
+
+server.registerTool(
+  "pipeline",
+  {
+    description: `Lead counts per stage (${STAGES.join(" → ")}), for one table or the whole workspace. Meerko moves leads to contacted when the first email is sent and to replied when they answer; meeting, won and lost are set with move_stage.`,
+    inputSchema: { table_id: z.string().optional() },
+  },
+  ({ table_id }) => run(() => client().pipeline(table_id)),
+);
+
+server.registerTool(
+  "move_stage",
+  {
+    description: "Move leads (rows) to a pipeline stage, e.g. meeting when a call is booked, won or lost. Use query_rows with `stage` to find leads at a stage.",
+    inputSchema: { table_id: z.string(), row_ids: z.array(z.string()).min(1), stage: z.enum(STAGES) },
+  },
+  ({ table_id, row_ids, stage }) => run(() => client().moveStage(table_id, row_ids, stage)),
 );
 
 server.registerTool(

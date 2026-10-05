@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createDb, enrollments, eq, mailboxes, messages, suppressions, workspaces, type Db } from "@meerko/db";
+import { createDb, dataTables, enrollments, eq, mailboxes, messages, suppressions, tableRows, workspaces, type Db } from "@meerko/db";
 import { GMAIL_SCOPES, GoogleOAuth, type GmailMessage } from "../mail/gmail.ts";
 import { SecretBox } from "../provider-keys.ts";
 import { runSendTick } from "../sending/sender.ts";
@@ -118,6 +118,10 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     const [reply] = await listReplies(db, ws);
     expect(reply).toMatchObject({ from: "pia@slalom.example", body: "Yes, let's talk Tuesday.", sequenceName: "Agencies", intent: null });
     expect(reply!.row).toMatchObject({ first_name: "Pia" });
+    const rows = await db.select({ data: tableRows.data, stage: tableRows.stage }).from(tableRows).innerJoin(dataTables, eq(tableRows.tableId, dataTables.id)).where(eq(dataTables.workspaceId, ws));
+    const stages = Object.fromEntries(rows.map((r) => [r.data.email, r.stage]));
+    expect(stages["pia@slalom.example"]).toBe("replied");
+    expect(stages["paula@webon.example"]).toBe("contacted");
     expect(reply!.thread.map((t) => t.direction)).toEqual(["out", "in"]);
 
     await classifyReply(db, ws, reply!.id, "interested");

@@ -19,6 +19,7 @@ import { GmailClient, GmailError, type GoogleOAuth } from "../mail/gmail.ts";
 import { addressOf, bodyText, header, stripQuoted } from "../mail/parse.ts";
 import { markMailboxError } from "../mailboxes.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "../provider-keys.ts";
+import { advanceStage } from "../pipeline.ts";
 import { unsubscribe } from "../sending/sender.ts";
 import { NotFoundError } from "../tables.ts";
 import { AGENT_INTENTS, classifyByRules, type AgentIntent, type RuleIntent } from "./classify.ts";
@@ -172,8 +173,11 @@ async function recordInbound(db: Db, mailboxId: string, mailboxEmail: string, ta
   } else if (intent === "unsubscribe") {
     await unsubscribe(db, target.workspaceId, target.email);
   } else if (intent === null) {
-    // A human answered: stop every sequence to them in this workspace, finished ones included for stats.
+    // A human answered: stop every sequence to them in this workspace, finished ones included for stats,
+    // and move their lead forward in the pipeline.
     await stopPerson(db, target.workspaceId, target.email, "replied", true);
+    const [en] = await db.select({ rowId: enrollments.rowId }).from(enrollments).where(eq(enrollments.id, target.enrollmentId));
+    if (en) await advanceStage(db, [en.rowId], "replied");
   }
   return intent;
 }

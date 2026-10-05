@@ -7,6 +7,8 @@ import {
   createTable,
   enrichRows,
   AGENT_INTENTS,
+  moveStage,
+  pipelineSummary,
   approveDraft,
   discardDraft,
   draftReply,
@@ -58,7 +60,7 @@ import {
   type SecretBox,
   type IcypeasQuery,
 } from "@meerko/core";
-import type { Db } from "@meerko/db";
+import { STAGES, type Db } from "@meerko/db";
 
 type Env = { Variables: { workspaceId: string } };
 
@@ -88,6 +90,7 @@ const queryInput = z.object({
     }),
   limit: z.coerce.number().int().min(1).max(1000).optional(),
   offset: z.coerce.number().int().min(0).optional(),
+  stage: z.enum(STAGES).optional(),
 });
 // Filters are passed through to Icypeas, which validates field names and shapes itself.
 const leadQuery = z.record(z.string(), z.record(z.string(), z.unknown())).refine((q) => Object.keys(q).length > 0, {
@@ -403,6 +406,13 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     await discardDraft(db, c.var.workspaceId, c.req.param("id"));
     return c.json({ discarded: true });
   });
+
+  v1.post("/tables/:id/rows/stage", async (c) => {
+    const { row_ids, stage } = await parse(z.object({ row_ids: z.array(z.string()).min(1).max(1000), stage: z.enum(STAGES) }), await c.req.json());
+    return c.json(await moveStage(db, c.var.workspaceId, c.req.param("id"), row_ids, stage));
+  });
+
+  v1.get("/pipeline", async (c) => c.json(await pipelineSummary(db, c.var.workspaceId, c.req.query("table_id") || undefined)));
 
   v1.get("/provider-keys", async (c) => c.json({ keys: await listProviderKeys(db, c.var.workspaceId) }));
 

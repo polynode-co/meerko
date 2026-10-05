@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createDb, enrollments, eq, mailboxes, messages, workspaces, type Db } from "@meerko/db";
+import { createDb, enrollments, eq, mailboxes, messages, tableRows, workspaces, type Db } from "@meerko/db";
 import { GMAIL_SCOPES, GoogleOAuth } from "../mail/gmail.ts";
 import { SecretBox } from "../provider-keys.ts";
 import { createSequence, enrollRows, previewSequence, sequenceStats, setSequenceStatus, SequenceError } from "../sequences.ts";
@@ -113,6 +113,8 @@ describe.skipIf(!process.env.DATABASE_URL)("sequence sender (db)", () => {
     expect(sent[1]!.raw).toContain(`In-Reply-To: ${firstId}`);
 
     expect(await sequenceStats(db, ws, seqId)).toMatchObject({ enrolled: 1, emailsSent: 2, states: { completed: 1 } });
+    const [pia] = await db.select().from(tableRows).where(eq(tableRows.id, (await db.select().from(enrollments).where(eq(enrollments.sequenceId, seqId)))[0]!.rowId));
+    expect(pia!.stage).toBe("contacted");
   });
 
   it("waits for the send window and respects the daily limit", async () => {

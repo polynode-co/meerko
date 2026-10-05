@@ -11,7 +11,9 @@ export interface PendingCells {
   rows: { id: string; instruction: string; data: Record<string, unknown> }[];
 }
 export interface Table { id: string; name: string; columns: Column[]; rowCount: number; createdAt: string }
-export interface Row { id: string; data: Record<string, unknown>; createdAt: string }
+export const STAGES = ["new", "contacted", "replied", "meeting", "won", "lost"] as const;
+export type Stage = (typeof STAGES)[number];
+export interface Row { id: string; data: Record<string, unknown>; stage: Stage; stageChangedAt: string | null; createdAt: string }
 
 export type LeadKind = "people" | "companies";
 /** Icypeas filters, e.g. { currentJobTitle: { include: ["CTO"] }, "currentCompany.headcount": { ">=": 20 } }. */
@@ -301,6 +303,17 @@ export class MeerkoClient {
     return this.request<{ discarded: boolean }>("POST", `/drafts/${id}/discard`);
   }
 
+  /** Move leads to a pipeline stage by hand (e.g. meeting, won, lost). */
+  moveStage(tableId: string, rowIds: string[], stage: Stage) {
+    return this.request<{ moved: number }>("POST", `/tables/${tableId}/rows/stage`, { row_ids: rowIds, stage });
+  }
+
+  /** Lead counts per stage, for one table or the whole workspace. */
+  pipeline(tableId?: string) {
+    const qs = tableId ? `?table_id=${encodeURIComponent(tableId)}` : "";
+    return this.request<{ tableId: string | null; stages: Record<Stage, number>; total: number }>("GET", `/pipeline${qs}`);
+  }
+
   listProviderKeys() {
     return this.request<{ keys: { provider: string; last4: string; createdAt: string }[] }>("GET", "/provider-keys").then((r) => r.keys);
   }
@@ -331,9 +344,10 @@ export class MeerkoClient {
     return this.request<PendingCells>("GET", `/tables/${tableId}/columns/${encodeURIComponent(column)}/pending${qs}`);
   }
 
-  queryRows(tableId: string, opts: { filter?: Record<string, unknown>; limit?: number; offset?: number } = {}) {
+  queryRows(tableId: string, opts: { filter?: Record<string, unknown>; stage?: Stage; limit?: number; offset?: number } = {}) {
     const params = new URLSearchParams();
     if (opts.filter) params.set("filter", JSON.stringify(opts.filter));
+    if (opts.stage) params.set("stage", opts.stage);
     if (opts.limit !== undefined) params.set("limit", String(opts.limit));
     if (opts.offset !== undefined) params.set("offset", String(opts.offset));
     const qs = params.size ? `?${params}` : "";

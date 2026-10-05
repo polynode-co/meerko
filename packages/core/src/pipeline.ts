@@ -1,0 +1,45 @@
+import { and, dataTables, eq, sql, STAGES, tableRows, type Db, type SQL, type Stage } from "@meerko/db";
+import { getTable } from "./tables.ts";
+
+type Writer = Pick<Db, "update">;
+
+/**
+ * Moves rows forward to `stage` only if they're at an earlier stage, so automatic events never undo
+ * progress (a late reply doesn't drag a "won" lead back to "replied"). Lost leads are left alone.
+ */
+export async function advanceStage(db: Writer, rowIds: string[], stage: "contacted" | "replied") {
+  if (rowIds.length === 0) return;
+  const earlier = STAGES.slice(0, STAGES.indexOf(stage));
+  await db
+    .update(tableRows)
+    .set({ stage, stageChangedAt: sql`now()` })
+    .where(and(sql`${tableRows.id} in ${rowIds}`, sql`${tableRows.stage} in ${earlier}`));
+}
+
+/** Sets any stage by hand (meeting, won, lost, or a correction). Only rows in this table are touched. */
+export async function moveStage(db: Db, workspaceId: string, tableId: string, rowIds: string[], stage: Stage) {
+  await getTable(db, workspaceId, tableId);
+  if (rowIds.length === 0) return { moved: 0 };
+  const res = await db
+    .update(tableRows)
+    .set({ stage, stageChangedAt: sql`now()` })
+    .where(and(eq(tableRows.tableId, tableId), sql`${tableRows.id} in ${rowIds}`))
+    .returning({ id: tableRows.id });
+  return { moved: res.length };
+}
+
+/** Lead counts per stage, for one table or across the workspace. */
+export async function pipelineSummary(db: Db, workspaceId: string, tableId?: string) {
+  if (tableId) await getTable(db, workspaceId, tableId);
+  const conds: SQL[] = [eq(dataTables.workspaceId, workspaceId)];
+  if (tableId) conds.push(eq(tableRows.tableId, tableId));
+  const rows = await db
+    .select({ stage: tableRows.stage, n: sql<number>`count(*)::int` })
+    .from(tableRows)
+    .innerJoin(dataTables, eq(tableRows.tableId, dataTables.id))
+    .where(and(...conds))
+    .groupBy(tableRows.stage);
+  const counts = Object.fromEntries(STAGES.map((s) => [s, 0])) as Record<Stage, number>;
+  for (const r of rows) counts[r.stage] = r.n;
+  return { tableId: tableId ?? null, stages: counts, total: rows.reduce((n, r) => n + r.n, 0) };
+}

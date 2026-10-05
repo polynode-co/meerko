@@ -3,6 +3,10 @@ import { bigint, index, integer, jsonb, numeric, pgTable, text, timestamp, uniqu
 
 export type ColumnType = "text" | "number" | "email" | "url" | "boolean" | "json";
 
+/** Where a lead stands. Sending and reply detection move rows forward automatically; the rest is manual. */
+export const STAGES = ["new", "contacted", "replied", "meeting", "won", "lost"] as const;
+export type Stage = (typeof STAGES)[number];
+
 export interface ColumnDef {
   key: string;
   name: string;
@@ -51,10 +55,13 @@ export const tableRows = pgTable(
     // Monotonic insertion order, so rows keep their CSV order and pagination is stable.
     seq: bigint("seq", { mode: "number" }).generatedAlwaysAsIdentity(),
     data: jsonb("data").$type<Record<string, unknown>>().notNull(),
+    stage: text("stage").$type<Stage>().notNull().default("new"),
+    stageChangedAt: timestamp("stage_changed_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [
     index("table_rows_table_id_seq_idx").on(t.tableId, t.seq),
+    index("table_rows_table_id_stage_idx").on(t.tableId, t.stage),
     // Powers `data @> {...}` containment filters.
     index("table_rows_data_gin_idx").using("gin", t.data),
   ],
