@@ -5,7 +5,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { dirname } from "node:path";
 import { Command } from "commander";
 import { parse as parseCsv } from "csv-parse/sync";
-import { CONFIG_PATH, DEFAULT_API_URL, MeerkoClient, type Row } from "@meerko/sdk";
+import { CONFIG_PATH, DEFAULT_API_URL, MeerkoClient, REPLY_INTENTS, type ReplyIntent, type Row } from "@meerko/sdk";
 
 const program = new Command("meerko").description("Meerko — the open-source GTM agent.").version("0.0.0");
 const json = () => program.opts<{ json?: boolean }>().json;
@@ -302,6 +302,41 @@ seqs
     if (json()) return console.log(JSON.stringify(s, null, 2));
     console.log(`${s.name} (${s.status}): ${s.enrolled} enrolled, ${s.emailsSent} emails sent, ${s.replyRate}% replied`);
     console.table(s.states);
+  });
+
+const replies = program.command("replies").description("replies to your sequences");
+
+replies
+  .command("ls", { isDefault: true })
+  .description("list unclassified replies (newest first)")
+  .option("-s, --sequence <id>", "only this sequence")
+  .option("-i, --intent <intent>", `only this intent (${REPLY_INTENTS.join(", ")})`)
+  .option("-a, --all", "include classified replies, out-of-office, bounces and unsubscribes")
+  .option("-l, --limit <n>", "max replies", "25")
+  .action(async (opts: { sequence?: string; intent?: string; all?: boolean; limit: string }) => {
+    const list = await MeerkoClient.fromEnv().listReplies({
+      sequenceId: opts.sequence,
+      intent: opts.intent,
+      unclassified: opts.all ? false : undefined,
+      includeAutomatic: opts.all,
+      limit: Number(opts.limit),
+    });
+    if (json()) return console.log(JSON.stringify(list, null, 2));
+    if (list.length === 0) return console.log("No replies waiting.");
+    for (const r of list) {
+      console.log(`\n[${r.id}] ${r.from} · ${r.sequenceName ?? ""} · ${new Date(r.receivedAt).toLocaleString()}${r.intent ? ` · ${r.intent}` : ""}`);
+      console.log(r.body.split("\n").map((l) => `  ${l}`).join("\n"));
+    }
+  });
+
+replies
+  .command("classify <replyId> <intent>")
+  .description(`set a reply's intent: ${REPLY_INTENTS.join(" | ")}`)
+  .option("--done", "also mark it handled")
+  .action(async (id: string, intent: string, opts: { done?: boolean }) => {
+    if (!REPLY_INTENTS.includes(intent as ReplyIntent)) throw new Error(`intent must be one of: ${REPLY_INTENTS.join(", ")}`);
+    const r = await MeerkoClient.fromEnv().classifyReply(id, intent as ReplyIntent, opts.done);
+    console.log(`Marked ${r.reply.intent}${r.reply.handledAt ? " (handled)" : ""}.`);
   });
 
 const keys = program.command("keys").description("bring your own provider keys (calls through them cost no credits)");

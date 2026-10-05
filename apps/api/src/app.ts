@@ -6,7 +6,11 @@ import {
   countLeads,
   createTable,
   enrichRows,
+  AGENT_INTENTS,
+  classifyReply,
   connectGmail,
+  listReplies,
+  ReplyError,
   createSequence,
   enrollRows as enrollSequenceRows,
   getSequence,
@@ -350,6 +354,32 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.post("/sequences/:id/pause", async (c) => c.json({ sequence: await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "paused") }));
   v1.get("/sequences/:id/stats", async (c) => c.json(await sequenceStats(db, c.var.workspaceId, c.req.param("id"))));
 
+  v1.get("/replies", async (c) => {
+    const q = await parse(
+      z.object({
+        sequence_id: z.string().optional(),
+        intent: z.string().optional(),
+        unclassified: z.enum(["true", "false"]).optional(),
+        include_automatic: z.enum(["true", "false"]).optional(),
+        limit: z.coerce.number().int().min(1).max(100).optional(),
+      }),
+      c.req.query(),
+    );
+    const replies = await listReplies(db, c.var.workspaceId, {
+      sequenceId: q.sequence_id,
+      intent: q.intent,
+      unclassified: q.unclassified ? q.unclassified === "true" : undefined,
+      includeAutomatic: q.include_automatic === "true",
+      limit: q.limit,
+    });
+    return c.json({ replies });
+  });
+
+  v1.post("/replies/:id/classify", async (c) => {
+    const { intent, handled } = await parse(z.object({ intent: z.enum(AGENT_INTENTS), handled: z.boolean().optional() }), await c.req.json());
+    return c.json({ reply: await classifyReply(db, c.var.workspaceId, c.req.param("id"), intent, handled) });
+  });
+
   v1.get("/provider-keys", async (c) => c.json({ keys: await listProviderKeys(db, c.var.workspaceId) }));
 
   v1.put("/provider-keys/:provider", async (c) => {
@@ -377,7 +407,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
-    if (err instanceof SequenceError) return c.json({ error: err.message }, 400);
+    if (err instanceof SequenceError || err instanceof ReplyError) return c.json({ error: err.message }, 400);
     if (err instanceof EncryptionNotConfiguredError) return c.json({ error: err.message }, 503);
     if (err instanceof GmailError) return c.json({ error: err.message }, err.needsReconnect ? 409 : 502);
     if (err instanceof IcypeasError) {

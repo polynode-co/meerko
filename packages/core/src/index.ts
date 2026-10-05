@@ -15,3 +15,6 @@ export * from "./mailboxes.ts";
 export * from "./sending/window.ts";
 export * from "./sending/sender.ts";
 export * from "./sequences.ts";
+export * from "./mail/parse.ts";
+export * from "./replies/classify.ts";
+export * from "./replies/replies.ts";

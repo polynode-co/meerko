@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { MeerkoClient } from "@meerko/sdk";
+import { MeerkoClient, REPLY_INTENTS } from "@meerko/sdk";
 
 const columnType = z.enum(["text", "number", "email", "url", "boolean", "json"]);
 const server = new McpServer({ name: "meerko", version: "0.0.0" });
@@ -298,6 +298,32 @@ server.registerTool(
   "sequence_stats",
   { description: "A sequence's enrollment states (active, completed, replied, unsubscribed, failed...), emails sent and reply rate.", inputSchema: { sequence_id: z.string() } },
   ({ sequence_id }) => run(() => client().sequenceStats(sequence_id)),
+);
+
+server.registerTool(
+  "list_replies",
+  {
+    description: `Replies to the user's sequences that nobody has classified yet (newest first). Each has the reply text (quoted history removed), the earlier emails in the thread, and the prospect's table row.
+Meerko already stopped the sequence for anyone who replied, and handled bounces, unsubscribe requests and out-of-office replies by itself (hidden here unless include_automatic).
+Read each reply, decide its intent and save it with classify_reply. Summarize the interested ones and questions for the user.`,
+    inputSchema: {
+      sequence_id: z.string().optional(),
+      intent: z.string().optional().describe("Only replies with this intent (then classified ones are included)"),
+      include_automatic: z.boolean().optional(),
+      limit: z.number().int().min(1).max(100).optional(),
+    },
+  },
+  ({ sequence_id, intent, include_automatic, limit }) =>
+    run(() => client().listReplies({ sequenceId: sequence_id, intent, includeAutomatic: include_automatic, limit })),
+);
+
+server.registerTool(
+  "classify_reply",
+  {
+    description: `Set a reply's intent after reading it: interested (wants to talk / asks for a meeting), question (asks something before deciding), not_now (timing), not_interested, referral (points to someone else), wrong_person, other. Set handled: true when no further action is needed.`,
+    inputSchema: { reply_id: z.string(), intent: z.enum(REPLY_INTENTS), handled: z.boolean().optional() },
+  },
+  ({ reply_id, intent, handled }) => run(() => client().classifyReply(reply_id, intent, handled)),
 );
 
 server.registerTool(

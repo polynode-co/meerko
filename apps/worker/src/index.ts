@@ -1,9 +1,10 @@
-// Background jobs. For now: the email sender, ticking every 30s. Each tick sends at most one email
-// per mailbox, so daily limits, spacing and send windows are enforced in `runSendTick`.
-import { GoogleOAuth, runSendTick, SecretBox } from "@meerko/core";
+// Background jobs: the email sender every 30s (at most one email per mailbox per tick, so limits,
+// spacing and send windows are enforced in `runSendTick`), and the reply scan every 2 minutes.
+import { GoogleOAuth, runReplyTick, runSendTick, SecretBox } from "@meerko/core";
 import { createDb } from "@meerko/db";
 
 const TICK_MS = 30_000;
+const REPLY_EVERY_TICKS = 4;
 const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MEERKO_PUBLIC_URL } = process.env;
 const publicUrl = MEERKO_PUBLIC_URL ?? "http://localhost:8787";
 const box = SecretBox.fromEnv();
@@ -21,10 +22,22 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !box) {
   });
   let busy = false;
   let stopping = false;
+  let ticks = 0;
 
   const tick = async () => {
     busy = true;
     try {
+      // Replies first, so a reply that just arrived stops a follow-up due in this same tick.
+      if (ticks++ % REPLY_EVERY_TICKS === 0) {
+        try {
+          const r = await runReplyTick(db, { box, oauth });
+          if (r.replies || r.bounces || r.unsubscribes || r.outOfOffice) {
+            console.log(`replies: ${r.replies} replies, ${r.bounces} bounces, ${r.unsubscribes} unsubscribes, ${r.outOfOffice} out of office`);
+          }
+        } catch (err) {
+          console.error("reply scan failed:", err);
+        }
+      }
       const res = await runSendTick(db, { box, oauth, publicUrl });
       if (res.sent || res.failed || res.deferred) console.log(`sender: ${res.sent} sent, ${res.deferred} deferred, ${res.failed} failed`);
     } catch (err) {
@@ -49,7 +62,7 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !box) {
     });
   }
 
-  console.log(`Meerko worker running (sender every ${TICK_MS / 1000}s)`);
+  console.log(`Meerko worker running (sender every ${TICK_MS / 1000}s, replies every ${(TICK_MS * REPLY_EVERY_TICKS) / 60_000} min)`);
   const timer = setInterval(() => void (busy || tick()), TICK_MS);
   void tick();
 }

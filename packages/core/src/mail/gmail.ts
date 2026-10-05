@@ -79,6 +79,22 @@ export class GoogleOAuth {
   }
 }
 
+export interface GmailMessagePart {
+  mimeType?: string;
+  headers?: { name: string; value: string }[];
+  body?: { data?: string; size?: number };
+  parts?: GmailMessagePart[];
+}
+
+export interface GmailMessage {
+  id: string;
+  threadId: string;
+  internalDate?: string;
+  snippet?: string;
+  labelIds?: string[];
+  payload?: GmailMessagePart;
+}
+
 export interface GmailSendResult {
   id: string;
   threadId: string;
@@ -104,6 +120,27 @@ export class GmailClient {
   /** Sends a raw RFC 822 message. Pass `threadId` to keep follow-ups in the sender's thread too. */
   send(raw: string, threadId?: string) {
     return this.call<GmailSendResult>("POST", "/messages/send", { raw: Buffer.from(raw).toString("base64url"), threadId });
+  }
+
+  /** Message ids matching a Gmail search query (e.g. `after:1759650000 -from:me`), following pages up to `max`. */
+  async listMessageIds(q: string, max = 500) {
+    const out: { id: string; threadId: string }[] = [];
+    let pageToken: string | undefined;
+    do {
+      const params = new URLSearchParams({ q, maxResults: "100" });
+      if (pageToken) params.set("pageToken", pageToken);
+      const page = await this.call<{ messages?: { id: string; threadId: string }[]; nextPageToken?: string }>("GET", `/messages?${params}`);
+      out.push(...(page.messages ?? []));
+      pageToken = page.nextPageToken;
+    } while (pageToken && out.length < max);
+    return out.slice(0, max);
+  }
+
+  /** `metadata` returns only the requested headers (cheap); `full` includes the body. */
+  getMessage(id: string, format: "full" | "metadata" = "full", metadataHeaders: string[] = []) {
+    const params = new URLSearchParams({ format });
+    for (const h of metadataHeaders) params.append("metadataHeaders", h);
+    return this.call<GmailMessage>("GET", `/messages/${id}?${params}`);
   }
 
   private async token() {

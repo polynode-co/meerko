@@ -74,6 +74,22 @@ export interface Sequence {
   steps: { position: number; delayDays: number; subject: string | null; body: string }[];
 }
 
+export const REPLY_INTENTS = ["interested", "not_interested", "not_now", "question", "referral", "wrong_person", "other"] as const;
+export type ReplyIntent = (typeof REPLY_INTENTS)[number];
+export interface Reply {
+  id: string;
+  from: string;
+  subject: string | null;
+  body: string;
+  intent: string | null;
+  receivedAt: string;
+  handledAt: string | null;
+  sequenceId: string | null;
+  sequenceName: string | null;
+  row: Record<string, unknown> | null;
+  thread: { direction: "in" | "out"; body: string; sentAt: string }[];
+}
+
 export interface MeerkoConfig { apiUrl: string; apiKey: string }
 
 export const CONFIG_PATH = join(homedir(), ".meerko", "config.json");
@@ -235,6 +251,22 @@ export class MeerkoClient {
       states: Record<string, number>;
       replyRate: number;
     }>("GET", `/sequences/${id}/stats`);
+  }
+
+  /** Unclassified replies by default, newest first, each with its thread and the prospect's row. */
+  listReplies(opts: { sequenceId?: string; intent?: string; unclassified?: boolean; includeAutomatic?: boolean; limit?: number } = {}) {
+    const params = new URLSearchParams();
+    if (opts.sequenceId) params.set("sequence_id", opts.sequenceId);
+    if (opts.intent) params.set("intent", opts.intent);
+    if (opts.unclassified !== undefined) params.set("unclassified", String(opts.unclassified));
+    if (opts.includeAutomatic) params.set("include_automatic", "true");
+    if (opts.limit) params.set("limit", String(opts.limit));
+    const qs = params.size ? `?${params}` : "";
+    return this.request<{ replies: Reply[] }>("GET", `/replies${qs}`).then((r) => r.replies);
+  }
+
+  classifyReply(id: string, intent: ReplyIntent, handled?: boolean) {
+    return this.request<{ reply: { id: string; intent: string; handledAt: string | null } }>("POST", `/replies/${id}/classify`, { intent, handled });
   }
 
   listProviderKeys() {

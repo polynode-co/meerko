@@ -118,6 +118,8 @@ export const mailboxes = pgTable(
     dailyLimit: integer("daily_limit").notNull().default(50),
     status: text("status").$type<"active" | "error">().notNull().default("active"),
     lastError: text("last_error"),
+    /** Inbox is scanned for replies from this time onward (with some overlap). */
+    repliesCheckedAt: timestamp("replies_checked_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("mailboxes_workspace_email_idx").on(t.workspaceId, t.email)],
@@ -194,9 +196,21 @@ export const messages = pgTable(
     toEmail: text("to_email").notNull(),
     subject: text("subject"),
     body: text("body").notNull(),
+    /**
+     * For inbound messages. Rules set bounce / out_of_office / unsubscribe; the user's agent sets
+     * interested / not_interested / not_now / question / referral / other.
+     */
+    intent: text("intent"),
+    /** When the user (or their agent) dealt with an inbound reply. */
+    handledAt: timestamp("handled_at", { withTimezone: true }),
     sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("messages_mailbox_sent_idx").on(t.mailboxId, t.sentAt), index("messages_thread_idx").on(t.gmailThreadId)],
+  (t) => [
+    index("messages_mailbox_sent_idx").on(t.mailboxId, t.sentAt),
+    index("messages_thread_idx").on(t.gmailThreadId),
+    // Each Gmail message is stored once, however many times the inbox is scanned.
+    uniqueIndex("messages_mailbox_gmail_id_idx").on(t.mailboxId, t.gmailId),
+  ],
 );
 
 /** Addresses that must never be emailed again by this workspace (unsubscribes, bounces, manual). */
