@@ -7,3 +7,4 @@ export * from "./enrichment/waterfall.ts";
 export * from "./search.ts";
 export * from "./credits.ts";
 export * from "./enrich.ts";
+export * from "./template.ts";

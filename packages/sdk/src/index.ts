@@ -3,7 +3,13 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 export type ColumnType = "text" | "number" | "email" | "url" | "boolean" | "json";
-export interface Column { key: string; name: string; type: ColumnType }
+export interface Column { key: string; name: string; type: ColumnType; prompt?: string }
+export interface PendingCells {
+  column: string;
+  prompt: string;
+  remaining: number;
+  rows: { id: string; instruction: string; data: Record<string, unknown> }[];
+}
 export interface Table { id: string; name: string; columns: Column[]; rowCount: number; createdAt: string }
 export interface Row { id: string; data: Record<string, unknown>; createdAt: string }
 
@@ -86,7 +92,7 @@ export class MeerkoClient {
     return this.request<{ table: Table }>("POST", "/tables", input).then((r) => r.table);
   }
 
-  addColumn(tableId: string, column: { name: string; type?: ColumnType }) {
+  addColumn(tableId: string, column: { name: string; type?: ColumnType; prompt?: string }) {
     return this.request<{ table: Table }>("POST", `/tables/${tableId}/columns`, column).then((r) => r.table);
   }
 
@@ -119,6 +125,19 @@ export class MeerkoClient {
 
   getCredits() {
     return this.request<{ enabled: boolean; balance: number | null }>("GET", "/credits");
+  }
+
+  updateRows(tableId: string, updates: { id: string; data: Record<string, unknown> }[]) {
+    return this.request<{ updated: number; addedColumns: Column[] }>("PATCH", `/tables/${tableId}/rows`, { updates });
+  }
+
+  /** Rows whose AI column is still empty, with the column's instruction rendered per row. */
+  getPendingCells(tableId: string, column: string, opts: { filter?: Record<string, unknown>; limit?: number } = {}) {
+    const params = new URLSearchParams();
+    if (opts.filter) params.set("filter", JSON.stringify(opts.filter));
+    if (opts.limit !== undefined) params.set("limit", String(opts.limit));
+    const qs = params.size ? `?${params}` : "";
+    return this.request<PendingCells>("GET", `/tables/${tableId}/columns/${encodeURIComponent(column)}/pending${qs}`);
   }
 
   queryRows(tableId: string, opts: { filter?: Record<string, unknown>; limit?: number; offset?: number } = {}) {

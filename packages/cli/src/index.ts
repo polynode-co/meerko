@@ -45,8 +45,9 @@ tables
   .command("add-column <tableId> <name>")
   .description("add a column")
   .option("-t, --type <type>", "text | number | email | url | boolean | json", "text")
-  .action(async (tableId: string, name: string, { type }: { type: "text" }) => {
-    const table = await MeerkoClient.fromEnv().addColumn(tableId, { name, type });
+  .option("-p, --prompt <prompt>", "make it an AI column: an instruction your agent answers per row ({{column_key}} inserts values)")
+  .action(async (tableId: string, name: string, { type, prompt }: { type: "text"; prompt?: string }) => {
+    const table = await MeerkoClient.fromEnv().addColumn(tableId, { name, type, prompt });
     console.log(json() ? JSON.stringify(table, null, 2) : `Columns: ${table.columns.map((c) => c.key).join(", ")}`);
   });
 
@@ -87,6 +88,23 @@ tables
     if (rows.length === 0) return console.log("No rows.");
     const keys = (await client.getTable(tableId)).columns.map((c) => c.key);
     console.table(rows.map((r) => r.data), keys);
+  });
+
+tables
+  .command("pending <tableId> <column>")
+  .description("print rows whose AI column is still empty, with the instruction rendered per row (JSON)")
+  .option("-l, --limit <n>", "max rows", "25")
+  .action(async (tableId: string, column: string, opts: { limit: string }) => {
+    const res = await MeerkoClient.fromEnv().getPendingCells(tableId, column, { limit: Number(opts.limit) });
+    console.log(JSON.stringify(res, null, 2));
+  });
+
+tables
+  .command("update <tableId> <file>")
+  .description("merge values into rows from a JSON file: [{ \"id\": \"<rowId>\", \"data\": { ... } }]")
+  .action(async (tableId: string, file: string) => {
+    const res = await MeerkoClient.fromEnv().updateRows(tableId, JSON.parse(readFileSync(file, "utf8")));
+    console.log(json() ? JSON.stringify(res) : `Updated ${res.updated} rows.`);
   });
 
 program

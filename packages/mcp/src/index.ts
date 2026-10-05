@@ -39,10 +39,44 @@ server.registerTool(
 server.registerTool(
   "add_column",
   {
-    description: "Add a column to a table.",
-    inputSchema: { table_id: z.string(), name: z.string(), type: columnType.optional() },
+    description: `Add a column to a table. Give it a \`prompt\` to make it an AI column: an instruction that you (the agent) answer per row, e.g. "Score ICP fit 1-5 for {{company}}: {{description}}" or "Write a one-line opener for {{first_name}} at {{company}}".
+Meerko doesn't run the prompt itself. Fill the column with get_pending_cells + update_rows. Calling this again with a new prompt replaces the instruction.`,
+    inputSchema: {
+      table_id: z.string(),
+      name: z.string(),
+      type: columnType.optional(),
+      prompt: z.string().optional().describe("Instruction for an AI column; {{column_key}} inserts that row's value"),
+    },
   },
-  ({ table_id, name, type }) => run(() => client().addColumn(table_id, { name, type })),
+  ({ table_id, name, type, prompt }) => run(() => client().addColumn(table_id, { name, type, prompt })),
+);
+
+server.registerTool(
+  "get_pending_cells",
+  {
+    description: `Fetch rows whose AI column is still empty, each with the column's instruction already filled in from that row ("instruction") plus the full row data.
+Answer each instruction yourself from the row data (and research, if the instruction asks for it), then save all answers in one update_rows call. Repeat while "remaining" > 0.
+Write "N/A" when a row lacks what the instruction needs, so it isn't returned again.`,
+    inputSchema: {
+      table_id: z.string(),
+      column: z.string().describe("The AI column's name or key"),
+      limit: z.number().int().min(1).max(200).optional().describe("Rows per batch (default 25)"),
+      filter: z.record(z.string(), z.unknown()).optional(),
+    },
+  },
+  ({ table_id, column, ...opts }) => run(() => client().getPendingCells(table_id, column, opts)),
+);
+
+server.registerTool(
+  "update_rows",
+  {
+    description: "Write values into existing rows by row id. Each update's `data` is merged into the row; new keys become new columns. Max 1,000 rows per call.",
+    inputSchema: {
+      table_id: z.string(),
+      updates: z.array(z.object({ id: z.string(), data: z.record(z.string(), z.unknown()) })),
+    },
+  },
+  ({ table_id, updates }) => run(() => client().updateRows(table_id, updates)),
 );
 
 server.registerTool(

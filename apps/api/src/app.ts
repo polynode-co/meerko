@@ -8,6 +8,7 @@ import {
   enrichRows,
   getBalance,
   icypeasProvider,
+  getPendingCells,
   getTable,
   IcypeasError,
   insertRows,
@@ -15,6 +16,7 @@ import {
   NotFoundError,
   queryRows,
   searchLeads,
+  updateRows,
   verifyApiKey,
   type CreditPolicy,
   type IcypeasClient,
@@ -25,7 +27,14 @@ import type { Db } from "@meerko/db";
 type Env = { Variables: { workspaceId: string } };
 
 const columnType = z.enum(["text", "number", "email", "url", "boolean", "json"]);
-const columnInput = z.object({ name: z.string().min(1), type: columnType.default("text") });
+const columnInput = z.object({
+  name: z.string().min(1),
+  type: columnType.default("text"),
+  prompt: z.string().min(1).optional(),
+});
+const updateRowsInput = z.object({
+  updates: z.array(z.object({ id: z.string(), data: z.record(z.string(), z.unknown()) })).max(1000),
+});
 const createTableInput = z.object({ name: z.string().min(1), columns: z.array(columnInput).optional() });
 const insertRowsInput = z.object({ rows: z.array(z.record(z.string(), z.unknown())).max(10_000) });
 const queryInput = z.object({
@@ -113,6 +122,16 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.post("/tables/:id/rows", async (c) => {
     const { rows } = await parse(insertRowsInput, await c.req.json());
     return c.json(await insertRows(db, c.var.workspaceId, c.req.param("id"), rows), 201);
+  });
+
+  v1.patch("/tables/:id/rows", async (c) => {
+    const { updates } = await parse(updateRowsInput, await c.req.json());
+    return c.json(await updateRows(db, c.var.workspaceId, c.req.param("id"), updates));
+  });
+
+  v1.get("/tables/:id/columns/:column/pending", async (c) => {
+    const opts = await parse(queryInput, c.req.query());
+    return c.json(await getPendingCells(db, c.var.workspaceId, c.req.param("id"), c.req.param("column"), opts));
   });
 
   v1.get("/tables/:id/rows", async (c) => {

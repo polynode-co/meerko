@@ -7,6 +7,11 @@ export interface ColumnDef {
   key: string;
   name: string;
   type: ColumnType;
+  /**
+   * Instruction for an AI column, with optional `{{column_key}}` variables. Meerko never runs it:
+   * the user's own agent fetches pending cells, writes the answers and saves them back.
+   */
+  prompt?: string;
 }
 
 const id = () => uuid("id").primaryKey().defaultRandom();
