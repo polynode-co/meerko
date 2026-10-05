@@ -6,8 +6,16 @@ import {
   countLeads,
   createTable,
   enrichRows,
+  deleteProviderKey,
+  EncryptionNotConfiguredError,
   getBalance,
+  getProviderKey,
+  IcypeasClient,
   icypeasProvider,
+  InsufficientCreditsError,
+  listProviderKeys,
+  setProviderKey,
+  BYOK_PROVIDERS,
   getPendingCells,
   getTable,
   IcypeasError,
@@ -19,7 +27,7 @@ import {
   updateRows,
   verifyApiKey,
   type CreditPolicy,
-  type IcypeasClient,
+  type SecretBox,
   type IcypeasQuery,
 } from "@meerko/core";
 import type { Db } from "@meerko/db";
@@ -84,12 +92,25 @@ export interface AppDeps {
   icypeas?: IcypeasClient;
   /** Cloud meters enrichment in credits; self-host (BYOK) leaves this off. */
   credits?: CreditPolicy;
+  /** Encrypts workspace provider keys; unset means BYOK keys can't be stored. */
+  secretBox?: SecretBox | null;
+  /** Builds a client for a workspace's own key (overridable in tests). */
+  icypeasForKey?: (apiKey: string) => IcypeasClient;
 }
 
 export function createApp(db: Db, deps: AppDeps = {}) {
-  const icypeas = () => {
-    if (!deps.icypeas) throw new HTTPException(503, { message: "Lead search is not configured (set ICYPEAS_API_KEY)" });
-    return deps.icypeas;
+  const credits = deps.credits ?? { enabled: false };
+  const box = deps.secretBox ?? null;
+  const icypeasForKey = deps.icypeasForKey ?? ((apiKey: string) => new IcypeasClient({ apiKey }));
+
+  /** A workspace's own Icypeas key wins and is never metered; otherwise the server's key and credit policy apply. */
+  const icypeasFor = async (workspaceId: string): Promise<{ client: IcypeasClient; credits: CreditPolicy }> => {
+    const own = await getProviderKey(db, box, workspaceId, "icypeas");
+    if (own) return { client: icypeasForKey(own), credits: { enabled: false } };
+    if (!deps.icypeas) {
+      throw new HTTPException(503, { message: "No Icypeas key: add yours with `meerko keys set icypeas <key>`, or set ICYPEAS_API_KEY on the server" });
+    }
+    return { client: deps.icypeas, credits };
   };
   const app = new Hono<Env>();
 
@@ -139,42 +160,65 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.json({ rows: await queryRows(db, c.var.workspaceId, c.req.param("id"), opts) });
   });
 
-  const credits = deps.credits ?? { enabled: false };
-
   v1.get("/credits", async (c) =>
     c.json({ enabled: credits.enabled, balance: credits.enabled ? await getBalance(db, c.var.workspaceId) : null }),
   );
 
   v1.post("/tables/:id/enrich", async (c) => {
     const input = await parse(enrichInput, await c.req.json());
-    const providers = [icypeasProvider(icypeas())];
-    return c.json(await enrichRows(db, c.var.workspaceId, c.req.param("id"), providers, input, credits));
+    const icy = await icypeasFor(c.var.workspaceId);
+    return c.json(await enrichRows(db, c.var.workspaceId, c.req.param("id"), [icypeasProvider(icy.client)], input, icy.credits));
   });
 
   for (const kind of ["people", "companies"] as const) {
     v1.post(`/search/${kind}/count`, async (c) => {
       const { query } = await parse(countInput, await c.req.json());
-      return c.json({ total: await countLeads(icypeas(), kind, query as IcypeasQuery) });
+      const icy = await icypeasFor(c.var.workspaceId);
+      return c.json({ total: await countLeads(icy.client, kind, query as IcypeasQuery) });
     });
 
     v1.post(`/search/${kind}`, async (c) => {
       const input = await parse(searchInput, await c.req.json());
-      const result = await searchLeads(db, c.var.workspaceId, icypeas(), {
-        kind,
-        query: input.query as IcypeasQuery,
-        limit: input.limit,
-        tableId: input.table_id,
-        tableName: input.table_name,
-      });
+      const icy = await icypeasFor(c.var.workspaceId);
+      const result = await searchLeads(
+        db,
+        c.var.workspaceId,
+        icy.client,
+        { kind, query: input.query as IcypeasQuery, limit: input.limit, tableId: input.table_id, tableName: input.table_name },
+        icy.credits,
+      );
       return c.json(result, 201);
     });
   }
+
+  v1.get("/provider-keys", async (c) => c.json({ keys: await listProviderKeys(db, c.var.workspaceId) }));
+
+  v1.put("/provider-keys/:provider", async (c) => {
+    const provider = await parse(z.enum(BYOK_PROVIDERS), c.req.param("provider"));
+    const { key } = await parse(z.object({ key: z.string().min(8) }), await c.req.json());
+    if (!box) throw new EncryptionNotConfiguredError();
+    // A free count call proves the key works before it's stored.
+    try {
+      await icypeasForKey(key).countCompanies({ location: { include: ["US"] } });
+    } catch (err) {
+      throw new HTTPException(400, { message: `Icypeas rejected this key: ${(err as Error).message}` });
+    }
+    await setProviderKey(db, box, c.var.workspaceId, provider, key);
+    return c.json({ provider, last4: key.slice(-4) });
+  });
+
+  v1.delete("/provider-keys/:provider", async (c) => {
+    const provider = await parse(z.enum(BYOK_PROVIDERS), c.req.param("provider"));
+    return c.json({ deleted: await deleteProviderKey(db, c.var.workspaceId, provider) });
+  });
 
   app.route("/v1", v1);
 
   app.onError((err, c) => {
     if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
+    if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
+    if (err instanceof EncryptionNotConfiguredError) return c.json({ error: err.message }, 503);
     if (err instanceof IcypeasError) {
       // Rejected filters are the caller's fault; anything else is an upstream failure.
       if (err.code === "insufficient_funds") return c.json({ error: "Lead search provider is out of credits" }, 402);

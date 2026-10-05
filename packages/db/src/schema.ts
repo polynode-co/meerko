@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, index, integer, jsonb, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, index, integer, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export type ColumnType = "text" | "number" | "email" | "url" | "boolean" | "json";
 
@@ -89,4 +89,18 @@ export const enrichmentRuns = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("enrichment_runs_row_id_idx").on(t.rowId)],
+);
+
+/** A workspace's own provider API keys (BYOK), encrypted with MEERKO_ENCRYPTION_KEY. Calls using them cost no credits. */
+export const providerKeys = pgTable(
+  "provider_keys",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    encryptedKey: text("encrypted_key").notNull(),
+    last4: text("last4").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("provider_keys_workspace_provider_idx").on(t.workspaceId, t.provider)],
 );

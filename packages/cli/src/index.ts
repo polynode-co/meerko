@@ -125,7 +125,11 @@ program
     }
     const res = await client.searchLeads(kind, { query, limit: Number(opts.limit), tableId: opts.table, tableName: opts.name });
     if (json()) return console.log(JSON.stringify(res, null, 2));
-    console.log(`Saved ${res.inserted} of ${res.total} matching ${kind} to "${res.tableName}" (${res.tableId}).`);
+    console.log(
+      `Saved ${res.inserted} of ${res.total} matching ${kind} to "${res.tableName}" (${res.tableId}).` +
+        (res.creditsSpent ? ` ${res.creditsSpent} credits.` : "") +
+        (res.cappedByCredits ? " Results were capped by your credit balance." : ""),
+    );
   });
 
 program
@@ -160,6 +164,34 @@ program
       if (!opts.all || opts.overwrite || res.remaining === 0 || res.processed === 0) break;
       if (res.errors === res.processed) throw new Error("Every row in the batch failed; stopping");
     }
+  });
+
+const keys = program.command("keys").description("bring your own provider keys (calls through them cost no credits)");
+
+keys
+  .command("ls")
+  .description("list stored provider keys")
+  .action(async () => {
+    const list = await MeerkoClient.fromEnv().listProviderKeys();
+    if (json()) return console.log(JSON.stringify(list, null, 2));
+    if (list.length === 0) return console.log("No provider keys. Add one with `meerko keys set icypeas <key>`.");
+    console.table(list.map((k) => ({ provider: k.provider, key: `…${k.last4}`, added: k.createdAt })));
+  });
+
+keys
+  .command("set <provider> <key>")
+  .description("store a provider key (supported: icypeas). It's checked with the provider first")
+  .action(async (provider: string, key: string) => {
+    const res = await MeerkoClient.fromEnv().setProviderKey(provider, key);
+    console.log(json() ? JSON.stringify(res) : `Saved ${res.provider} key …${res.last4}. Searches and enrichment now use it, with no credits charged.`);
+  });
+
+keys
+  .command("rm <provider>")
+  .description("remove a stored provider key")
+  .action(async (provider: string) => {
+    const { deleted } = await MeerkoClient.fromEnv().deleteProviderKey(provider);
+    console.log(deleted ? `Removed ${provider} key.` : `No ${provider} key was stored.`);
   });
 
 program

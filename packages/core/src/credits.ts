@@ -3,7 +3,15 @@ import type { EnrichField } from "./enrichment/types.ts";
 
 /** Meerko credits ($1 = 100) charged per successful result. Misses are free. */
 export const CREDIT_PRICES: Record<EnrichField, number> = { email: 8, email_verification: 1 };
+/** Per person/company returned by a lead search (Icypeas charges us per result too). Counts are free. */
+export const SEARCH_RESULT_CREDITS = 1;
 export const FREE_TIER_CREDITS = 1000;
+
+export class InsufficientCreditsError extends Error {
+  constructor(readonly balance: number, readonly needed: number) {
+    super(`Not enough credits: ${balance} available, at least ${needed} needed`);
+  }
+}
 
 /** Self-hosters bring their own provider keys, so metering is off unless MEERKO_CREDITS=on. */
 export interface CreditPolicy {

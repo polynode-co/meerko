@@ -107,7 +107,7 @@ const filterGuide = `Filters are objects keyed by field. Text fields take {inclu
 Use alpha-2 country codes for location ("ES", "US"). Expand titles across languages and acronyms (["CTO", "Chief Technology Officer", "Director de Tecnología"]).`;
 
 const leadSearchInput = {
-  limit: z.number().int().min(1).max(1000).optional().describe("Max results to fetch (default 25). Each result costs credits; count first."),
+  limit: z.number().int().min(1).max(1000).optional().describe("Max results to fetch (default 25). Each result costs 1 credit (none with your own Icypeas key); count first."),
   table_id: z.string().optional().describe("Append results to this table"),
   table_name: z.string().optional().describe("Name for a new table, used when table_id is omitted"),
   count_only: z.boolean().optional().describe("Only return how many leads match. Free; use before a paid search."),

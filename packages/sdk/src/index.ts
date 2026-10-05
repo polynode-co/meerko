@@ -107,7 +107,7 @@ export class MeerkoClient {
 
   /** Searches people or companies and writes the results into `tableId`, or a new table named `tableName`. */
   searchLeads(kind: LeadKind, input: { query: LeadQuery; limit?: number; tableId?: string; tableName?: string }) {
-    return this.request<SearchResult>("POST", `/search/${kind}`, {
+    return this.request<SearchResult & { creditsSpent: number; cappedByCredits?: boolean }>("POST", `/search/${kind}`, {
       query: input.query,
       limit: input.limit,
       table_id: input.tableId,
@@ -121,6 +121,19 @@ export class MeerkoClient {
     input: { fields?: EnrichField[]; filter?: Record<string, unknown>; limit?: number; overwrite?: boolean } = {},
   ) {
     return this.request<EnrichResult>("POST", `/tables/${tableId}/enrich`, input);
+  }
+
+  listProviderKeys() {
+    return this.request<{ keys: { provider: string; last4: string; createdAt: string }[] }>("GET", "/provider-keys").then((r) => r.keys);
+  }
+
+  /** Stores your own provider key (validated first); calls through it cost no Meerko credits. */
+  setProviderKey(provider: string, key: string) {
+    return this.request<{ provider: string; last4: string }>("PUT", `/provider-keys/${provider}`, { key });
+  }
+
+  deleteProviderKey(provider: string) {
+    return this.request<{ deleted: boolean }>("DELETE", `/provider-keys/${provider}`);
   }
 
   getCredits() {

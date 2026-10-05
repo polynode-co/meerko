@@ -8,3 +8,4 @@ export * from "./search.ts";
 export * from "./credits.ts";
 export * from "./enrich.ts";
 export * from "./template.ts";
+export * from "./provider-keys.ts";
