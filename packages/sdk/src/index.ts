@@ -37,6 +37,17 @@ export interface EnrichResult {
   balance?: number;
 }
 
+export interface Mailbox {
+  id: string;
+  provider: "gmail";
+  email: string;
+  displayName: string | null;
+  dailyLimit: number;
+  status: "active" | "error";
+  lastError: string | null;
+  createdAt: string;
+}
+
 export interface MeerkoConfig { apiUrl: string; apiKey: string }
 
 export const CONFIG_PATH = join(homedir(), ".meerko", "config.json");
@@ -121,6 +132,30 @@ export class MeerkoClient {
     input: { fields?: EnrichField[]; filter?: Record<string, unknown>; limit?: number; overwrite?: boolean } = {},
   ) {
     return this.request<EnrichResult>("POST", `/tables/${tableId}/enrich`, input);
+  }
+
+  /** Returns a Google consent URL; the mailbox appears in listMailboxes once the user approves. */
+  connectGmail(loginHint?: string) {
+    return this.request<{ url: string }>("POST", "/mailboxes/gmail/connect", { login_hint: loginHint });
+  }
+
+  listMailboxes() {
+    return this.request<{ mailboxes: Mailbox[] }>("GET", "/mailboxes").then((r) => r.mailboxes);
+  }
+
+  updateMailbox(id: string, patch: { dailyLimit?: number; displayName?: string | null }) {
+    return this.request<{ mailbox: Mailbox }>("PATCH", `/mailboxes/${id}`, {
+      daily_limit: patch.dailyLimit,
+      display_name: patch.displayName,
+    }).then((r) => r.mailbox);
+  }
+
+  deleteMailbox(id: string) {
+    return this.request<{ deleted: boolean }>("DELETE", `/mailboxes/${id}`);
+  }
+
+  sendTestEmail(id: string, to: string) {
+    return this.request<{ sent: boolean; messageId: string }>("POST", `/mailboxes/${id}/test`, { to });
   }
 
   listProviderKeys() {

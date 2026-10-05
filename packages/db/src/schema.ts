@@ -104,3 +104,21 @@ export const providerKeys = pgTable(
   },
   (t) => [uniqueIndex("provider_keys_workspace_provider_idx").on(t.workspaceId, t.provider)],
 );
+
+/** Connected sending mailboxes. The OAuth refresh token is encrypted with MEERKO_ENCRYPTION_KEY. */
+export const mailboxes = pgTable(
+  "mailboxes",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    provider: text("provider").$type<"gmail">().notNull(),
+    email: text("email").notNull(),
+    displayName: text("display_name"),
+    encryptedRefreshToken: text("encrypted_refresh_token").notNull(),
+    dailyLimit: integer("daily_limit").notNull().default(50),
+    status: text("status").$type<"active" | "error">().notNull().default("active"),
+    lastError: text("last_error"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("mailboxes_workspace_email_idx").on(t.workspaceId, t.email)],
+);

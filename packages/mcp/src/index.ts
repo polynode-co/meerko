@@ -165,6 +165,48 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
 );
 
 server.registerTool(
+  "connect_gmail",
+  {
+    description:
+      "Start connecting a Gmail/Google Workspace inbox to send from. Returns a Google consent URL: give it to the user to open and approve, then call list_mailboxes to confirm it's connected.",
+    inputSchema: { email: z.string().optional().describe("Google account to pre-select") },
+  },
+  ({ email }) => run(() => client().connectGmail(email)),
+);
+
+server.registerTool(
+  "list_mailboxes",
+  {
+    description: "List connected sending mailboxes with their daily limit and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail.",
+    inputSchema: {},
+  },
+  () => run(() => client().listMailboxes()),
+);
+
+server.registerTool(
+  "update_mailbox",
+  {
+    description: "Set a mailbox's daily send limit (start low, e.g. 30-50/day for a new inbox) or the sender name recipients see.",
+    inputSchema: {
+      mailbox_id: z.string(),
+      daily_limit: z.number().int().min(1).max(500).optional(),
+      display_name: z.string().optional(),
+    },
+  },
+  ({ mailbox_id, daily_limit, display_name }) =>
+    run(() => client().updateMailbox(mailbox_id, { dailyLimit: daily_limit, displayName: display_name })),
+);
+
+server.registerTool(
+  "send_test_email",
+  {
+    description: "Send a test email from a connected mailbox to check it works. Only send to the user's own address.",
+    inputSchema: { mailbox_id: z.string(), to: z.string() },
+  },
+  ({ mailbox_id, to }) => run(() => client().sendTestEmail(mailbox_id, to)),
+);
+
+server.registerTool(
   "get_credits",
   { description: "Show the workspace's credit balance (null when self-hosted with your own provider keys).", inputSchema: {} },
   () => run(() => client().getCredits()),

@@ -6,7 +6,15 @@ import {
   countLeads,
   createTable,
   enrichRows,
+  connectGmail,
+  createOAuthState,
+  deleteMailbox,
   deleteProviderKey,
+  GmailError,
+  listMailboxes,
+  OAuthStateError,
+  sendTestEmail,
+  updateMailbox,
   EncryptionNotConfiguredError,
   getBalance,
   getProviderKey,
@@ -27,6 +35,7 @@ import {
   updateRows,
   verifyApiKey,
   type CreditPolicy,
+  type GoogleOAuth,
   type SecretBox,
   type IcypeasQuery,
 } from "@meerko/core";
@@ -96,7 +105,17 @@ export interface AppDeps {
   secretBox?: SecretBox | null;
   /** Builds a client for a workspace's own key (overridable in tests). */
   icypeasForKey?: (apiKey: string) => IcypeasClient;
+  /** Unset when GOOGLE_CLIENT_ID/SECRET aren't configured; Gmail routes then return 503. */
+  googleOAuth?: GoogleOAuth;
+  /** Overrides fetch for Gmail API calls (tests). */
+  gmailFetch?: typeof fetch;
 }
+
+const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+const resultPage = (title: string, message: string) =>
+  `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escapeHtml(title)}</title>
+<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;line-height:1.5">
+<h1 style="font-size:1.4rem">${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p></body>`;
 
 export function createApp(db: Db, deps: AppDeps = {}) {
   const credits = deps.credits ?? { enabled: false };
@@ -115,6 +134,25 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   const app = new Hono<Env>();
 
   app.get("/health", (c) => c.json({ ok: true }));
+
+  const googleOAuth = () => {
+    if (!deps.googleOAuth) throw new HTTPException(503, { message: "Gmail isn't configured on this server (set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)" });
+    return deps.googleOAuth;
+  };
+
+  // Public: Google redirects the user's browser here, so it's authenticated by the encrypted `state`, not an API key.
+  app.get("/oauth/google/callback", async (c) => {
+    const { code, state, error } = c.req.query();
+    if (error) return c.html(resultPage("Gmail not connected", `Google said: ${error}. Run \`meerko mailboxes connect\` to try again.`), 400);
+    if (!code || !state) return c.html(resultPage("Gmail not connected", "This link is missing its sign-in code."), 400);
+    try {
+      const mailbox = await connectGmail(db, box, googleOAuth(), state, code, deps.gmailFetch);
+      return c.html(resultPage("Gmail connected", `Meerko can now send from ${mailbox.email}. You can close this tab.`));
+    } catch (err) {
+      if (!(err instanceof GmailError) && !(err instanceof OAuthStateError)) console.error(err);
+      return c.html(resultPage("Gmail not connected", (err as Error).message), 400);
+    }
+  });
 
   const v1 = new Hono<Env>();
 
@@ -191,6 +229,33 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     });
   }
 
+  v1.post("/mailboxes/gmail/connect", async (c) => {
+    const { login_hint } = await parse(z.object({ login_hint: z.string().email().optional() }), await c.req.json().catch(() => ({})));
+    return c.json({ url: googleOAuth().authUrl(createOAuthState(box, c.var.workspaceId), login_hint) });
+  });
+
+  v1.get("/mailboxes", async (c) => c.json({ mailboxes: await listMailboxes(db, c.var.workspaceId) }));
+
+  v1.patch("/mailboxes/:id", async (c) => {
+    const input = await parse(
+      z.object({ daily_limit: z.number().int().min(1).max(500).optional(), display_name: z.string().max(100).nullable().optional() }),
+      await c.req.json(),
+    );
+    const mailbox = await updateMailbox(db, c.var.workspaceId, c.req.param("id"), {
+      dailyLimit: input.daily_limit,
+      displayName: input.display_name,
+    });
+    return c.json({ mailbox });
+  });
+
+  v1.delete("/mailboxes/:id", async (c) => c.json({ deleted: await deleteMailbox(db, c.var.workspaceId, c.req.param("id")) }));
+
+  v1.post("/mailboxes/:id/test", async (c) => {
+    const { to } = await parse(z.object({ to: z.string().email() }), await c.req.json());
+    const sent = await sendTestEmail(db, box, googleOAuth(), c.var.workspaceId, c.req.param("id"), to, deps.gmailFetch);
+    return c.json({ sent: true, messageId: sent.id });
+  });
+
   v1.get("/provider-keys", async (c) => c.json({ keys: await listProviderKeys(db, c.var.workspaceId) }));
 
   v1.put("/provider-keys/:provider", async (c) => {
@@ -219,6 +284,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
     if (err instanceof EncryptionNotConfiguredError) return c.json({ error: err.message }, 503);
+    if (err instanceof GmailError) return c.json({ error: err.message }, err.needsReconnect ? 409 : 502);
     if (err instanceof IcypeasError) {
       // Rejected filters are the caller's fault; anything else is an upstream failure.
       if (err.code === "insufficient_funds") return c.json({ error: "Lead search provider is out of credits" }, 402);

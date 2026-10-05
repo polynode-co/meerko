@@ -1,5 +1,7 @@
 #!/usr/bin/env -S npx tsx
+import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 import { dirname } from "node:path";
 import { Command } from "commander";
 import { parse as parseCsv } from "csv-parse/sync";
@@ -164,6 +166,70 @@ program
       if (!opts.all || opts.overwrite || res.remaining === 0 || res.processed === 0) break;
       if (res.errors === res.processed) throw new Error("Every row in the batch failed; stopping");
     }
+  });
+
+const mailboxes = program.command("mailboxes").description("connect the inboxes Meerko sends from");
+
+mailboxes
+  .command("connect")
+  .description("connect a Gmail or Google Workspace inbox (opens Google's consent page)")
+  .option("-e, --email <address>", "pre-select this Google account")
+  .action(async (opts: { email?: string }) => {
+    const client = MeerkoClient.fromEnv();
+    const before = new Set((await client.listMailboxes()).map((m) => `${m.id}:${m.status}`));
+    const { url } = await client.connectGmail(opts.email);
+    console.log(`Approve access in your browser:\n\n  ${url}\n`);
+    // Best effort: open the browser; the printed link works either way.
+    const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open";
+    spawn(opener, [url], { stdio: "ignore", detached: true }).on("error", () => {}).unref();
+
+    console.log("Waiting for you to approve (Ctrl+C to stop)...");
+    for (let i = 0; i < 150; i++) {
+      await sleep(2000);
+      const added = (await client.listMailboxes()).find((m) => m.status === "active" && !before.has(`${m.id}:${m.status}`));
+      if (added) return console.log(`Connected ${added.email} (${added.id}). Send a test with \`meerko mailboxes test ${added.id} --to <you>\`.`);
+    }
+    throw new Error("Timed out waiting for Google approval. Run `meerko mailboxes connect` again.");
+  });
+
+mailboxes
+  .command("ls")
+  .description("list connected mailboxes")
+  .action(async () => {
+    const list = await MeerkoClient.fromEnv().listMailboxes();
+    if (json()) return console.log(JSON.stringify(list, null, 2));
+    if (list.length === 0) return console.log("No mailboxes. Connect one with `meerko mailboxes connect`.");
+    console.table(list.map((m) => ({ id: m.id, email: m.email, name: m.displayName ?? "", daily_limit: m.dailyLimit, status: m.status, error: m.lastError ?? "" })));
+  });
+
+mailboxes
+  .command("set <mailboxId>")
+  .description("change a mailbox's daily send limit or sender name")
+  .option("--daily-limit <n>", "max emails per day from this mailbox")
+  .option("--name <displayName>", 'sender name shown to recipients, e.g. "Pia from Slalom"')
+  .action(async (id: string, opts: { dailyLimit?: string; name?: string }) => {
+    const m = await MeerkoClient.fromEnv().updateMailbox(id, {
+      dailyLimit: opts.dailyLimit ? Number(opts.dailyLimit) : undefined,
+      displayName: opts.name,
+    });
+    console.log(json() ? JSON.stringify(m) : `${m.email}: ${m.dailyLimit}/day, name "${m.displayName ?? ""}"`);
+  });
+
+mailboxes
+  .command("test <mailboxId>")
+  .description("send a test email to check the connection")
+  .requiredOption("--to <address>", "recipient")
+  .action(async (id: string, opts: { to: string }) => {
+    await MeerkoClient.fromEnv().sendTestEmail(id, opts.to);
+    console.log(`Test email sent to ${opts.to}.`);
+  });
+
+mailboxes
+  .command("rm <mailboxId>")
+  .description("disconnect a mailbox")
+  .action(async (id: string) => {
+    const { deleted } = await MeerkoClient.fromEnv().deleteMailbox(id);
+    console.log(deleted ? "Mailbox disconnected." : "No such mailbox.");
   });
 
 const keys = program.command("keys").description("bring your own provider keys (calls through them cost no credits)");
