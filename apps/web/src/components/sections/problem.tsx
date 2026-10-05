@@ -1,13 +1,15 @@
 import { ArrowRight, Check } from "lucide-react";
+import Image from "next/image";
 import { Logo } from "../ui/brand";
 import { Container, Eyebrow, SectionTitle } from "../ui/primitives";
 
+// Logos: Clay, Apollo and Instantly from their own site icons; HubSpot and Zapier from Simple Icons (CC0).
 const stack = [
-  ["Clay", "Tables & enrichment", "$349/mo"],
-  ["Apollo", "Contact data", "$99/mo"],
-  ["Instantly", "Sending", "$97/mo"],
-  ["HubSpot", "CRM", "$90/mo"],
-  ["Zapier", "Glue", "$69/mo"],
+  ["Clay", "/logos/clay.png", "Tables & enrichment", "$349/mo"],
+  ["Apollo", "/logos/apollo.png", "Contact data", "$99/mo"],
+  ["Instantly", "/logos/instantly.png", "Sending", "$97/mo"],
+  ["HubSpot", "/logos/hubspot.svg", "CRM", "$90/mo"],
+  ["Zapier", "/logos/zapier.svg", "Glue", "$69/mo"],
 ];
 
 const included = [
@@ -35,10 +37,13 @@ export function Problem() {
 
         <div className="flex flex-col items-center gap-8 lg:flex-row">
           <div className="flex w-full flex-1 flex-col gap-2.5">
-            {stack.map(([tool, job, price]) => (
+            {stack.map(([tool, logo, job, price]) => (
               <div key={tool} className="flex items-center gap-4 rounded-[10px] border border-dark/10 bg-white/60 px-5 py-4">
-                <span className="w-24 text-[17px] font-semibold line-through">{tool}</span>
-                <span className="flex-1 text-[15px] text-dark-muted">{job}</span>
+                <span className="flex w-[124px] shrink-0 items-center gap-3 sm:w-36">
+                  <Image src={logo} alt="" width={24} height={24} className="size-6 shrink-0 rounded-md" />
+                  <span className="text-[17px] font-semibold line-through">{tool}</span>
+                </span>
+                <span className="flex-1 text-sm text-dark-muted sm:text-[15px]">{job}</span>
                 <span className="font-mono text-[15px] text-dark-muted">{price}</span>
               </div>
             ))}
