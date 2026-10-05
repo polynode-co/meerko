@@ -7,6 +7,17 @@ import {
   createTable,
   enrichRows,
   connectGmail,
+  createSequence,
+  enrollRows as enrollSequenceRows,
+  getSequence,
+  listSequences,
+  previewSequence,
+  readUnsubscribeToken,
+  SequenceError,
+  sequenceStats,
+  setSequenceStatus,
+  unsubscribe,
+  updateSequence,
   createOAuthState,
   deleteMailbox,
   deleteProviderKey,
@@ -82,6 +93,34 @@ const searchInput = z.object({
   table_name: z.string().min(1).optional(),
 });
 const countInput = z.object({ query: leadQuery });
+const stepInput = z.object({
+  subject: z.string().max(300).nullable().optional(),
+  body: z.string().min(1).max(20_000),
+  delay_days: z.number().int().min(0).max(60).optional(),
+});
+const sequenceFields = {
+  name: z.string().min(1).max(200),
+  mailbox_id: z.string(),
+  steps: z.array(stepInput).min(1).max(10),
+  timezone: z.string().optional(),
+  window_start_hour: z.number().int().min(0).max(23).optional(),
+  window_end_hour: z.number().int().min(1).max(24).optional(),
+};
+const createSequenceInput = z.object({ table_id: z.string(), ...sequenceFields });
+const updateSequenceInput = z.object(sequenceFields).partial();
+const toSequenceInput = (i: z.infer<typeof updateSequenceInput>) => ({
+  name: i.name,
+  mailboxId: i.mailbox_id,
+  steps: i.steps?.map((s) => ({ subject: s.subject, body: s.body, delayDays: s.delay_days })),
+  timezone: i.timezone,
+  windowStartHour: i.window_start_hour,
+  windowEndHour: i.window_end_hour,
+});
+const enrollInput = z.object({
+  row_ids: z.array(z.string()).max(5000).optional(),
+  filter: z.record(z.string(), z.unknown()).optional(),
+  limit: z.number().int().min(1).max(5000).optional(),
+});
 const enrichInput = z.object({
   fields: z.array(z.enum(["email", "email_verification"])).min(1).default(["email", "email_verification"]),
   filter: z.record(z.string(), z.unknown()).optional(),
@@ -139,6 +178,26 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.googleOAuth) throw new HTTPException(503, { message: "Gmail isn't configured on this server (set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)" });
     return deps.googleOAuth;
   };
+
+  // Public unsubscribe link from every email. GET shows a confirm button (link scanners only GET, so they
+  // can't unsubscribe people); POST unsubscribes, and is also what Gmail's one-click unsubscribe sends.
+  app.get("/u/:token", (c) => {
+    const target = box ? readUnsubscribeToken(box, c.req.param("token")) : null;
+    if (!target) return c.html(resultPage("Link not valid", "This unsubscribe link is broken or expired."), 400);
+    return c.html(
+      resultPage("Unsubscribe", `Stop all emails to ${target.email}?`).replace(
+        "</body>",
+        `<form method="post"><button style="font:inherit;padding:.5rem 1rem;cursor:pointer">Unsubscribe</button></form></body>`,
+      ),
+    );
+  });
+
+  app.post("/u/:token", async (c) => {
+    const target = box ? readUnsubscribeToken(box, c.req.param("token")) : null;
+    if (!target) return c.html(resultPage("Link not valid", "This unsubscribe link is broken or expired."), 400);
+    await unsubscribe(db, target.workspaceId, target.email);
+    return c.html(resultPage("Unsubscribed", `${target.email} won't receive any more emails from this sender.`));
+  });
 
   // Public: Google redirects the user's browser here, so it's authenticated by the encrypted `state`, not an API key.
   app.get("/oauth/google/callback", async (c) => {
@@ -256,6 +315,41 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.json({ sent: true, messageId: sent.id });
   });
 
+  v1.get("/sequences", async (c) => c.json({ sequences: await listSequences(db, c.var.workspaceId) }));
+
+  v1.post("/sequences", async (c) => {
+    const input = await parse(createSequenceInput, await c.req.json());
+    const seq = await createSequence(db, c.var.workspaceId, {
+      ...toSequenceInput(input),
+      tableId: input.table_id,
+      mailboxId: input.mailbox_id,
+      name: input.name,
+      steps: input.steps.map((s) => ({ subject: s.subject, body: s.body, delayDays: s.delay_days })),
+    });
+    return c.json({ sequence: await getSequence(db, c.var.workspaceId, seq.id) }, 201);
+  });
+
+  v1.get("/sequences/:id", async (c) => c.json({ sequence: await getSequence(db, c.var.workspaceId, c.req.param("id")) }));
+
+  v1.patch("/sequences/:id", async (c) => {
+    const input = await parse(updateSequenceInput, await c.req.json());
+    const patch = Object.fromEntries(Object.entries(toSequenceInput(input)).filter(([, v]) => v !== undefined));
+    return c.json({ sequence: await updateSequence(db, c.var.workspaceId, c.req.param("id"), patch) });
+  });
+
+  v1.get("/sequences/:id/preview", async (c) =>
+    c.json(await previewSequence(db, c.var.workspaceId, c.req.param("id"), c.req.query("row_id") || undefined)),
+  );
+
+  v1.post("/sequences/:id/enroll", async (c) => {
+    const input = await parse(enrollInput, await c.req.json());
+    return c.json(await enrollSequenceRows(db, c.var.workspaceId, c.req.param("id"), { rowIds: input.row_ids, filter: input.filter, limit: input.limit }));
+  });
+
+  v1.post("/sequences/:id/start", async (c) => c.json({ sequence: await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "active") }));
+  v1.post("/sequences/:id/pause", async (c) => c.json({ sequence: await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "paused") }));
+  v1.get("/sequences/:id/stats", async (c) => c.json(await sequenceStats(db, c.var.workspaceId, c.req.param("id"))));
+
   v1.get("/provider-keys", async (c) => c.json({ keys: await listProviderKeys(db, c.var.workspaceId) }));
 
   v1.put("/provider-keys/:provider", async (c) => {
@@ -283,6 +377,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
+    if (err instanceof SequenceError) return c.json({ error: err.message }, 400);
     if (err instanceof EncryptionNotConfiguredError) return c.json({ error: err.message }, 503);
     if (err instanceof GmailError) return c.json({ error: err.message }, err.needsReconnect ? 409 : 502);
     if (err instanceof IcypeasError) {

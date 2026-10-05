@@ -122,3 +122,92 @@ export const mailboxes = pgTable(
   },
   (t) => [uniqueIndex("mailboxes_workspace_email_idx").on(t.workspaceId, t.email)],
 );
+
+export type SequenceStatus = "draft" | "active" | "paused";
+export type EnrollmentState = "active" | "completed" | "replied" | "unsubscribed" | "bounced" | "stopped" | "failed";
+
+export const sequences = pgTable("sequences", {
+  id: id(),
+  workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  tableId: uuid("table_id").notNull().references(() => dataTables.id, { onDelete: "cascade" }),
+  mailboxId: uuid("mailbox_id").notNull().references(() => mailboxes.id, { onDelete: "restrict" }),
+  name: text("name").notNull(),
+  status: text("status").$type<SequenceStatus>().notNull().default("draft"),
+  /** Sends happen on weekdays between these local hours, in this IANA timezone. */
+  timezone: text("timezone").notNull().default("Europe/Madrid"),
+  windowStartHour: integer("window_start_hour").notNull().default(9),
+  windowEndHour: integer("window_end_hour").notNull().default(17),
+  createdAt: createdAt(),
+});
+
+export const sequenceSteps = pgTable(
+  "sequence_steps",
+  {
+    id: id(),
+    sequenceId: uuid("sequence_id").notNull().references(() => sequences.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    /** Days after the previous step (ignored for the first step, which goes out on start). */
+    delayDays: integer("delay_days").notNull().default(0),
+    /** Only the first step has a subject; follow-ups reply in the same thread. */
+    subject: text("subject"),
+    body: text("body").notNull(),
+  },
+  (t) => [uniqueIndex("sequence_steps_sequence_position_idx").on(t.sequenceId, t.position)],
+);
+
+export const enrollments = pgTable(
+  "enrollments",
+  {
+    id: id(),
+    sequenceId: uuid("sequence_id").notNull().references(() => sequences.id, { onDelete: "cascade" }),
+    rowId: uuid("row_id").notNull().references(() => tableRows.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    state: text("state").$type<EnrollmentState>().notNull().default("active"),
+    /** Position of the next step to send. */
+    nextStep: integer("next_step").notNull().default(0),
+    nextSendAt: timestamp("next_send_at", { withTimezone: true }),
+    gmailThreadId: text("gmail_thread_id"),
+    /** RFC Message-IDs sent so far, for In-Reply-To/References threading. */
+    messageIds: jsonb("message_ids").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    lastError: text("last_error"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("enrollments_sequence_row_idx").on(t.sequenceId, t.rowId),
+    index("enrollments_due_idx").on(t.state, t.nextSendAt),
+  ],
+);
+
+export const messages = pgTable(
+  "messages",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    mailboxId: uuid("mailbox_id").references(() => mailboxes.id, { onDelete: "set null" }),
+    enrollmentId: uuid("enrollment_id").references(() => enrollments.id, { onDelete: "set null" }),
+    direction: text("direction").$type<"out" | "in">().notNull(),
+    step: integer("step"),
+    gmailId: text("gmail_id"),
+    gmailThreadId: text("gmail_thread_id"),
+    rfcMessageId: text("rfc_message_id"),
+    fromEmail: text("from_email").notNull(),
+    toEmail: text("to_email").notNull(),
+    subject: text("subject"),
+    body: text("body").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("messages_mailbox_sent_idx").on(t.mailboxId, t.sentAt), index("messages_thread_idx").on(t.gmailThreadId)],
+);
+
+/** Addresses that must never be emailed again by this workspace (unsubscribes, bounces, manual). */
+export const suppressions = pgTable(
+  "suppressions",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    reason: text("reason").$type<"unsubscribed" | "bounced" | "manual">().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("suppressions_workspace_email_idx").on(t.workspaceId, t.email)],
+);

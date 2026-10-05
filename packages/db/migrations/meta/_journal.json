@@ -29,6 +29,13 @@
       "when": 1791215954660,
       "tag": "0003_mailboxes",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791216854484,
+      "tag": "0004_sequences",
+      "breakpoints": true
     }
   ]
 }

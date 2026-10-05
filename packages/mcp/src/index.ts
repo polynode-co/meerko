@@ -206,6 +206,100 @@ server.registerTool(
   ({ mailbox_id, to }) => run(() => client().sendTestEmail(mailbox_id, to)),
 );
 
+const stepSchema = z.object({
+  subject: z.string().optional().describe("Only for step 1; follow-ups reply in the same thread"),
+  body: z.string().describe("Plain text. Use {{column_key}} for row values, e.g. {{first_name}}. An unsubscribe line is appended automatically."),
+  delay_days: z.number().int().min(0).optional().describe("Days after the previous step (default 3)"),
+});
+
+server.registerTool(
+  "create_sequence",
+  {
+    description: `Create a DRAFT email sequence for a table, sent from one connected mailbox (see list_mailboxes).
+Write short, plain, personal emails: step 1 with a subject, 1-3 follow-ups that reply in the same thread. Use only {{vars}} that the table's rows actually have; rows missing a used variable are skipped at enrollment.
+Then: preview_sequence to check, enroll_rows, show the user the preview and enrollment counts, and only call start_sequence after the user approves.`,
+    inputSchema: {
+      table_id: z.string(),
+      name: z.string(),
+      mailbox_id: z.string(),
+      steps: z.array(stepSchema).min(1).max(10),
+      timezone: z.string().optional().describe("IANA timezone of the recipients, e.g. Europe/Madrid (default)"),
+      window_start_hour: z.number().int().min(0).max(23).optional().describe("Local hour sending starts on weekdays (default 9)"),
+      window_end_hour: z.number().int().min(1).max(24).optional().describe("Local hour sending stops (default 17)"),
+    },
+  },
+  (input) => run(() => client().createSequence(input)),
+);
+
+server.registerTool(
+  "update_sequence",
+  {
+    description: "Edit a sequence's name, mailbox, send window or steps (steps replace all existing ones; pause an active sequence first).",
+    inputSchema: {
+      sequence_id: z.string(),
+      name: z.string().optional(),
+      mailbox_id: z.string().optional(),
+      steps: z.array(stepSchema).min(1).max(10).optional(),
+      timezone: z.string().optional(),
+      window_start_hour: z.number().int().min(0).max(23).optional(),
+      window_end_hour: z.number().int().min(1).max(24).optional(),
+    },
+  },
+  ({ sequence_id, ...patch }) => run(() => client().updateSequence(sequence_id, patch)),
+);
+
+server.registerTool(
+  "preview_sequence",
+  {
+    description: "Render every step of a sequence for one row (the first row by default), exactly as it will be sent, plus any template variables that row is missing.",
+    inputSchema: { sequence_id: z.string(), row_id: z.string().optional() },
+  },
+  ({ sequence_id, row_id }) => run(() => client().previewSequence(sequence_id, row_id)),
+);
+
+server.registerTool(
+  "enroll_rows",
+  {
+    description:
+      "Enroll rows from the sequence's table. Skips (and counts) rows with no email, an undeliverable email, an unsubscribed address, a missing template variable, or already enrolled. Enrolling doesn't send anything until the sequence is started.",
+    inputSchema: {
+      sequence_id: z.string(),
+      row_ids: z.array(z.string()).optional(),
+      filter: z.record(z.string(), z.unknown()).optional().describe('Exact-match filter, e.g. {"email_certainty": "ultra_sure"}'),
+      limit: z.number().int().min(1).max(5000).optional(),
+    },
+  },
+  ({ sequence_id, ...opts }) => run(() => client().enrollRows(sequence_id, opts)),
+);
+
+server.registerTool(
+  "start_sequence",
+  {
+    description:
+      "Start sending a sequence. Real emails go to real people from the user's mailbox: only call this after the user has seen the preview and explicitly approved. Sends respect the send window, the mailbox's daily limit and spacing.",
+    inputSchema: { sequence_id: z.string() },
+  },
+  ({ sequence_id }) => run(() => client().startSequence(sequence_id)),
+);
+
+server.registerTool(
+  "pause_sequence",
+  { description: "Pause a sequence; nothing more is sent until it's started again.", inputSchema: { sequence_id: z.string() } },
+  ({ sequence_id }) => run(() => client().pauseSequence(sequence_id)),
+);
+
+server.registerTool(
+  "list_sequences",
+  { description: "List sequences with status and enrollment counts.", inputSchema: {} },
+  () => run(() => client().listSequences()),
+);
+
+server.registerTool(
+  "sequence_stats",
+  { description: "A sequence's enrollment states (active, completed, replied, unsubscribed, failed...), emails sent and reply rate.", inputSchema: { sequence_id: z.string() } },
+  ({ sequence_id }) => run(() => client().sequenceStats(sequence_id)),
+);
+
 server.registerTool(
   "get_credits",
   { description: "Show the workspace's credit balance (null when self-hosted with your own provider keys).", inputSchema: {} },

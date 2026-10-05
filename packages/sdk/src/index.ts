@@ -48,6 +48,32 @@ export interface Mailbox {
   createdAt: string;
 }
 
+export interface SequenceStep {
+  subject?: string | null;
+  body: string;
+  /** Days after the previous step; ignored for the first. Default 3. */
+  delay_days?: number;
+}
+export interface SequenceInput {
+  name: string;
+  mailbox_id: string;
+  steps: SequenceStep[];
+  timezone?: string;
+  window_start_hour?: number;
+  window_end_hour?: number;
+}
+export interface Sequence {
+  id: string;
+  name: string;
+  status: "draft" | "active" | "paused";
+  tableId: string;
+  mailboxId: string;
+  timezone: string;
+  windowStartHour: number;
+  windowEndHour: number;
+  steps: { position: number; delayDays: number; subject: string | null; body: string }[];
+}
+
 export interface MeerkoConfig { apiUrl: string; apiKey: string }
 
 export const CONFIG_PATH = join(homedir(), ".meerko", "config.json");
@@ -156,6 +182,59 @@ export class MeerkoClient {
 
   sendTestEmail(id: string, to: string) {
     return this.request<{ sent: boolean; messageId: string }>("POST", `/mailboxes/${id}/test`, { to });
+  }
+
+  listSequences() {
+    return this.request<{ sequences: (Omit<Sequence, "steps" | "timezone" | "windowStartHour" | "windowEndHour"> & { enrolled: number })[] }>(
+      "GET",
+      "/sequences",
+    ).then((r) => r.sequences);
+  }
+
+  createSequence(input: SequenceInput & { table_id: string }) {
+    return this.request<{ sequence: Sequence }>("POST", "/sequences", input).then((r) => r.sequence);
+  }
+
+  getSequence(id: string) {
+    return this.request<{ sequence: Sequence }>("GET", `/sequences/${id}`).then((r) => r.sequence);
+  }
+
+  updateSequence(id: string, patch: Partial<SequenceInput>) {
+    return this.request<{ sequence: Sequence }>("PATCH", `/sequences/${id}`, patch).then((r) => r.sequence);
+  }
+
+  previewSequence(id: string, rowId?: string) {
+    const qs = rowId ? `?row_id=${encodeURIComponent(rowId)}` : "";
+    return this.request<{
+      rowId: string;
+      to: string | null;
+      missingVars: string[];
+      steps: { position: number; delayDays: number; subject: string; body: string }[];
+    }>("GET", `/sequences/${id}/preview${qs}`);
+  }
+
+  enrollRows(id: string, opts: { row_ids?: string[]; filter?: Record<string, unknown>; limit?: number } = {}) {
+    return this.request<{ enrolled: number; skipped: Record<string, number> }>("POST", `/sequences/${id}/enroll`, opts);
+  }
+
+  startSequence(id: string) {
+    return this.request<{ sequence: Sequence }>("POST", `/sequences/${id}/start`).then((r) => r.sequence);
+  }
+
+  pauseSequence(id: string) {
+    return this.request<{ sequence: Sequence }>("POST", `/sequences/${id}/pause`).then((r) => r.sequence);
+  }
+
+  sequenceStats(id: string) {
+    return this.request<{
+      id: string;
+      name: string;
+      status: string;
+      enrolled: number;
+      emailsSent: number;
+      states: Record<string, number>;
+      replyRate: number;
+    }>("GET", `/sequences/${id}/stats`);
   }
 
   listProviderKeys() {

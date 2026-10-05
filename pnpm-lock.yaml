@@ -76,6 +76,15 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  apps/worker:
+    dependencies:
+      '@meerko/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@meerko/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+
   packages/cli:
     dependencies:
       '@meerko/sdk':

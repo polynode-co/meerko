@@ -232,6 +232,78 @@ mailboxes
     console.log(deleted ? "Mailbox disconnected." : "No such mailbox.");
   });
 
+const seqs = program.command("sequences").alias("seq").description("multi-step email sequences sent from your mailbox");
+
+seqs
+  .command("ls")
+  .description("list sequences")
+  .action(async () => {
+    const list = await MeerkoClient.fromEnv().listSequences();
+    if (json()) return console.log(JSON.stringify(list, null, 2));
+    if (list.length === 0) return console.log("No sequences. Create one with `meerko seq create <tableId> <file.json>`.");
+    console.table(list.map((s) => ({ id: s.id, name: s.name, status: s.status, enrolled: s.enrolled })));
+  });
+
+seqs
+  .command("create <tableId> <file>")
+  .description('create a draft sequence from JSON: {"name","mailbox_id","steps":[{"subject","body"},{"body","delay_days"}]}')
+  .action(async (tableId: string, file: string) => {
+    const seq = await MeerkoClient.fromEnv().createSequence({ ...JSON.parse(readFileSync(file, "utf8")), table_id: tableId });
+    console.log(json() ? JSON.stringify(seq, null, 2) : `Created draft "${seq.name}" (${seq.id}) with ${seq.steps.length} steps. Preview it with \`meerko seq preview ${seq.id}\`.`);
+  });
+
+seqs
+  .command("preview <sequenceId>")
+  .description("render every step for one row (the first by default)")
+  .option("-r, --row <rowId>", "row to render")
+  .action(async (id: string, opts: { row?: string }) => {
+    const p = await MeerkoClient.fromEnv().previewSequence(id, opts.row);
+    if (json()) return console.log(JSON.stringify(p, null, 2));
+    console.log(`To: ${p.to ?? "(no email)"}` + (p.missingVars.length ? `   Missing: ${p.missingVars.join(", ")}` : ""));
+    for (const s of p.steps) console.log(`\n--- Step ${s.position + 1}${s.position ? ` (+${s.delayDays}d)` : ""}: ${s.subject}\n${s.body}`);
+  });
+
+seqs
+  .command("enroll <sequenceId>")
+  .description("enroll rows from the sequence's table (rows that are unsafe to email are skipped)")
+  .option("-f, --filter <json>", "only rows matching this exact-match filter")
+  .option("-l, --limit <n>", "max rows")
+  .action(async (id: string, opts: { filter?: string; limit?: string }) => {
+    const res = await MeerkoClient.fromEnv().enrollRows(id, {
+      filter: opts.filter ? JSON.parse(opts.filter) : undefined,
+      limit: opts.limit ? Number(opts.limit) : undefined,
+    });
+    if (json()) return console.log(JSON.stringify(res));
+    const skipped = Object.entries(res.skipped).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k}`);
+    console.log(`Enrolled ${res.enrolled}.` + (skipped.length ? ` Skipped: ${skipped.join(", ")}.` : ""));
+  });
+
+seqs
+  .command("start <sequenceId>")
+  .description("start sending (within the send window, respecting mailbox limits)")
+  .action(async (id: string) => {
+    const s = await MeerkoClient.fromEnv().startSequence(id);
+    console.log(`"${s.name}" is active. Emails go out ${s.windowStartHour}:00-${s.windowEndHour}:00 ${s.timezone}, weekdays.`);
+  });
+
+seqs
+  .command("pause <sequenceId>")
+  .description("stop sending until started again")
+  .action(async (id: string) => {
+    const s = await MeerkoClient.fromEnv().pauseSequence(id);
+    console.log(`"${s.name}" is paused.`);
+  });
+
+seqs
+  .command("stats <sequenceId>")
+  .description("enrollment states, emails sent and reply rate")
+  .action(async (id: string) => {
+    const s = await MeerkoClient.fromEnv().sequenceStats(id);
+    if (json()) return console.log(JSON.stringify(s, null, 2));
+    console.log(`${s.name} (${s.status}): ${s.enrolled} enrolled, ${s.emailsSent} emails sent, ${s.replyRate}% replied`);
+    console.table(s.states);
+  });
+
 const keys = program.command("keys").description("bring your own provider keys (calls through them cost no credits)");
 
 keys
