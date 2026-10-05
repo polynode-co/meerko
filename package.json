@@ -1,0 +1,27 @@
+{
+  "name": "meerko",
+  "private": true,
+  "description": "Meerko — the open-source GTM agent.",
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@10.9.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:up": "docker compose up -d postgres",
+    "db:generate": "pnpm --filter @meerko/db generate",
+    "db:migrate": "pnpm --filter @meerko/db migrate",
+    "db:seed": "pnpm --filter @meerko/core seed",
+    "meerko": "tsx packages/cli/src/index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.7",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

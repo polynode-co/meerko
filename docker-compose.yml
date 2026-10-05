@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: meerko
+      POSTGRES_PASSWORD: meerko
+      POSTGRES_DB: meerko
+    ports:
+      - "54329:5432"
+    volumes:
+      - meerko-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meerko"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  meerko-pg:
