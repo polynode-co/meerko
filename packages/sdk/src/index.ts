@@ -175,9 +175,9 @@ export class MeerkoClient {
     return json as T;
   }
 
-  /** Whether the server offers "Sign in with Google" for the dashboard (public; no key needed). */
+  /** Whether the server offers "Sign in with Google", and whether anyone can sign up (public; no key needed). */
   authConfig() {
-    return this.call<{ google: boolean }>("GET", "/auth/config");
+    return this.call<{ google: boolean; signup: "open" | "invite" }>("GET", "/auth/config");
   }
 
   /** Trades the one-time code from the Google sign-in callback for a session token (public; no key needed). */

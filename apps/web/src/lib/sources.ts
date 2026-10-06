@@ -25,3 +25,10 @@ export const claySources = {
   pricing: { label: "Clay pricing", url: "https://www.clay.com/pricing" },
   globalInbox: { label: "Clay University: Global Inbox", url: "https://university.clay.com/lessons/global-inbox" },
 };
+
+/** For /gtm-engineer. Attributed claims ("Clay says…") are what each source states. */
+export const gtmSources = {
+  clay: { label: "Clay: GTM Engineering: What It Is, How It Works, and How to Hire", url: "https://www.clay.com/blog/gtm-engineering" },
+  apollo: { label: "Apollo: Who Is a GTM Engineer and What Skills Do They Need?", url: "https://www.apollo.io/insights/who-is-a-gtm-engineer-and-what-skills-do-they-need" },
+  cargo: { label: "Cargo: GTM Engineer Salary (published 20 Jul 2026)", url: "https://www.getcargo.ai/blog/gtm-engineer-salary" },
+};

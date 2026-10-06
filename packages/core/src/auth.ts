@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, asc, authCodes, eq, invitations, lte, memberships, sessions, sql, users, workspaces, type Db, type Role } from "@meerko/db";
+import { and, asc, authCodes, creditLedger, eq, invitations, lte, memberships, sessions, sql, users, workspaces, type Db, type Role } from "@meerko/db";
+import { FREE_TIER_CREDITS } from "./credits.ts";
 import type { GoogleProfile } from "./mail/gmail.ts";
 
 const SESSION_PREFIX = "ms_";
@@ -58,6 +59,8 @@ export async function signInWithGoogle(db: Db, profile: GoogleProfile, signup: S
       .values({ name: `${profile.name?.split(" ")[0] ?? profile.email.split("@")[0]}'s workspace` })
       .returning();
     await tx.insert(memberships).values({ userId: user!.id, workspaceId: ws!.id, role: "owner" });
+    // The free tier the site promises; only counted when the server meters credits (MEERKO_CREDITS=on).
+    await tx.insert(creditLedger).values({ workspaceId: ws!.id, delta: FREE_TIER_CREDITS, reason: "free_tier" });
     return { userId: user!.id, workspaceId: ws!.id };
   });
 }

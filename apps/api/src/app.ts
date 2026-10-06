@@ -304,7 +304,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   const signInEnabled = () => !!(deps.googleSignIn && deps.appUrl && box);
   const toLogin = (error: string) => backToApp(new URL("/login", deps.appUrl).toString(), { error });
 
-  app.get("/auth/config", (c) => c.json({ google: signInEnabled() }));
+  app.get("/auth/config", (c) => c.json({ google: signInEnabled(), signup: deps.signup ?? "invite" }));
 
   app.get("/auth/google/start", (c) => {
     if (!signInEnabled()) throw new HTTPException(404, { message: "Google sign-in isn't configured on this server" });

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Ticket } from "lucide-react";
+import { Check, Gift, Ticket } from "lucide-react";
 import { useActionState } from "react";
 import { Logo, Mascot } from "@/components/ui/brand";
 import { login } from "@/app/app/actions";
@@ -37,7 +37,7 @@ function BrandPanel() {
 }
 
 /** `googleUrl` set: "Sign in with Google" (cloud). Unset: paste an API key (self-hosting without Google). */
-export function LoginForm({ googleUrl, notice }: { googleUrl: string | null; notice?: string }) {
+export function LoginForm({ googleUrl, inviteOnly, notice }: { googleUrl: string | null; inviteOnly: boolean; notice?: string }) {
   const [state, action, pending] = useActionState(login, null);
   const error = state && !state.ok ? state.error : notice;
 
@@ -76,15 +76,22 @@ export function LoginForm({ googleUrl, notice }: { googleUrl: string | null; not
                   <GoogleIcon />
                   Continue with Google
                 </a>
-                <div className="flex gap-3 rounded-[10px] border border-line bg-raised px-4 py-3.5 text-sm">
-                  <Ticket className="mt-0.5 size-[17px] shrink-0 text-accent" />
-                  <p className="flex flex-col gap-1">
-                    <span className="font-semibold">Meerko Cloud is invite-only for now.</span>
-                    <a href="/docs" className="text-accent hover:underline">
-                      Not invited yet? Self-host Meerko for free →
-                    </a>
+                {inviteOnly ? (
+                  <div className="flex gap-3 rounded-[10px] border border-line bg-raised px-4 py-3.5 text-sm">
+                    <Ticket className="mt-0.5 size-[17px] shrink-0 text-accent" />
+                    <p className="flex flex-col gap-1">
+                      <span className="font-semibold">Meerko Cloud is invite-only for now.</span>
+                      <a href="/docs" className="text-accent hover:underline">
+                        Not invited yet? Self-host Meerko for free →
+                      </a>
+                    </p>
+                  </div>
+                ) : (
+                  <p className="flex gap-2.5 text-sm text-muted">
+                    <Gift className="mt-0.5 size-[17px] shrink-0 text-accent" />
+                    New to Meerko? Your first sign-in creates your workspace with 1,000 free credits.
                   </p>
-                </div>
+                )}
               </>
             ) : (
               <form action={action} className="flex flex-col gap-4">

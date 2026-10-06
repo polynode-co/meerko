@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/pricing", changeFrequency: "monthly", priority: 0.8 },
     { path: "/docs", changeFrequency: "weekly", priority: 0.8 },
     { path: "/clay-alternative", changeFrequency: "monthly", priority: 0.7 },
+    { path: "/gtm-engineer", changeFrequency: "monthly", priority: 0.7 },
   ].map(({ path, changeFrequency, priority }) => ({
     url: new URL(path, site.url).toString(),
     changeFrequency: changeFrequency as MetadataRoute.Sitemap[number]["changeFrequency"],

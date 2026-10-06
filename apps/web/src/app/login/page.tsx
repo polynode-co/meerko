@@ -18,12 +18,12 @@ async function isSignedIn(token: string) {
 }
 
 /** "Sign in with Google" when the API offers it; otherwise (self-hosting) the API-key form. */
-async function googleSignInUrl() {
+async function signInOptions() {
   try {
-    const { google } = await new MeerkoClient({ apiUrl: apiUrl(), apiKey: "" }).authConfig();
-    return google ? new URL("/auth/google/start", apiUrl()).toString() : null;
+    const { google, signup } = await new MeerkoClient({ apiUrl: apiUrl(), apiKey: "" }).authConfig();
+    return { googleUrl: google ? new URL("/auth/google/start", apiUrl()).toString() : null, inviteOnly: signup !== "open" };
   } catch {
-    return null;
+    return { googleUrl: null, inviteOnly: true };
   }
 }
 
@@ -32,5 +32,5 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   // Already signed in: skip the form. (`expired` means the dashboard just rejected the credential.)
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (token && !expired && (await isSignedIn(token))) redirect("/app");
-  return <LoginForm googleUrl={await googleSignInUrl()} notice={error ?? (expired ? "Your session expired. Sign in again." : undefined)} />;
+  return <LoginForm {...await signInOptions()} notice={error ?? (expired ? "Your session expired. Sign in again." : undefined)} />;
 }

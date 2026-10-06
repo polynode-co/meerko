@@ -5,7 +5,7 @@ import { Container } from "../ui/primitives";
 const columns = [
   ["Product", [["Features", "/#product"], ["Pricing", site.pricingUrl], ["Changelog", `${site.githubUrl}/commits/main`], ["Roadmap", `${site.githubUrl}/blob/main/docs/PLAN.md`]]],
   ["Developers", [["Docs", site.docsUrl], ["CLI", `${site.githubUrl}#cli`], ["MCP server", site.docsUrl], ["GitHub", site.githubUrl]]],
-  ["Compare", [["Clay alternative", "/clay-alternative"]]],
+  ["Learn", [["What is a GTM engineer?", "/gtm-engineer"], ["Clay alternative", "/clay-alternative"]]],
 ] as const;
 
 export function Footer() {

@@ -48,8 +48,8 @@ describe.skipIf(!process.env.DATABASE_URL)("dashboard sign-in (db)", () => {
     app.request(`/v1${path}`, { ...init, headers: { authorization: `Bearer ${token}`, "content-type": "application/json" } });
 
   it("reports whether Google sign-in is on", async () => {
-    expect(await (await app.request("/auth/config")).json()).toEqual({ google: true });
-    expect(await (await createApp(db).request("/auth/config")).json()).toEqual({ google: false });
+    expect(await (await app.request("/auth/config")).json()).toEqual({ google: true, signup: "open" });
+    expect(await (await createApp(db).request("/auth/config")).json()).toEqual({ google: false, signup: "invite" });
   });
 
   it("refuses a callback from a browser that didn't start the sign-in", async () => {
