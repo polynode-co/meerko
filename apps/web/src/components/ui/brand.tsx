@@ -1,7 +1,8 @@
 import Image from "next/image";
 
 export function LogoMark({ size = 32 }: { size?: number }) {
-  return <Image src="/meerko-mark.svg" alt="" width={size} height={Math.round(size * 0.59)} priority />;
+  // The mascot's head (meerko-mascot.svg cropped at the chin), 129×85.
+  return <Image src="/meerko-mark.svg" alt="" width={size} height={Math.round((size * 85) / 129)} priority />;
 }
 
 export function Wordmark({ className = "text-2xl" }: { className?: string }) {

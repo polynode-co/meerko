@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "Meerko — the open-source AI sales agent",
   description:
     "Meerko is an open-source AI sales agent (AI SDR): find leads, send cold email from your own Gmail and catch every reply, from Claude Code or Cursor.",
-  icons: { icon: "/meerko-mark.svg" },
+  icons: { icon: "/meerko-icon.svg" },
   openGraph: {
     title: "Meerko — the open-source AI sales agent",
     description: "An AI SDR you run from Claude Code: find leads, send from your own Gmail, catch every reply. Open source.",
