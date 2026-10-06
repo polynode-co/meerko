@@ -5,7 +5,7 @@ import { GitHubIcon, Logo } from "../ui/brand";
 import { Container } from "../ui/primitives";
 
 const links = [
-  ["Product", "/#how-it-works"],
+  ["Product", "/#product"],
   ["Docs", site.docsUrl],
   ["Pricing", site.pricingUrl],
   ["Changelog", `${site.githubUrl}/commits/main`],

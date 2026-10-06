@@ -42,7 +42,7 @@ function setupPrompt() {
 
 export function AgentSuperpowers() {
   return (
-    <section className="bg-sand text-dark">
+    <section id="product" className="scroll-mt-20 bg-sand text-dark">
       <Container className="flex flex-col items-center gap-14 py-24 lg:flex-row lg:gap-[72px] lg:py-[112px]">
         <TerminalWindow
           title="claude · meerko mcp"
