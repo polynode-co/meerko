@@ -19,6 +19,7 @@ const app = createApp(createDb(), {
           redirectUri: new URL("/oauth/google/callback", publicUrl).toString(),
         })
       : undefined,
+  tick: process.env.MEERKO_TICK_SECRET ? { secret: process.env.MEERKO_TICK_SECRET, publicUrl } : undefined,
 });
 
 serve({ fetch: app.fetch, port }, () => console.log(`Meerko API listening on http://localhost:${port}`));

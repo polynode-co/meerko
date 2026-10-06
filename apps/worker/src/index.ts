@@ -1,6 +1,6 @@
-// Background jobs: the email sender every 30s (at most one email per mailbox per tick, so limits,
-// spacing and send windows are enforced in `runSendTick`), and the reply scan every 2 minutes.
-import { GoogleOAuth, runReplyTick, runSendTick, SecretBox } from "@meerko/core";
+// Background jobs for self-hosting: the email sender every 30s and the reply scan every 2 minutes.
+// Meerko Cloud doesn't run this process; Cloud Scheduler calls POST /internal/tick on the API instead.
+import { GoogleOAuth, runWorkerTick, SecretBox } from "@meerko/core";
 import { createDb } from "@meerko/db";
 
 const TICK_MS = 30_000;
@@ -27,18 +27,11 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !box) {
   const tick = async () => {
     busy = true;
     try {
-      // Replies first, so a reply that just arrived stops a follow-up due in this same tick.
-      if (ticks++ % REPLY_EVERY_TICKS === 0) {
-        try {
-          const r = await runReplyTick(db, { box, oauth });
-          if (r.replies || r.bounces || r.unsubscribes || r.outOfOffice) {
-            console.log(`replies: ${r.replies} replies, ${r.bounces} bounces, ${r.unsubscribes} unsubscribes, ${r.outOfOffice} out of office`);
-          }
-        } catch (err) {
-          console.error("reply scan failed:", err);
-        }
+      const { replies: r, replyError, send: res } = await runWorkerTick(db, { box, oauth, publicUrl }, { replies: ticks++ % REPLY_EVERY_TICKS === 0 });
+      if (replyError) console.error("reply scan failed:", replyError);
+      if (r && (r.replies || r.bounces || r.unsubscribes || r.outOfOffice)) {
+        console.log(`replies: ${r.replies} replies, ${r.bounces} bounces, ${r.unsubscribes} unsubscribes, ${r.outOfOffice} out of office`);
       }
-      const res = await runSendTick(db, { box, oauth, publicUrl });
       if (res.sent || res.failed || res.deferred) console.log(`sender: ${res.sent} sent, ${res.deferred} deferred, ${res.failed} failed`);
     } catch (err) {
       console.error("sender tick failed:", err);

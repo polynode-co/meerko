@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { timingSafeEqual } from "node:crypto";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import {
@@ -28,6 +29,7 @@ import {
   setSequenceStatus,
   unsubscribe,
   updateSequence,
+  runWorkerTick,
   createOAuthState,
   deleteMailbox,
   deleteProviderKey,
@@ -159,6 +161,11 @@ export interface AppDeps {
   googleOAuth?: GoogleOAuth;
   /** Overrides fetch for Gmail API calls (tests). */
   gmailFetch?: typeof fetch;
+  /**
+   * Enables POST /internal/tick for Cloud Scheduler (cloud runs no worker process). Unset when
+   * MEERKO_TICK_SECRET isn't configured, and the route then answers 404.
+   */
+  tick?: { secret: string; publicUrl: string };
 }
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -189,6 +196,20 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.googleOAuth) throw new HTTPException(503, { message: "Gmail isn't configured on this server (set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)" });
     return deps.googleOAuth;
   };
+
+  // Called every minute by Cloud Scheduler with `Authorization: Bearer <MEERKO_TICK_SECRET>`.
+  app.post("/internal/tick", async (c) => {
+    const given = Buffer.from(c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "");
+    const expected = Buffer.from(deps.tick?.secret ?? "");
+    if (!deps.tick || given.length !== expected.length || !timingSafeEqual(given, expected)) return c.json({ error: "Not found" }, 404);
+    const result = await runWorkerTick(
+      db,
+      { box, oauth: googleOAuth(), publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch },
+      { replies: c.req.query("replies") !== "0" },
+    );
+    if (result.replyError) console.error("reply scan failed:", result.replyError);
+    return c.json(result);
+  });
 
   // Public unsubscribe link from every email. GET shows a confirm button (link scanners only GET, so they
   // can't unsubscribe people); POST unsubscribes, and is also what Gmail's one-click unsubscribe sends.
