@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Footer } from "@/components/sections/footer";
 import { Nav } from "@/components/sections/nav";
-import { Pricing } from "@/components/sections/pricing";
+import { CreditCosts, Pricing, PricingFaq } from "@/components/sections/pricing";
 
 export const metadata: Metadata = {
   title: "Pricing — Meerko",
@@ -15,6 +15,8 @@ export default function PricingPage() {
       <Nav />
       <main>
         <Pricing />
+        <CreditCosts />
+        <PricingFaq />
       </main>
       <Footer />
     </>

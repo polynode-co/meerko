@@ -3,9 +3,9 @@ import { Logo } from "../ui/brand";
 import { Container } from "../ui/primitives";
 
 const columns = [
-  ["Product", [["Features", "/#product"], ["Pricing", site.pricingUrl], ["Changelog", `${site.githubUrl}/commits/main`], ["Roadmap", site.docsUrl]]],
-  ["Developers", [["Docs", site.docsUrl], ["CLI", site.docsUrl], ["MCP server", site.docsUrl], ["GitHub", site.githubUrl]]],
-  ["Compare", [["Clay alternative", "#"], ["Instantly alternative", "#"], ["Apollo alternative", "#"], ["Open-source AI SDR", "#"]]],
+  ["Product", [["Features", "/#product"], ["Pricing", site.pricingUrl], ["Changelog", `${site.githubUrl}/commits/main`], ["Roadmap", `${site.githubUrl}/blob/main/docs/PLAN.md`]]],
+  ["Developers", [["Docs", site.docsUrl], ["CLI", `${site.githubUrl}#cli`], ["MCP server", site.docsUrl], ["GitHub", site.githubUrl]]],
+  ["Compare", [["Clay alternative", "/compare/clay"], ["Instantly alternative", "#"], ["Apollo alternative", "#"], ["Open-source AI SDR", "#"]]],
 ] as const;
 
 export function Footer() {

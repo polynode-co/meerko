@@ -1,8 +1,8 @@
 "use client";
 
+import { Check, Ticket } from "lucide-react";
 import { useActionState } from "react";
-import { Logo } from "@/components/ui/brand";
-import { buttonClass } from "@/components/app/ui";
+import { Logo, Mascot } from "@/components/ui/brand";
 import { login } from "@/app/app/actions";
 
 function GoogleIcon() {
@@ -16,69 +16,98 @@ function GoogleIcon() {
   );
 }
 
+/** The sand panel beside the form (hidden on small screens). */
+function BrandPanel() {
+  return (
+    <aside className="hidden w-[44%] max-w-[620px] shrink-0 flex-col items-center justify-center gap-10 bg-sand p-16 text-dark lg:flex">
+      <Mascot className="h-[240px] w-auto" />
+      <div className="flex max-w-[440px] flex-col items-center gap-3.5 text-center">
+        <p className="font-display text-[32px] leading-[1.1] font-bold tracking-[-0.02em]">Always on the lookout for your next reply.</p>
+        <p className="leading-[1.5] text-dark-muted">Find leads, send from your own Gmail and catch every reply — from the dashboard or your agent.</p>
+      </div>
+      <ul className="flex flex-wrap justify-center gap-2.5">
+        {["Open source", "Your own inbox", "Works in Claude Code"].map((t) => (
+          <li key={t} className="flex items-center gap-1.5 rounded-full bg-dark/5 px-3 py-1.5 text-[13px] font-medium">
+            <Check className="size-3.5 text-[#0e9f6e]" /> {t}
+          </li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
+
 /** `googleUrl` set: "Sign in with Google" (cloud). Unset: paste an API key (self-hosting without Google). */
 export function LoginForm({ googleUrl, notice }: { googleUrl: string | null; notice?: string }) {
   const [state, action, pending] = useActionState(login, null);
   const error = state && !state.ok ? state.error : notice;
 
-  const header = (
-    <>
-      <a href="/" aria-label="Meerko home" className="self-start">
-        <Logo size={30} className="text-xl" />
-      </a>
-      <div className="flex flex-col gap-1.5">
-        <h1 className="font-display text-2xl font-bold tracking-tight">Open your workspace</h1>
-        <p className="text-[13px] text-muted">
-          {googleUrl ? (
-            "Sign in with the Google account Meerko knows you by."
-          ) : (
-            <>
-              Paste your Meerko API key. Create one with <span className="font-mono text-fg">pnpm db:seed</span> on a self-hosted install.
-            </>
-          )}
-        </p>
-      </div>
-    </>
-  );
-  const alert = error ? (
-    <p role="alert" className="text-[13px] text-[#e5795b]">
-      {error}
-    </p>
-  ) : null;
-
-  if (googleUrl) {
-    return (
-      <main className="grid min-h-dvh place-items-center px-5">
-        <div className="flex w-full max-w-sm flex-col gap-5 rounded-xl border border-line bg-raised p-7">
-          {header}
-          {alert}
-          {/* A full navigation, not a client-side Link: the API redirects on to Google. */}
-          <a href={googleUrl} className={`${buttonClass("primary")} justify-center gap-2.5 py-2.5`}>
-            <GoogleIcon />
-            Continue with Google
-          </a>
-        </div>
-      </main>
-    );
-  }
-
   return (
-    <main className="grid min-h-dvh place-items-center px-5">
-      <form action={action} className="flex w-full max-w-sm flex-col gap-5 rounded-xl border border-line bg-raised p-7">
-        {header}
-        <input
-          name="key"
-          type="password"
-          autoComplete="off"
-          required
-          placeholder="mk_…"
-          className="rounded-lg border border-line bg-ink px-3 py-2.5 font-mono text-sm outline-none focus:border-accent"
-        />
-        {alert}
-        <button disabled={pending} className={`${buttonClass("primary")} justify-center py-2.5`}>
-          {pending ? "Checking…" : "Continue"}
-        </button>
-      </form>
-    </main>
+    <div className="flex min-h-dvh">
+      <main className="flex flex-1 flex-col justify-between gap-10 px-6 py-8 sm:px-16 sm:py-10">
+        <a href="/" aria-label="Meerko home" className="self-start">
+          <Logo size={30} className="text-[22px]" />
+        </a>
+
+        <div className="flex justify-center">
+          <div className="flex w-full max-w-[400px] flex-col gap-7">
+            <div className="flex flex-col gap-2.5">
+              <h1 className="font-display text-4xl font-bold tracking-[-0.02em]">Open your workspace</h1>
+              <p className="leading-[1.5] text-muted">
+                {googleUrl ? (
+                  "Sign in with the Google account Meerko knows you by."
+                ) : (
+                  <>
+                    Paste your Meerko API key. Create one with <span className="font-mono text-fg">pnpm db:seed</span> on a self-hosted install.
+                  </>
+                )}
+              </p>
+            </div>
+
+            {error && (
+              <p role="alert" className="text-[13px] text-[#e5795b]">
+                {error}
+              </p>
+            )}
+
+            {googleUrl ? (
+              <>
+                {/* A full navigation, not a client-side Link: the API redirects on to Google. */}
+                <a href={googleUrl} className="flex items-center justify-center gap-3 rounded-[10px] bg-accent px-5 py-3.5 text-base font-semibold text-dark transition hover:brightness-110">
+                  <GoogleIcon />
+                  Continue with Google
+                </a>
+                <div className="flex gap-3 rounded-[10px] border border-line bg-raised px-4 py-3.5 text-sm">
+                  <Ticket className="mt-0.5 size-[17px] shrink-0 text-accent" />
+                  <p className="flex flex-col gap-1">
+                    <span className="font-semibold">Meerko Cloud is invite-only for now.</span>
+                    <a href="/docs" className="text-accent hover:underline">
+                      Not invited yet? Self-host Meerko for free →
+                    </a>
+                  </p>
+                </div>
+              </>
+            ) : (
+              <form action={action} className="flex flex-col gap-4">
+                <input
+                  name="key"
+                  type="password"
+                  autoComplete="off"
+                  required
+                  placeholder="mk_…"
+                  aria-label="API key"
+                  className="rounded-lg border border-line bg-raised px-3 py-3 font-mono text-sm outline-none focus:border-accent"
+                />
+                <button disabled={pending} className="flex items-center justify-center rounded-[10px] bg-accent px-5 py-3 text-base font-semibold text-dark transition hover:brightness-110 disabled:opacity-50">
+                  {pending ? "Checking…" : "Continue"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+
+        <span />
+      </main>
+      <BrandPanel />
+    </div>
   );
 }

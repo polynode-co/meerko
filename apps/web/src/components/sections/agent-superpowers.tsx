@@ -14,12 +14,13 @@ const commands = [
 ];
 
 // Logos from Lobe Icons (@lobehub/icons-static-svg); Codex uses the OpenAI mark.
+// `mono` marks are black (currentColor in an <img>), so they're inverted on the dark background.
 const agents = [
-  ["Claude Code", "/logos/agents/claude.svg"],
-  ["Codex", "/logos/agents/openai.svg"],
-  ["Cursor", "/logos/agents/cursor.svg"],
-  ["Gemini CLI", "/logos/agents/gemini.svg"],
-  ["Windsurf", "/logos/agents/windsurf.svg"],
+  { name: "Claude Code", logo: "/logos/agents/claude.svg" },
+  { name: "Codex", logo: "/logos/agents/openai.svg", mono: true },
+  { name: "Cursor", logo: "/logos/agents/cursor.svg", mono: true },
+  { name: "Gemini CLI", logo: "/logos/agents/gemini.svg" },
+  { name: "Windsurf", logo: "/logos/agents/windsurf.svg", mono: true },
 ];
 
 const leads = [
@@ -42,11 +43,11 @@ function setupPrompt() {
 
 export function AgentSuperpowers() {
   return (
-    <section id="product" className="scroll-mt-20 bg-sand text-dark">
+    <section id="product" className="scroll-mt-20 border-t border-line">
       <Container className="flex flex-col items-center gap-14 py-24 lg:flex-row lg:gap-[72px] lg:py-[112px]">
         <TerminalWindow
           title="claude · meerko mcp"
-          className="order-2 w-full shadow-[0_24px_60px_rgba(26,22,17,0.2)] lg:order-1 lg:w-[620px] lg:shrink-0"
+          className="order-2 w-full lg:order-1 lg:w-[620px] lg:shrink-0"
         >
           <div className="flex flex-col gap-[18px] overflow-x-auto px-6 pt-6 pb-[26px] font-mono text-[13.5px] leading-normal text-fg">
             <p className="flex gap-2.5">
@@ -83,13 +84,13 @@ export function AgentSuperpowers() {
 
         <div className="order-1 flex w-full flex-1 flex-col gap-10 lg:order-2">
           <div className="flex flex-col gap-5">
-            <Eyebrow tone="deep">MCP · works in your agent</Eyebrow>
-            <SectionTitle className="text-dark">
+            <Eyebrow>MCP · works in your agent</Eyebrow>
+            <SectionTitle>
               Give your agent
               <br />
               outbound superpowers.
             </SectionTitle>
-            <p className="text-lg leading-[1.5] text-dark-muted">
+            <p className="text-lg leading-[1.5] text-muted">
               Add Meerko to Claude Code, Codex or Cursor once. Then just ask: your agent finds the leads, writes the emails and
               works the replies.
             </p>
@@ -97,24 +98,24 @@ export function AgentSuperpowers() {
 
           <dl className="flex flex-col">
             {commands.map(([cmd, desc]) => (
-              <div key={cmd} className="flex flex-col gap-2 border-b border-dark/12 py-3.5 sm:flex-row sm:items-center sm:gap-6">
+              <div key={cmd} className="flex flex-col gap-2 border-b border-line py-3.5 sm:flex-row sm:items-center sm:gap-6">
                 <dt className="sm:w-[210px] sm:shrink-0">
-                  <code className="rounded-md border border-dark/15 bg-white/55 px-2.5 py-1.5 font-mono text-[15px]">{cmd}</code>
+                  <code className="rounded-md border border-line bg-raised px-2.5 py-1.5 font-mono text-[15px]">{cmd}</code>
                 </dt>
-                <dd className="text-base leading-snug text-dark-muted">{desc}</dd>
+                <dd className="text-base leading-snug text-muted">{desc}</dd>
               </div>
             ))}
           </dl>
 
           <div className="flex flex-col gap-3">
-            <p className="font-mono text-xs tracking-[0.1em] text-dark-muted">Works with</p>
+            <p className="font-mono text-xs tracking-[0.1em] text-muted">Works with</p>
             <ul className="flex flex-wrap gap-2">
-              {agents.map(([name, logo]) => (
+              {agents.map(({ name, logo, mono }) => (
                 <li
                   key={name}
-                  className="flex items-center gap-2 rounded-full border border-dark/10 bg-white/55 py-2 pr-3.5 pl-[11px] text-[13px] font-medium"
+                  className="flex items-center gap-2 rounded-full border border-line bg-raised py-2 pr-3.5 pl-[11px] text-[13px] font-medium"
                 >
-                  <Image src={logo} alt="" width={18} height={18} className="size-[18px]" />
+                  <Image src={logo} alt="" width={18} height={18} className={`size-[18px] ${mono ? "invert" : ""}`} />
                   {name}
                 </li>
               ))}
@@ -124,8 +125,8 @@ export function AgentSuperpowers() {
           <div className="flex flex-wrap items-center gap-5">
             <CopyButton text={setupPrompt()} label="Copy setup prompt" />
             <a
-              href={`${site.githubUrl}#use-from-claude-code-mcp`}
-              className="inline-flex items-center gap-1.5 text-base font-semibold hover:text-accent-deep"
+              href="/docs"
+              className="inline-flex items-center gap-1.5 text-base font-semibold hover:text-accent"
             >
               Setup guide <ArrowRight className="size-[17px]" />
             </a>
