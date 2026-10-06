@@ -90,6 +90,16 @@ export interface Sequence {
   steps: { position: number; delayDays: number; subject: string | null; body: string }[];
 }
 
+/** One email in a conversation, oldest first. `step` is set for sequence emails (0 = the first). */
+export interface ThreadMessage {
+  id: string;
+  direction: "in" | "out";
+  step: number | null;
+  subject: string | null;
+  body: string;
+  sentAt: string;
+}
+
 export interface Reply {
   id: string;
   from: string;
@@ -101,7 +111,7 @@ export interface Reply {
   sequenceId: string | null;
   sequenceName: string | null;
   row: Record<string, unknown> | null;
-  thread: { direction: "in" | "out"; body: string; sentAt: string }[];
+  thread: ThreadMessage[];
 }
 
 export interface Draft {
@@ -115,7 +125,7 @@ export interface Draft {
   replyBody: string;
   intent: string | null;
   row: Record<string, unknown> | null;
-  thread: { direction: "in" | "out"; body: string; sentAt: string }[];
+  thread: ThreadMessage[];
 }
 
 export interface MeerkoConfig { apiUrl: string; apiKey: string }

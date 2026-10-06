@@ -57,7 +57,15 @@ export async function listDrafts(db: Db, workspaceId: string, status: "pending" 
   const ids = drafts.map((d) => d.enrollmentId).filter((v): v is string => !!v);
   const history = ids.length
     ? await db
-        .select({ enrollmentId: messages.enrollmentId, direction: messages.direction, body: messages.body, sentAt: messages.sentAt })
+        .select({
+          enrollmentId: messages.enrollmentId,
+          id: messages.id,
+          direction: messages.direction,
+          step: messages.step,
+          subject: messages.subject,
+          body: messages.body,
+          sentAt: messages.sentAt,
+        })
         .from(messages)
         .where(sql`${messages.enrollmentId} in ${ids}`)
         .orderBy(asc(messages.sentAt))

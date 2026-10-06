@@ -1,7 +1,8 @@
-import { CornerUpRight, Inbox } from "lucide-react";
+import { Inbox } from "lucide-react";
 import Link from "next/link";
 import type { Reply } from "@meerko/sdk";
 import { DraftPanel } from "@/components/app/draft-panel";
+import { Thread } from "@/components/app/thread";
 import { AgentHint, EmptyState, formatWhen, intentTone, label, Pill } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
 
@@ -41,7 +42,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         <div className="flex-1 overflow-y-auto">
           {replies.length === 0 && (
             <p className="px-5 py-10 text-[13px] text-muted">
-              {view === "needs" ? "No replies waiting. Meerko checks your inbox every 2 minutes." : "Nothing here yet."}
+              {view === "needs" ? "No replies waiting. Meerko checks your inbox about every minute." : "Nothing here yet."}
             </p>
           )}
           {replies.map((r) => {
@@ -89,31 +90,11 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               {selected.sequenceName && <Pill>{selected.sequenceName}</Pill>}
             </header>
 
-            <div className="flex flex-col gap-2.5">
-              {selected.thread
-                .filter((m) => !(m.direction === "in" && m.body === selected.body))
-                .map((m, i) =>
-                  m.direction === "out" ? (
-                    <div key={i} className="flex items-center gap-3 rounded-lg border border-line px-3.5 py-2.5 text-[13px] text-muted">
-                      <CornerUpRight className="size-3.5 shrink-0" />
-                      <span className="shrink-0 font-medium">You</span>
-                      <span className="truncate opacity-70">{m.body}</span>
-                      <span className="ml-auto shrink-0 font-mono text-[11px]">{formatWhen(m.sentAt)}</span>
-                    </div>
-                  ) : (
-                    <div key={i} className="rounded-lg border border-line px-3.5 py-2.5 text-[13px] text-muted">
-                      <span className="font-medium">They wrote</span> · {m.body}
-                    </div>
-                  ),
-                )}
-              <article className="flex flex-col gap-2.5 rounded-lg border-l-[3px] border-signal bg-signal/5 px-4.5 py-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-semibold text-signal">{selected.from} replied</span>
-                  <span className="font-mono text-[11px] text-muted">{new Date(selected.receivedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>
-                </div>
-                <p className="text-[15px] leading-relaxed whitespace-pre-line">{selected.body}</p>
-              </article>
-            </div>
+            <Thread
+              messages={selected.thread}
+              prospect={selected.row?.first_name ? `${selected.row.first_name} ${selected.row.last_name ?? ""}`.trim() : selected.from}
+              highlightId={selected.handledAt ? undefined : selected.id}
+            />
 
             <DraftPanel key={selected.id} replyId={selected.id} intent={selected.intent} draft={draft ? { id: draft.id, body: draft.body } : null} />
             {!draft && <AgentHint command="draft replies to my new replies">No draft for this reply yet.</AgentHint>}

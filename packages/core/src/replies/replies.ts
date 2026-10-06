@@ -247,7 +247,15 @@ export async function listReplies(db: Db, workspaceId: string, opts: ListReplies
   const ids = replies.map((r) => r.enrollmentId).filter((v): v is string => !!v);
   const history = ids.length
     ? await db
-        .select({ enrollmentId: messages.enrollmentId, direction: messages.direction, body: messages.body, sentAt: messages.sentAt })
+        .select({
+          enrollmentId: messages.enrollmentId,
+          id: messages.id,
+          direction: messages.direction,
+          step: messages.step,
+          subject: messages.subject,
+          body: messages.body,
+          sentAt: messages.sentAt,
+        })
         .from(messages)
         .where(sql`${messages.enrollmentId} in ${ids}`)
         .orderBy(asc(messages.sentAt))
