@@ -11,7 +11,9 @@ export function LoginForm({ expired }: { expired: boolean }) {
   return (
     <main className="grid min-h-dvh place-items-center px-5">
       <form action={action} className="flex w-full max-w-sm flex-col gap-5 rounded-xl border border-line bg-raised p-7">
-        <Logo size={30} className="text-xl" />
+        <a href="/" aria-label="Meerko home" className="self-start">
+          <Logo size={30} className="text-xl" />
+        </a>
         <div className="flex flex-col gap-1.5">
           <h1 className="font-display text-2xl font-bold tracking-tight">Open your workspace</h1>
           <p className="text-[13px] text-muted">
