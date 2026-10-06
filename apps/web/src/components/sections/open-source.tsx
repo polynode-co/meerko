@@ -23,8 +23,8 @@ export function OpenSource() {
     <section className="bg-sand text-dark">
       <Container className="flex flex-col items-center gap-14 py-24 lg:flex-row lg:gap-20 lg:py-[120px]">
         <div className="flex flex-1 flex-col gap-5">
-          <Eyebrow tone="deep">Open source</Eyebrow>
-          <SectionTitle className="text-dark">Self-host it. Fork it. Own your data.</SectionTitle>
+          <Eyebrow tone="deep">Self-host it · Fork it · Own your data</Eyebrow>
+          <SectionTitle className="text-dark">100% open source.</SectionTitle>
           <p className="text-lg leading-[1.55] text-dark-muted">
             Meerko is AGPL-licensed. Run the whole stack on your own infra with one command, bring your own provider keys
             and keep every lead, email and reply in your Postgres. Or skip the ops and use Meerko Cloud.
