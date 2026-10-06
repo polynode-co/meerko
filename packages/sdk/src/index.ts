@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import type { ReplyIntent, Stage } from "./constants.ts";
+
+export * from "./constants.ts";
 
 export type ColumnType = "text" | "number" | "email" | "url" | "boolean" | "json";
 export interface Column { key: string; name: string; type: ColumnType; prompt?: string }
@@ -11,8 +14,6 @@ export interface PendingCells {
   rows: { id: string; instruction: string; data: Record<string, unknown> }[];
 }
 export interface Table { id: string; name: string; columns: Column[]; rowCount: number; createdAt: string }
-export const STAGES = ["new", "contacted", "replied", "meeting", "won", "lost"] as const;
-export type Stage = (typeof STAGES)[number];
 export interface Row { id: string; data: Record<string, unknown>; stage: Stage; stageChangedAt: string | null; createdAt: string }
 
 export type LeadKind = "people" | "companies";
@@ -76,8 +77,6 @@ export interface Sequence {
   steps: { position: number; delayDays: number; subject: string | null; body: string }[];
 }
 
-export const REPLY_INTENTS = ["interested", "not_interested", "not_now", "question", "referral", "wrong_person", "other"] as const;
-export type ReplyIntent = (typeof REPLY_INTENTS)[number];
 export interface Reply {
   id: string;
   from: string;
