@@ -6,7 +6,6 @@ import { Hero } from "@/components/sections/hero";
 import { HowItWorks } from "@/components/sections/how-it-works";
 import { Nav } from "@/components/sections/nav";
 import { OpenSource } from "@/components/sections/open-source";
-import { Pricing } from "@/components/sections/pricing";
 import { Problem } from "@/components/sections/problem";
 import { WorksWith } from "@/components/sections/works-with";
 
@@ -21,7 +20,6 @@ export default function Home() {
         <HowItWorks />
         <Features />
         <OpenSource />
-        <Pricing />
         <GtmEngineers />
         <FinalCta />
       </main>

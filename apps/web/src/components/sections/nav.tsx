@@ -5,9 +5,9 @@ import { GitHubIcon, Logo } from "../ui/brand";
 import { Container } from "../ui/primitives";
 
 const links = [
-  ["Product", "#how-it-works"],
+  ["Product", "/#how-it-works"],
   ["Docs", site.docsUrl],
-  ["Pricing", "#pricing"],
+  ["Pricing", site.pricingUrl],
   ["Changelog", `${site.githubUrl}/commits/main`],
 ] as const;
 
@@ -17,7 +17,7 @@ export async function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-ink/85 backdrop-blur">
       <Container className="flex items-center justify-between py-5 lg:py-6">
-        <a href="#" aria-label="Meerko home">
+        <a href="/" aria-label="Meerko home">
           <Logo size={34} />
         </a>
         <nav className="hidden items-center gap-9 md:flex">
@@ -44,7 +44,7 @@ export async function Nav() {
               <a href="/login" className="px-2 text-sm font-medium text-muted transition hover:text-fg">
                 Log in
               </a>
-              <a href={site.signupUrl} className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-dark transition hover:brightness-110">
+              <a href={site.pricingUrl} className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-dark transition hover:brightness-110">
                 Get started
               </a>
             </>

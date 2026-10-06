@@ -14,7 +14,7 @@ export function FinalCta() {
             </h2>
             <p className="text-lg text-muted">Self-host in one command, or start on Meerko Cloud with 1,000 free credits.</p>
             <div className="flex flex-wrap gap-3">
-              <PrimaryButton href={site.signupUrl}>Get started free</PrimaryButton>
+              <PrimaryButton href={site.pricingUrl}>Get started free</PrimaryButton>
               <a
                 href={site.githubUrl}
                 className="inline-flex items-center gap-2 rounded-[10px] border border-line bg-white/[0.03] px-6 py-4 text-base font-semibold transition hover:border-muted"

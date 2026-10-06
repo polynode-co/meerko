@@ -32,7 +32,7 @@ export function Hero() {
             terminal or Claude Code.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <PrimaryButton href={site.signupUrl}>Get started free</PrimaryButton>
+            <PrimaryButton href={site.pricingUrl}>Get started free</PrimaryButton>
             <CopyCommand command={site.installCommand} />
           </div>
           <p className="text-sm text-muted">Free forever when self-hosted. 1,000 free credits on Meerko Cloud.</p>

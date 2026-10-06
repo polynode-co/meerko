@@ -42,13 +42,14 @@ const plans = [
   },
 ];
 
+/** The plans, as the main content of /pricing. */
 export function Pricing() {
   return (
-    <section id="pricing" className="scroll-mt-20">
+    <section>
       <Container className="flex flex-col items-center gap-14 py-24 lg:py-[120px]">
         <div className="flex max-w-[720px] flex-col items-center gap-4 text-center">
           <Eyebrow>Pricing</Eyebrow>
-          <SectionTitle>Free to own. Fair to rent.</SectionTitle>
+          <SectionTitle as="h1">Free to own. Fair to rent.</SectionTitle>
           <p className="text-lg text-muted">Credits only for what costs us money: data lookups and AI. $1 = 100 credits.</p>
         </div>
         <div className="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -13,11 +13,11 @@ export function Eyebrow({ children, tone = "accent" }: { children: ReactNode; to
   );
 }
 
-export function SectionTitle({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function SectionTitle({ children, className = "", as: Tag = "h2" }: { children: ReactNode; className?: string; as?: "h1" | "h2" }) {
   return (
-    <h2 className={`font-display text-4xl leading-[1.05] font-bold tracking-[-0.03em] sm:text-5xl lg:text-[52px] ${className}`}>
+    <Tag className={`font-display text-4xl leading-[1.05] font-bold tracking-[-0.03em] sm:text-5xl lg:text-[52px] ${className}`}>
       {children}
-    </h2>
+    </Tag>
   );
 }
 

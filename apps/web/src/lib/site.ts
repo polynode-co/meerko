@@ -4,6 +4,8 @@ export const site = {
   url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   githubUrl: "https://github.com/iker-gonzalez/meerko",
   docsUrl: "https://github.com/iker-gonzalez/meerko#readme",
-  signupUrl: "#pricing",
+  pricingUrl: "/pricing",
+  // Cloud plans start by signing in (Google); the first sign-in creates the workspace.
+  signupUrl: "/login",
   installCommand: "npx meerko init",
 };
