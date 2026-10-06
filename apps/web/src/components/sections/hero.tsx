@@ -1,6 +1,6 @@
 import { MailCheck } from "lucide-react";
 import { site } from "@/lib/site";
-import { Mascot } from "../ui/brand";
+import { AnimatedMascot } from "../ui/animated-mascot";
 import { CopyCommand } from "../ui/copy-command";
 import { Container, PrimaryButton, TerminalWindow } from "../ui/primitives";
 
@@ -40,7 +40,7 @@ export function Hero() {
 
         <div className="relative w-full max-w-[600px] lg:h-[560px] lg:w-[600px] lg:shrink-0">
           <div className="pointer-events-none absolute top-10 left-[60px] hidden size-[520px] lg:block rounded-full bg-[radial-gradient(circle,#f2a93b33_0%,#f2a93b00_70%)]" />
-          <Mascot className="absolute top-0 right-6 h-[170px] w-auto lg:top-[7px] lg:right-[130px] lg:h-[267px]" />
+          <AnimatedMascot className="meerko-idle absolute top-0 right-6 h-[170px] w-auto lg:top-[7px] lg:right-[130px] lg:h-[267px]" />
           <TerminalWindow title="claude — ~/outbound" className="relative mt-[120px] lg:absolute lg:top-[150px] lg:left-0 lg:mt-0 lg:w-[520px]">
             <div className="flex flex-col gap-2.5 px-4 py-5 font-mono text-[12px] leading-normal sm:px-[22px] sm:text-[13.5px]">
               {session.map(([mark, text, kind], i) => (

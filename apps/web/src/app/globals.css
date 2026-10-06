@@ -30,3 +30,60 @@
     @apply bg-ink text-fg font-sans antialiased;
   }
 }
+
+/* Hero mascot: a slow lookout sway from the feet, and every few seconds the left paw
+   reaches down and taps the terminal. Both share a 9s cycle so they stay in sync. */
+@keyframes meerko-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) rotate(1.2deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(-1.2deg);
+  }
+}
+
+@keyframes meerko-paw {
+  0%,
+  50%,
+  100% {
+    transform: none;
+  }
+  60%,
+  68%,
+  76% {
+    transform: translate(-14px, 2px) rotate(-10deg);
+  }
+  64%,
+  72% {
+    transform: translate(-14px, 7px) rotate(-3deg);
+  }
+  88% {
+    transform: none;
+  }
+}
+
+.meerko-idle {
+  transform-origin: 50% 100%;
+  animation: meerko-idle 9s ease-in-out infinite;
+  will-change: transform;
+}
+
+.meerko-idle .meerko-paw {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: meerko-paw 9s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meerko-idle,
+  .meerko-idle .meerko-paw {
+    animation: none;
+  }
+}
