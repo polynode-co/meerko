@@ -191,6 +191,12 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     expect(await listDrafts(db, ws)).toEqual([]);
     expect((await listDrafts(db, ws, "sent"))[0]!.body).toContain("Wednesday");
 
+    // A follow-up to the same reply (written in the inbox) is a new draft, sent in the same thread.
+    const followUp = await draftReply(db, ws, pia.id, "Following up: does Wednesday work?");
+    await approveDraft(db, ws, followUp.id, { box, oauth, fetch });
+    expect(sends.length).toBe(before + 2);
+    expect(sends.at(-1)!.threadId).toBe(threadOf["pia@slalom.example"]);
+
     // Someone who unsubscribed after replying can't be emailed, and discarding works.
     const orionDraft = await draftReply(db, ws, orion.id, "Sure!");
     await unsubscribe(db, ws, "orion@estudio404.example");

@@ -20,6 +20,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const [replies, drafts] = await load((c) => Promise.all([c.listReplies({ ...views[view].opts, limit: 100 }), c.listDrafts()]));
   const selected: Reply | undefined = replies.find((r) => r.id === sp.reply) ?? replies[0];
   const draft = selected ? drafts.find((d) => d.replyId === selected.id) : undefined;
+  // The user's own email is the latest in the conversation: nothing is waiting on them.
+  const answered = selected?.thread.at(-1)?.direction === "out";
   const href = (o: { view?: View; reply?: string }) => `?${new URLSearchParams({ view: o.view ?? view, ...(o.reply ? { reply: o.reply } : {}) })}`;
 
   return (
@@ -96,8 +98,14 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               highlightId={selected.handledAt ? undefined : selected.id}
             />
 
-            <DraftPanel key={selected.id} replyId={selected.id} intent={selected.intent} draft={draft ? { id: draft.id, body: draft.body } : null} />
-            {!draft && <AgentHint command="draft replies to my new replies">No draft for this reply yet.</AgentHint>}
+            <DraftPanel
+              key={selected.id}
+              replyId={selected.id}
+              intent={selected.intent}
+              draft={draft ? { id: draft.id, body: draft.body } : null}
+              answered={answered}
+            />
+            {!draft && !answered && <AgentHint command="draft replies to my new replies">Or let your agent draft it.</AgentHint>}
           </>
         )}
       </section>

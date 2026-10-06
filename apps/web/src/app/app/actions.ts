@@ -69,6 +69,16 @@ export async function approveDraft(draftId: string, body: string) {
   }, ["/app/inbox", "/app"]);
 }
 
+/** A reply written in the inbox: saved as a draft and approved at once, so it sends exactly like an agent's draft. */
+export async function sendReply(replyId: string, body: string) {
+  if (!body.trim()) return { ok: false, error: "Write a reply first" } as const;
+  return run(async (c) => {
+    const draft = await c.draftReply(replyId, body);
+    const res = await c.approveDraft(draft.id);
+    return `Sent to ${res.to}`;
+  }, ["/app/inbox", "/app"]);
+}
+
 export async function discardDraft(draftId: string) {
   return run((c) => c.discardDraft(draftId).then(() => "Draft discarded"), ["/app/inbox"]);
 }

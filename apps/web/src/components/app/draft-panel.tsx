@@ -1,15 +1,30 @@
 "use client";
 
-import { Pencil, Send, Sparkles, Trash2 } from "lucide-react";
+import { CheckCheck, Pencil, Send, Sparkles, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { REPLY_INTENTS } from "@meerko/sdk/constants";
-import { approveDraft, classifyReply, discardDraft, type ActionResult } from "@/app/app/actions";
+import { approveDraft, classifyReply, discardDraft, sendReply, type ActionResult } from "@/app/app/actions";
 import { buttonClass, label } from "./ui";
 
-/** The agent's draft answer: edit, set intent, approve (sends in the same thread) or discard. */
-export function DraftPanel({ replyId, intent, draft }: { replyId: string; intent: string | null; draft: { id: string; body: string } | null }) {
+/**
+ * The agent's draft answer (edit, set intent, approve or discard), or, with no draft, a box to write the
+ * reply yourself. Either way it's sent from the user's mailbox in the same thread.
+ * `answered`: the user's email is already the latest in the thread.
+ */
+export function DraftPanel({
+  replyId,
+  intent,
+  draft,
+  answered,
+}: {
+  replyId: string;
+  intent: string | null;
+  draft: { id: string; body: string } | null;
+  answered: boolean;
+}) {
   const [body, setBody] = useState(draft?.body ?? "");
   const [editing, setEditing] = useState(false);
+  const [composing, setComposing] = useState(false);
   const [current, setCurrent] = useState(intent);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, start] = useTransition();
@@ -40,7 +55,54 @@ export function DraftPanel({ replyId, intent, draft }: { replyId: string; intent
     </p>
   );
 
-  if (!draft) return <div className="flex flex-col gap-3">{intents}{feedback}</div>;
+  if (!draft) {
+    return (
+      <div className="flex flex-col gap-3">
+        {intents}
+        {answered && !composing ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line px-4 py-3 text-[13px]">
+            <span className="flex items-center gap-2 text-muted">
+              <CheckCheck className="size-4 text-signal" /> You replied. The sequence is stopped for this lead.
+            </span>
+            <button onClick={() => setComposing(true)} className={buttonClass()}>
+              Write a follow-up
+            </button>
+          </div>
+        ) : (
+          <section className="flex flex-col gap-3 rounded-[10px] border border-line bg-raised p-4.5">
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={Math.max(5, body.split("\n").length + 1)}
+              placeholder="Write your reply…"
+              aria-label="Your reply"
+              className="w-full resize-y rounded-lg border border-line bg-ink px-4 py-3.5 text-sm leading-relaxed outline-none focus:border-accent"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-xs text-muted">Sent from your mailbox, in this thread.</span>
+              <button
+                disabled={pending || !body.trim()}
+                onClick={() =>
+                  act(async () => {
+                    const res = await sendReply(replyId, body);
+                    if (res.ok) {
+                      setBody("");
+                      setComposing(false);
+                    }
+                    return res;
+                  })
+                }
+                className={buttonClass("primary")}
+              >
+                <Send className="size-[15px]" /> {pending ? "Sending…" : "Send reply"}
+              </button>
+            </div>
+          </section>
+        )}
+        {feedback}
+      </div>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-3.5 rounded-[10px] border border-accent bg-raised p-4.5">
