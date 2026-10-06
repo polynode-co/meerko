@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type ReplyIntent, type Stage } from "@meerko/sdk";
 import { API_KEY_COOKIE, apiUrl, meerko } from "@/lib/meerko";
+import { site } from "@/lib/site";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -85,6 +86,7 @@ export async function enrichEmails(tableId: string) {
 
 export async function connectGmail() {
   const client = await meerko();
-  const { url } = await client.connectGmail();
+  // Google sends the browser to the API's callback, which redirects back here with the outcome.
+  const { url } = await client.connectGmail(undefined, `${site.url}/app/settings`);
   redirect(url);
 }

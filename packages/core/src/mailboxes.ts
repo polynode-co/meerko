@@ -10,23 +10,35 @@ const STATE_TTL_MS = 10 * 60_000;
 /** The OAuth callback's `state` is forged, corrupted or expired. */
 export class OAuthStateError extends Error {}
 
-/** OAuth `state`: the workspace id, encrypted and authenticated, so the public callback can trust it. */
-export function createOAuthState(box: SecretBox | null, workspaceId: string) {
+/**
+ * OAuth `state`: the workspace id, encrypted and authenticated, so the public callback can trust it.
+ * `returnTo` (already validated by the caller) is where the callback sends the browser afterwards.
+ */
+export function createOAuthState(box: SecretBox | null, workspaceId: string, returnTo?: string) {
   if (!box) throw new EncryptionNotConfiguredError();
-  const payload = JSON.stringify({ w: workspaceId, exp: Date.now() + STATE_TTL_MS, n: randomBytes(8).toString("hex") });
+  const payload = JSON.stringify({ w: workspaceId, exp: Date.now() + STATE_TTL_MS, n: randomBytes(8).toString("hex"), r: returnTo });
   return Buffer.from(box.encrypt(payload), "base64").toString("base64url");
+}
+
+function decodeOAuthState(box: SecretBox, state: string): { w: string; exp: number; r?: string } | null {
+  try {
+    return JSON.parse(box.decrypt(Buffer.from(state, "base64url").toString("base64")));
+  } catch {
+    return null;
+  }
 }
 
 export function readOAuthState(box: SecretBox | null, state: string): string {
   if (!box) throw new EncryptionNotConfiguredError();
-  let payload: { w: string; exp: number };
-  try {
-    payload = JSON.parse(box.decrypt(Buffer.from(state, "base64url").toString("base64")));
-  } catch {
-    throw new OAuthStateError("Invalid sign-in link. Start again with `meerko mailboxes connect`.");
-  }
+  const payload = decodeOAuthState(box, state);
+  if (!payload) throw new OAuthStateError("Invalid sign-in link. Start again with `meerko mailboxes connect`.");
   if (payload.exp < Date.now()) throw new OAuthStateError("This sign-in link expired. Start again with `meerko mailboxes connect`.");
   return payload.w;
+}
+
+/** The return URL carried in a genuine `state`, even an expired one (so the user still lands back in the app). */
+export function readOAuthReturnTo(box: SecretBox | null, state: string): string | undefined {
+  return (box && decodeOAuthState(box, state)?.r) || undefined;
 }
 
 /** Completes the OAuth callback: exchanges the code, reads the address and stores (or reconnects) the mailbox. */

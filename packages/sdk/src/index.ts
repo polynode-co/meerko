@@ -191,9 +191,12 @@ export class MeerkoClient {
     return this.request<EnrichResult>("POST", `/tables/${tableId}/enrich`, input);
   }
 
-  /** Returns a Google consent URL; the mailbox appears in listMailboxes once the user approves. */
-  connectGmail(loginHint?: string) {
-    return this.request<{ url: string }>("POST", "/mailboxes/gmail/connect", { login_hint: loginHint });
+  /**
+   * Returns a Google consent URL; the mailbox appears in listMailboxes once the user approves.
+   * With `returnTo` (on the server's MEERKO_APP_URL), the browser is sent back there afterwards.
+   */
+  connectGmail(loginHint?: string, returnTo?: string) {
+    return this.request<{ url: string }>("POST", "/mailboxes/gmail/connect", { login_hint: loginHint, return_to: returnTo });
   }
 
   listMailboxes() {

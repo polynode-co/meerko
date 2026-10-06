@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { createDb, eq, mailboxes, workspaces, type Db } from "@meerko/db";
 import { GMAIL_SCOPES, GoogleOAuth } from "./mail/gmail.ts";
-import { connectGmail, createOAuthState, listMailboxes, OAuthStateError, readOAuthState, sendTestEmail } from "./mailboxes.ts";
+import { connectGmail, createOAuthState, listMailboxes, OAuthStateError, readOAuthReturnTo, readOAuthState, sendTestEmail } from "./mailboxes.ts";
 import { SecretBox } from "./provider-keys.ts";
 
 describe.skipIf(!process.env.DATABASE_URL)("mailboxes (db)", () => {
@@ -53,5 +53,14 @@ describe.skipIf(!process.env.DATABASE_URL)("mailboxes (db)", () => {
     expect(() => readOAuthState(box, "not-a-state")).toThrow(OAuthStateError);
     const other = new SecretBox(randomBytes(32).toString("base64"));
     expect(() => readOAuthState(box, createOAuthState(other, "00000000-0000-0000-0000-000000000000"))).toThrow(OAuthStateError);
+  });
+
+  it("carries the return URL only in genuine states", () => {
+    const id = "00000000-0000-0000-0000-000000000000";
+    expect(readOAuthReturnTo(box, createOAuthState(box, id, "https://app.example/app/settings"))).toBe("https://app.example/app/settings");
+    expect(readOAuthReturnTo(box, createOAuthState(box, id))).toBeUndefined();
+    expect(readOAuthReturnTo(box, "not-a-state")).toBeUndefined();
+    const other = new SecretBox(randomBytes(32).toString("base64"));
+    expect(readOAuthReturnTo(box, createOAuthState(other, id, "https://evil.example"))).toBeUndefined();
   });
 });

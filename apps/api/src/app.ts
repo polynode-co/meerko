@@ -36,6 +36,7 @@ import {
   GmailError,
   listMailboxes,
   OAuthStateError,
+  readOAuthReturnTo,
   sendTestEmail,
   updateMailbox,
   EncryptionNotConfiguredError,
@@ -166,6 +167,8 @@ export interface AppDeps {
    * MEERKO_TICK_SECRET isn't configured, and the route then answers 404.
    */
   tick?: { secret: string; publicUrl: string };
+  /** The web dashboard's URL (MEERKO_APP_URL). Gmail connect may only send the browser back to this origin. */
+  appUrl?: string;
 }
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -189,6 +192,22 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return { client: deps.icypeas, credits };
   };
   const app = new Hono<Env>();
+
+  /** `url` if it's on the dashboard's origin, so the OAuth callback can't be used as an open redirect. */
+  const appReturnUrl = (url: string | undefined) => {
+    if (!url || !deps.appUrl) return undefined;
+    try {
+      return new URL(url).origin === new URL(deps.appUrl).origin ? url : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  /** Sends the browser back to the dashboard with the outcome in the query string. */
+  const backToApp = (returnTo: string, outcome: Record<string, string>) => {
+    const url = new URL(returnTo);
+    for (const [k, v] of Object.entries(outcome)) url.searchParams.set(k, v);
+    return url.toString();
+  };
 
   app.get("/health", (c) => c.json({ ok: true }));
 
@@ -234,14 +253,19 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   // Public: Google redirects the user's browser here, so it's authenticated by the encrypted `state`, not an API key.
   app.get("/oauth/google/callback", async (c) => {
     const { code, state, error } = c.req.query();
-    if (error) return c.html(resultPage("Gmail not connected", `Google said: ${error}. Run \`meerko mailboxes connect\` to try again.`), 400);
-    if (!code || !state) return c.html(resultPage("Gmail not connected", "This link is missing its sign-in code."), 400);
+    // Only a genuine state carries a return URL, and it's re-checked against the dashboard origin.
+    const returnTo = appReturnUrl(state ? readOAuthReturnTo(box, state) : undefined);
+    const fail = (message: string) =>
+      returnTo ? c.redirect(backToApp(returnTo, { gmail_error: message })) : c.html(resultPage("Gmail not connected", message), 400);
+    if (error) return fail(`Google said: ${error}. Try connecting again.`);
+    if (!code || !state) return fail("This link is missing its sign-in code.");
     try {
       const mailbox = await connectGmail(db, box, googleOAuth(), state, code, deps.gmailFetch);
+      if (returnTo) return c.redirect(backToApp(returnTo, { gmail_connected: mailbox.email }));
       return c.html(resultPage("Gmail connected", `Meerko can now send from ${mailbox.email}. You can close this tab.`));
     } catch (err) {
       if (!(err instanceof GmailError) && !(err instanceof OAuthStateError)) console.error(err);
-      return c.html(resultPage("Gmail not connected", (err as Error).message), 400);
+      return fail((err as Error).message);
     }
   });
 
@@ -321,8 +345,14 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   }
 
   v1.post("/mailboxes/gmail/connect", async (c) => {
-    const { login_hint } = await parse(z.object({ login_hint: z.string().email().optional() }), await c.req.json().catch(() => ({})));
-    return c.json({ url: googleOAuth().authUrl(createOAuthState(box, c.var.workspaceId), login_hint) });
+    const { login_hint, return_to } = await parse(
+      z.object({ login_hint: z.string().email().optional(), return_to: z.string().url().optional() }),
+      await c.req.json().catch(() => ({})),
+    );
+    // Without MEERKO_APP_URL the server can't vouch for any return URL, so the callback shows its own page instead.
+    const returnTo = appReturnUrl(return_to);
+    if (return_to && deps.appUrl && !returnTo) throw new HTTPException(400, { message: "return_to must be on the dashboard's URL (MEERKO_APP_URL)" });
+    return c.json({ url: googleOAuth().authUrl(createOAuthState(box, c.var.workspaceId, returnTo), login_hint) });
   });
 
   v1.get("/mailboxes", async (c) => c.json({ mailboxes: await listMailboxes(db, c.var.workspaceId) }));

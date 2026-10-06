@@ -3,11 +3,22 @@ import { connectGmail } from "@/app/app/actions";
 import { buttonClass, Card, PageHeader, Pill } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ gmail_connected?: string; gmail_error?: string }> }) {
+  // The API's Gmail OAuth callback redirects back here with the outcome.
+  const { gmail_connected, gmail_error } = await searchParams;
   const [mailboxes, credits, keys] = await load((c) => Promise.all([c.listMailboxes(), c.getCredits(), c.listProviderKeys()]));
   return (
     <div className="flex max-w-4xl flex-col gap-6 px-8 py-7">
       <PageHeader eyebrow="Settings" title="Mailboxes & keys" />
+
+      {gmail_connected && (
+        <p className="rounded-lg border border-signal/40 bg-signal/10 px-4 py-3 text-[13px]">
+          Gmail connected. Meerko can now send from <span className="font-mono">{gmail_connected}</span>.
+        </p>
+      )}
+      {gmail_error && (
+        <p className="rounded-lg border border-[#e5795b]/40 bg-[#e5795b]/10 px-4 py-3 text-[13px]">Gmail not connected: {gmail_error}</p>
+      )}
 
       <Card className="overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">

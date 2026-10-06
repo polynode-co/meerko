@@ -20,6 +20,7 @@ const app = createApp(createDb(), {
         })
       : undefined,
   tick: process.env.MEERKO_TICK_SECRET ? { secret: process.env.MEERKO_TICK_SECRET, publicUrl } : undefined,
+  appUrl: process.env.MEERKO_APP_URL,
 });
 
 serve({ fetch: app.fetch, port }, () => console.log(`Meerko API listening on http://localhost:${port}`));
