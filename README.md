@@ -37,7 +37,10 @@ claude mcp add meerko -e MEERKO_API_KEY=mk_... -e MEERKO_API_URL=http://localhos
   -- npx tsx /absolute/path/to/meerko/packages/mcp/src/index.ts
 ```
 
-Tools: `list_tables`, `create_table`, `add_column`, `import_rows`, `query_rows`.
+Use any MCP client (Codex, Cursor, Gemini CLI, Windsurf) the same way: the server command plus the `MEERKO_API_KEY` and `MEERKO_API_URL` environment variables. For Meerko Cloud, create the key under **Settings → API keys** in the dashboard.
+
+- **Tools:** tables and rows, lead search and enrichment, mailboxes, sequences, replies and drafts, pipeline and credits (31 in all; your agent lists them).
+- **Commands (MCP prompts):** `find-leads`, `write-sequence`, `triage-replies`, `pipeline`. In Claude Code they appear as `/mcp__meerko__find-leads` and so on. Anything that emails someone waits for your OK.
 
 ## Repository layout
 

@@ -386,4 +386,74 @@ server.registerTool(
   () => run(() => client().getCredits()),
 );
 
+// Prompts show up as slash commands in agents (e.g. /meerko:find-leads in Claude Code). Each one is a
+// short recipe over the tools above; anything that emails someone waits for the user's OK.
+const ask = (text: string) => ({ messages: [{ role: "user" as const, content: { type: "text" as const, text } }] });
+
+server.registerPrompt(
+  "find-leads",
+  {
+    title: "Find leads",
+    description: "Build a lead list from your ideal customer, with verified emails.",
+    argsSchema: { icp: z.string().describe("Who you sell to, e.g. 'heads of growth at Series A fintechs in Spain'") },
+  },
+  ({ icp }) =>
+    ask(
+      `Build a Meerko lead list for: ${icp}.\n` +
+        "1. Search with find_people (use find_companies first if the description is mostly about the company). Save results to a new table named after the audience.\n" +
+        "2. Find and verify work emails with enrich_rows; call it again while rows remain.\n" +
+        "3. Tell me how many leads you saved, how many have verified emails, and show 5 of them. Check get_credits first if credits are on, and ask before spending more than 500.",
+    ),
+);
+
+server.registerPrompt(
+  "write-sequence",
+  {
+    title: "Write a sequence",
+    description: "Draft a 3-step email sequence for a table, in your voice.",
+    argsSchema: {
+      table: z.string().describe("The table's name or id"),
+      offer: z.string().optional().describe("What you're offering, if it isn't obvious"),
+    },
+  },
+  ({ table, offer }) =>
+    ask(
+      `Write a 3-step cold email sequence for the Meerko table "${table}".${offer ? ` The offer: ${offer}.` : ""}\n` +
+        "- Short, plain-text, one clear ask per email; personalise with {{first_name}}, {{company}} and other columns the table has.\n" +
+        "- Step 1 gets a subject; steps 2 and 3 reply in the same thread 3 and 4 days later.\n" +
+        "- Pick the mailbox with list_mailboxes, create it with create_sequence, then show me preview_sequence for two rows.\n" +
+        "Don't enroll anyone or start the sequence until I say so.",
+    ),
+);
+
+server.registerPrompt(
+  "triage-replies",
+  {
+    title: "Triage replies",
+    description: "Sort new replies by intent and draft answers for you to approve.",
+    argsSchema: {},
+  },
+  () =>
+    ask(
+      "Go through my new Meerko replies (list_replies).\n" +
+        "- Classify each one with classify_reply.\n" +
+        "- For interested replies and questions, write a short answer with draft_reply that moves toward a call.\n" +
+        "- Summarise what came in and list the drafts. Don't approve or send anything; I'll review them in the inbox.",
+    ),
+);
+
+server.registerPrompt(
+  "pipeline",
+  {
+    title: "Pipeline",
+    description: "See who's interested, booked and won, and what needs you.",
+    argsSchema: {},
+  },
+  () =>
+    ask(
+      "Give me a short Meerko pipeline update: counts per stage (pipeline), how each running sequence is doing (list_sequences, sequence_stats), " +
+        "and the replies or drafts waiting on me (list_replies, list_drafts). End with the 3 things I should do next.",
+    ),
+);
+
 await server.connect(new StdioServerTransport());

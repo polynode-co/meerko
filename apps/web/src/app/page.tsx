@@ -1,3 +1,4 @@
+import { AgentSuperpowers } from "@/components/sections/agent-superpowers";
 import { Features } from "@/components/sections/features";
 import { FinalCta } from "@/components/sections/final-cta";
 import { Footer } from "@/components/sections/footer";
@@ -17,6 +18,7 @@ export default function Home() {
         <Hero />
         <WorksWith />
         <Problem />
+        <AgentSuperpowers />
         <HowItWorks />
         <Features />
         <OpenSource />
