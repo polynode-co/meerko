@@ -1,4 +1,5 @@
 export * from "./api-keys.ts";
+export * from "./auth.ts";
 export * from "./columns.ts";
 export * from "./tables.ts";
 export * from "./enrichment/icypeas.ts";

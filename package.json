@@ -15,6 +15,7 @@
     "db:generate": "pnpm --filter @meerko/db generate",
     "db:migrate": "pnpm --filter @meerko/db migrate",
     "db:seed": "pnpm --filter @meerko/core seed",
+    "db:invite": "pnpm --filter @meerko/core invite",
     "meerko": "tsx packages/cli/src/index.ts"
   },
   "devDependencies": {

@@ -57,6 +57,13 @@
       "when": 1791218384164,
       "tag": "0007_pipeline",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791283687765,
+      "tag": "0008_auth",
+      "breakpoints": true
     }
   ]
 }

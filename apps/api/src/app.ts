@@ -1,5 +1,6 @@
 import { Hono } from "hono";
-import { timingSafeEqual } from "node:crypto";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import {
@@ -37,6 +38,16 @@ import {
   listMailboxes,
   OAuthStateError,
   readOAuthReturnTo,
+  createApiKey,
+  createAuthCode,
+  deleteSession,
+  exchangeAuthCode,
+  listApiKeys,
+  revokeApiKey,
+  signInWithGoogle,
+  SignInError,
+  type SignupMode,
+  verifySession,
   sendTestEmail,
   updateMailbox,
   EncryptionNotConfiguredError,
@@ -65,7 +76,14 @@ import {
 } from "@meerko/core";
 import { STAGES, type Db } from "@meerko/db";
 
-type Env = { Variables: { workspaceId: string } };
+type Env = {
+  Variables: {
+    workspaceId: string;
+    workspaceName: string;
+    /** Set for dashboard sessions; null for API keys (CLI, MCP, scripts). */
+    user: { id: string; email: string; name: string | null; role: string } | null;
+  };
+};
 
 const columnType = z.enum(["text", "number", "email", "url", "boolean", "json"]);
 const columnInput = z.object({
@@ -169,6 +187,13 @@ export interface AppDeps {
   tick?: { secret: string; publicUrl: string };
   /** The web dashboard's URL (MEERKO_APP_URL). Gmail connect may only send the browser back to this origin. */
   appUrl?: string;
+  /**
+   * "Sign in with Google" for the dashboard: an OAuth client whose redirect is /auth/google/callback.
+   * Unset (self-hosting without Google, or no MEERKO_APP_URL) means the dashboard logs in with an API key.
+   */
+  googleSignIn?: GoogleOAuth;
+  /** Who may sign in with Google: anyone (`open`) or invited emails only (`invite`, the default). */
+  signup?: SignupMode;
 }
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -269,14 +294,108 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     }
   });
 
+  // --- Dashboard sign-in (public routes) ---
+  // The API owns sign-in so the web app, CLI and self-hosted installs share one model. The API and the
+  // web app live on different domains, so the callback hands the web app a one-time code, which its
+  // server exchanges for a session token.
+  const NONCE_COOKIE = "meerko_signin_nonce";
+  const SIGN_IN_TTL_MS = 10 * 60_000;
+  const signInEnabled = () => !!(deps.googleSignIn && deps.appUrl && box);
+  const toLogin = (error: string) => backToApp(new URL("/login", deps.appUrl).toString(), { error });
+
+  app.get("/auth/config", (c) => c.json({ google: signInEnabled() }));
+
+  app.get("/auth/google/start", (c) => {
+    if (!signInEnabled()) throw new HTTPException(404, { message: "Google sign-in isn't configured on this server" });
+    // The nonce cookie ties the callback to this browser, so nobody can sign you in to their account (login CSRF).
+    const nonce = randomBytes(16).toString("base64url");
+    setCookie(c, NONCE_COOKIE, nonce, {
+      httpOnly: true,
+      secure: new URL(c.req.url).protocol === "https:",
+      sameSite: "Lax",
+      path: "/auth/google",
+      maxAge: SIGN_IN_TTL_MS / 1000,
+    });
+    const state = Buffer.from(box!.encrypt(JSON.stringify({ n: nonce, exp: Date.now() + SIGN_IN_TTL_MS })), "base64").toString("base64url");
+    return c.redirect(deps.googleSignIn!.signInUrl(state));
+  });
+
+  app.get("/auth/google/callback", async (c) => {
+    if (!signInEnabled()) throw new HTTPException(404, { message: "Google sign-in isn't configured on this server" });
+    const { code, state, error } = c.req.query();
+    const nonce = getCookie(c, NONCE_COOKIE);
+    deleteCookie(c, NONCE_COOKIE, { path: "/auth/google" });
+    if (error) return c.redirect(toLogin(error === "access_denied" ? "Sign-in was cancelled." : `Google said: ${error}`));
+    let payload: { n?: string; exp?: number } = {};
+    try {
+      payload = JSON.parse(box!.decrypt(Buffer.from(state ?? "", "base64url").toString("base64")));
+    } catch {
+      // Falls through to the checks below.
+    }
+    if (!code || !nonce || payload.n !== nonce || !payload.exp || payload.exp < Date.now()) {
+      return c.redirect(toLogin("That sign-in link expired or came from another browser. Try again."));
+    }
+    try {
+      const profile = await deps.googleSignIn!.signInProfile(code);
+      const { userId, workspaceId } = await signInWithGoogle(db, profile, deps.signup ?? "invite");
+      const authCode = await createAuthCode(db, userId, workspaceId);
+      return c.redirect(backToApp(new URL("/auth/callback", deps.appUrl).toString(), { code: authCode }));
+    } catch (err) {
+      if (err instanceof SignInError) return c.redirect(toLogin(err.message));
+      console.error(err);
+      return c.redirect(toLogin("Sign-in failed. Try again."));
+    }
+  });
+
+  /** Called by the web app's server with the one-time code; returns the session token once. */
+  app.post("/auth/exchange", async (c) => {
+    const { code } = await parse(z.object({ code: z.string().min(1) }), await c.req.json().catch(() => ({})));
+    const session = await exchangeAuthCode(db, code);
+    if (!session) throw new HTTPException(400, { message: "This sign-in code is invalid or expired" });
+    return c.json({ token: session.token, expires_at: session.expiresAt });
+  });
+
+  app.post("/auth/logout", async (c) => {
+    const token = c.req.header("authorization")?.replace(/^Bearer\s+/i, "");
+    if (token) await deleteSession(db, token);
+    return c.body(null, 204);
+  });
+
   const v1 = new Hono<Env>();
 
   v1.use(async (c, next) => {
-    const key = c.req.header("authorization")?.replace(/^Bearer\s+/i, "");
-    const auth = key ? await verifyApiKey(db, key) : null;
+    // Dashboard sessions (ms_…) and API keys (mk_…) both act on one workspace.
+    const token = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    const session = await verifySession(db, token);
+    const auth = session ?? (token ? await verifyApiKey(db, token) : null);
     if (!auth) throw new HTTPException(401, { message: "Missing or invalid API key" });
     c.set("workspaceId", auth.workspaceId);
+    c.set("workspaceName", auth.workspaceName);
+    c.set("user", session ? { id: session.userId, email: session.email, name: session.name, role: session.role } : null);
     await next();
+  });
+
+  v1.get("/me", (c) => c.json({ user: c.var.user, workspace: { id: c.var.workspaceId, name: c.var.workspaceName } }));
+
+  // Keys are listed with any credential, but only a signed-in person can mint or revoke one,
+  // so a leaked key can't create more.
+  const requireUser = (c: { var: Env["Variables"] }) => {
+    if (!c.var.user) throw new HTTPException(403, { message: "Sign in to the dashboard to manage API keys" });
+  };
+
+  v1.get("/api-keys", async (c) => c.json({ api_keys: await listApiKeys(db, c.var.workspaceId) }));
+
+  v1.post("/api-keys", async (c) => {
+    requireUser(c);
+    const { name } = await parse(z.object({ name: z.string().trim().min(1).max(100) }), await c.req.json().catch(() => ({})));
+    const { id, key } = await createApiKey(db, c.var.workspaceId, name);
+    return c.json({ id, name, key }, 201);
+  });
+
+  v1.delete("/api-keys/:id", async (c) => {
+    requireUser(c);
+    await revokeApiKey(db, c.var.workspaceId, c.req.param("id"));
+    return c.body(null, 204);
   });
 
   v1.get("/tables", async (c) => c.json({ tables: await listTables(db, c.var.workspaceId) }));

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { API_KEY_COOKIE } from "@/lib/meerko";
+import { SESSION_COOKIE } from "@/lib/meerko";
 import { site } from "@/lib/site";
 import { GitHubIcon, Logo } from "../ui/brand";
 import { Container } from "../ui/primitives";
@@ -12,8 +12,8 @@ const links = [
 ] as const;
 
 export async function Nav() {
-  // A saved key means signed in. It isn't re-checked here: /app sends a revoked key back to /login.
-  const signedIn = !!(await cookies()).get(API_KEY_COOKIE)?.value;
+  // A saved session means signed in. It isn't re-checked here: /app sends an expired one back to /login.
+  const signedIn = !!(await cookies()).get(SESSION_COOKIE)?.value;
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-ink/85 backdrop-blur">
       <Container className="flex items-center justify-between py-5 lg:py-6">

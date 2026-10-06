@@ -1,5 +1,5 @@
 import { serve } from "@hono/node-server";
-import { GoogleOAuth, IcypeasClient, SecretBox } from "@meerko/core";
+import { GoogleOAuth, IcypeasClient, SecretBox, type SignupMode } from "@meerko/core";
 import { createDb } from "@meerko/db";
 import { createApp } from "./app.ts";
 
@@ -21,6 +21,16 @@ const app = createApp(createDb(), {
       : undefined,
   tick: process.env.MEERKO_TICK_SECRET ? { secret: process.env.MEERKO_TICK_SECRET, publicUrl } : undefined,
   appUrl: process.env.MEERKO_APP_URL,
+  // Same OAuth client as Gmail, its own redirect URI and identity-only scopes.
+  googleSignIn:
+    GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
+      ? new GoogleOAuth({
+          clientId: GOOGLE_CLIENT_ID,
+          clientSecret: GOOGLE_CLIENT_SECRET,
+          redirectUri: new URL("/auth/google/callback", publicUrl).toString(),
+        })
+      : undefined,
+  signup: process.env.MEERKO_SIGNUP === "open" ? "open" : ("invite" satisfies SignupMode),
 });
 
 serve({ fetch: app.fetch, port }, () => console.log(`Meerko API listening on http://localhost:${port}`));

@@ -3,17 +3,33 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MeerkoApiError, MeerkoClient } from "@meerko/sdk";
 
-export const API_KEY_COOKIE = "meerko_key";
+/**
+ * Holds the dashboard's credential: a session token (`ms_…`) from "Sign in with Google", or an API key
+ * (`mk_…`) on self-hosted installs without Google. The API accepts either as a Bearer token.
+ */
+export const SESSION_COOKIE = "meerko_session";
 export const apiUrl = () => process.env.MEERKO_API_URL ?? "http://localhost:8787";
 
-/** API client for the signed-in workspace. Sends anyone without a valid key to /login. */
-export async function meerko() {
-  const key = (await cookies()).get(API_KEY_COOKIE)?.value;
-  if (!key) redirect("/login");
-  return new MeerkoClient({ apiUrl: apiUrl(), apiKey: key });
+const THIRTY_DAYS_S = 60 * 60 * 24 * 30;
+
+/** Only callable from a Server Function or Route Handler (pages can't set cookies). */
+export async function setSessionCookie(token: string, expiresAt?: Date) {
+  (await cookies()).set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    ...(expiresAt ? { expires: expiresAt } : { maxAge: THIRTY_DAYS_S }),
+  });
 }
 
-/** Runs an API read; an expired or revoked key goes back to /login instead of crashing the page. */
+/** API client for the signed-in workspace. Sends anyone without a credential to /login. */
+export async function meerko() {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) redirect("/login");
+  return new MeerkoClient({ apiUrl: apiUrl(), apiKey: token });
+}
+
+/** Runs an API read; an expired or revoked credential goes back to /login instead of crashing the page. */
 export async function load<T>(fn: (client: MeerkoClient) => Promise<T>): Promise<T> {
   const client = await meerko();
   try {

@@ -1,12 +1,15 @@
 import { KeyRound, Mail } from "lucide-react";
 import { connectGmail } from "@/app/app/actions";
 import { buttonClass, Card, PageHeader, Pill } from "@/components/app/ui";
-import { load } from "@/lib/meerko";
+import { ApiKeysCard } from "@/components/app/api-keys-card";
+import { apiUrl, load } from "@/lib/meerko";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ gmail_connected?: string; gmail_error?: string }> }) {
   // The API's Gmail OAuth callback redirects back here with the outcome.
   const { gmail_connected, gmail_error } = await searchParams;
-  const [mailboxes, credits, keys] = await load((c) => Promise.all([c.listMailboxes(), c.getCredits(), c.listProviderKeys()]));
+  const [mailboxes, credits, keys, apiKeys, me] = await load((c) =>
+    Promise.all([c.listMailboxes(), c.getCredits(), c.listProviderKeys(), c.listApiKeys(), c.me()]),
+  );
   return (
     <div className="flex max-w-4xl flex-col gap-6 px-8 py-7">
       <PageHeader eyebrow="Settings" title="Mailboxes & keys" />
@@ -44,6 +47,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </div>
         ))}
       </Card>
+
+      <ApiKeysCard keys={apiKeys} apiUrl={apiUrl()} canManage={!!me.user} />
 
       <Card className="overflow-hidden">
         <div className="border-b border-line px-5 py-4">

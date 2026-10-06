@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import { apiKeys, eq, workspaces, type Db } from "@meerko/db";
+import { and, apiKeys, desc, eq, workspaces, type Db } from "@meerko/db";
+import { NotFoundError } from "./tables.ts";
 
 const KEY_PREFIX = "mk_";
 
@@ -27,4 +28,18 @@ export async function verifyApiKey(db: Db, key: string) {
   if (!row) return null;
   await db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, row.keyId));
   return row;
+}
+
+/** A workspace's keys, newest first. Only the prefix is kept, so keys can be told apart but not recovered. */
+export async function listApiKeys(db: Db, workspaceId: string) {
+  return db
+    .select({ id: apiKeys.id, name: apiKeys.name, prefix: apiKeys.prefix, lastUsedAt: apiKeys.lastUsedAt, createdAt: apiKeys.createdAt })
+    .from(apiKeys)
+    .where(eq(apiKeys.workspaceId, workspaceId))
+    .orderBy(desc(apiKeys.createdAt));
+}
+
+export async function revokeApiKey(db: Db, workspaceId: string, id: string) {
+  const deleted = await db.delete(apiKeys).where(and(eq(apiKeys.workspaceId, workspaceId), eq(apiKeys.id, id))).returning({ id: apiKeys.id });
+  if (!deleted.length) throw new NotFoundError("API key not found");
 }

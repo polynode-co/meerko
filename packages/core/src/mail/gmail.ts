@@ -2,6 +2,17 @@
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GMAIL_URL = "https://gmail.googleapis.com/gmail/v1/users/me";
+const USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
+
+/** Dashboard sign-in asks only for identity: non-sensitive scopes, no Google verification needed. */
+export const SIGN_IN_SCOPES = ["openid", "email", "profile"];
+
+export interface GoogleProfile {
+  sub: string;
+  email: string;
+  emailVerified: boolean;
+  name?: string;
+}
 
 /** The minimum for sending and detecting replies. Both are Google "restricted" scopes (verification + CASA for public use). */
 export const GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send", "https://www.googleapis.com/auth/gmail.readonly"];
@@ -46,6 +57,35 @@ export class GoogleOAuth {
     });
     if (loginHint) params.set("login_hint", loginHint);
     return `${AUTH_URL}?${params}`;
+  }
+
+  /** Consent URL for signing in to the dashboard (identity only; no Gmail access, no refresh token). */
+  signInUrl(state: string) {
+    const params = new URLSearchParams({
+      client_id: this.config.clientId,
+      redirect_uri: this.config.redirectUri,
+      response_type: "code",
+      scope: SIGN_IN_SCOPES.join(" "),
+      prompt: "select_account",
+      state,
+    });
+    return `${AUTH_URL}?${params}`;
+  }
+
+  /** Exchanges a sign-in callback code and reads who signed in. */
+  async signInProfile(code: string): Promise<GoogleProfile> {
+    const token = await this.token({ grant_type: "authorization_code", code, redirect_uri: this.config.redirectUri });
+    const res = await this.fetch(USERINFO_URL, { headers: { authorization: `Bearer ${token.access_token}` } });
+    const info = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok || typeof info.sub !== "string" || typeof info.email !== "string") {
+      throw new GmailError(`Google didn't return your profile (${res.status})`, res.status);
+    }
+    return {
+      sub: info.sub,
+      email: info.email.toLowerCase(),
+      emailVerified: info.email_verified === true,
+      name: typeof info.name === "string" ? info.name : undefined,
+    };
   }
 
   /** Exchanges the callback code for a refresh token and checks every scope was granted. */

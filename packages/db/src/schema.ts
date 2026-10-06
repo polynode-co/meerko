@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, index, integer, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export type ColumnType = "text" | "number" | "email" | "url" | "boolean" | "json";
 
@@ -37,6 +37,66 @@ export const apiKeys = pgTable("api_keys", {
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
+
+/** People who sign in to the dashboard. Workspaces predate users: the CLI and agents still use API keys. */
+export const users = pgTable("users", {
+  id: id(),
+  // Google's stable account id; the email can change.
+  googleSub: text("google_sub").notNull().unique(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  createdAt: createdAt(),
+});
+
+export const ROLES = ["owner", "member"] as const;
+export type Role = (typeof ROLES)[number];
+
+export const memberships = pgTable(
+  "memberships",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    role: text("role").$type<Role>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.workspaceId] }), index("memberships_workspace_idx").on(t.workspaceId)],
+);
+
+/** Dashboard sessions. Like API keys, only the hash of the token is stored. */
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: id(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    // The workspace this session acts on.
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("sessions_user_idx").on(t.userId)],
+);
+
+/** One-time codes from the API's OAuth callback; the web app exchanges one for a session. */
+export const authCodes = pgTable("auth_codes", {
+  codeHash: text("code_hash").primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
+/** Emails allowed into a workspace; claimed on that address's first Google sign-in. */
+export const invitations = pgTable(
+  "invitations",
+  {
+    email: text("email").notNull(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    role: text("role").$type<Role>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.email, t.workspaceId] })],
+);
 
 export const dataTables = pgTable("data_tables", {
   id: id(),

@@ -14,13 +14,16 @@ const nav = [
 ];
 
 export interface SidebarProps {
+  workspace: string;
+  /** Null when signed in with an API key (self-hosting). */
+  userEmail: string | null;
   mailbox: string | null;
   mailboxNeedsReconnect: boolean;
   inboxCount: number;
   credits: { enabled: boolean; balance: number | null };
 }
 
-export function Sidebar({ mailbox, mailboxNeedsReconnect, inboxCount, credits }: SidebarProps) {
+export function Sidebar({ workspace, userEmail, mailbox, mailboxNeedsReconnect, inboxCount, credits }: SidebarProps) {
   const path = usePathname();
   const active = (href: string, exact?: boolean) => (exact ? path === href : path === href || path.startsWith(href + "/"));
 
@@ -44,7 +47,7 @@ export function Sidebar({ mailbox, mailboxNeedsReconnect, inboxCount, credits }:
       </Link>
 
       <div className="rounded-lg border border-line bg-raised px-2.5 py-2">
-        <p className="text-[13px] font-semibold">Workspace</p>
+        <p className="truncate text-[13px] font-semibold">{workspace}</p>
         <p className={`truncate font-mono text-[11px] ${mailboxNeedsReconnect ? "text-[#e5795b]" : "text-muted"}`}>
           {mailbox ? (mailboxNeedsReconnect ? `${mailbox} · reconnect` : mailbox) : "no mailbox connected"}
         </p>
@@ -71,11 +74,14 @@ export function Sidebar({ mailbox, mailboxNeedsReconnect, inboxCount, credits }:
             <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, ((credits.balance ?? 0) / 1000) * 100)}%` }} />
           </div>
         )}
-        <form action={logout}>
-          <button className="flex items-center gap-1.5 text-[11px] text-muted hover:text-fg">
-            <LogOut className="size-3" /> Sign out
-          </button>
-        </form>
+        <div className="flex items-center justify-between gap-2 border-t border-line pt-2">
+          {userEmail && <span className="truncate text-[11px] text-muted" title={userEmail}>{userEmail}</span>}
+          <form action={logout} className="shrink-0">
+            <button className="flex items-center gap-1.5 text-[11px] text-muted hover:text-fg">
+              <LogOut className="size-3" /> Sign out
+            </button>
+          </form>
+        </div>
       </div>
     </aside>
   );

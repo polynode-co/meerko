@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type ReplyIntent, type Stage } from "@meerko/sdk";
-import { API_KEY_COOKIE, apiUrl, meerko } from "@/lib/meerko";
+import { apiUrl, meerko, SESSION_COOKIE, setSessionCookie } from "@/lib/meerko";
 import { site } from "@/lib/site";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
@@ -31,18 +31,35 @@ export async function login(_: ActionResult | null, form: FormData): Promise<Act
     if (err instanceof MeerkoApiError) return { ok: false, error: err.status === 401 ? "That key isn't valid" : err.message };
     return { ok: false, error: `Can't reach the Meerko API at ${apiUrl()}` };
   }
-  (await cookies()).set(API_KEY_COOKIE, key, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  await setSessionCookie(key);
   redirect("/app");
 }
 
 export async function logout() {
-  (await cookies()).delete(API_KEY_COOKIE);
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
+  // Ends the session server-side too; an API key (self-hosting) just stays valid for the CLI.
+  if (token?.startsWith("ms_")) await new MeerkoClient({ apiUrl: apiUrl(), apiKey: token }).logout().catch(() => {});
+  store.delete(SESSION_COOKIE);
   redirect("/login");
+}
+
+/** The new key is returned once, for the Settings page to show; only its prefix is stored. */
+export async function createApiKey(_: unknown, form: FormData): Promise<ActionResult & { key?: string }> {
+  const name = String(form.get("name") ?? "").trim();
+  if (!name) return { ok: false, error: "Give the key a name, like the machine or agent that will use it" };
+  try {
+    const { key } = await (await meerko()).createApiKey(name);
+    revalidatePath("/app/settings");
+    return { ok: true, key };
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+export async function revokeApiKey(id: string) {
+  return run((c) => c.revokeApiKey(id).then(() => "Key revoked"), ["/app/settings"]);
 }
 
 export async function approveDraft(draftId: string, body: string) {

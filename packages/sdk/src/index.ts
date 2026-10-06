@@ -40,6 +40,19 @@ export interface EnrichResult {
   balance?: number;
 }
 
+export interface Me {
+  user: { id: string; email: string; name: string | null; role: string } | null;
+  workspace: { id: string; name: string };
+}
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
 export interface Mailbox {
   id: string;
   provider: "gmail";
@@ -137,8 +150,12 @@ export class MeerkoClient {
     return new MeerkoClient({ apiUrl: apiUrl!, apiKey });
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const res = await fetch(new URL(`/v1${path}`, this.config.apiUrl), {
+  private request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    return this.call<T>(method, `/v1${path}`, body);
+  }
+
+  private async call<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const res = await fetch(new URL(path, this.config.apiUrl), {
       method,
       headers: { authorization: `Bearer ${this.config.apiKey}`, "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -146,6 +163,39 @@ export class MeerkoClient {
     const json = (await res.json().catch(() => ({}))) as { error?: string };
     if (!res.ok) throw new MeerkoApiError(res.status, json.error ?? res.statusText);
     return json as T;
+  }
+
+  /** Whether the server offers "Sign in with Google" for the dashboard (public; no key needed). */
+  authConfig() {
+    return this.call<{ google: boolean }>("GET", "/auth/config");
+  }
+
+  /** Trades the one-time code from the Google sign-in callback for a session token (public; no key needed). */
+  exchangeAuthCode(code: string) {
+    return this.call<{ token: string; expires_at: string }>("POST", "/auth/exchange", { code });
+  }
+
+  /** Ends the dashboard session this client was built with. */
+  logout() {
+    return this.call<void>("POST", "/auth/logout");
+  }
+
+  /** The workspace this key or session acts on, and the signed-in person (null for API keys). */
+  me() {
+    return this.request<Me>("GET", "/me");
+  }
+
+  listApiKeys() {
+    return this.request<{ api_keys: ApiKey[] }>("GET", "/api-keys").then((r) => r.api_keys);
+  }
+
+  /** Needs a dashboard session. The returned `key` is shown once; only its prefix is kept. */
+  createApiKey(name: string) {
+    return this.request<{ id: string; name: string; key: string }>("POST", "/api-keys", { name });
+  }
+
+  revokeApiKey(id: string) {
+    return this.request<void>("DELETE", `/api-keys/${id}`);
   }
 
   listTables() {

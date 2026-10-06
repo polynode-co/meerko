@@ -8,6 +8,7 @@
   },
   "scripts": {
     "seed": "tsx --env-file=../../.env src/seed.ts",
+    "invite": "tsx --env-file=../../.env src/invite.ts",
     "test": "vitest run",
     "typecheck": "tsc -p ."
   },
