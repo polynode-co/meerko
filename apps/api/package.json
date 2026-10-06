@@ -16,6 +16,7 @@
     "@meerko/core": "workspace:*",
     "@meerko/db": "workspace:*",
     "hono": "^4.13.13",
+    "tsx": "^4.23.15",
     "zod": "^4.6.5"
   }
 }
