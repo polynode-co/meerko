@@ -4,21 +4,21 @@ import { Container, Eyebrow } from "../ui/primitives";
 const faqs = [
   [
     "Is Meerko really free?",
-    "Yes. The self-hosted edition is AGPL and has every core feature. You only pay data providers directly with your own keys. Meerko Cloud charges credits for hosted data and AI.",
+    "Yes. The self-hosted edition is AGPL and has every core feature. You only pay data providers directly with your own keys. Meerko Cloud charges credits for data lookups; AI runs in your own agent.",
   ],
   [
     "Is Meerko an open-source Clay alternative?",
-    "For outbound, yes — tables, enrichment waterfalls and AI columns. Unlike Clay, Meerko also sends the emails and handles the replies.",
+    "For outbound, yes: tables, enrichment and AI columns, plus sending from your own Gmail and a reply inbox. The difference is that Meerko is open source, so you can self-host it and keep every row in your own Postgres.",
   ],
   [
     "How do you protect deliverability?",
-    "You send from your own warmed mailboxes with daily caps, send windows, jitter and threading. Unsubscribes are honored globally from day one.",
+    "You send from your own mailboxes with daily caps, send windows, jitter and threading. Unsubscribes are honored across every sequence in your workspace.",
   ],
   [
     "Can my AI agent really run campaigns?",
-    "Every action is an MCP tool. Sends and replies can require human approval, so the agent proposes and you decide.",
+    "Every action is an MCP tool. Replies are drafted for your approval, and the Meerko commands never start a sequence without your OK.",
   ],
-  ["Does it work with my CRM?", "Meerko has a light built-in pipeline. HubSpot and Salesforce sync is on the roadmap."],
+  ["Does it work with my CRM?", "Meerko has a light built-in pipeline: new, contacted, replied, meeting, won. CRM sync isn't built yet."],
 ];
 
 export function GtmEngineers() {

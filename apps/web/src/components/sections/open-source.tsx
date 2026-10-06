@@ -5,17 +5,19 @@ import { Container, Eyebrow, SectionTitle, TrafficLights } from "../ui/primitive
 const stats = [
   ["AGPL-3.0", "License"],
   ["BYOK", "Your keys, no markup"],
-  ["1 cmd", "To self-host"],
+  ["Postgres", "Your data, your database"],
 ];
 
+// The README's self-host steps; the output lines are what the scripts print.
 const lines: [string, string][] = [
-  ["$ git clone github.com/iker-gonzalez/meerko", "text-fg"],
-  ["$ cd meerko && docker compose up -d", "text-fg"],
-  ["✔ postgres   healthy", "text-signal"],
-  ["✔ api        listening on :8787", "text-signal"],
-  ["✔ worker     3 queues ready", "text-signal"],
-  ["$ meerko login --key mk_••••••••", "text-fg"],
-  ["Logged in to Meerko (self-hosted).", "text-muted"],
+  ["$ git clone https://github.com/iker-gonzalez/meerko", "text-fg"],
+  ["$ cd meerko && pnpm install && cp .env.example .env", "text-fg"],
+  ["$ pnpm db:up && pnpm db:migrate", "text-fg"],
+  ["Migrations applied.", "text-signal"],
+  ['$ pnpm db:seed "My workspace"', "text-fg"],
+  ["API key:   mk_••••••••", "text-signal"],
+  ["$ pnpm --filter @meerko/api dev", "text-fg"],
+  ["Meerko API listening on http://localhost:8787", "text-muted"],
 ];
 
 export function OpenSource() {
@@ -26,7 +28,7 @@ export function OpenSource() {
           <Eyebrow tone="deep">Self-host it · Fork it · Own your data</Eyebrow>
           <SectionTitle className="text-dark">100% open source.</SectionTitle>
           <p className="text-lg leading-[1.55] text-dark-muted">
-            Meerko is AGPL-licensed. Run the whole stack on your own infra with one command, bring your own provider keys
+            Meerko is AGPL-licensed. Run the whole stack on your own infra, bring your own provider keys
             and keep every lead, email and reply in your Postgres. Or skip the ops and use Meerko Cloud.
           </p>
           <dl className="flex flex-wrap gap-10 pt-3">

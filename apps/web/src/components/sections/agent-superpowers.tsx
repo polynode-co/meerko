@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { apiUrl } from "@/lib/meerko";
 import { site } from "@/lib/site";
+import { agentDocs } from "@/lib/sources";
 import { CopyButton } from "../ui/copy-button";
 import { Container, Eyebrow, SectionTitle, TerminalWindow } from "../ui/primitives";
 
@@ -111,12 +112,17 @@ export function AgentSuperpowers() {
             <p className="font-mono text-xs tracking-[0.1em] text-muted">Works with</p>
             <ul className="flex flex-wrap gap-2">
               {agents.map(({ name, logo, mono }) => (
-                <li
-                  key={name}
-                  className="flex items-center gap-2 rounded-full border border-line bg-raised py-2 pr-3.5 pl-[11px] text-[13px] font-medium"
-                >
-                  <Image src={logo} alt="" width={18} height={18} className={`size-[18px] ${mono ? "invert" : ""}`} />
-                  {name}
+                <li key={name}>
+                  {/* Each agent's own docs for adding an MCP server */}
+                  <a
+                    href={agentDocs[name]}
+                    target="_blank"
+                    rel="noopener"
+                    className="flex items-center gap-2 rounded-full border border-line bg-raised py-2 pr-3.5 pl-[11px] text-[13px] font-medium hover:border-muted"
+                  >
+                    <Image src={logo} alt="" width={18} height={18} className={`size-[18px] ${mono ? "invert" : ""}`} />
+                    {name}
+                  </a>
                 </li>
               ))}
             </ul>

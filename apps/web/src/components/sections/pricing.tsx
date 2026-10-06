@@ -26,8 +26,8 @@ const plans = [
     price: "$49",
     per: "/ month",
     sub: "4,900 credits / month",
-    features: ["Unlimited mailboxes", "Hosted agents run 24/7", "Reply drafting & triage", "Email support"],
-    cta: "Start 14-day trial",
+    features: ["Unlimited mailboxes", "Sending & reply scan, 24/7", "Reply drafting & triage", "Email support"],
+    cta: "Get started",
     href: site.signupUrl,
     popular: true,
   },
@@ -36,7 +36,7 @@ const plans = [
     price: "Custom",
     per: "",
     sub: "Volume credits",
-    features: ["SSO & roles", "Audit logs", "Agency workspaces", "Dedicated support"],
+    features: ["Volume credit pricing", "Custom sending limits", "Onboarding help", "Dedicated support"],
     cta: "Talk to us",
     href: "mailto:hello@example.com",
   },
@@ -50,7 +50,7 @@ export function Pricing() {
         <div className="flex max-w-[720px] flex-col items-center gap-4 text-center">
           <Eyebrow>Pricing</Eyebrow>
           <SectionTitle as="h1">Free to own. Fair to rent.</SectionTitle>
-          <p className="text-lg text-muted">Credits only for what costs us money: data lookups and AI. $1 = 100 credits.</p>
+          <p className="text-lg text-muted">Credits only for what costs us money: data lookups. $1 = 100 credits.</p>
         </div>
         <div className="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => (
@@ -131,7 +131,7 @@ export function CreditCosts() {
 }
 
 const faq = [
-  ["Is self-hosting really free?", "Yes. Meerko is AGPL-3.0: run the whole stack on your own infra, bring your own provider keys, pay nobody."],
+  ["Is self-hosting really free?", "Yes. Meerko is AGPL-3.0: run the whole stack on your own infra and bring your own provider keys. You pay us nothing; you pay your data providers directly."],
   ["What uses credits?", "Only data that costs us money: finding and verifying emails, and lead search. Sending, reply detection and drafts don't."],
   ["Do misses cost anything?", "No. If no email is found, or the lookup fails, you aren't charged."],
   ["Can I use my own Icypeas key on Cloud?", "Yes. Add it with `meerko keys set icypeas` and lookups run on your key, with no credits charged."],

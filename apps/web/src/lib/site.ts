@@ -7,5 +7,6 @@ export const site = {
   pricingUrl: "/pricing",
   // Cloud plans start by signing in (Google); the first sign-in creates the workspace.
   signupUrl: "/login",
-  installCommand: "npx meerko init",
+  // Self-hosting starts from the repo (not on npm yet).
+  installCommand: "git clone https://github.com/iker-gonzalez/meerko",
 };

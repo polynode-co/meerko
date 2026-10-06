@@ -5,7 +5,7 @@ import { CreditCosts, Pricing, PricingFaq } from "@/components/sections/pricing"
 
 export const metadata: Metadata = {
   title: "Pricing — Meerko",
-  description: "Self-host Meerko free forever, or use Meerko Cloud: start free with 1,000 credits, then $49/month. Credits only for data lookups and AI.",
+  description: "Self-host Meerko free forever, or use Meerko Cloud: start free with 1,000 credits, then $49/month. Credits only for data lookups.",
   alternates: { canonical: "/pricing" },
 };
 

@@ -4,13 +4,14 @@ import { AnimatedMascot } from "../ui/animated-mascot";
 import { CopyCommand } from "../ui/copy-command";
 import { Container, PrimaryButton, TerminalWindow } from "../ui/primitives";
 
+// An example session; the tool names are the real MCP tools.
 const session: [string, string, string][] = [
   [">", "Find 50 Series A fintech CTOs in Spain,", "user"],
   [" ", "enrich + verify, write a 3-step sequence.", "user"],
-  ["●", "meerko.search_companies  → 212 matches", "tool"],
-  ["●", "meerko.enrich email      → 47/50 found", "tool"],
-  ["●", "meerko.verify            → 44 deliverable", "tool"],
-  ["●", "meerko.sequence.start    → 3 steps, Gmail", "tool"],
+  ["●", "meerko.find_people       → 50 leads", "tool"],
+  ["●", "meerko.enrich_rows       → 47/50 emails", "tool"],
+  ["●", "meerko.create_sequence   → 3 steps, Gmail", "tool"],
+  ["●", "meerko.start_sequence    → sending", "tool"],
 ];
 
 export function Hero() {

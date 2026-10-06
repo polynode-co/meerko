@@ -1,16 +1,13 @@
 import { ArrowRight, Check } from "lucide-react";
 import Image from "next/image";
 import { Logo } from "../ui/brand";
+import { CHECKED_ON, stackPrices } from "@/lib/sources";
 import { Container, Eyebrow, SectionTitle } from "../ui/primitives";
 
-// Logos: Clay, Apollo and Instantly from their own site icons; HubSpot and Zapier from Simple Icons (CC0).
-const stack = [
-  ["Clay", "/logos/clay.png", "Tables & enrichment", "$349/mo"],
-  ["Apollo", "/logos/apollo.png", "Contact data", "$99/mo"],
-  ["Instantly", "/logos/instantly.png", "Sending", "$97/mo"],
-  ["HubSpot", "/logos/hubspot.svg", "CRM", "$90/mo"],
-  ["Zapier", "/logos/zapier.svg", "Glue", "$69/mo"],
-];
+// Logos: Clay and Instantly from their own site icons; HubSpot and Zapier from Simple Icons (CC0).
+// Prices and their sources: lib/sources.ts.
+const total = stackPrices.reduce((sum, s) => sum + s.price, 0);
+const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 
 const included = [
   "Tables, enrichment & verification",
@@ -27,30 +24,38 @@ export function Problem() {
         <div className="flex max-w-[760px] flex-col gap-4">
           <Eyebrow tone="deep">The problem</Eyebrow>
           <SectionTitle className="text-dark">
-            Your outbound stack costs $700 a month and still can’t talk to your agent.
+            Your outbound stack costs {usd(Math.round(total))} a month, and you own none of it.
           </SectionTitle>
           <p className="text-lg leading-[1.55] text-dark-muted lg:text-[19px]">
-            Five tools, five logins, five bills — glued together with Zapier. None of it was built for Claude Code. Meerko
-            replaces the whole loop with one open-source engine.
+            Four tools, four logins, four bills, glued together with Zapier. Meerko replaces the loop with one open-source engine
+            you can run yourself.
           </p>
         </div>
 
         <div className="flex flex-col items-center gap-8 lg:flex-row">
           <div className="flex w-full flex-1 flex-col gap-2.5">
-            {stack.map(([tool, logo, job, price]) => (
+            {stackPrices.map(({ tool, logo, job, plan, price, url }) => (
               <div key={tool} className="flex items-center gap-4 rounded-[10px] border border-dark/10 bg-white/60 px-5 py-4">
                 <span className="flex w-[124px] shrink-0 items-center gap-3 sm:w-36">
                   <Image src={logo} alt="" width={24} height={24} className="size-6 shrink-0 rounded-md" />
                   <span className="text-[17px] font-semibold line-through">{tool}</span>
                 </span>
-                <span className="flex-1 text-sm text-dark-muted sm:text-[15px]">{job}</span>
-                <span className="font-mono text-[15px] text-dark-muted">{price}</span>
+                <span className="flex flex-1 flex-col text-sm text-dark-muted sm:text-[15px]">
+                  {job}
+                  <span className="text-xs opacity-80">{plan}</span>
+                </span>
+                <a href={url} target="_blank" rel="noopener" className="font-mono text-[15px] text-dark-muted underline decoration-dark/25 underline-offset-4 hover:text-dark">
+                  {usd(price)}/mo
+                </a>
               </div>
             ))}
             <div className="flex justify-between px-5 py-2">
-              <span className="text-[15px] text-dark-muted">Typical stack</span>
-              <span className="font-mono text-[15px] font-bold">≈ $704/mo</span>
+              <span className="text-[15px] text-dark-muted">Entry-level stack</span>
+              <span className="font-mono text-[15px] font-bold">{usd(total)}/mo</span>
             </div>
+            <p className="px-5 text-xs text-dark-muted">
+              Entry-level paid plans, billed monthly, from each vendor&apos;s pricing page (linked) on {CHECKED_ON}.
+            </p>
           </div>
 
           <ArrowRight className="size-10 shrink-0 rotate-90 text-accent-deep lg:rotate-0" />

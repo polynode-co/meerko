@@ -7,7 +7,7 @@ import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Connect your agent — Meerko docs",
-  description: "Add Meerko to Claude Code, Codex, Cursor or any MCP client in about five minutes.",
+  description: "Add Meerko to Claude Code, Codex, Cursor or any MCP client.",
   alternates: { canonical: "/docs" },
 };
 
@@ -86,7 +86,7 @@ export default function DocsPage() {
             <h1 className="font-display text-[44px] leading-tight font-bold tracking-[-0.02em]">Connect your agent</h1>
             <p className="text-lg leading-[1.55] text-muted">
               Meerko runs as an MCP server, so any agent that speaks MCP gets the same tools you do: search and enrich leads, run
-              sequences from your Gmail and work the replies. Setup takes about five minutes.
+              sequences from your Gmail and work the replies.
             </p>
           </header>
           <div className="flex gap-3.5 rounded-xl border border-accent/25 bg-accent-soft px-[18px] py-4 text-[15px] leading-normal">
