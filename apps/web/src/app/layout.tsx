@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${bricolage.variable} ${inter.variable} ${jetbrains.variable}`}>
-      <body>{children}</body>
+      <body id="top">{children}</body>
     </html>
   );
 }

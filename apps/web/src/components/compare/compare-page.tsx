@@ -1,10 +1,12 @@
-import { ArrowRight, Check, ExternalLink, FileUp, Sparkles, ThumbsUp } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ExternalLink, FileUp } from "lucide-react";
+import Image from "next/image";
+import { LogoMark } from "@/components/ui/brand";
 import { Footer } from "@/components/sections/footer";
 import { Nav } from "@/components/sections/nav";
 import { Container, Eyebrow, SectionTitle, TerminalWindow } from "@/components/ui/primitives";
 import { JsonLd, faqJsonLd } from "@/components/json-ld";
 import { Breadcrumbs } from "@/components/content/breadcrumbs";
-import { alternatives } from "@/lib/content";
+import { alternativeBySlug, alternatives } from "@/lib/content";
 import { CHECKED_ON } from "@/lib/sources";
 import { site } from "@/lib/site";
 
@@ -44,6 +46,7 @@ const onlyMeerko = [
 ];
 
 export function ComparePage({ c }: { c: Comparison }) {
+  const { logo } = alternativeBySlug(c.slug);
   // Number each distinct source once, in order of first use.
   const sources: Source[] = [];
   const cite = (s: Source) => {
@@ -72,6 +75,16 @@ export function ComparePage({ c }: { c: Comparison }) {
             <Breadcrumbs items={[["Home", "/"], ["Alternatives", "/alternatives"], [`${c.name} alternative`, `/alternatives/${c.slug}`]]} />
           </Container>
           <Container className="flex flex-col items-center gap-6 pt-16 pb-16 text-center lg:pt-20 lg:pb-[72px]">
+            {/* Logo lockup: Meerko vs the vendor (its own site icon). */}
+            <div className="flex items-center gap-5 pb-2">
+              <span className="grid size-[88px] place-items-center rounded-[22px] border-[1.5px] border-accent/35 bg-raised shadow-[0_12px_40px_rgba(242,169,59,0.15)] sm:size-[112px] sm:rounded-[26px]">
+                <LogoMark size={64} />
+              </span>
+              <span className="grid size-11 place-items-center rounded-full border border-line font-mono text-sm text-muted">vs</span>
+              <span className="grid size-[88px] place-items-center rounded-[22px] border-[1.5px] border-line bg-raised sm:size-[112px] sm:rounded-[26px]">
+                <Image src={logo} alt={`${c.name} logo`} width={64} height={64} priority className="size-12 rounded-[12px] sm:size-16 sm:rounded-[14px]" />
+              </span>
+            </div>
             <span className="rounded-full bg-accent-soft px-3.5 py-1.5 font-mono text-[13px] tracking-[0.1em] text-accent uppercase">
               Meerko vs {c.name}
             </span>
@@ -101,8 +114,16 @@ export function ComparePage({ c }: { c: Comparison }) {
                     <th className="px-7 py-[18px] font-normal">
                       <span className="sr-only">Feature</span>
                     </th>
-                    <th className="w-[270px] px-7 py-[18px] font-bold text-accent">Meerko</th>
-                    <th className="w-[270px] px-7 py-[18px] font-normal text-muted">{c.name}</th>
+                    <th className="w-[270px] px-7 py-[18px] font-sans text-[15px] font-bold tracking-normal normal-case text-accent">
+                      <span className="flex items-center gap-2.5">
+                        <LogoMark size={24} /> Meerko
+                      </span>
+                    </th>
+                    <th className="w-[270px] px-7 py-[18px] font-sans text-[15px] font-bold tracking-normal normal-case text-muted">
+                      <span className="flex items-center gap-2.5">
+                        <Image src={logo} alt="" width={24} height={24} className="size-6 rounded-md" /> {c.name}
+                      </span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -127,7 +148,7 @@ export function ComparePage({ c }: { c: Comparison }) {
           <Container className="grid gap-6 pb-24 md:grid-cols-2 lg:px-[180px] lg:pb-28">
             <div className="flex flex-col gap-3 rounded-2xl border border-line bg-raised px-[30px] py-7">
               <h2 className="flex items-center gap-2.5 font-display text-[22px] font-bold">
-                <ThumbsUp className="size-[18px] text-muted" /> Where {c.name} is stronger
+                <Image src={logo} alt="" width={30} height={30} className="size-[30px] rounded-lg" /> Where {c.name} is stronger
               </h2>
               <ul className="flex flex-col gap-2 leading-[1.55] text-muted">
                 {c.theyWin.map((w) => (
@@ -140,7 +161,7 @@ export function ComparePage({ c }: { c: Comparison }) {
             </div>
             <div className="flex flex-col gap-3 rounded-2xl border border-line bg-raised px-[30px] py-7">
               <h2 className="flex items-center gap-2.5 font-display text-[22px] font-bold">
-                <Sparkles className="size-[18px] text-accent" /> Only with Meerko
+                <LogoMark size={30} /> Only with Meerko
               </h2>
               <ul className="flex flex-col gap-2.5">
                 {onlyMeerko.map((m) => (
@@ -162,7 +183,8 @@ export function ComparePage({ c }: { c: Comparison }) {
         {c.pricing && (
           <section>
             <Container className="flex flex-col gap-6 pb-24 lg:px-[180px] lg:pb-28">
-              <h2 className="font-display text-[32px] font-bold tracking-[-0.02em]">
+              <h2 className="flex items-center gap-3.5 font-display text-[32px] font-bold tracking-[-0.02em]">
+                <Image src={logo} alt="" width={36} height={36} className="size-9 rounded-[9px]" />
                 How much does {c.name} cost?
                 <Ref s={c.pricing.source} />
               </h2>
@@ -230,16 +252,24 @@ export function ComparePage({ c }: { c: Comparison }) {
                 .filter((a) => a.slug !== c.slug)
                 .map((a) => (
                   <li key={a.slug}>
-                    <a href={`/alternatives/${a.slug}`} className="flex h-full flex-col gap-1 rounded-xl border border-line px-4 py-3.5 hover:border-muted">
-                      <span className="font-semibold">Meerko vs {a.name}</span>
-                      <span className="text-sm text-muted">{a.summary}</span>
+                    <a href={`/alternatives/${a.slug}`} className="flex h-full items-center gap-3.5 rounded-xl border border-line px-[18px] py-4 hover:border-muted">
+                      <Image src={a.logo} alt="" width={40} height={40} className="size-10 shrink-0 rounded-[10px]" />
+                      <span className="flex flex-col gap-0.5">
+                        <span className="font-semibold">Meerko vs {a.name}</span>
+                        <span className="text-[13px] leading-snug text-muted">{a.summary}</span>
+                      </span>
                     </a>
                   </li>
                 ))}
               <li>
-                <a href="/guides" className="flex h-full flex-col gap-1 rounded-xl border border-line px-4 py-3.5 hover:border-muted">
-                  <span className="font-semibold">Outbound guides</span>
-                  <span className="text-sm text-muted">Cold email, follow-ups, deliverability and Gmail limits.</span>
+                <a href="/guides" className="flex h-full items-center gap-3.5 rounded-xl border border-line px-[18px] py-4 hover:border-muted">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-[10px] bg-accent-soft">
+                    <BookOpen className="size-5 text-accent" />
+                  </span>
+                  <span className="flex flex-col gap-0.5">
+                    <span className="font-semibold">Outbound guides</span>
+                    <span className="text-[13px] leading-snug text-muted">Cold email, follow-ups, deliverability and Gmail limits.</span>
+                  </span>
                 </a>
               </li>
             </ul>

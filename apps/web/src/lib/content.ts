@@ -1,4 +1,5 @@
 // The registry of content pages (docs/CONTENT.md). Hubs, related links, the footer and the sitemap read from it.
+import { Mail, ShieldCheck, Terminal, type LucideIcon } from "lucide-react";
 
 export type Topic = "Cold email" | "Deliverability" | "GTM engineering";
 
@@ -14,6 +15,16 @@ export interface GuideEntry {
 }
 
 export const TOPICS: Topic[] = ["Cold email", "Deliverability", "GTM engineering"];
+
+/** Icon and one-line pitch per topic, for hub sections, eyebrows and related cards. */
+export const topicMeta: Record<Topic, { icon: LucideIcon; tagline: string }> = {
+  "Cold email": { icon: Mail, tagline: "Write emails people answer." },
+  Deliverability: { icon: ShieldCheck, tagline: "Land in the inbox, not in spam." },
+  "GTM engineering": { icon: Terminal, tagline: "Build the systems around outbound." },
+};
+
+/** The guide featured at the top of /guides. */
+export const FEATURED_GUIDE = "cold-email-follow-up";
 
 export const guides: GuideEntry[] = [
   {
@@ -81,10 +92,14 @@ export interface AlternativeEntry {
   slug: string;
   name: string;
   summary: string;
+  /** The vendor's own site icon (public/logos). */
+  logo: string;
 }
 
 export const alternatives: AlternativeEntry[] = [
-  { slug: "clay", name: "Clay", summary: "Clay pricing and features next to Meerko, from Clay's own pages." },
-  { slug: "apollo", name: "Apollo", summary: "Apollo's plans and features next to Meerko, from Apollo's own pages." },
-  { slug: "instantly", name: "Instantly", summary: "Instantly pricing and features next to Meerko, from Instantly's own pages." },
+  { slug: "clay", name: "Clay", logo: "/logos/clay.png", summary: "Clay pricing and features next to Meerko, from Clay's own pages." },
+  { slug: "apollo", name: "Apollo", logo: "/logos/apollo.png", summary: "Apollo's plans and features next to Meerko, from Apollo's own pages." },
+  { slug: "instantly", name: "Instantly", logo: "/logos/instantly.png", summary: "Instantly pricing and features next to Meerko, from Instantly's own pages." },
 ];
+
+export const alternativeBySlug = (slug: string) => alternatives.find((a) => a.slug === slug)!;

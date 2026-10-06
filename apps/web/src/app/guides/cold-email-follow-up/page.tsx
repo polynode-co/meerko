@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { citer, GuideShell, H2, Sample } from "@/components/content/guide-shell";
+import { Callout, citer, GuideShell, H2, Sample, Timeline } from "@/components/content/guide-shell";
 import { ftcCanSpam, googleSources } from "@/lib/sources";
 
 // Targets "cold email follow up" (3.6k–18k/mo, KD 8) (DataForSEO, US, Oct 2026).
@@ -49,12 +49,7 @@ export default function Page() {
 
       <H2 id="timing">When to follow up</H2>
       <p>A simple cadence that respects the reader&apos;s time:</p>
-      <ul className="flex list-disc flex-col gap-1.5 pl-6">
-        <li><strong className="text-fg">Day 1:</strong> the first email.</li>
-        <li><strong className="text-fg">Day 4:</strong> follow-up 1, a short bump with one new detail.</li>
-        <li><strong className="text-fg">Day 8:</strong> follow-up 2, a different angle or a proof point.</li>
-        <li><strong className="text-fg">Day 14:</strong> follow-up 3, the polite close.</li>
-      </ul>
+      <Timeline steps={[["Day 1", "First email"], ["Day 4", "Short bump"], ["Day 8", "New angle"], ["Day 14", "Polite close"]]} highlight={1} />
       <p>
         Send on weekdays, inside working hours in the recipient&apos;s time zone. This is a starting point, not a rule: test it
         against your own reply data.
@@ -95,11 +90,13 @@ export default function Page() {
       </p>
 
       <H2 id="rules">Rules you must follow</H2>
-      <ul className="flex list-disc flex-col gap-1.5 pl-6">
-        <li>
+      <Callout>
+        <p>
           In the US, CAN-SPAM requires a clear way to opt out, a valid physical postal address, and honoring opt-outs within 10
           business days. Each violating email can cost up to $53,088.<Cite s={ftcCanSpam} />
-        </li>
+        </p>
+      </Callout>
+      <ul className="flex list-disc flex-col gap-1.5 pl-6">
         <li>
           Gmail asks every sender to keep the spam rate reported in Postmaster Tools below 0.3%.<Cite s={googleSources.senderGuidelines} /> Fewer,
           better follow-ups help: see <a href="/guides/email-deliverability" className="text-accent hover:underline">email deliverability</a>.
