@@ -2,6 +2,7 @@ import { ArrowRight, Check, ExternalLink, FileUp, Sparkles, ThumbsUp } from "luc
 import { Footer } from "@/components/sections/footer";
 import { Nav } from "@/components/sections/nav";
 import { Container, Eyebrow, SectionTitle, TerminalWindow } from "@/components/ui/primitives";
+import { JsonLd, faqJsonLd } from "@/components/json-ld";
 import { CHECKED_ON } from "@/lib/sources";
 import { site } from "@/lib/site";
 
@@ -24,6 +25,10 @@ export interface Comparison {
   rows: CompareRow[];
   /** Where the competitor is stronger, each point sourced. */
   theyWin: { text: string; source: Source }[];
+  /** The competitor's own plan list, for "how much does X cost" searches. */
+  pricing?: { plans: { name: string; price: string; detail: string }[]; note: string; source: Source };
+  /** Questions people search, answered from the sources above. */
+  faq?: [string, string][];
 }
 
 const repo = site.githubUrl;
@@ -45,6 +50,7 @@ export function ComparePage({ c }: { c: Comparison }) {
   // Register every source up front, so the list at the bottom is complete before anything renders.
   for (const r of c.rows) cite(r.source);
   for (const w of c.theyWin) cite(w.source);
+  if (c.pricing) cite(c.pricing.source);
   const Ref = ({ s }: { s: Source }) => (
     <sup>
       <a href={`#source-${cite(s)}`} className="ml-0.5 font-mono text-[11px] text-accent hover:underline">
@@ -146,6 +152,27 @@ export function ComparePage({ c }: { c: Comparison }) {
           </Container>
         </section>
 
+        {c.pricing && (
+          <section>
+            <Container className="flex flex-col gap-6 pb-24 lg:px-[180px] lg:pb-28">
+              <h2 className="font-display text-[32px] font-bold tracking-[-0.02em]">
+                How much does {c.name} cost?
+                <Ref s={c.pricing.source} />
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {c.pricing.plans.map((p) => (
+                  <div key={p.name} className="flex flex-col gap-2 rounded-xl border border-line px-5 py-5">
+                    <p className="font-semibold">{p.name}</p>
+                    <p className="font-display text-[32px] leading-none font-bold">{p.price}</p>
+                    <p className="text-sm leading-normal text-muted">{p.detail}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-muted">{c.pricing.note}</p>
+            </Container>
+          </section>
+        )}
+
         <section id="switch" className="scroll-mt-20 bg-sand text-dark">
           <Container className="flex flex-col items-center gap-14 py-24 lg:flex-row lg:gap-[72px] lg:py-28">
             <div className="flex w-full flex-1 flex-col gap-7">
@@ -172,6 +199,21 @@ export function ComparePage({ c }: { c: Comparison }) {
             </TerminalWindow>
           </Container>
         </section>
+
+        {c.faq && (
+          <section>
+            <Container className="flex flex-col gap-2 py-24 lg:px-[180px]">
+              <h2 className="mb-4 font-display text-[32px] font-bold tracking-[-0.02em]">Questions</h2>
+              {c.faq.map(([q, a]) => (
+                <div key={q} className="flex flex-col gap-2 border-t border-line py-5">
+                  <h3 className="text-lg font-semibold">{q}</h3>
+                  <p className="leading-[1.55] text-muted">{a}</p>
+                </div>
+              ))}
+            </Container>
+            <JsonLd data={faqJsonLd(c.faq)} />
+          </section>
+        )}
 
         <section className="border-t border-line">
           <Container className="py-12">

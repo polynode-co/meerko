@@ -5,7 +5,7 @@ import { JsonLd, faqJsonLd } from "@/components/json-ld";
 import { CreditCosts, Pricing, PricingFaq, pricingFaq } from "@/components/sections/pricing";
 
 export const metadata: Metadata = {
-  title: "Pricing — Meerko",
+  title: "Meerko pricing: free open-source AI sales agent, Cloud from $49/mo",
   description: "Self-host Meerko free forever, or use Meerko Cloud: start free with 1,000 credits, then $49/month. Credits only for data lookups.",
   alternates: { canonical: "/pricing" },
 };

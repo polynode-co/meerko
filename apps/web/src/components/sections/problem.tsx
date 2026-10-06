@@ -54,7 +54,10 @@ export function Problem() {
               <span className="font-mono text-[15px] font-bold">{usd(total)}/mo</span>
             </div>
             <p className="px-5 text-xs text-dark-muted">
-              Entry-level paid plans, billed monthly, from each vendor&apos;s pricing page (linked) on {CHECKED_ON}.
+              Entry-level paid plans, billed monthly, from each vendor&apos;s pricing page (linked) on {CHECKED_ON}.{" "}
+              <a href="/clay-alternative" className="font-semibold text-dark underline underline-offset-2">
+                Compare Meerko with Clay →
+              </a>
             </p>
           </div>
 

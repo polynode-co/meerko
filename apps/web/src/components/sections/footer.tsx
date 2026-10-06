@@ -15,7 +15,7 @@ export function Footer() {
         <div className="flex flex-col justify-between gap-12 lg:flex-row">
           <div className="flex max-w-[320px] flex-col gap-3">
             <Logo size={30} className="text-[22px]" />
-            <p className="text-sm leading-relaxed text-muted">The open-source GTM agent. Always on the lookout for your next customer.</p>
+            <p className="text-sm leading-relaxed text-muted">The open-source AI sales agent. Always on the lookout for your next customer.</p>
           </div>
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:gap-[72px]">
             {columns.map(([heading, links]) => (

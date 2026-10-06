@@ -26,11 +26,11 @@ export function Hero() {
           <h1 className="font-display text-5xl leading-[0.98] font-bold tracking-[-0.035em] sm:text-7xl lg:text-[76px]">
             <span className="lg:whitespace-nowrap">The open&#8209;source</span>
             <br />
-            GTM agent.
+            AI sales agent.
           </h1>
           <p className="max-w-[620px] text-lg leading-normal text-muted lg:text-xl">
-            Meerko finds your leads, enriches them, sends from your own inbox and catches every reply — driven from your
-            terminal or Claude Code.
+            An AI SDR that finds your leads, enriches them, sends cold email from your own Gmail and catches every reply —
+            driven from Claude Code, Codex or Cursor.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <PrimaryButton href={site.pricingUrl}>Get started free</PrimaryButton>

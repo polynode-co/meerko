@@ -6,8 +6,9 @@ import { apiUrl } from "@/lib/meerko";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Connect your agent — Meerko docs",
-  description: "Add Meerko to Claude Code, Codex, Cursor or any MCP client.",
+  // Targets "mcp servers for claude code" (140/mo) and the long tail around it (DataForSEO, Oct 2026).
+  title: "Meerko MCP server for Claude Code, Codex & Cursor — setup guide",
+  description: "Add the Meerko MCP server to Claude Code, Codex, Cursor or any MCP client: lead search, enrichment, cold email sequences and replies as tools for your agent.",
   alternates: { canonical: "/docs" },
 };
 
@@ -83,7 +84,7 @@ export default function DocsPage() {
             Docs <span className="text-line">/</span> Agents <span className="text-line">/</span> <span className="text-fg">Connect your agent</span>
           </p>
           <header className="flex flex-col gap-3">
-            <h1 className="font-display text-[44px] leading-tight font-bold tracking-[-0.02em]">Connect your agent</h1>
+            <h1 className="font-display text-[44px] leading-tight font-bold tracking-[-0.02em]">Add the Meerko MCP server to your agent</h1>
             <p className="text-lg leading-[1.55] text-muted">
               Meerko runs as an MCP server, so any agent that speaks MCP gets the same tools you do: search and enrich leads, run
               sequences from your Gmail and work the replies.
@@ -142,6 +143,21 @@ export default function DocsPage() {
               ))}
             </dl>
           </Step>
+
+          <div className="flex flex-col gap-4 rounded-2xl border border-line bg-raised px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-1">
+              <p className="font-display text-xl font-bold">No Meerko account yet?</p>
+              <p className="text-[15px] text-muted">Start on Meerko Cloud with 1,000 free credits, or self-host it for free.</p>
+            </div>
+            <div className="flex shrink-0 gap-3">
+              <a href={site.pricingUrl} className="rounded-[10px] bg-accent px-5 py-3 font-semibold text-dark hover:brightness-110">
+                Get started free
+              </a>
+              <a href={`${repo}/blob/main/docs/DEPLOY.md`} className="rounded-[10px] border border-line px-5 py-3 font-semibold hover:border-muted">
+                Self-host
+              </a>
+            </div>
+          </div>
 
           <div className="mt-2 grid gap-4 border-t border-line pt-6 sm:grid-cols-2">
             <a href={`${repo}/blob/main/docs/DEPLOY.md`} className="flex flex-col gap-1 rounded-xl border border-line px-[18px] py-4 hover:border-muted">

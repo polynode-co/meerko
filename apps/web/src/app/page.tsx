@@ -18,7 +18,7 @@ const app = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: "Meerko",
-  description: "The open-source GTM agent: find leads, enrich them, send from your own inbox and catch every reply, from your terminal or coding agent.",
+  description: "The open-source AI sales agent: find leads, enrich them, send cold email from your own Gmail and catch every reply, from your terminal or coding agent.",
   url: site.url,
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",

@@ -3,9 +3,10 @@ import { ComparePage, type Comparison } from "@/components/compare/compare-page"
 import { claySources } from "@/lib/sources";
 
 export const metadata: Metadata = {
-  title: "The open-source Clay alternative — Meerko",
+  // Targets "clay alternative(s)" (480/mo, +88% YoY) and "clay pricing" (1.9k/mo, KD 7) (DataForSEO, Oct 2026).
+  title: "Open-source Clay alternative & Clay pricing (2026) | Meerko",
   description:
-    "Meerko vs Clay, from each product's own pages: prices, sequencer, reply inbox and agent support. Meerko is open source: self-host it for free or use Meerko Cloud from $49/mo.",
+    "A cheaper, open-source Clay alternative: self-host Meerko free or use Cloud from $49/mo. Clay pricing and features, from Clay's own pages.",
   alternates: { canonical: "/clay-alternative" },
 };
 
@@ -21,6 +22,30 @@ const clay: Comparison = {
     { label: "Email sequences", meerko: "From your own Gmail", them: "Native sequencer", source: claySources.pricing },
     { label: "Reply inbox", meerko: "Built in, with agent-drafted replies", them: "Global Inbox", source: claySources.globalInbox },
     { label: "Coding agents", meerko: "MCP server (31 tools) and CLI", them: "Clay MCP, CLI and API", source: claySources.pricing },
+  ],
+  pricing: {
+    plans: [
+      { name: "Free", price: "$0", detail: "500 actions and 100 data credits a month, up to 200 rows per table." },
+      { name: "Launch", price: "$167/mo", detail: "Starts at 15,000 actions a month; the price depends on the actions and data credits you pick." },
+      { name: "Growth", price: "$446/mo", detail: "Starts at 40,000 actions a month." },
+      { name: "Enterprise", price: "Custom", detail: "Priced by Clay's sales team." },
+    ],
+    note: "Monthly billing as listed on Clay's pricing page; annual billing is cheaper. Data credits start at $0.05 each.",
+    source: claySources.pricing,
+  },
+  faq: [
+    [
+      "Is there an open-source alternative to Clay?",
+      "Yes. Meerko is open source under AGPL-3.0: you can self-host it for free with your own provider keys, or use Meerko Cloud, which starts free with 1,000 credits.",
+    ],
+    [
+      "How much does Clay cost?",
+      "Clay's pricing page lists a Free plan, Launch at $167/mo and Growth at $446/mo on monthly billing, plus custom Enterprise pricing. Annual billing is cheaper.",
+    ],
+    [
+      "Can Clay send emails?",
+      "Yes. Clay's pricing page lists a native email sequencer, and Clay University documents a Global Inbox for replies. Meerko also sends sequences, from your own Gmail.",
+    ],
   ],
   theyWin: [
     { text: "Far more data: 150+ providers in one marketplace.", source: claySources.pricing },
