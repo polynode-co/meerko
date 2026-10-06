@@ -19,3 +19,9 @@ export const agentDocs: Record<string, string> = {
   "Gemini CLI": "https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md",
   Windsurf: "https://docs.windsurf.com/windsurf/cascade/mcp",
 };
+
+/** Clay, for /clay-alternative. Only what Clay's own pages say. */
+export const claySources = {
+  pricing: { label: "Clay pricing", url: "https://www.clay.com/pricing" },
+  globalInbox: { label: "Clay University: Global Inbox", url: "https://university.clay.com/lessons/global-inbox" },
+};

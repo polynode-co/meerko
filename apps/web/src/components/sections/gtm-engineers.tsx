@@ -1,7 +1,7 @@
 import { Minus, Plus } from "lucide-react";
 import { Container, Eyebrow } from "../ui/primitives";
 
-const faqs = [
+export const faqs = [
   [
     "Is Meerko really free?",
     "Yes. The self-hosted edition is AGPL and has every core feature. You only pay data providers directly with your own keys. Meerko Cloud charges credits for data lookups; AI runs in your own agent.",

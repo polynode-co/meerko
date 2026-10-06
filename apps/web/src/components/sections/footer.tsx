@@ -5,6 +5,7 @@ import { Container } from "../ui/primitives";
 const columns = [
   ["Product", [["Features", "/#product"], ["Pricing", site.pricingUrl], ["Changelog", `${site.githubUrl}/commits/main`], ["Roadmap", `${site.githubUrl}/blob/main/docs/PLAN.md`]]],
   ["Developers", [["Docs", site.docsUrl], ["CLI", `${site.githubUrl}#cli`], ["MCP server", site.docsUrl], ["GitHub", site.githubUrl]]],
+  ["Compare", [["Clay alternative", "/clay-alternative"]]],
 ] as const;
 
 export function Footer() {
@@ -16,7 +17,7 @@ export function Footer() {
             <Logo size={30} className="text-[22px]" />
             <p className="text-sm leading-relaxed text-muted">The open-source GTM agent. Always on the lookout for your next customer.</p>
           </div>
-          <div className="grid grid-cols-2 gap-10 lg:gap-[72px]">
+          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:gap-[72px]">
             {columns.map(([heading, links]) => (
               <div key={heading} className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold">{heading}</h3>

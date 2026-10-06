@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MeerkoClient } from "@meerko/sdk";
 import { LoginForm } from "@/components/app/login-form";
 import { apiUrl, SESSION_COOKIE } from "@/lib/meerko";
+
+export const metadata: Metadata = { title: "Sign in — Meerko", robots: { index: false } };
 
 /** Whether the saved credential still works; an expired one or an unreachable API shows the form. */
 async function isSignedIn(token: string) {

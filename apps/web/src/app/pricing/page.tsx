@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Footer } from "@/components/sections/footer";
 import { Nav } from "@/components/sections/nav";
-import { CreditCosts, Pricing, PricingFaq } from "@/components/sections/pricing";
+import { JsonLd, faqJsonLd } from "@/components/json-ld";
+import { CreditCosts, Pricing, PricingFaq, pricingFaq } from "@/components/sections/pricing";
 
 export const metadata: Metadata = {
   title: "Pricing — Meerko",
@@ -17,6 +18,7 @@ export default function PricingPage() {
         <Pricing />
         <CreditCosts />
         <PricingFaq />
+        <JsonLd data={faqJsonLd(pricingFaq)} />
       </main>
       <Footer />
     </>

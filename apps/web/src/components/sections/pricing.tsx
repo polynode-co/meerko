@@ -130,7 +130,7 @@ export function CreditCosts() {
   );
 }
 
-const faq = [
+export const pricingFaq = [
   ["Is self-hosting really free?", "Yes. Meerko is AGPL-3.0: run the whole stack on your own infra and bring your own provider keys. You pay us nothing; you pay your data providers directly."],
   ["What uses credits?", "Only data that costs us money: finding and verifying emails, and lead search. Sending, reply detection and drafts don't."],
   ["Do misses cost anything?", "No. If no email is found, or the lookup fails, you aren't charged."],
@@ -148,7 +148,7 @@ export function PricingFaq() {
           <SectionTitle className="text-dark">Pricing, plainly.</SectionTitle>
         </div>
         <dl className="grid gap-x-12 gap-y-8 md:grid-cols-2">
-          {faq.map(([q, a]) => (
+          {pricingFaq.map(([q, a]) => (
             <div key={q} className="flex flex-col gap-2.5 border-t border-dark/12 pt-6">
               <dt className="text-lg font-semibold">{q}</dt>
               <dd className="leading-[1.55] text-dark-muted">
