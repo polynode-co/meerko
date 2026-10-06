@@ -1,3 +1,4 @@
+import { alternatives, guides } from "@/lib/content";
 import { site } from "@/lib/site";
 import { Logo } from "../ui/brand";
 import { Container } from "../ui/primitives";
@@ -5,7 +6,9 @@ import { Container } from "../ui/primitives";
 const columns = [
   ["Product", [["Features", "/#product"], ["Pricing", site.pricingUrl], ["Changelog", `${site.githubUrl}/commits/main`], ["Roadmap", `${site.githubUrl}/blob/main/docs/PLAN.md`]]],
   ["Developers", [["Docs", site.docsUrl], ["CLI", `${site.githubUrl}#cli`], ["MCP server", site.docsUrl], ["GitHub", site.githubUrl]]],
-  ["Learn", [["What is a GTM engineer?", "/gtm-engineer"], ["Clay alternative", "/clay-alternative"]]],
+  // Built from the content registry (lib/content.ts).
+  ["Learn", [["All guides", "/guides"], ...guides.slice(0, 5).map((g) => [g.title, `/guides/${g.slug}`] as const)]],
+  ["Compare", [["All alternatives", "/alternatives"], ...alternatives.map((a) => [`${a.name} alternative`, `/alternatives/${a.slug}`] as const)]],
 ] as const;
 
 export function Footer() {
@@ -17,7 +20,7 @@ export function Footer() {
             <Logo size={30} className="text-[22px]" />
             <p className="text-sm leading-relaxed text-muted">The open-source AI sales agent. Always on the lookout for your next customer.</p>
           </div>
-          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:gap-[72px]">
+          <div className="grid grid-cols-2 gap-10 sm:grid-cols-4 lg:gap-14">
             {columns.map(([heading, links]) => (
               <div key={heading} className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold">{heading}</h3>

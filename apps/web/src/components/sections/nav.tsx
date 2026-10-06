@@ -8,7 +8,7 @@ const links = [
   ["Product", "/#product"],
   ["Docs", site.docsUrl],
   ["Pricing", site.pricingUrl],
-  ["Changelog", `${site.githubUrl}/commits/main`],
+  ["Guides", "/guides"],
 ] as const;
 
 export async function Nav() {

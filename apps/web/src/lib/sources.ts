@@ -20,7 +20,7 @@ export const agentDocs: Record<string, string> = {
   Windsurf: "https://docs.windsurf.com/windsurf/cascade/mcp",
 };
 
-/** Clay, for /clay-alternative. Only what Clay's own pages say. */
+/** Clay, for /alternatives/clay. Only what Clay's own pages say. */
 export const claySources = {
   pricing: { label: "Clay pricing", url: "https://www.clay.com/pricing" },
   globalInbox: { label: "Clay University: Global Inbox", url: "https://university.clay.com/lessons/global-inbox" },
@@ -32,3 +32,20 @@ export const gtmSources = {
   apollo: { label: "Apollo: Who Is a GTM Engineer and What Skills Do They Need?", url: "https://www.apollo.io/insights/who-is-a-gtm-engineer-and-what-skills-do-they-need" },
   cargo: { label: "Cargo: GTM Engineer Salary (published 20 Jul 2026)", url: "https://www.getcargo.ai/blog/gtm-engineer-salary" },
 };
+
+/** Google, for the deliverability guides. */
+export const googleSources = {
+  gmailLimits: { label: "Gmail Help: Limits for sending & getting mail", url: "https://support.google.com/mail/answer/22839" },
+  workspaceLimits: {
+    label: "Google Workspace: Gmail sending limits in Google Workspace",
+    url: "https://knowledge.workspace.google.com/admin/gmail/gmail-sending-limits-in-google-workspace",
+  },
+  senderGuidelines: { label: "Gmail Help: Email sender guidelines", url: "https://support.google.com/a/answer/81126" },
+};
+
+/** US law on commercial email. */
+export const ftcCanSpam = { label: "FTC: CAN-SPAM Act: A Compliance Guide for Business", url: "https://www.ftc.gov/business-guidance/resources/can-spam-act-compliance-guide-business" };
+
+/** Apollo and Instantly, for /alternatives. Only what their own pricing pages state. */
+export const apolloSources = { pricing: { label: "Apollo pricing", url: "https://www.apollo.io/pricing" } };
+export const instantlySources = { pricing: { label: "Instantly pricing", url: "https://instantly.ai/pricing" } };

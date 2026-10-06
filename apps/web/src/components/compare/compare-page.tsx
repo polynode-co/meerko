@@ -3,6 +3,8 @@ import { Footer } from "@/components/sections/footer";
 import { Nav } from "@/components/sections/nav";
 import { Container, Eyebrow, SectionTitle, TerminalWindow } from "@/components/ui/primitives";
 import { JsonLd, faqJsonLd } from "@/components/json-ld";
+import { Breadcrumbs } from "@/components/content/breadcrumbs";
+import { alternatives } from "@/lib/content";
 import { CHECKED_ON } from "@/lib/sources";
 import { site } from "@/lib/site";
 
@@ -20,6 +22,8 @@ export interface CompareRow {
 }
 
 export interface Comparison {
+  /** URL slug under /alternatives. */
+  slug: string;
   name: string;
   pitch: string;
   rows: CompareRow[];
@@ -64,7 +68,10 @@ export function ComparePage({ c }: { c: Comparison }) {
       <Nav />
       <main>
         <section>
-          <Container className="flex flex-col items-center gap-6 pt-24 pb-16 text-center lg:pt-[104px] lg:pb-[72px]">
+          <Container className="pt-8">
+            <Breadcrumbs items={[["Home", "/"], ["Alternatives", "/alternatives"], [`${c.name} alternative`, `/alternatives/${c.slug}`]]} />
+          </Container>
+          <Container className="flex flex-col items-center gap-6 pt-16 pb-16 text-center lg:pt-20 lg:pb-[72px]">
             <span className="rounded-full bg-accent-soft px-3.5 py-1.5 font-mono text-[13px] tracking-[0.1em] text-accent uppercase">
               Meerko vs {c.name}
             </span>
@@ -216,6 +223,27 @@ export function ComparePage({ c }: { c: Comparison }) {
         )}
 
         <section className="border-t border-line">
+          <Container className="flex flex-col gap-3 pt-12">
+            <h2 className="font-mono text-xs tracking-[0.15em] text-muted uppercase">Other comparisons</h2>
+            <ul className="grid gap-3 sm:grid-cols-3">
+              {alternatives
+                .filter((a) => a.slug !== c.slug)
+                .map((a) => (
+                  <li key={a.slug}>
+                    <a href={`/alternatives/${a.slug}`} className="flex h-full flex-col gap-1 rounded-xl border border-line px-4 py-3.5 hover:border-muted">
+                      <span className="font-semibold">Meerko vs {a.name}</span>
+                      <span className="text-sm text-muted">{a.summary}</span>
+                    </a>
+                  </li>
+                ))}
+              <li>
+                <a href="/guides" className="flex h-full flex-col gap-1 rounded-xl border border-line px-4 py-3.5 hover:border-muted">
+                  <span className="font-semibold">Outbound guides</span>
+                  <span className="text-sm text-muted">Cold email, follow-ups, deliverability and Gmail limits.</span>
+                </a>
+              </li>
+            </ul>
+          </Container>
           <Container className="py-12">
             <h2 className="mb-3 font-mono text-xs tracking-[0.15em] text-muted uppercase">Sources</h2>
             <ol className="flex flex-col gap-1.5 text-sm">

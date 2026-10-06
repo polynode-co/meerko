@@ -34,7 +34,7 @@ export function GtmEngineers() {
             GTM engineers turn go-to-market into systems: data pipelines, enrichment, sequencing, routing. Meerko gives you
             those primitives as an open, scriptable engine — version your plays, test them, and hand them to an agent.
           </p>
-          <a href="/gtm-engineer" className="w-fit text-[15px] font-semibold text-accent hover:underline">
+          <a href="/guides/gtm-engineer" className="w-fit text-[15px] font-semibold text-accent hover:underline">
             What is a GTM engineer? Read the guide →
           </a>
         </div>

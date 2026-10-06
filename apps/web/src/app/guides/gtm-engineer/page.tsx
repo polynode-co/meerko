@@ -1,11 +1,6 @@
-import { ArrowRight, ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
-import { JsonLd, faqJsonLd } from "@/components/json-ld";
-import { Footer } from "@/components/sections/footer";
-import { Nav } from "@/components/sections/nav";
-import { Container } from "@/components/ui/primitives";
-import { site } from "@/lib/site";
-import { CHECKED_ON, gtmSources as S } from "@/lib/sources";
+import { citer, GuideShell, H2 } from "@/components/content/guide-shell";
+import { gtmSources as S } from "@/lib/sources";
 
 // Targets "gtm engineer" (3.6k/mo, +86% YoY), "what is a gtm engineer" (480, KD 4), "gtm engineer salary" (260, KD 1)
 // and "gtm engineer meaning" (210) (DataForSEO, US, Oct 2026). Every fact cites a source in lib/sources.ts.
@@ -13,32 +8,11 @@ export const metadata: Metadata = {
   title: "What Is a GTM Engineer? Role, Skills, Tools & Salary (2026)",
   description:
     "A GTM engineer builds the automated systems that find, enrich and reach customers. What the role does, skills, tools, salary and how to become one.",
-  alternates: { canonical: "/gtm-engineer" },
+  alternates: { canonical: "/guides/gtm-engineer" },
 };
 
 const sources = [S.clay, S.apollo, S.cargo];
-const Ref = ({ s }: { s: (typeof sources)[number] }) => {
-  const n = sources.indexOf(s) + 1;
-  return (
-    <sup>
-      <a href={`#source-${n}`} className="ml-0.5 font-mono text-[11px] text-accent hover:underline">
-        [{n}]
-      </a>
-    </sup>
-  );
-};
-
-const toc = [
-  ["what", "What does GTM stand for?"],
-  ["does", "What does a GTM engineer do?"],
-  ["vs", "GTM engineer vs RevOps vs SDR"],
-  ["skills", "Skills"],
-  ["tools", "Tools"],
-  ["salary", "Salary"],
-  ["become", "How to become one"],
-  ["origin", "Where the term came from"],
-  ["faq", "FAQ"],
-];
+const Cite = citer(sources);
 
 // Answers are plain text so they can feed FAQPage markup too.
 const faq: [string, string][] = [
@@ -57,41 +31,34 @@ const faq: [string, string][] = [
   ],
 ];
 
-function H2({ id, children }: { id: string; children: React.ReactNode }) {
+export default function Page() {
   return (
-    <h2 id={id} className="scroll-mt-24 pt-6 font-display text-[30px] leading-tight font-bold tracking-[-0.02em] text-fg">
-      {children}
-    </h2>
-  );
-}
-
-export default function GtmEngineerPage() {
-  const article = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: "What is a GTM engineer?",
-    description: metadata.description,
-    dateModified: "2026-10-06",
-    publisher: { "@type": "Organization", name: "Meerko", url: site.url },
-  };
-  return (
-    <>
-      <Nav />
-      <main>
-        <Container className="flex gap-14 pt-16 pb-24 lg:pt-20">
-          <article className="flex min-w-0 max-w-[760px] flex-1 flex-col gap-5 text-[17px] leading-[1.65] text-muted">
-            <p className="font-mono text-[13px] tracking-[0.15em] text-accent uppercase">Guide · GTM engineering</p>
-            <h1 className="font-display text-5xl leading-[1.04] font-bold tracking-[-0.03em] text-fg lg:text-[60px]">
-              What is a GTM engineer?
-            </h1>
-            <p className="text-xl leading-[1.55] text-fg">
+    <GuideShell
+      slug="gtm-engineer"
+      eyebrow="Guide · GTM engineering"
+      h1="What is a GTM engineer?"
+      description={metadata.description as string}
+      lead={
+            <p>
               A GTM engineer builds the automated systems that find, enrich and reach a company&apos;s customers: lead data
               pipelines, enrichment, outbound sequences and the routing that gets replies to the right person. Clay describes the
               role as building &quot;automated revenue systems using AI, data enrichment, and workflow automation.&quot;
-              <Ref s={S.clay} />
+              <Cite s={S.clay} />
             </p>
-            <p className="text-sm">Updated {CHECKED_ON}. Every fact links to its source.</p>
-
+      }
+      toc={[
+        ["what", "What does GTM stand for?"],
+        ["does", "What does a GTM engineer do?"],
+        ["vs", "GTM engineer vs RevOps vs SDR"],
+        ["skills", "Skills"],
+        ["tools", "Tools"],
+        ["salary", "Salary"],
+        ["become", "How to become one"],
+        ["origin", "Where the term came from"],
+      ]}
+      sources={sources}
+      faq={faq}
+    >
             <H2 id="what">What does GTM stand for?</H2>
             <p>
               GTM means <strong className="text-fg">go-to-market</strong>: everything a company does to reach and win customers. A
@@ -99,7 +66,7 @@ export default function GtmEngineerPage() {
             </p>
 
             <H2 id="does">What does a GTM engineer do?</H2>
-            <p>The work spans sales, marketing and operations. Examples from Clay&apos;s guide:<Ref s={S.clay} /></p>
+            <p>The work spans sales, marketing and operations. Examples from Clay&apos;s guide:<Cite s={S.clay} /></p>
             <ul className="flex list-disc flex-col gap-1.5 pl-6">
               <li>Automate manual seller work, such as account research.</li>
               <li>Update the CRM automatically from call transcripts.</li>
@@ -130,7 +97,7 @@ export default function GtmEngineerPage() {
                       <th scope="row" className="px-5 py-3.5 font-semibold text-fg">{role as string}</th>
                       <td className="px-5 py-3.5">
                         {focus as string}
-                        {src && <Ref s={src as typeof S.apollo} />}
+                        {src && <Cite s={src as typeof S.apollo} />}
                       </td>
                     </tr>
                   ))}
@@ -139,11 +106,11 @@ export default function GtmEngineerPage() {
             </div>
             <p>
               Apollo puts it in one line: &quot;A GTM Engineer builds the system; RevOps maintains and governs it.&quot;
-              <Ref s={S.apollo} />
+              <Cite s={S.apollo} />
             </p>
 
             <H2 id="skills">Skills</H2>
-            <p>Apollo lists these as core technical skills:<Ref s={S.apollo} /></p>
+            <p>Apollo lists these as core technical skills:<Cite s={S.apollo} /></p>
             <ul className="flex list-disc flex-col gap-1.5 pl-6">
               <li>APIs and webhooks, plus SQL and Python or JavaScript for light applications.</li>
               <li>Workflow automation and prompt engineering.</li>
@@ -151,13 +118,13 @@ export default function GtmEngineerPage() {
               <li>ICP and TAM design, scoring models and signal-based selling.</li>
             </ul>
             <p>
-              Clay looks for technical fluency, commercial bias, curiosity and an experimental mindset.<Ref s={S.clay} />
+              Clay looks for technical fluency, commercial bias, curiosity and an experimental mindset.<Cite s={S.clay} />
             </p>
 
             <H2 id="tools">Tools GTM engineers use</H2>
             <p>
               Clay names tools like Clay, n8n, Zapier, Lovable and Bolt, and languages like TypeScript, Python and SQL.
-              <Ref s={S.clay} /> A typical outbound stack covers four jobs:
+              <Cite s={S.clay} /> A typical outbound stack covers four jobs:
             </p>
             <ul className="flex list-disc flex-col gap-1.5 pl-6">
               <li><strong className="text-fg">Data and enrichment:</strong> lead search and verified emails.</li>
@@ -170,76 +137,31 @@ export default function GtmEngineerPage() {
             <p>
               Cargo analyzed 509 US job postings that disclosed pay, from April to July 2026. The median was{" "}
               <strong className="text-fg">$159,000</strong>; the middle half earned between $135,000 and $190,000, and the full range
-              ran from about $65,000 to $410,000.<Ref s={S.cargo} /> Only about a quarter of the postings stated pay at all.
-              <Ref s={S.cargo} />
+              ran from about $65,000 to $410,000.<Cite s={S.cargo} /> Only about a quarter of the postings stated pay at all.
+              <Cite s={S.cargo} />
             </p>
 
             <H2 id="become">How to become a GTM engineer</H2>
             <ol className="flex list-decimal flex-col gap-1.5 pl-6">
               <li>Learn enough SQL and HTTP APIs to move data between tools.</li>
-              <li>Build one outbound pipeline end to end: a lead list, enrichment, a sequence and reply handling.</li>
+              <li>
+                Build one outbound pipeline end to end: a lead list, enrichment, a sequence with{" "}
+                <a href="/guides/cold-email-follow-up" className="text-accent hover:underline">follow-ups</a> and reply handling.
+              </li>
               <li>Learn email deliverability: mailbox limits, send windows and unsubscribes.</li>
-              <li>Use a coding agent to build and run the pieces faster, and show the result as a portfolio.</li>
+              <li>
+                Use a coding agent to build and run the pieces faster (see{" "}
+                <a href="/guides/claude-code-for-sales" className="text-accent hover:underline">Claude Code for sales</a>), and show
+                the result as a portfolio.
+              </li>
             </ol>
 
             <H2 id="origin">Where the term came from</H2>
             <p>
               Clay says it coined the role in 2023, and that about 100 GTM engineer job listings now go live every month.
-              <Ref s={S.clay} />
+              <Cite s={S.clay} />
             </p>
 
-            <div className="my-6 flex flex-col gap-4 rounded-2xl border border-accent/25 bg-accent-soft px-7 py-7">
-              <p className="font-display text-2xl font-bold text-fg">The open-source toolkit for GTM engineers</p>
-              <p>
-                Meerko runs the whole outbound loop from your coding agent: lead search, verified emails, sequences from your own
-                Gmail and a reply inbox. Self-host it for free or start on Meerko Cloud with 1,000 free credits.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <a href={site.pricingUrl} className="inline-flex items-center gap-2 rounded-[10px] bg-accent px-5 py-3 font-semibold text-dark hover:brightness-110">
-                  Get started free <ArrowRight className="size-4" />
-                </a>
-                <a href={site.docsUrl} className="inline-flex items-center rounded-[10px] border border-line px-5 py-3 font-semibold text-fg hover:border-muted">
-                  Connect it to Claude Code
-                </a>
-              </div>
-            </div>
-
-            <H2 id="faq">FAQ</H2>
-            {faq.map(([q, a]) => (
-              <div key={q} className="flex flex-col gap-1.5 border-t border-line pt-4">
-                <h3 className="text-lg font-semibold text-fg">{q}</h3>
-                <p>{a}</p>
-              </div>
-            ))}
-
-            <h2 className="pt-8 font-mono text-xs tracking-[0.15em] uppercase">Sources</h2>
-            <ol className="flex flex-col gap-1.5 text-sm">
-              {sources.map((s, i) => (
-                <li key={s.url} id={`source-${i + 1}`} className="scroll-mt-24">
-                  [{i + 1}]{" "}
-                  <a href={s.url} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-fg hover:text-accent">
-                    {s.label} <ExternalLink className="size-3" />
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </article>
-
-          <aside className="hidden w-[220px] shrink-0 lg:block">
-            <nav aria-label="On this page" className="sticky top-28 flex flex-col gap-2.5">
-              <p className="font-mono text-[11px] tracking-[0.15em] text-muted uppercase">On this page</p>
-              {toc.map(([id, label]) => (
-                <a key={id} href={`#${id}`} className="text-[13px] text-muted hover:text-accent">
-                  {label}
-                </a>
-              ))}
-            </nav>
-          </aside>
-        </Container>
-      </main>
-      <Footer />
-      <JsonLd data={article} />
-      <JsonLd data={faqJsonLd(faq)} />
-    </>
+    </GuideShell>
   );
 }

@@ -7,11 +7,12 @@ export const metadata: Metadata = {
   title: "Open-source Clay alternative & Clay pricing (2026) | Meerko",
   description:
     "A cheaper, open-source Clay alternative: self-host Meerko free or use Cloud from $49/mo. Clay pricing and features, from Clay's own pages.",
-  alternates: { canonical: "/clay-alternative" },
+  alternates: { canonical: "/alternatives/clay" },
 };
 
 // Every Clay cell cites Clay's own pages (lib/sources.ts). Re-check before changing anything.
 const clay: Comparison = {
+  slug: "clay",
   name: "Clay",
   pitch:
     "Clay and Meerko both find leads, send sequences and handle replies, and both work with your coding agent. Meerko is open source: self-host it for free and keep every lead in your own Postgres, or use Meerko Cloud from $49/mo.",

@@ -1,6 +1,7 @@
 import { ArrowRight, Check } from "lucide-react";
 import Image from "next/image";
 import { Logo } from "../ui/brand";
+import { alternatives } from "@/lib/content";
 import { CHECKED_ON, stackPrices } from "@/lib/sources";
 import { Container, Eyebrow, SectionTitle } from "../ui/primitives";
 
@@ -38,7 +39,14 @@ export function Problem() {
               <div key={tool} className="flex items-center gap-4 rounded-[10px] border border-dark/10 bg-white/60 px-5 py-4">
                 <span className="flex w-[124px] shrink-0 items-center gap-3 sm:w-36">
                   <Image src={logo} alt="" width={24} height={24} className="size-6 shrink-0 rounded-md" />
-                  <span className="text-[17px] font-semibold line-through">{tool}</span>
+                  {/* Tools with a comparison page link to it (lib/content.ts) */}
+                  {alternatives.some((a) => a.name === tool) ? (
+                    <a href={`/alternatives/${tool.toLowerCase()}`} className="text-[17px] font-semibold line-through hover:text-accent-deep">
+                      {tool}
+                    </a>
+                  ) : (
+                    <span className="text-[17px] font-semibold line-through">{tool}</span>
+                  )}
                 </span>
                 <span className="flex flex-1 flex-col text-sm text-dark-muted sm:text-[15px]">
                   {job}
@@ -55,8 +63,8 @@ export function Problem() {
             </div>
             <p className="px-5 text-xs text-dark-muted">
               Entry-level paid plans, billed monthly, from each vendor&apos;s pricing page (linked) on {CHECKED_ON}.{" "}
-              <a href="/clay-alternative" className="font-semibold text-dark underline underline-offset-2">
-                Compare Meerko with Clay →
+              <a href="/alternatives" className="font-semibold text-dark underline underline-offset-2">
+                Compare Meerko with Clay, Apollo and Instantly →
               </a>
             </p>
           </div>
