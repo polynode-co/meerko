@@ -27,6 +27,7 @@ import {
   readUnsubscribeToken,
   SequenceError,
   sequenceStats,
+  listSequenceRecipients,
   setSequenceStatus,
   unsubscribe,
   updateSequence,
@@ -530,6 +531,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.post("/sequences/:id/start", async (c) => c.json({ sequence: await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "active") }));
   v1.post("/sequences/:id/pause", async (c) => c.json({ sequence: await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "paused") }));
   v1.get("/sequences/:id/stats", async (c) => c.json(await sequenceStats(db, c.var.workspaceId, c.req.param("id"))));
+  v1.get("/sequences/:id/recipients", async (c) =>
+    c.json({ recipients: await listSequenceRecipients(db, c.var.workspaceId, c.req.param("id")) }),
+  );
 
   v1.get("/replies", async (c) => {
     const q = await parse(

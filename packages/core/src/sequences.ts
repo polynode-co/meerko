@@ -232,6 +232,18 @@ export async function sequenceStats(db: Db, workspaceId: string, id: string) {
     .from(messages)
     .innerJoin(enrollments, eq(messages.enrollmentId, enrollments.id))
     .where(and(eq(enrollments.sequenceId, id), eq(messages.direction, "out")));
+  // Per step: how many got it, and how many answered after it (their last email was this step).
+  const sentByStep = await db
+    .select({ step: messages.step, n: sql<number>`count(*)::int` })
+    .from(messages)
+    .innerJoin(enrollments, eq(messages.enrollmentId, enrollments.id))
+    .where(and(eq(enrollments.sequenceId, id), eq(messages.direction, "out")))
+    .groupBy(messages.step);
+  const repliedByStep = await db
+    .select({ next: enrollments.nextStep, n: sql<number>`count(*)::int` })
+    .from(enrollments)
+    .where(and(eq(enrollments.sequenceId, id), eq(enrollments.state, "replied")))
+    .groupBy(enrollments.nextStep);
   const states = Object.fromEntries(byState.map((r) => [r.state, r.n]));
   const enrolled = byState.reduce((n, r) => n + r.n, 0);
   return {
@@ -239,9 +251,42 @@ export async function sequenceStats(db: Db, workspaceId: string, id: string) {
     name: seq.name,
     status: seq.status,
     enrolled,
+    /** People who will still get emails: enrolled, not finished, not stopped. */
+    remaining: states.active ?? 0,
     emailsSent: sent?.n ?? 0,
     states,
     replyRate: enrolled ? Math.round(((states.replied ?? 0) / enrolled) * 1000) / 10 : 0,
+    steps: seq.steps.map((s) => ({
+      position: s.position,
+      sent: sentByStep.find((r) => r.step === s.position)?.n ?? 0,
+      repliedAfter: repliedByStep.find((r) => r.next === s.position + 1)?.n ?? 0,
+    })),
   };
+}
+
+/** Everyone in a sequence and where they stand, newest activity first. */
+export async function listSequenceRecipients(db: Db, workspaceId: string, id: string, limit = 200) {
+  await getSequence(db, workspaceId, id);
+  return db
+    .select({
+      enrollmentId: enrollments.id,
+      rowId: enrollments.rowId,
+      email: enrollments.email,
+      firstName: sql<string | null>`${tableRows.data}->>'first_name'`,
+      lastName: sql<string | null>`${tableRows.data}->>'last_name'`,
+      company: sql<string | null>`${tableRows.data}->>'company'`,
+      state: enrollments.state,
+      /** Steps sent so far. */
+      stepsSent: enrollments.nextStep,
+      nextSendAt: enrollments.nextSendAt,
+      lastError: enrollments.lastError,
+      // to_json gives an ISO 8601 string, which every browser parses; the raw timestamptz text isn't.
+      lastSentAt: sql<string | null>`to_json((select max(${messages.sentAt}) from ${messages} where ${messages.enrollmentId} = ${enrollments.id} and ${messages.direction} = 'out')) #>> '{}'`,
+    })
+    .from(enrollments)
+    .innerJoin(tableRows, eq(enrollments.rowId, tableRows.id))
+    .where(eq(enrollments.sequenceId, id))
+    .orderBy(sql`coalesce((select max(${messages.sentAt}) from ${messages} where ${messages.enrollmentId} = ${enrollments.id}), ${enrollments.createdAt}) desc`)
+    .limit(Math.min(limit, 1000));
 }
 

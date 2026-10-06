@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDb, enrollments, eq, mailboxes, messages, tableRows, workspaces, type Db } from "@meerko/db";
 import { GMAIL_SCOPES, GoogleOAuth } from "../mail/gmail.ts";
 import { SecretBox } from "../provider-keys.ts";
-import { createSequence, enrollRows, previewSequence, sequenceStats, setSequenceStatus, SequenceError } from "../sequences.ts";
+import { createSequence, enrollRows, listSequenceRecipients, previewSequence, sequenceStats, setSequenceStatus, SequenceError } from "../sequences.ts";
 import { createTable, insertRows } from "../tables.ts";
 import { createUnsubscribeToken, readUnsubscribeToken, runSendTick, unsubscribe } from "./sender.ts";
 
@@ -113,6 +113,13 @@ describe.skipIf(!process.env.DATABASE_URL)("sequence sender (db)", () => {
     expect(sent[1]!.raw).toContain(`In-Reply-To: ${firstId}`);
 
     expect(await sequenceStats(db, ws, seqId)).toMatchObject({ enrolled: 1, emailsSent: 2, states: { completed: 1 } });
+    expect((await sequenceStats(db, ws, seqId)).steps).toEqual([
+      { position: 0, sent: 1, repliedAfter: 0 },
+      { position: 1, sent: 1, repliedAfter: 0 },
+    ]);
+    const [recipient] = await listSequenceRecipients(db, ws, seqId);
+    expect(recipient).toMatchObject({ email: "pia@slalom.example", firstName: "Pia", state: "completed", stepsSent: 2 });
+    expect(Date.parse(recipient!.lastSentAt!)).toBe(days(MON_1030_MADRID, 3).getTime());
     const [pia] = await db.select().from(tableRows).where(eq(tableRows.id, (await db.select().from(enrollments).where(eq(enrollments.sequenceId, seqId)))[0]!.rowId));
     expect(pia!.stage).toBe("contacted");
   });

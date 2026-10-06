@@ -325,10 +325,32 @@ export class MeerkoClient {
       name: string;
       status: string;
       enrolled: number;
+      /** People who will still get emails. */
+      remaining: number;
       emailsSent: number;
       states: Record<string, number>;
       replyRate: number;
+      steps: { position: number; sent: number; repliedAfter: number }[];
     }>("GET", `/sequences/${id}/stats`);
+  }
+
+  /** Everyone in a sequence and where they stand. */
+  sequenceRecipients(id: string) {
+    return this.request<{
+      recipients: {
+        enrollmentId: string;
+        rowId: string;
+        email: string;
+        firstName: string | null;
+        lastName: string | null;
+        company: string | null;
+        state: "active" | "completed" | "replied" | "unsubscribed" | "bounced" | "stopped" | "failed";
+        stepsSent: number;
+        nextSendAt: string | null;
+        lastError: string | null;
+        lastSentAt: string | null;
+      }[];
+    }>("GET", `/sequences/${id}/recipients`).then((r) => r.recipients);
   }
 
   /** Unclassified replies by default, newest first, each with its thread and the prospect's row. */
