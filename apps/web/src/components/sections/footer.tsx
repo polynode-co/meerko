@@ -8,7 +8,7 @@ import { Container } from "../ui/primitives";
 // Built from the content registry (lib/content.ts). The first link of Learn and Compare is the hub.
 const columns = [
   ["Product", [["Features", "/#product"], ["Pricing", site.pricingUrl], ["Changelog", `${site.githubUrl}/commits/main`], ["Roadmap", `${site.githubUrl}/blob/main/docs/PLAN.md`]]],
-  ["Developers", [["Docs", site.docsUrl], ["CLI", `${site.githubUrl}#cli`], ["MCP server", site.docsUrl], ["GitHub", site.githubUrl]]],
+  ["Developers", [["Docs", site.docsUrl], ["MCP tools", "/docs/mcp-tools"], ["CLI", "/docs/cli"], ["Self-hosting", "/docs/self-hosting"], ["GitHub", site.githubUrl]]],
   ["Learn", [["All guides", "/guides"], ...guides.map((g) => [g.title, `/guides/${g.slug}`] as const)]],
   ["Compare", [["All alternatives", "/alternatives"], ...alternatives.map((a) => [`${a.name} alternative`, `/alternatives/${a.slug}`] as const)]],
 ] as const;

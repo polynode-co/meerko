@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { ReplyIntent, Stage } from "./constants.ts";
 
 export * from "./constants.ts";
@@ -128,21 +128,71 @@ export interface Draft {
   thread: ThreadMessage[];
 }
 
-export interface MeerkoConfig { apiUrl: string; apiKey: string }
+export interface ConnectedApp {
+  id: string;
+  name: string;
+  userEmail: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface MeerkoConfig {
+  apiUrl: string;
+  apiKey: string;
+  /** Overrides fetch, e.g. so the API's hosted MCP endpoint can call itself in-process. */
+  fetch?: typeof fetch;
+  /** Gets a fresh access token when the API answers 401 (OAuth sign-in); null if it can't. */
+  refresh?: (usedToken: string) => Promise<string | null>;
+}
+
+/** ~/.meerko/config.json: an API key, or the tokens from `meerko login` in the browser. */
+export interface StoredConfig {
+  apiUrl?: string;
+  apiKey?: string;
+  oauth?: { clientId: string; accessToken: string; refreshToken: string };
+}
+
+export function readStoredConfig(): StoredConfig {
+  try {
+    return JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+export function writeStoredConfig(config: StoredConfig) {
+  mkdirSync(dirname(CONFIG_PATH), { recursive: true });
+  writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), { mode: 0o600 });
+}
+
+/**
+ * Trades the stored refresh token for new tokens and saves them. Another process (the CLI and the MCP
+ * server share the file) may have refreshed first, in which case its token is used.
+ */
+async function refreshStored(apiUrl: string, usedToken: string): Promise<string | null> {
+  const stored = readStoredConfig();
+  if (!stored.oauth) return null;
+  if (stored.oauth.accessToken !== usedToken) return stored.oauth.accessToken;
+  const res = await fetch(new URL("/oauth/token", apiUrl), {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: stored.oauth.refreshToken, client_id: stored.oauth.clientId }),
+  });
+  if (!res.ok) return null;
+  const tokens = (await res.json()) as { access_token: string; refresh_token: string };
+  writeStoredConfig({ ...stored, oauth: { ...stored.oauth, accessToken: tokens.access_token, refreshToken: tokens.refresh_token } });
+  return tokens.access_token;
+}
 
 export const CONFIG_PATH = join(homedir(), ".meerko", "config.json");
 export const DEFAULT_API_URL = "http://localhost:8787";
 
 /** Env vars win over ~/.meerko/config.json, so agents can be configured without a login step. */
-export function loadConfig(): Partial<MeerkoConfig> {
-  let file: Partial<MeerkoConfig> = {};
-  try {
-    file = JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
-  } catch {}
-  return {
-    apiUrl: process.env.MEERKO_API_URL ?? file.apiUrl ?? DEFAULT_API_URL,
-    apiKey: process.env.MEERKO_API_KEY ?? file.apiKey,
-  };
+export function loadConfig(): Partial<MeerkoConfig> & { oauth?: boolean } {
+  const file = readStoredConfig();
+  const apiUrl = process.env.MEERKO_API_URL ?? file.apiUrl ?? DEFAULT_API_URL;
+  if (process.env.MEERKO_API_KEY) return { apiUrl, apiKey: process.env.MEERKO_API_KEY };
+  return { apiUrl, apiKey: file.apiKey ?? file.oauth?.accessToken, oauth: !file.apiKey && !!file.oauth };
 }
 
 export class MeerkoApiError extends Error {
@@ -155,21 +205,30 @@ export class MeerkoClient {
   constructor(private config: MeerkoConfig) {}
 
   static fromEnv(): MeerkoClient {
-    const { apiUrl, apiKey } = loadConfig();
-    if (!apiKey) throw new Error("No API key. Run `meerko login --key <key>` or set MEERKO_API_KEY.");
-    return new MeerkoClient({ apiUrl: apiUrl!, apiKey });
+    const { apiUrl, apiKey, oauth } = loadConfig();
+    if (!apiKey) throw new Error("Not logged in. Run `meerko login`, or set MEERKO_API_KEY.");
+    return new MeerkoClient({ apiUrl: apiUrl!, apiKey, refresh: oauth ? (used) => refreshStored(apiUrl!, used) : undefined });
   }
 
   private request<T>(method: string, path: string, body?: unknown): Promise<T> {
     return this.call<T>(method, `/v1${path}`, body);
   }
 
-  private async call<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const res = await fetch(new URL(path, this.config.apiUrl), {
+  private async call<T>(method: string, path: string, body?: unknown, retried = false): Promise<T> {
+    const res = await (this.config.fetch ?? fetch)(new URL(path, this.config.apiUrl), {
       method,
       headers: { authorization: `Bearer ${this.config.apiKey}`, "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
+    // OAuth access tokens last an hour; refresh once and retry.
+    if (res.status === 401 && this.config.refresh && !retried) {
+      const token = await this.config.refresh(this.config.apiKey);
+      if (token) {
+        this.config = { ...this.config, apiKey: token };
+        return this.call<T>(method, path, body, true);
+      }
+      throw new MeerkoApiError(401, "Your Meerko sign-in expired. Run `meerko login` again.");
+    }
     const json = (await res.json().catch(() => ({}))) as { error?: string };
     if (!res.ok) throw new MeerkoApiError(res.status, json.error ?? res.statusText);
     return json as T;
@@ -193,6 +252,25 @@ export class MeerkoClient {
   /** The workspace this key or session acts on, and the signed-in person (null for API keys). */
   me() {
     return this.request<Me>("GET", "/me");
+  }
+
+  /** What the OAuth consent page shows for a pending authorization request (dashboard session only). */
+  describeOAuthRequest(request: string) {
+    return this.request<{ client_name: string; redirect_to: string; workspace: string }>("POST", "/oauth/requests/describe", { request });
+  }
+
+  /** Approves or declines an app's authorization request; returns where to send the browser next. */
+  decideOAuthRequest(request: string, approve: boolean) {
+    return this.request<{ redirect_to: string }>("POST", "/oauth/requests/decide", { request, approve });
+  }
+
+  /** Apps (MCP clients, the CLI) that were given access to this workspace with OAuth. */
+  listConnectedApps() {
+    return this.request<{ apps: ConnectedApp[] }>("GET", "/connected-apps").then((r) => r.apps);
+  }
+
+  revokeConnectedApp(id: string) {
+    return this.request<void>("DELETE", `/connected-apps/${encodeURIComponent(id)}`);
   }
 
   listApiKeys() {

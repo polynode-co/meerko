@@ -22,3 +22,4 @@ export * from "./replies/replies.ts";
 export * from "./replies/drafts.ts";
 export * from "./pipeline.ts";
 export * from "./worker.ts";
+export * from "./oauth.ts";

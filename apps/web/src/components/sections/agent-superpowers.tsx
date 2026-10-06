@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
-import { apiUrl } from "@/lib/meerko";
+import { mcpUrl } from "@/lib/meerko";
 import { site } from "@/lib/site";
 import { agentDocs } from "@/lib/sources";
 import { CopyButton } from "../ui/copy-button";
@@ -30,16 +30,14 @@ const leads = [
   ["Elena Ruiz", "Norte Capital", "found"],
 ];
 
-/** What an agent does with this prompt: clone the MCP server, register it, and check it works. */
+/** What an agent does with this prompt: add the hosted MCP server, and get the person signed in. */
 function setupPrompt() {
-  return `Set up the Meerko MCP server for me.
+  return `Set up the Meerko MCP server for me. It's a hosted server at ${mcpUrl()} that signs me in with my browser (OAuth); there's nothing to install and no API key.
 
-1. Clone ${site.githubUrl} somewhere permanent (for example ~/meerko) and run \`pnpm install\` in it. It needs Node 20+ and pnpm.
-2. Ask me for my Meerko API key (it starts with mk_). If I don't have one, tell me to create it at ${site.url}/app/settings under "API keys".
-3. Register the server. For Claude Code:
-   claude mcp add meerko -e MEERKO_API_KEY=<my key> -e MEERKO_API_URL=${apiUrl()} -- npx tsx <clone path>/packages/mcp/src/index.ts
-   For Codex, Cursor, Gemini CLI or Windsurf, add the same command and environment variables to that agent's MCP config.
-4. Check it works by calling the list_tables tool, then show me the Meerko commands: find-leads, write-sequence, triage-replies and pipeline.`;
+1. Add it. For Claude Code: claude mcp add --transport http --scope user meerko ${mcpUrl()}
+   For another agent, follow its docs for adding a remote (HTTP) MCP server by URL; setup for each is at ${site.url}/docs.
+2. Tell me to sign in: in Claude Code, run /mcp, pick meerko and authenticate. My browser opens; I continue with Google and click Allow.
+3. Once I'm signed in, check it works by calling the list_tables tool, then show me the Meerko commands: find-leads, write-sequence, triage-replies and pipeline.`;
 }
 
 export function AgentSuperpowers() {
@@ -131,7 +129,7 @@ export function AgentSuperpowers() {
           <div className="flex flex-wrap items-center gap-5">
             <CopyButton text={setupPrompt()} label="Copy setup prompt" />
             <a
-              href="/docs"
+              href="/docs/claude-code"
               className="inline-flex items-center gap-1.5 text-base font-semibold hover:text-accent"
             >
               Setup guide <ArrowRight className="size-[17px]" />

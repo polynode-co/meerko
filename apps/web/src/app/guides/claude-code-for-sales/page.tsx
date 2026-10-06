@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { citer, GuideShell, H2, Sample } from "@/components/content/guide-shell";
+import { mcpUrl } from "@/lib/meerko";
 
 // Targets "claude code use cases" (320/mo, KD 13) and "claude code for marketing/sales" (DataForSEO, US, Oct 2026).
 export const metadata: Metadata = {
@@ -68,12 +69,10 @@ export default function Page() {
       <H2 id="setup">Setting it up</H2>
       <p>
         Adding a server is one <code className="font-mono text-fg">claude mcp add</code> command.<Cite s={claudeMcp} /> For Meerko,
-        that&apos;s the command from the <a href="/docs" className="text-accent hover:underline">setup guide</a>, with your API key
-        and the API URL:
+        that&apos;s the hosted server&apos;s URL from the <a href="/docs/claude-code" className="text-accent hover:underline">setup guide</a>.
+        Then run <code className="font-mono text-fg">/mcp</code> in Claude Code and sign in with your browser; there&apos;s no API key to paste.
       </p>
-      <Sample title="Claude Code">
-        {"claude mcp add meerko \\\n  -e MEERKO_API_KEY=mk_… \\\n  -e MEERKO_API_URL=… \\\n  -- npx tsx ~/meerko/packages/mcp/src/index.ts"}
-      </Sample>
+      <Sample title="Claude Code">{`claude mcp add --transport http --scope user meerko ${mcpUrl()}`}</Sample>
 
       <H2 id="safety">Keeping a human in the loop</H2>
       <p>

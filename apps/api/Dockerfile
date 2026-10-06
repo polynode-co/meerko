@@ -8,9 +8,14 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
 COPY packages/core/package.json packages/core/
 COPY packages/db/package.json packages/db/
+# The hosted MCP endpoint (/mcp) serves the same tools as the local MCP server, through the SDK.
+COPY packages/mcp/package.json packages/mcp/
+COPY packages/sdk/package.json packages/sdk/
 RUN pnpm install --frozen-lockfile --prod --filter @meerko/api...
 COPY packages/core packages/core
 COPY packages/db packages/db
+COPY packages/mcp packages/mcp
+COPY packages/sdk packages/sdk
 COPY apps/api apps/api
 
 WORKDIR /repo/apps/api

@@ -1,0 +1,1329 @@
+{
+  "mcp": {
+    "tools": [
+      {
+        "name": "list_tables",
+        "description": "List all prospect tables in the Meerko workspace, with their columns and row counts.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "create_table",
+        "description": "Create a new prospect table (e.g. 'Fintech CTOs Spain'). Columns are optional; they are also auto-created on import.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Table name"
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "text",
+                      "number",
+                      "email",
+                      "url",
+                      "boolean",
+                      "json"
+                    ]
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "add_column",
+        "description": "Add a column to a table. Give it a `prompt` to make it an AI column: an instruction that you (the agent) answer per row, e.g. \"Score ICP fit 1-5 for {{company}}: {{description}}\" or \"Write a one-line opener for {{first_name}} at {{company}}\".\nMeerko doesn't run the prompt itself. Fill the column with get_pending_cells + update_rows. Calling this again with a new prompt replaces the instruction.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "text",
+                "number",
+                "email",
+                "url",
+                "boolean",
+                "json"
+              ]
+            },
+            "prompt": {
+              "description": "Instruction for an AI column; {{column_key}} inserts that row's value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "table_id",
+            "name"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "get_pending_cells",
+        "description": "Fetch rows whose AI column is still empty, each with the column's instruction already filled in from that row (\"instruction\") plus the full row data.\nAnswer each instruction yourself from the row data (and research, if the instruction asks for it), then save all answers in one update_rows call. Repeat while \"remaining\" > 0.\nWrite \"N/A\" when a row lacks what the instruction needs, so it isn't returned again.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "column": {
+              "type": "string",
+              "description": "The AI column's name or key"
+            },
+            "limit": {
+              "description": "Rows per batch (default 25)",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "filter": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "required": [
+            "table_id",
+            "column"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "update_rows",
+        "description": "Write values into existing rows by row id. Each update's `data` is merged into the row; new keys become new columns. Max 1,000 rows per call.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "updates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "data": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "id",
+                  "data"
+                ]
+              }
+            }
+          },
+          "required": [
+            "table_id",
+            "updates"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "import_rows",
+        "description": "Insert rows (objects of column -> value) into a table. Keys are normalized to snake_case and unknown keys become new columns. Max 10,000 rows per call.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            }
+          },
+          "required": [
+            "table_id",
+            "rows"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "query_rows",
+        "description": "Read rows from a table, each with its pipeline stage. `filter` is an exact-match object on column keys, e.g. {\"country\": \"Spain\"}; `stage` filters by stage (new, contacted, replied, meeting, won, lost).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            },
+            "stage": {
+              "type": "string",
+              "enum": [
+                "new",
+                "contacted",
+                "replied",
+                "meeting",
+                "won",
+                "lost"
+              ]
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "table_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "find_people",
+        "description": "Search the lead database for people and save them as rows in a table (first_name, last_name, title, company, domain, company_size, location, linkedin_url).\nFilters are objects keyed by field. Text fields take {include?: string[], exclude?: string[]}; numeric fields take range operators {\">=\": n, \"<=\": n}.\nUse alpha-2 country codes for location (\"ES\", \"US\"). Expand titles across languages and acronyms ([\"CTO\", \"Chief Technology Officer\", \"Director de Tecnología\"]).\nPeople fields: currentJobTitle, pastJobTitle, firstname, lastname, location, keyword, skills, languages, school, currentCompanyName, currentCompanyWebsite, currentCompanyUrn, \"currentCompany.industry\", \"currentCompany.location\", \"currentCompany.keyword\"; ranges: \"currentCompany.headcount\", \"currentCompany.revenue\", totalYearsOfExperience; growth: \"currentCompany.headcountGrowth\" {timespan: \"6months\"|\"12months\"|\"24months\", min, max}.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "limit": {
+              "description": "Max results to fetch (default 25). Each result costs 1 credit (none with your own Icypeas key); count first.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "table_id": {
+              "description": "Append results to this table",
+              "type": "string"
+            },
+            "table_name": {
+              "description": "Name for a new table, used when table_id is omitted",
+              "type": "string"
+            },
+            "count_only": {
+              "description": "Only return how many leads match. Free; use before a paid search.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "find_companies",
+        "description": "Search the lead database for companies and save them as rows in a table (company, domain, industry, employees, location, description, linkedin_url, company_urn).\nFilters are objects keyed by field. Text fields take {include?: string[], exclude?: string[]}; numeric fields take range operators {\">=\": n, \"<=\": n}.\nUse alpha-2 country codes for location (\"ES\", \"US\"). Expand titles across languages and acronyms ([\"CTO\", \"Chief Technology Officer\", \"Director de Tecnología\"]).\nCompany fields: name, industry (LinkedIn industry names, e.g. \"Financial Services\", \"Software Development\"), location, keyword, domain, type; ranges: headcount, revenue (USD); growth: headcountGrowth {timespan, min, max}.\nTo get decision-makers at the found companies, pass their company_urn values to find_people as currentCompanyUrn.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "limit": {
+              "description": "Max results to fetch (default 25). Each result costs 1 credit (none with your own Icypeas key); count first.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "table_id": {
+              "description": "Append results to this table",
+              "type": "string"
+            },
+            "table_name": {
+              "description": "Name for a new table, used when table_id is omitted",
+              "type": "string"
+            },
+            "count_only": {
+              "description": "Only return how many leads match. Free; use before a paid search.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "enrich_rows",
+        "description": "Find work emails (from first_name, last_name and domain or company columns) and verify them, writing email, email_certainty and email_verification back to each row.\nOnly rows missing a result are processed, at most `limit` per call (~3s per row). Keep calling while `remaining` > 0.\nCosts: 8 credits per email found, 1 per verification; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost.\nemail_certainty values: ultra_sure, very_sure, probable (deliverability unconfirmed), not_found, missing_input (row lacks a name or domain).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "fields": {
+              "description": "Default: both",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "email",
+                  "email_verification"
+                ]
+              }
+            },
+            "filter": {
+              "description": "Only enrich rows matching this exact-match filter",
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            },
+            "limit": {
+              "description": "Rows per call (default 25)",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "overwrite": {
+              "description": "Re-run rows that already have a result",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "table_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "connect_gmail",
+        "description": "Start connecting a Gmail/Google Workspace inbox to send from. Returns a Google consent URL: give it to the user to open and approve, then call list_mailboxes to confirm it's connected.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "description": "Google account to pre-select",
+              "type": "string"
+            }
+          },
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "list_mailboxes",
+        "description": "List connected sending mailboxes with their daily limit and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "update_mailbox",
+        "description": "Set a mailbox's daily send limit (start low, e.g. 30-50/day for a new inbox) or the sender name recipients see.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "mailbox_id": {
+              "type": "string"
+            },
+            "daily_limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            },
+            "display_name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "mailbox_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "send_test_email",
+        "description": "Send a test email from a connected mailbox to check it works. Only send to the user's own address.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "mailbox_id": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "mailbox_id",
+            "to"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "create_sequence",
+        "description": "Create a DRAFT email sequence for a table, sent from one connected mailbox (see list_mailboxes).\nWrite short, plain, personal emails: step 1 with a subject, 1-3 follow-ups that reply in the same thread. Use only {{vars}} that the table's rows actually have; rows missing a used variable are skipped at enrollment.\nThen: preview_sequence to check, enroll_rows, show the user the preview and enrollment counts, and only call start_sequence after the user approves.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "mailbox_id": {
+              "type": "string"
+            },
+            "steps": {
+              "minItems": 1,
+              "maxItems": 10,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "subject": {
+                    "description": "Only for step 1; follow-ups reply in the same thread",
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Plain text. Use {{column_key}} for row values, e.g. {{first_name}}. An unsubscribe line is appended automatically."
+                  },
+                  "delay_days": {
+                    "description": "Days after the previous step (default 3)",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "body"
+                ]
+              }
+            },
+            "timezone": {
+              "description": "IANA timezone of the recipients, e.g. Europe/Madrid (default)",
+              "type": "string"
+            },
+            "window_start_hour": {
+              "description": "Local hour sending starts on weekdays (default 9)",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 23
+            },
+            "window_end_hour": {
+              "description": "Local hour sending stops (default 17)",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 24
+            }
+          },
+          "required": [
+            "table_id",
+            "name",
+            "mailbox_id",
+            "steps"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "update_sequence",
+        "description": "Edit a sequence's name, mailbox, send window or steps (steps replace all existing ones; pause an active sequence first).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sequence_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "mailbox_id": {
+              "type": "string"
+            },
+            "steps": {
+              "minItems": 1,
+              "maxItems": 10,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "subject": {
+                    "description": "Only for step 1; follow-ups reply in the same thread",
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Plain text. Use {{column_key}} for row values, e.g. {{first_name}}. An unsubscribe line is appended automatically."
+                  },
+                  "delay_days": {
+                    "description": "Days after the previous step (default 3)",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "body"
+                ]
+              }
+            },
+            "timezone": {
+              "type": "string"
+            },
+            "window_start_hour": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 23
+            },
+            "window_end_hour": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 24
+            }
+          },
+          "required": [
+            "sequence_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "preview_sequence",
+        "description": "Render every step of a sequence for one row (the first row by default), exactly as it will be sent, plus any template variables that row is missing.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sequence_id": {
+              "type": "string"
+            },
+            "row_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "sequence_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "enroll_rows",
+        "description": "Enroll rows from the sequence's table. Skips (and counts) rows with no email, an undeliverable email, an unsubscribed address, a missing template variable, or already enrolled. Enrolling doesn't send anything until the sequence is started.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sequence_id": {
+              "type": "string"
+            },
+            "row_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "filter": {
+              "description": "Exact-match filter, e.g. {\"email_certainty\": \"ultra_sure\"}",
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5000
+            }
+          },
+          "required": [
+            "sequence_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "start_sequence",
+        "description": "Start sending a sequence. Real emails go to real people from the user's mailbox: only call this after the user has seen the preview and explicitly approved. Sends respect the send window, the mailbox's daily limit and spacing.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sequence_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "sequence_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "pause_sequence",
+        "description": "Pause a sequence; nothing more is sent until it's started again.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sequence_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "sequence_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "list_sequences",
+        "description": "List sequences with status and enrollment counts.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "sequence_stats",
+        "description": "A sequence's enrollment states (active, completed, replied, unsubscribed, failed...), emails sent and reply rate.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sequence_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "sequence_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "list_replies",
+        "description": "Replies to the user's sequences that nobody has classified yet (newest first). Each has the reply text (quoted history removed), the earlier emails in the thread, and the prospect's table row.\nMeerko already stopped the sequence for anyone who replied, and handled bounces, unsubscribe requests and out-of-office replies by itself (hidden here unless include_automatic).\nRead each reply, decide its intent and save it with classify_reply. Summarize the interested ones and questions for the user.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sequence_id": {
+              "type": "string"
+            },
+            "intent": {
+              "description": "Only replies with this intent (then classified ones are included)",
+              "type": "string"
+            },
+            "include_automatic": {
+              "type": "boolean"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "classify_reply",
+        "description": "Set a reply's intent after reading it: interested (wants to talk / asks for a meeting), question (asks something before deciding), not_now (timing), not_interested, referral (points to someone else), wrong_person, other. Set handled: true when no further action is needed.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "reply_id": {
+              "type": "string"
+            },
+            "intent": {
+              "type": "string",
+              "enum": [
+                "interested",
+                "not_interested",
+                "not_now",
+                "question",
+                "referral",
+                "wrong_person",
+                "other"
+              ]
+            },
+            "handled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "reply_id",
+            "intent"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "draft_reply",
+        "description": "Save a draft answer to a reply (from list_replies). Nothing is sent: the user reviews it first.\nWrite like a person answering an email: short, specific to what they said, in their language, with one clear next step (e.g. two meeting times or a booking link if the user gave you one). Sign off with the sender's first name: Gmail doesn't add the user's signature to emails sent through Meerko. Drafting again for the same reply replaces the pending draft.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "reply_id": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string",
+              "description": "Plain text"
+            }
+          },
+          "required": [
+            "reply_id",
+            "body"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "list_drafts",
+        "description": "Pending drafts with the reply each answers, the thread so far and the prospect's row. Show them to the user for approval.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "approve_draft",
+        "description": "Send a draft as a reply in the same email thread, from the user's mailbox. Only call this after the user has read this specific draft and explicitly said to send it. Pass `body` if the user edited the text.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "draft_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "discard_draft",
+        "description": "Throw a pending draft away.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "draft_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "pipeline",
+        "description": "Lead counts per stage (new → contacted → replied → meeting → won → lost), for one table or the whole workspace. Meerko moves leads to contacted when the first email is sent and to replied when they answer; meeting, won and lost are set with move_stage.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            }
+          },
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "move_stage",
+        "description": "Move leads (rows) to a pipeline stage, e.g. meeting when a call is booked, won or lost. Use query_rows with `stage` to find leads at a stage.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "row_ids": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "stage": {
+              "type": "string",
+              "enum": [
+                "new",
+                "contacted",
+                "replied",
+                "meeting",
+                "won",
+                "lost"
+              ]
+            }
+          },
+          "required": [
+            "table_id",
+            "row_ids",
+            "stage"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "get_credits",
+        "description": "Show the workspace's credit balance (null when self-hosted with your own provider keys).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      }
+    ],
+    "prompts": [
+      {
+        "name": "find-leads",
+        "title": "Find leads",
+        "description": "Build a lead list from your ideal customer, with verified emails.",
+        "arguments": [
+          {
+            "name": "icp",
+            "description": "Who you sell to, e.g. 'heads of growth at Series A fintechs in Spain'",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "write-sequence",
+        "title": "Write a sequence",
+        "description": "Draft a 3-step email sequence for a table, in your voice.",
+        "arguments": [
+          {
+            "name": "table",
+            "description": "The table's name or id",
+            "required": true
+          },
+          {
+            "name": "offer",
+            "description": "What you're offering, if it isn't obvious",
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "triage-replies",
+        "title": "Triage replies",
+        "description": "Sort new replies by intent and draft answers for you to approve.",
+        "arguments": []
+      },
+      {
+        "name": "pipeline",
+        "title": "Pipeline",
+        "description": "See who's interested, booked and won, and what needs you.",
+        "arguments": []
+      }
+    ]
+  },
+  "cli": {
+    "globalOptions": [
+      {
+        "flags": "-V, --version",
+        "description": "output the version number",
+        "required": false
+      },
+      {
+        "flags": "--json",
+        "description": "print raw JSON (handy for agents and scripts)",
+        "required": false
+      }
+    ],
+    "groups": {
+      "login": "sign in with your browser (or an API key) and save it to ~/.meerko/config.json",
+      "logout": "sign out: revoke the browser sign-in and forget the saved key",
+      "tables": "manage prospect tables",
+      "pipeline": "lead counts per stage",
+      "find": "search Icypeas for people or companies and save the results to a table",
+      "enrich": "find and verify emails for rows that don't have them yet",
+      "mailboxes": "connect the inboxes Meerko sends from",
+      "sequences": "multi-step email sequences sent from your mailbox",
+      "replies": "replies to your sequences",
+      "drafts": "answers to replies, waiting for your approval",
+      "keys": "bring your own provider keys (calls through them cost no credits)",
+      "credits": "show the workspace credit balance"
+    },
+    "commands": [
+      {
+        "usage": "meerko login",
+        "group": "login",
+        "description": "sign in with your browser (or an API key) and save it to ~/.meerko/config.json",
+        "options": [
+          {
+            "flags": "--key <apiKey>",
+            "description": "use an API key instead of the browser (starts with mk_)",
+            "required": false
+          },
+          {
+            "flags": "--url <apiUrl>",
+            "description": "API URL",
+            "default": "http://localhost:8787",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko logout",
+        "group": "logout",
+        "description": "sign out: revoke the browser sign-in and forget the saved key",
+        "options": []
+      },
+      {
+        "usage": "meerko tables ls",
+        "group": "tables",
+        "description": "list tables",
+        "options": []
+      },
+      {
+        "usage": "meerko tables create <name>",
+        "group": "tables",
+        "description": "create a table",
+        "options": []
+      },
+      {
+        "usage": "meerko tables add-column <tableId> <name>",
+        "group": "tables",
+        "description": "add a column",
+        "options": [
+          {
+            "flags": "-t, --type <type>",
+            "description": "text | number | email | url | boolean | json",
+            "default": "text",
+            "required": false
+          },
+          {
+            "flags": "-p, --prompt <prompt>",
+            "description": "make it an AI column: an instruction your agent answers per row ({{column_key}} inserts values)",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko tables import <tableId> <file>",
+        "group": "tables",
+        "description": "import rows from a CSV (with header row) or a JSON array file",
+        "options": []
+      },
+      {
+        "usage": "meerko tables rows <tableId>",
+        "group": "tables",
+        "description": "list rows, optionally filtered",
+        "options": [
+          {
+            "flags": "-f, --filter <json>",
+            "description": "exact-match filter, e.g. '{\"country\":\"Spain\"}'",
+            "required": false
+          },
+          {
+            "flags": "-l, --limit <n>",
+            "description": "max rows",
+            "default": "50",
+            "required": false
+          },
+          {
+            "flags": "-o, --offset <n>",
+            "description": "rows to skip",
+            "default": "0",
+            "required": false
+          },
+          {
+            "flags": "-s, --stage <stage>",
+            "description": "only rows at this pipeline stage (new, contacted, replied, meeting, won, lost)",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko tables pending <tableId> <column>",
+        "group": "tables",
+        "description": "print rows whose AI column is still empty, with the instruction rendered per row (JSON)",
+        "options": [
+          {
+            "flags": "-l, --limit <n>",
+            "description": "max rows",
+            "default": "25",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko tables update <tableId> <file>",
+        "group": "tables",
+        "description": "merge values into rows from a JSON file: [{ \"id\": \"<rowId>\", \"data\": { ... } }]",
+        "options": []
+      },
+      {
+        "usage": "meerko tables stage <tableId> <stage> <rowIds...>",
+        "group": "tables",
+        "description": "move rows to a pipeline stage: new | contacted | replied | meeting | won | lost",
+        "options": []
+      },
+      {
+        "usage": "meerko pipeline",
+        "group": "pipeline",
+        "description": "lead counts per stage",
+        "options": [
+          {
+            "flags": "-t, --table <tableId>",
+            "description": "only this table",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko find <kind>",
+        "group": "find",
+        "description": "search Icypeas for people or companies and save the results to a table",
+        "options": [
+          {
+            "flags": "-q, --query <json>",
+            "description": "filters, e.g. '{\"currentJobTitle\":{\"include\":[\"CTO\"]},\"location\":{\"include\":[\"ES\"]}}'",
+            "required": true
+          },
+          {
+            "flags": "-l, --limit <n>",
+            "description": "max results to fetch (costs credits)",
+            "default": "25",
+            "required": false
+          },
+          {
+            "flags": "-t, --table <tableId>",
+            "description": "append to an existing table",
+            "required": false
+          },
+          {
+            "flags": "-n, --name <tableName>",
+            "description": "name for the new table",
+            "required": false
+          },
+          {
+            "flags": "-c, --count",
+            "description": "only count matches (free)",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko enrich <tableId>",
+        "group": "enrich",
+        "description": "find and verify emails for rows that don't have them yet",
+        "options": [
+          {
+            "flags": "--fields <list>",
+            "description": "comma-separated: email, email_verification",
+            "default": "email,email_verification",
+            "required": false
+          },
+          {
+            "flags": "-f, --filter <json>",
+            "description": "only enrich rows matching this exact-match filter",
+            "required": false
+          },
+          {
+            "flags": "-l, --limit <n>",
+            "description": "rows per batch (max 50)",
+            "default": "25",
+            "required": false
+          },
+          {
+            "flags": "--all",
+            "description": "keep going in batches until no rows remain",
+            "required": false
+          },
+          {
+            "flags": "--overwrite",
+            "description": "re-run rows that already have a result",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko mailboxes connect",
+        "group": "mailboxes",
+        "description": "connect a Gmail or Google Workspace inbox (opens Google's consent page)",
+        "options": [
+          {
+            "flags": "-e, --email <address>",
+            "description": "pre-select this Google account",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko mailboxes ls",
+        "group": "mailboxes",
+        "description": "list connected mailboxes",
+        "options": []
+      },
+      {
+        "usage": "meerko mailboxes set <mailboxId>",
+        "group": "mailboxes",
+        "description": "change a mailbox's daily send limit or sender name",
+        "options": [
+          {
+            "flags": "--daily-limit <n>",
+            "description": "max emails per day from this mailbox",
+            "required": false
+          },
+          {
+            "flags": "--name <displayName>",
+            "description": "sender name shown to recipients, e.g. \"Pia from Slalom\"",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko mailboxes test <mailboxId>",
+        "group": "mailboxes",
+        "description": "send a test email to check the connection",
+        "options": [
+          {
+            "flags": "--to <address>",
+            "description": "recipient",
+            "required": true
+          }
+        ]
+      },
+      {
+        "usage": "meerko mailboxes rm <mailboxId>",
+        "group": "mailboxes",
+        "description": "disconnect a mailbox",
+        "options": []
+      },
+      {
+        "usage": "meerko sequences ls",
+        "group": "sequences",
+        "description": "list sequences",
+        "options": []
+      },
+      {
+        "usage": "meerko sequences create <tableId> <file>",
+        "group": "sequences",
+        "description": "create a draft sequence from JSON: {\"name\",\"mailbox_id\",\"steps\":[{\"subject\",\"body\"},{\"body\",\"delay_days\"}]}",
+        "options": []
+      },
+      {
+        "usage": "meerko sequences preview <sequenceId>",
+        "group": "sequences",
+        "description": "render every step for one row (the first by default)",
+        "options": [
+          {
+            "flags": "-r, --row <rowId>",
+            "description": "row to render",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko sequences enroll <sequenceId>",
+        "group": "sequences",
+        "description": "enroll rows from the sequence's table (rows that are unsafe to email are skipped)",
+        "options": [
+          {
+            "flags": "-f, --filter <json>",
+            "description": "only rows matching this exact-match filter",
+            "required": false
+          },
+          {
+            "flags": "-l, --limit <n>",
+            "description": "max rows",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko sequences start <sequenceId>",
+        "group": "sequences",
+        "description": "start sending (within the send window, respecting mailbox limits)",
+        "options": []
+      },
+      {
+        "usage": "meerko sequences pause <sequenceId>",
+        "group": "sequences",
+        "description": "stop sending until started again",
+        "options": []
+      },
+      {
+        "usage": "meerko sequences stats <sequenceId>",
+        "group": "sequences",
+        "description": "enrollment states, emails sent and reply rate",
+        "options": []
+      },
+      {
+        "usage": "meerko replies ls",
+        "group": "replies",
+        "description": "list unclassified replies (newest first)",
+        "options": [
+          {
+            "flags": "-s, --sequence <id>",
+            "description": "only this sequence",
+            "required": false
+          },
+          {
+            "flags": "-i, --intent <intent>",
+            "description": "only this intent (interested, not_interested, not_now, question, referral, wrong_person, other)",
+            "required": false
+          },
+          {
+            "flags": "-a, --all",
+            "description": "include classified replies, out-of-office, bounces and unsubscribes",
+            "required": false
+          },
+          {
+            "flags": "-l, --limit <n>",
+            "description": "max replies",
+            "default": "25",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko replies classify <replyId> <intent>",
+        "group": "replies",
+        "description": "set a reply's intent: interested | not_interested | not_now | question | referral | wrong_person | other",
+        "options": [
+          {
+            "flags": "--done",
+            "description": "also mark it handled",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko replies draft <replyId> <file>",
+        "group": "replies",
+        "description": "save a draft answer to a reply from a text file (nothing is sent until approved)",
+        "options": []
+      },
+      {
+        "usage": "meerko drafts ls",
+        "group": "drafts",
+        "description": "list pending drafts with the reply they answer",
+        "options": []
+      },
+      {
+        "usage": "meerko drafts approve <draftId>",
+        "group": "drafts",
+        "description": "send the draft as a reply in the same thread",
+        "options": [
+          {
+            "flags": "-f, --file <file>",
+            "description": "send this edited text instead of the draft",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko drafts discard <draftId>",
+        "group": "drafts",
+        "description": "throw a draft away",
+        "options": []
+      },
+      {
+        "usage": "meerko keys ls",
+        "group": "keys",
+        "description": "list stored provider keys",
+        "options": []
+      },
+      {
+        "usage": "meerko keys set <provider> <key>",
+        "group": "keys",
+        "description": "store a provider key (supported: icypeas). It's checked with the provider first",
+        "options": []
+      },
+      {
+        "usage": "meerko keys rm <provider>",
+        "group": "keys",
+        "description": "remove a stored provider key",
+        "options": []
+      },
+      {
+        "usage": "meerko credits",
+        "group": "credits",
+        "description": "show the workspace credit balance",
+        "options": []
+      }
+    ]
+  }
+}

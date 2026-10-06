@@ -39,3 +39,12 @@ export async function load<T>(fn: (client: MeerkoClient) => Promise<T>): Promise
     throw err;
   }
 }
+
+/** Where to go after signing in (e.g. back to an app's consent page), kept across the Google round trip. */
+export const NEXT_COOKIE = "meerko_next";
+
+/** `next` if it's a path on this site, so sign-in can't be turned into an open redirect. */
+export const safeNext = (next: string | null | undefined) => (next && /^\/(?![/\\])/.test(next) ? next : null);
+
+/** The hosted MCP endpoint that agents connect to (they sign in with OAuth). */
+export const mcpUrl = () => new URL("/mcp", apiUrl()).toString();

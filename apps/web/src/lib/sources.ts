@@ -49,3 +49,14 @@ export const ftcCanSpam = { label: "FTC: CAN-SPAM Act: A Compliance Guide for Bu
 /** Apollo and Instantly, for /alternatives. Only what their own pricing pages state. */
 export const apolloSources = { pricing: { label: "Apollo pricing", url: "https://www.apollo.io/pricing" } };
 export const instantlySources = { pricing: { label: "Instantly pricing", url: "https://instantly.ai/pricing" } };
+
+/** For /docs: the setup steps that depend on other products. */
+export const docsSources = {
+  claudeCodeMcp: { label: "Claude Code docs: Connect Claude Code to tools via MCP", url: "https://code.claude.com/docs/en/mcp" },
+  codexMcp: { label: "OpenAI Codex docs: Model Context Protocol", url: "https://developers.openai.com/codex/mcp" },
+  cursorMcp: { label: "Cursor docs: Model Context Protocol", url: "https://cursor.com/docs/context/mcp" },
+  geminiMcp: { label: "Gemini CLI docs: MCP servers", url: "https://geminicli.com/docs/tools/mcp-server/" },
+  enableApis: { label: "Google Workspace: Enable Google Workspace APIs", url: "https://developers.google.com/workspace/guides/enable-apis" },
+  refreshExpiry: { label: "Google: Using OAuth 2.0, refresh token expiration", url: "https://developers.google.com/identity/protocols/oauth2#expiration" },
+  icypeas: { label: "Icypeas", url: "https://www.icypeas.com" },
+};

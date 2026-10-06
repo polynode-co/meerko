@@ -81,12 +81,12 @@ const ctas = {
     title: "Run this from your coding agent",
     body: "Meerko finds the leads, sends the sequence from your own Gmail and stops it when someone replies. Self-host it for free or start on Meerko Cloud with 1,000 free credits.",
     primary: ["Get started free", site.pricingUrl],
-    secondary: ["Connect it to Claude Code", site.docsUrl],
+    secondary: ["Connect it to Claude Code", "/docs/claude-code"],
   },
   docs: {
     title: "Try it in Claude Code",
     body: "Add the Meerko MCP server and ask for a lead list, a sequence or a reply triage in plain language.",
-    primary: ["Set up the MCP server", site.docsUrl],
+    primary: ["Set up the MCP server", "/docs/claude-code"],
     secondary: ["See pricing", site.pricingUrl],
   },
 } as const;

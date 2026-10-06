@@ -1,0 +1,186 @@
+import { CodeBlock } from "@/components/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/docs/shell";
+import { C, Callout, Fields, H2, L, Step } from "@/components/docs/ui";
+import { docsSources } from "@/lib/sources";
+import { site } from "@/lib/site";
+
+export const metadata = docsMetadata("self-hosting", "Self-host Meerko, the open-source AI sales agent | Meerko docs");
+
+const sh = (cmds: string[], title = "bash") => <CodeBlock title={title} code={cmds.join("\n")} lines={cmds.map((c) => ({ text: c.startsWith("#") ? c : `$ ${c}`, tone: c.startsWith("#") ? "muted" : undefined }))} />;
+
+export default function Page() {
+  return (
+    <DocsShell
+      slug="self-hosting"
+      h1="Self-host Meerko"
+      lead={
+        <p>
+          Run the whole of Meerko yourself: the API, the background worker that sends and reads email, the web dashboard and Postgres.
+          It&apos;s the same code as Meerko Cloud, under AGPL-3.0. Credits are off, so lead search and enrichment run on your own
+          provider key.
+        </p>
+      }
+      toc={[
+        ["what-runs", "What you'll run"],
+        ["install", "Install"],
+        ["database", "Start the database"],
+        ["run", "Run Meerko"],
+        ["google", "Connect Google"],
+        ["search", "Turn on lead search"],
+        ["env", "Environment variables"],
+        ["agent", "Connect your agent"],
+        ["production", "Running it in production"],
+        ["updating", "Updating"],
+      ]}
+    >
+      <H2 id="what-runs">What you&apos;ll run</H2>
+      <Fields
+        head={["Piece", "What it does"]}
+        rows={[
+          ["Postgres", <>All your data. <C>docker-compose.yml</C> runs Postgres 17 on port 54329.</>],
+          ["API · :8787", "Everything the CLI, agents and the dashboard call, including the MCP server at /mcp. Also signs apps in (OAuth) and serves unsubscribe links."],
+          ["Worker", "Sends due emails every 30 seconds (at most one per mailbox per pass) and scans for replies every 2 minutes."],
+          ["Web · :3000", "The dashboard: leads, sequences, the inbox and settings."],
+        ]}
+      />
+      <p>You need Node 20 or later, pnpm and Docker.</p>
+
+      <Step n={1} id="install" title="Install">
+        {sh([`git clone ${site.githubUrl} ~/meerko`, "cd ~/meerko", "pnpm install", "cp .env.example .env"])}
+        <p>
+          <C>.env</C> works as-is for a local install. You&apos;ll fill in the Google and search keys in steps 4 and 5.
+        </p>
+      </Step>
+
+      <Step n={2} id="database" title="Start the database">
+        {sh(["pnpm db:up        # Postgres on localhost:54329", "pnpm db:migrate", "pnpm db:seed      # prints your API key (mk_…)"])}
+        <p>
+          The seed creates a workspace and an API key named &quot;seed&quot;, and prints the key once. Keep it: the CLI, your agent and the
+          dashboard can all log in with it.
+        </p>
+      </Step>
+
+      <Step n={3} id="run" title="Run Meerko">
+        {sh(["pnpm dev"])}
+        <p>
+          This starts the API on <C>http://localhost:8787</C>, the worker and the dashboard on <C>http://localhost:3000</C>. Open{" "}
+          <C>localhost:3000/login</C> and log in with the API key from the seed. To run them one at a time, use{" "}
+          <C>pnpm --filter @meerko/api dev</C>, <C>@meerko/worker</C> or <C>@meerko/web</C>.
+        </p>
+        <p>
+          Until you connect Google, the worker logs &quot;Sender idle&quot; and sends nothing. Tables, imports and AI columns already
+          work.
+        </p>
+      </Step>
+
+      <Step n={4} id="google" title="Connect Google (to send email)">
+        <p>Meerko sends from Gmail through Google&apos;s API, so it needs an OAuth client of your own. The same client also gives the dashboard &quot;Sign in with Google&quot;.</p>
+        <ol className="flex list-decimal flex-col gap-2 pl-6">
+          <li>
+            In a Google Cloud project, enable the <strong className="text-fg">Gmail API</strong> (
+            <L href={docsSources.enableApis.url}>Google&apos;s guide</L>).
+          </li>
+          <li>
+            Configure the OAuth consent screen and add the Google accounts you&apos;ll send from as test users.
+          </li>
+          <li>
+            Create an OAuth client of type <strong className="text-fg">Web application</strong> with these authorized redirect URIs:
+            <ul className="mt-1.5 flex flex-col gap-1">
+              <li>
+                <C>http://localhost:8787/oauth/google/callback</C> (connect Gmail)
+              </li>
+              <li>
+                <C>http://localhost:8787/auth/google/callback</C> (sign in to the dashboard)
+              </li>
+            </ul>
+          </li>
+          <li>
+            Put its ID and secret in <C>.env</C>, plus an encryption key for the stored Gmail tokens:
+          </li>
+        </ol>
+        {sh(["GOOGLE_CLIENT_ID=…apps.googleusercontent.com", "GOOGLE_CLIENT_SECRET=…", "# generate with: openssl rand -base64 32", "MEERKO_ENCRYPTION_KEY=…"], ".env")}
+        <p>
+          Restart <C>pnpm dev</C>, then connect a mailbox from Settings in the dashboard (or <C>pnpm meerko mailboxes connect</C>).
+        </p>
+        <Callout>
+          <p>
+            While the consent screen is in &quot;Testing&quot;, Google expires the refresh token after 7 days (
+            <L href={docsSources.refreshExpiry.url}>Google&apos;s docs</L>). Meerko then marks the mailbox for reconnecting and pauses its
+            sends until you do. Publish the consent screen to avoid it. Never change <C>MEERKO_ENCRYPTION_KEY</C> once mailboxes are
+            connected: the stored tokens can&apos;t be read without it.
+          </p>
+        </Callout>
+        <p>
+          To sign in with Google instead of an API key, invite your address with <C>pnpm db:invite you@example.com</C>. With{" "}
+          <C>MEERKO_SIGNUP=open</C>, any Google account can create a workspace.
+        </p>
+      </Step>
+
+      <Step n={5} id="search" title="Turn on lead search">
+        <p>
+          People and company search and email finding run on <L href={docsSources.icypeas.url}>Icypeas</L>. Put your Icypeas API key in{" "}
+          <C>ICYPEAS_API_KEY</C> for the whole server, or store one per workspace with <C>pnpm meerko keys set icypeas &lt;key&gt;</C>{" "}
+          (needs <C>MEERKO_ENCRYPTION_KEY</C>). Without either, search and enrichment return an error; everything else works, including
+          importing your own CSV.
+        </p>
+      </Step>
+
+      <H2 id="env">Environment variables</H2>
+      <p>
+        All of them live in <C>.env</C> at the repo root; <C>.env.example</C> has comments for each.
+      </p>
+      <Fields
+        head={["Variable", "What it's for"]}
+        rows={[
+          ["DATABASE_URL", "Postgres connection string. Required."],
+          ["PORT", "The API's port. Default 8787."],
+          ["MEERKO_PUBLIC_URL", "The API's public URL, used for the Google redirects and unsubscribe links. Default http://localhost:8787."],
+          ["MEERKO_APP_URL", "The dashboard's URL. After connecting Gmail or signing in, the browser comes back here, and apps are approved on its consent page. Default http://localhost:3000."],
+          ["MEERKO_API_URL", "Where the dashboard, the CLI and the MCP server reach the API. Default http://localhost:8787."],
+          ["MEERKO_ENCRYPTION_KEY", "32 bytes, base64. Encrypts Gmail tokens, provider keys and unsubscribe links. Required to send and for app sign-in."],
+          ["GOOGLE_CLIENT_ID · GOOGLE_CLIENT_SECRET", "Your OAuth client. Required to send email and to sign in with Google."],
+          ["MEERKO_SIGNUP", "invite (default): only addresses added with pnpm db:invite can sign in with Google. open: anyone can."],
+          ["ICYPEAS_API_KEY", "Lead search and email finding for every workspace on this server."],
+          ["MEERKO_CREDITS", "off (default) when self-hosting. on meters search and enrichment in credits, as on Meerko Cloud."],
+          ["MEERKO_TICK_SECRET", "Meerko Cloud only, where a scheduler replaces the worker. Leave it empty."],
+        ]}
+      />
+
+      <H2 id="agent">Connect your agent</H2>
+      <p>
+        The API serves the MCP server at <C>http://localhost:8787/mcp</C>. With Google connected (step 4), agents and the CLI sign in with
+        the browser, as on Meerko Cloud:
+      </p>
+      {sh(["claude mcp add --transport http --scope user meerko http://localhost:8787/mcp", "pnpm meerko login"])}
+      <p>
+        Without Google, use the key from the seed: add <C>--header &quot;Authorization: Bearer mk_…&quot;</C> to the first command, and{" "}
+        <C>--key mk_…</C> to the second. More in <L href="/docs/claude-code#other-ways">Claude Code</L> and{" "}
+        <L href="/docs/codex-cursor">Codex & Cursor</L>.
+      </p>
+
+      <H2 id="production">Running it in production</H2>
+      <ul className="flex list-disc flex-col gap-2 pl-6">
+        <li>
+          Serve the API on a public URL and set <C>MEERKO_PUBLIC_URL</C> to it: recipients click unsubscribe links on it, and Google
+          redirects to it. Update the OAuth client&apos;s redirect URIs to match.
+        </li>
+        <li>
+          Build the API and dashboard images from the repo root with <C>apps/api/Dockerfile</C> and <C>apps/web/Dockerfile</C>. The
+          dashboard takes <C>NEXT_PUBLIC_SITE_URL</C> at build time (same origin as <C>MEERKO_APP_URL</C>) and <C>MEERKO_API_URL</C> at
+          runtime.
+        </li>
+        <li>
+          Keep a worker running: <C>pnpm --filter @meerko/worker start</C>. Running more than one at once is safe.
+          On shutdown it finishes the current pass first.
+        </li>
+        <li>
+          Run <C>pnpm db:migrate</C> against the production database before each deploy; migrations don&apos;t run on start.
+        </li>
+        <li>Back up Postgres, and the encryption key with it.</li>
+      </ul>
+
+      <H2 id="updating">Updating</H2>
+      {sh(["git pull", "pnpm install", "pnpm db:migrate"])}
+    </DocsShell>
+  );
+}

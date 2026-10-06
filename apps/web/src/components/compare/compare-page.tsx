@@ -41,8 +41,8 @@ const repo = site.githubUrl;
 // Facts about Meerko, each with the page that shows it.
 const onlyMeerko = [
   { title: "Open source (AGPL-3.0)", body: "Read, fork and audit every line.", href: `${repo}/blob/main/LICENSE` },
-  { title: "Self-host for $0", body: "Run it on your own infra with your own provider keys.", href: `${repo}/blob/main/docs/DEPLOY.md` },
-  { title: "Your Postgres", body: "Self-hosted, every lead, email and reply stays in your database.", href: `${repo}#quick-start-self-hosted` },
+  { title: "Self-host for $0", body: "Run it on your own infra with your own provider keys.", href: "/docs/self-hosting" },
+  { title: "Your Postgres", body: "Self-hosted, every lead, email and reply stays in your database.", href: "/docs/self-hosting#what-runs" },
 ];
 
 export function ComparePage({ c }: { c: Comparison }) {

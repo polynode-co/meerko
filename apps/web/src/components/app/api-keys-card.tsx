@@ -11,13 +11,13 @@ export function ApiKeysCard({ keys, apiUrl, canManage }: { keys: ApiKey[]; apiUr
   const [created, create, creating] = useActionState(createApiKey, null);
   const [revoking, startRevoke] = useTransition();
   const [error, setError] = useState<string>();
-  const loginCommand = created?.key ? `npx meerko login --key ${created.key} --url ${apiUrl}` : null;
+  const loginCommand = created?.key ? `pnpm meerko login --key ${created.key} --url ${apiUrl}` : null;
 
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-line px-5 py-4">
         <h2 className="flex items-center gap-2 text-[15px] font-semibold"><Terminal className="size-4 text-accent" />API keys</h2>
-        <p className="mt-1 text-[13px] text-muted">For the CLI, the MCP server and your own scripts. Each key can do anything in this workspace.</p>
+        <p className="mt-1 text-[13px] text-muted">For self-hosted setups and your own scripts. Each key can use everything in this workspace.</p>
       </div>
 
       {canManage && (
@@ -35,7 +35,7 @@ export function ApiKeysCard({ keys, apiUrl, canManage }: { keys: ApiKey[]; apiUr
 
       {loginCommand && (
         <div className="flex flex-col gap-2 border-b border-line bg-accent-soft px-5 py-4 text-[13px]">
-          <p className="font-semibold">Copy it now: it won&apos;t be shown again.</p>
+          <p className="font-semibold">Copy it now: it won&apos;t be shown again. To log in the CLI, run this in your clone of the Meerko repo:</p>
           <code className="break-all rounded-md border border-line bg-ink px-3 py-2 font-mono text-xs">{loginCommand}</code>
         </div>
       )}

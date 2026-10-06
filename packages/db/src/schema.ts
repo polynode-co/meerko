@@ -309,3 +309,44 @@ export const replyDrafts = pgTable(
   // At most one pending draft per reply; drafting again replaces it.
   (t) => [uniqueIndex("reply_drafts_pending_idx").on(t.replyId).where(sql`${t.status} = 'pending'`)],
 );
+
+// --- OAuth for remote MCP clients (Claude Code, Cursor, Codex) and the CLI ---
+// Meerko is the authorization server: clients register themselves (RFC 7591), the user approves them on
+// the dashboard's consent page, and they get short-lived access tokens plus a rotating refresh token.
+
+/** A registered app. Public clients only (PKCE, no secret), as the MCP authorization spec expects. */
+export const oauthClients = pgTable("oauth_clients", {
+  id: id(),
+  name: text("name").notNull(),
+  redirectUris: jsonb("redirect_uris").$type<string[]>().notNull(),
+  createdAt: createdAt(),
+});
+
+/** One-time authorization codes, exchanged at the token endpoint with the PKCE verifier. */
+export const oauthCodes = pgTable("oauth_codes", {
+  codeHash: text("code_hash").primaryKey(),
+  clientId: uuid("client_id").notNull().references(() => oauthClients.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  redirectUri: text("redirect_uri").notNull(),
+  codeChallenge: text("code_challenge").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
+/** An app's access to a workspace (shown under Settings → Connected apps). Tokens are stored hashed. */
+export const oauthGrants = pgTable(
+  "oauth_grants",
+  {
+    id: id(),
+    clientId: uuid("client_id").notNull().references(() => oauthClients.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    accessHash: text("access_hash").notNull().unique(),
+    accessExpiresAt: timestamp("access_expires_at", { withTimezone: true }).notNull(),
+    refreshHash: text("refresh_hash").notNull().unique(),
+    refreshExpiresAt: timestamp("refresh_expires_at", { withTimezone: true }).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("oauth_grants_workspace_idx").on(t.workspaceId)],
+);

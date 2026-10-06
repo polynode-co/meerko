@@ -1,8 +1,12 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
+import { cors } from "hono/cors";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { createServer as createMcpServer } from "@meerko/mcp/server";
+import { MeerkoClient } from "@meerko/sdk";
 import {
   addColumn,
   countLeads,
@@ -70,6 +74,18 @@ import {
   searchLeads,
   updateRows,
   verifyApiKey,
+  approveAuthorization,
+  denyAuthorization,
+  describeAuthorization,
+  exchangeOAuthCode,
+  listConnectedApps,
+  OAuthError,
+  refreshOAuthToken,
+  registerOAuthClient,
+  revokeConnectedApp,
+  revokeOAuthToken,
+  startAuthorization,
+  verifyAccessToken,
   type CreditPolicy,
   type GoogleOAuth,
   type SecretBox,
@@ -81,7 +97,7 @@ type Env = {
   Variables: {
     workspaceId: string;
     workspaceName: string;
-    /** Set for dashboard sessions; null for API keys (CLI, MCP, scripts). */
+    /** Set for dashboard sessions; null for API keys and OAuth apps (CLI, MCP, scripts). */
     user: { id: string; email: string; name: string | null; role: string } | null;
   };
 };
@@ -195,6 +211,11 @@ export interface AppDeps {
   googleSignIn?: GoogleOAuth;
   /** Who may sign in with Google: anyone (`open`) or invited emails only (`invite`, the default). */
   signup?: SignupMode;
+  /**
+   * This API's public URL (MEERKO_PUBLIC_URL): the OAuth issuer, and the base of the /mcp resource URL that
+   * MCP clients connect to. Defaults to the request's origin.
+   */
+  publicUrl?: string;
 }
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -362,17 +383,163 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.body(null, 204);
   });
 
+
+  // --- Credentials ---
+  const bearer = (c: Context) => c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  /**
+   * Dashboard sessions (ms_…), API keys (mk_…) and OAuth access tokens (mo_…) all act on one workspace.
+   * Only a session carries a user, so only a signed-in person can manage keys and connected apps.
+   */
+  const authenticate = async (token: string) => {
+    if (!token) return null;
+    const session = await verifySession(db, token);
+    if (session) {
+      return { workspaceId: session.workspaceId, workspaceName: session.workspaceName, user: { id: session.userId, email: session.email, name: session.name, role: session.role } };
+    }
+    const oauth = await verifyAccessToken(db, token);
+    if (oauth) return { workspaceId: oauth.workspaceId, workspaceName: oauth.workspaceName, user: null };
+    const key = await verifyApiKey(db, token);
+    return key ? { workspaceId: key.workspaceId, workspaceName: key.workspaceName, user: null } : null;
+  };
+
+  // --- OAuth for MCP clients and the CLI (see core/oauth.ts) ---
+  const issuer = (c: Context) => (deps.publicUrl ?? new URL(c.req.url).origin).replace(/\/$/, "");
+  const oauthEnabled = () => !!(box && deps.appUrl);
+  const oauthError = (c: Context, err: unknown) => {
+    if (!(err instanceof OAuthError)) throw err;
+    return c.json({ error: err.error, error_description: err.message }, err.error === "invalid_client" ? 401 : 400, { "cache-control": "no-store" });
+  };
+  // Browser-based MCP clients (e.g. the MCP Inspector) call these cross-origin. No cookies are involved.
+  const publicCors = cors({ origin: "*", allowHeaders: ["authorization", "content-type", "mcp-protocol-version"], exposeHeaders: ["www-authenticate"] });
+  app.use("/.well-known/*", publicCors);
+  app.use("/oauth/register", publicCors);
+  app.use("/oauth/token", publicCors);
+  app.use("/oauth/revoke", publicCors);
+  app.use("/mcp", publicCors);
+
+  // RFC 9728: tells MCP clients where to sign in for /mcp.
+  const resourceMetadata = (c: Context) =>
+    c.json({ resource: `${issuer(c)}/mcp`, authorization_servers: [issuer(c)], bearer_methods_supported: ["header"], resource_name: "Meerko" });
+  app.get("/.well-known/oauth-protected-resource", resourceMetadata);
+  app.get("/.well-known/oauth-protected-resource/mcp", resourceMetadata);
+
+  // RFC 8414
+  const serverMetadata = (c: Context) => {
+    if (!oauthEnabled()) return c.json({ error: "OAuth isn't configured on this server (needs MEERKO_ENCRYPTION_KEY and MEERKO_APP_URL)" }, 404);
+    const base = issuer(c);
+    return c.json({
+      issuer: base,
+      authorization_endpoint: `${base}/oauth/authorize`,
+      token_endpoint: `${base}/oauth/token`,
+      registration_endpoint: `${base}/oauth/register`,
+      revocation_endpoint: `${base}/oauth/revoke`,
+      response_types_supported: ["code"],
+      grant_types_supported: ["authorization_code", "refresh_token"],
+      code_challenge_methods_supported: ["S256"],
+      token_endpoint_auth_methods_supported: ["none"],
+      revocation_endpoint_auth_methods_supported: ["none"],
+      authorization_response_iss_parameter_supported: true,
+    });
+  };
+  app.get("/.well-known/oauth-authorization-server", serverMetadata);
+  app.get("/.well-known/oauth-authorization-server/mcp", serverMetadata);
+
+  // RFC 7591 dynamic client registration. Clients are public (no secret); PKCE protects the code.
+  app.post("/oauth/register", async (c) => {
+    if (!oauthEnabled()) return c.json({ error: "temporarily_unavailable", error_description: "OAuth isn't configured on this server" }, 503);
+    const body = (await c.req.json().catch(() => null)) as { client_name?: unknown; redirect_uris?: unknown } | null;
+    const redirectUris = Array.isArray(body?.redirect_uris) ? body.redirect_uris.filter((u): u is string => typeof u === "string") : [];
+    try {
+      const client = await registerOAuthClient(db, { name: typeof body?.client_name === "string" ? body.client_name : undefined, redirectUris });
+      return c.json(
+        {
+          client_id: client.id,
+          client_id_issued_at: Math.floor(client.createdAt.getTime() / 1000),
+          client_name: client.name,
+          redirect_uris: client.redirectUris,
+          grant_types: ["authorization_code", "refresh_token"],
+          response_types: ["code"],
+          token_endpoint_auth_method: "none",
+        },
+        201,
+      );
+    } catch (err) {
+      return oauthError(c, err);
+    }
+  });
+
+  // The person's browser: checks the request, then hands it to the dashboard's consent page.
+  app.get("/oauth/authorize", async (c) => {
+    if (!oauthEnabled()) return c.html(resultPage("Can't connect", "OAuth isn't configured on this Meerko server."), 404);
+    try {
+      const result = await startAuthorization(db, box!, c.req.query());
+      if (result.redirect) return c.redirect(result.redirect);
+      const consent = new URL("/oauth/consent", deps.appUrl);
+      consent.searchParams.set("request", result.request!);
+      return c.redirect(consent.toString());
+    } catch (err) {
+      if (!(err instanceof OAuthError)) throw err;
+      return c.html(resultPage("Can't connect this app", err.message), 400);
+    }
+  });
+
+  app.post("/oauth/token", async (c) => {
+    const type = c.req.header("content-type") ?? "";
+    const raw = type.includes("application/json") ? await c.req.json().catch(() => ({})) : await c.req.parseBody().catch(() => ({}));
+    const f = Object.fromEntries(Object.entries(raw as Record<string, unknown>).filter(([, v]) => typeof v === "string")) as Record<string, string>;
+    try {
+      let tokens;
+      if (f.grant_type === "authorization_code") {
+        tokens = await exchangeOAuthCode(db, { code: f.code, clientId: f.client_id, redirectUri: f.redirect_uri, codeVerifier: f.code_verifier });
+      } else if (f.grant_type === "refresh_token") {
+        tokens = await refreshOAuthToken(db, { refreshToken: f.refresh_token, clientId: f.client_id });
+      } else {
+        throw new OAuthError("unsupported_grant_type", "grant_type must be authorization_code or refresh_token");
+      }
+      return c.json(tokens, 200, { "cache-control": "no-store" });
+    } catch (err) {
+      return oauthError(c, err);
+    }
+  });
+
+  // RFC 7009: always 200, whether or not the token existed.
+  app.post("/oauth/revoke", async (c) => {
+    const body = await c.req.parseBody().catch(() => ({}) as Record<string, unknown>);
+    if (typeof body.token === "string") await revokeOAuthToken(db, body.token);
+    return c.body(null, 200);
+  });
+
+  // --- Hosted MCP server (Streamable HTTP, stateless) ---
+  // Remote clients sign in with OAuth; an API key in the Authorization header also works.
+  app.post("/mcp", async (c) => {
+    const token = bearer(c);
+    if (!(await authenticate(token))) {
+      const metadata = `${issuer(c)}/.well-known/oauth-protected-resource/mcp`;
+      const error = token ? `, error="invalid_token", error_description="The access token is invalid or expired"` : "";
+      return c.json({ error: "Sign in to use Meerko" }, 401, { "www-authenticate": `Bearer resource_metadata="${metadata}"${error}` });
+    }
+    // The tools call this same API in-process, as the caller, through the usual HTTP routes.
+    const client = new MeerkoClient({ apiUrl: issuer(c), apiKey: token, fetch: ((input: string | URL | Request, init?: RequestInit) => app.request(input instanceof URL ? input.toString() : input, init)) as typeof fetch });
+    const server = createMcpServer(() => client);
+    const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    await server.connect(transport);
+    try {
+      return await transport.handleRequest(c.req.raw);
+    } finally {
+      await server.close();
+    }
+  });
+  // Stateless: no server-initiated stream to open and no session to end.
+  app.on(["GET", "DELETE"], "/mcp", (c) => c.json({ error: "Method not allowed" }, 405, { allow: "POST" }));
+
   const v1 = new Hono<Env>();
 
   v1.use(async (c, next) => {
-    // Dashboard sessions (ms_…) and API keys (mk_…) both act on one workspace.
-    const token = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-    const session = await verifySession(db, token);
-    const auth = session ?? (token ? await verifyApiKey(db, token) : null);
+    const auth = await authenticate(bearer(c));
     if (!auth) throw new HTTPException(401, { message: "Missing or invalid API key" });
     c.set("workspaceId", auth.workspaceId);
     c.set("workspaceName", auth.workspaceName);
-    c.set("user", session ? { id: session.userId, email: session.email, name: session.name, role: session.role } : null);
+    c.set("user", auth.user);
     await next();
   });
 
@@ -380,9 +547,48 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   // Keys are listed with any credential, but only a signed-in person can mint or revoke one,
   // so a leaked key can't create more.
-  const requireUser = (c: { var: Env["Variables"] }) => {
-    if (!c.var.user) throw new HTTPException(403, { message: "Sign in to the dashboard to manage API keys" });
+  const requireUser = (c: { var: Env["Variables"] }, message = "Sign in to the dashboard to manage API keys") => {
+    if (!c.var.user) throw new HTTPException(403, { message });
   };
+
+  // The dashboard's consent page (a signed-in person) approves or declines an app's request.
+  const oauthRequestInput = z.object({ request: z.string().min(1) });
+  v1.post("/oauth/requests/describe", async (c) => {
+    requireUser(c, "Sign in to the dashboard to connect apps");
+    if (!oauthEnabled()) throw new HTTPException(404, { message: "OAuth isn't configured on this server" });
+    const { request } = await parse(oauthRequestInput, await c.req.json().catch(() => ({})));
+    try {
+      const info = await describeAuthorization(db, box!, request);
+      return c.json({ client_name: info.clientName, redirect_to: info.redirectTo, workspace: c.var.workspaceName });
+    } catch (err) {
+      if (err instanceof OAuthError) throw new HTTPException(400, { message: err.message });
+      throw err;
+    }
+  });
+
+  v1.post("/oauth/requests/decide", async (c) => {
+    requireUser(c, "Sign in to the dashboard to connect apps");
+    if (!oauthEnabled()) throw new HTTPException(404, { message: "OAuth isn't configured on this server" });
+    const { request, approve } = await parse(oauthRequestInput.extend({ approve: z.boolean() }), await c.req.json().catch(() => ({})));
+    try {
+      const redirectTo = approve
+        ? await approveAuthorization(db, box!, request, { userId: c.var.user!.id, workspaceId: c.var.workspaceId }, issuer(c))
+        : denyAuthorization(box!, request);
+      return c.json({ redirect_to: redirectTo });
+    } catch (err) {
+      if (err instanceof OAuthError) throw new HTTPException(400, { message: err.message });
+      throw err;
+    }
+  });
+
+  v1.get("/connected-apps", async (c) => c.json({ apps: await listConnectedApps(db, c.var.workspaceId) }));
+
+  v1.delete("/connected-apps/:id", async (c) => {
+    requireUser(c, "Sign in to the dashboard to disconnect apps");
+    await revokeConnectedApp(db, c.var.workspaceId, c.req.param("id"));
+    return c.body(null, 204);
+  });
+
 
   v1.get("/api-keys", async (c) => c.json({ api_keys: await listApiKeys(db, c.var.workspaceId) }));
 

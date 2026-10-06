@@ -31,6 +31,7 @@ const app = createApp(createDb(), {
         })
       : undefined,
   signup: process.env.MEERKO_SIGNUP === "open" ? "open" : ("invite" satisfies SignupMode),
+  publicUrl,
 });
 
 serve({ fetch: app.fetch, port }, () => console.log(`Meerko API listening on http://localhost:${port}`));

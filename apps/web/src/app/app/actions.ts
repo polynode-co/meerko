@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type ReplyIntent, type Stage } from "@meerko/sdk";
-import { apiUrl, meerko, SESSION_COOKIE, setSessionCookie } from "@/lib/meerko";
+import { apiUrl, meerko, safeNext, SESSION_COOKIE, setSessionCookie } from "@/lib/meerko";
 import { site } from "@/lib/site";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
@@ -32,7 +32,7 @@ export async function login(_: ActionResult | null, form: FormData): Promise<Act
     return { ok: false, error: `Can't reach the Meerko API at ${apiUrl()}` };
   }
   await setSessionCookie(key);
-  redirect("/app");
+  redirect(safeNext(String(form.get("next") ?? "")) ?? "/app");
 }
 
 export async function logout() {
@@ -60,6 +60,10 @@ export async function createApiKey(_: unknown, form: FormData): Promise<ActionRe
 
 export async function revokeApiKey(id: string) {
   return run((c) => c.revokeApiKey(id).then(() => "Key revoked"), ["/app/settings"]);
+}
+
+export async function disconnectApp(id: string) {
+  return run((c) => c.revokeConnectedApp(id).then(() => "App disconnected"), ["/app/settings"]);
 }
 
 export async function approveDraft(draftId: string, body: string) {

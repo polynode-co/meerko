@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 import { MeerkoApiError, MeerkoClient } from "@meerko/sdk";
-import { apiUrl, setSessionCookie } from "@/lib/meerko";
+import { cookies } from "next/headers";
+import { apiUrl, NEXT_COOKIE, safeNext, setSessionCookie } from "@/lib/meerko";
 
 /**
  * The API's Google sign-in callback sends the browser here with a one-time code. This server trades it
@@ -18,5 +19,8 @@ export async function GET(request: NextRequest) {
     redirect(`/login?error=${encodeURIComponent(message)}`);
   }
   await setSessionCookie(session.token, new Date(session.expires_at));
-  redirect("/app");
+  const store = await cookies();
+  const next = safeNext(store.get(NEXT_COOKIE)?.value);
+  store.delete(NEXT_COOKIE);
+  redirect(next ?? "/app");
 }

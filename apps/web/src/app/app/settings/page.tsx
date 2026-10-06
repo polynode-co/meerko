@@ -2,13 +2,14 @@ import { KeyRound, Mail } from "lucide-react";
 import { connectGmail } from "@/app/app/actions";
 import { buttonClass, Card, PageHeader, Pill } from "@/components/app/ui";
 import { ApiKeysCard } from "@/components/app/api-keys-card";
+import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
 import { apiUrl, load } from "@/lib/meerko";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ gmail_connected?: string; gmail_error?: string }> }) {
   // The API's Gmail OAuth callback redirects back here with the outcome.
   const { gmail_connected, gmail_error } = await searchParams;
-  const [mailboxes, credits, keys, apiKeys, me] = await load((c) =>
-    Promise.all([c.listMailboxes(), c.getCredits(), c.listProviderKeys(), c.listApiKeys(), c.me()]),
+  const [mailboxes, credits, keys, apiKeys, apps, me] = await load((c) =>
+    Promise.all([c.listMailboxes(), c.getCredits(), c.listProviderKeys(), c.listApiKeys(), c.listConnectedApps(), c.me()]),
   );
   return (
     <div className="flex max-w-4xl flex-col gap-6 px-8 py-7">
@@ -48,6 +49,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         ))}
       </Card>
 
+      <ConnectedAppsCard apps={apps} canManage={!!me.user} />
+
       <ApiKeysCard keys={apiKeys} apiUrl={apiUrl()} canManage={!!me.user} />
 
       <Card className="overflow-hidden">
@@ -63,7 +66,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             )}
           </p>
           {keys.length === 0 ? (
-            <p className="text-muted">No provider keys. Add your own Icypeas key to skip credits: <span className="font-mono text-fg">meerko keys set icypeas &lt;key&gt;</span></p>
+            <p className="text-muted">No provider keys. Add your own Icypeas key to skip credits: <span className="font-mono text-fg">pnpm meerko keys set icypeas &lt;key&gt;</span></p>
           ) : (
             keys.map((k) => (
               <p key={k.provider} className="font-mono text-xs">

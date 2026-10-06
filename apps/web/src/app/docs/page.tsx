@@ -1,195 +1,165 @@
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowRight, Cloud, FileText, KeyRound, Mail, MailCheck, Plug, Reply, Search, Send, Server, Table2, Trophy } from "lucide-react";
 import type { Metadata } from "next";
-import { CodeBlock } from "@/components/docs/code-block";
+import { Breadcrumbs } from "@/components/content/breadcrumbs";
+import { DocsSearch } from "@/components/docs/search";
+import { Footer } from "@/components/sections/footer";
 import { Nav } from "@/components/sections/nav";
-import { apiUrl } from "@/lib/meerko";
+import { GitHubIcon } from "@/components/ui/brand";
+import { Container } from "@/components/ui/primitives";
+import { cli, mcp, searchEntries, toolGroups } from "@/lib/docs";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  // Targets "mcp servers for claude code" (140/mo) and the long tail around it (DataForSEO, Oct 2026).
-  title: "Meerko MCP server for Claude Code, Codex & Cursor — setup guide",
-  description: "Add the Meerko MCP server to Claude Code, Codex, Cursor or any MCP client: lead search, enrichment, cold email sequences and replies as tools for your agent.",
+  title: "Meerko docs: MCP server, CLI and self-hosting",
+  description: "Set up the Meerko MCP server in Claude Code, Codex or Cursor, self-host Meerko, and look up every MCP tool and CLI command.",
   alternates: { canonical: "/docs" },
 };
 
-const repo = site.githubUrl;
-// Pages that aren't written yet link to the README and deploy guide on GitHub (↗).
-const sidebar: [string, [string, string][]][] = [
-  ["Get started", [["Quick start", `${repo}#quick-start-self-hosted`], ["Meerko Cloud", "/pricing"], ["Self-hosting", `${repo}/blob/main/docs/DEPLOY.md`]]],
-  ["Agents", [["Connect your agent", "/docs"], ["Commands", "/docs#commands"]]],
-  ["Reference", [["MCP tools", `${repo}#use-from-claude-code-mcp`], ["CLI", `${repo}#cli`]]],
+const paths = [
+  { icon: Cloud, title: "Meerko Cloud", body: "Sign in, connect Gmail and add Meerko to your agent with one command. New workspaces start with 1,000 free credits.", cta: "Quick start", href: "/docs/quick-start", main: true },
+  { icon: Server, title: "Self-host", body: "Run the API, the worker, the web app and Postgres yourself, with your own provider keys. AGPL-3.0.", cta: "Self-hosting guide", href: "/docs/self-hosting" },
+  { icon: Plug, title: "Connect your agent", body: "Add the hosted MCP server to Claude Code, Codex, Cursor or any MCP client, and sign in with your browser.", cta: "Connect Claude Code", href: "/docs/claude-code" },
 ];
 
-const steps = [
-  { id: "get-server", title: "Get the MCP server" },
-  { id: "api-key", title: "Create an API key" },
-  { id: "register", title: "Register it with your agent" },
-  { id: "commands", title: "Try a command" },
+const concepts = [
+  { icon: Table2, title: "Tables", body: "Leads live in rows. AI columns are answered by your agent, row by row.", href: "/docs/tables" },
+  { icon: Search, title: "Find leads", body: "Search people and companies straight into a table.", href: "/docs/finding-leads" },
+  { icon: MailCheck, title: "Emails", body: "Find work emails and verify them before you send.", href: "/docs/emails" },
+  { icon: Send, title: "Sequences", body: "Send from your own Gmail, in the same thread, inside a send window.", href: "/docs/sequences" },
+  { icon: Reply, title: "Replies", body: "Sort replies by intent and approve the answers your agent drafts.", href: "/docs/replies" },
+  { icon: Trophy, title: "Pipeline", body: "Leads move to contacted and replied on their own; you mark meetings and wins.", href: "/docs/pipeline" },
 ];
 
-const commands = [
-  ["find-leads", "Build a list from your ideal customer, with verified emails."],
-  ["write-sequence", "Draft a 3-step sequence for a table and preview it. Nothing starts until you say so."],
-  ["triage-replies", "Classify new replies and draft answers for you to approve."],
-  ["pipeline", "Counts per stage, how each sequence is doing, and what's waiting on you."],
-];
+const terminal = [`pnpm meerko tables create "Fintech CTOs Spain"`, "pnpm meerko tables import <tableId> leads.csv", "pnpm meerko sequences preview <sequenceId>", "pnpm meerko replies ls", "pnpm meerko --json credits"];
 
-function Step({ n, id, title, children }: { n: number; id: string; title: string; children: React.ReactNode }) {
-  return (
-    <section id={id} className="flex scroll-mt-24 flex-col gap-3.5 pt-3">
-      <h2 className="flex items-center gap-3 font-display text-[22px] font-bold">
-        <span className="grid size-7 place-items-center rounded-full bg-accent-soft font-mono text-[13px] text-accent">{n}</span>
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-export default function DocsPage() {
-  const register = [
-    "claude mcp add meerko \\",
-    "    -e MEERKO_API_KEY=mk_… \\",
-    `    -e MEERKO_API_URL=${apiUrl()} \\`,
-    "    -- npx tsx ~/meerko/packages/mcp/src/index.ts",
-  ];
+export default function DocsHub() {
   return (
     <>
       <Nav />
-      <div className="mx-auto flex w-full max-w-[1440px] gap-14 px-5 pt-12 pb-24 sm:px-10 lg:px-20">
-        <nav aria-label="Docs" className="hidden w-[220px] shrink-0 flex-col gap-7 lg:flex">
-          {sidebar.map(([group, items]) => (
-            <div key={group} className="flex flex-col gap-1">
-              <p className="mb-1 font-mono text-[11px] tracking-[0.15em] text-muted uppercase">{group}</p>
-              {items.map(([label, href]) => {
-                const on = href === "/docs";
-                const external = href.startsWith("http");
-                return (
-                  <a
-                    key={label}
-                    href={href}
-                    className={`flex items-center justify-between rounded-md px-2.5 py-[7px] text-sm ${on ? "bg-accent-soft font-semibold text-accent" : "hover:text-accent"}`}
-                  >
-                    {label}
-                    {external && <ArrowUpRight className="size-3.5 text-muted" />}
-                  </a>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-
-        <article className="flex min-w-0 flex-1 flex-col gap-7">
-          <p className="flex gap-2 text-[13px] text-muted">
-            Docs <span className="text-line">/</span> Agents <span className="text-line">/</span> <span className="text-fg">Connect your agent</span>
+      <main>
+        <Container className="flex flex-col gap-[18px] pt-7 pb-12">
+          <Breadcrumbs items={[["Home", "/"], ["Docs", "/docs"]]} />
+          <p className="pt-10 font-mono text-[13px] tracking-[0.15em] text-accent uppercase">Docs</p>
+          <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em] lg:text-[64px]">Run Meerko from your agent</h1>
+          <p className="max-w-[720px] text-lg leading-[1.55] text-muted lg:text-[19px]">
+            Set it up, learn how tables, sequences and replies fit together, and look up every MCP tool and CLI command.
           </p>
-          <header className="flex flex-col gap-3">
-            <h1 className="font-display text-[44px] leading-tight font-bold tracking-[-0.02em]">Add the Meerko MCP server to your agent</h1>
-            <p className="text-lg leading-[1.55] text-muted">
-              Meerko runs as an MCP server, so any agent that speaks MCP gets the same tools you do: search and enrich leads, run
-              sequences from your Gmail and work the replies.
-            </p>
-          </header>
-          <div className="flex gap-3.5 rounded-xl border border-accent/25 bg-accent-soft px-[18px] py-4 text-[15px] leading-normal">
-            <Sparkles className="mt-0.5 size-[18px] shrink-0 text-accent" />
-            <p>
-              Fastest way: click <strong>Copy setup prompt</strong> on the{" "}
-              <a href="/#product" className="text-accent underline-offset-2 hover:underline">
-                homepage
-              </a>{" "}
-              and paste it into your agent. It runs these steps for you and asks for your key.
-            </p>
+          <div className="max-w-[720px] pt-1">
+            <DocsSearch entries={searchEntries()} size="lg" />
           </div>
+        </Container>
 
-          <Step n={1} id="get-server" title="Get the MCP server">
-            <p className="leading-[1.55] text-muted">Clone the repo somewhere permanent and install it. You need Node 20+ and pnpm.</p>
-            <CodeBlock
-              title="bash"
-              code={`git clone ${repo} ~/meerko\ncd ~/meerko && pnpm install`}
-              lines={[{ text: `$ git clone ${repo} ~/meerko` }, { text: "$ cd ~/meerko && pnpm install" }]}
-            />
-          </Step>
-          <Step n={2} id="api-key" title="Create an API key">
-            <p className="leading-[1.55] text-muted">
-              In the dashboard, open <a href="/app/settings" className="text-fg underline underline-offset-2">Settings → API keys</a> and
-              create a key named after this machine or agent. It&apos;s shown once and starts with <code className="font-mono text-fg">mk_</code>.
-            </p>
-          </Step>
-          <Step n={3} id="register" title="Register it with your agent">
-            <p className="leading-[1.55] text-muted">
-              Claude Code takes one command. For Codex, Cursor, Gemini CLI or Windsurf, add the same command and environment variables
-              to that agent&apos;s MCP config.
-            </p>
-            <CodeBlock title="Claude Code" code={register.join("\n")} lines={register.map((t, i) => ({ text: i === 0 ? `$ ${t}` : t }))} />
-          </Step>
-          <Step n={4} id="commands" title="Try a command">
-            <p className="leading-[1.55] text-muted">
-              Ask in plain language, or use a Meerko command. In Claude Code they&apos;re listed as{" "}
-              <code className="font-mono text-fg">/mcp__meerko__…</code>. Anything that emails someone waits for your OK.
-            </p>
-            <CodeBlock
-              title="claude"
-              lines={[
-                { text: "› /mcp__meerko__find-leads heads of growth at Series A fintechs in Spain", tone: "accent" },
-                { text: "● meerko.find_people → 50 leads · enrich_rows → 46 verified", tone: "muted" },
-              ]}
-            />
-            <dl className="flex flex-col">
-              {commands.map(([cmd, desc]) => (
-                <div key={cmd} className="flex flex-col gap-1 border-b border-line py-3 sm:flex-row sm:gap-6">
-                  <dt className="font-mono text-sm text-accent sm:w-44 sm:shrink-0">{cmd}</dt>
-                  <dd className="text-[15px] text-muted">{desc}</dd>
-                </div>
-              ))}
-            </dl>
-          </Step>
-
-          <div className="flex flex-col gap-4 rounded-2xl border border-line bg-raised px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-1">
-              <p className="font-display text-xl font-bold">No Meerko account yet?</p>
-              <p className="text-[15px] text-muted">Start on Meerko Cloud with 1,000 free credits, or self-host it for free.</p>
-            </div>
-            <div className="flex shrink-0 gap-3">
-              <a href={site.pricingUrl} className="rounded-[10px] bg-accent px-5 py-3 font-semibold text-dark hover:brightness-110">
-                Get started free
-              </a>
-              <a href={`${repo}/blob/main/docs/DEPLOY.md`} className="rounded-[10px] border border-line px-5 py-3 font-semibold hover:border-muted">
-                Self-host
-              </a>
-            </div>
-          </div>
-
-          <div className="mt-2 grid gap-4 border-t border-line pt-6 sm:grid-cols-2">
-            <a href={`${repo}/blob/main/docs/DEPLOY.md`} className="flex flex-col gap-1 rounded-xl border border-line px-[18px] py-4 hover:border-muted">
-              <span className="font-mono text-xs text-muted">Previous</span>
-              <span className="font-semibold">Self-hosting</span>
-            </a>
-            <a href={`${repo}#cli`} className="flex flex-col items-end gap-1 rounded-xl border border-line px-[18px] py-4 hover:border-muted">
-              <span className="font-mono text-xs text-muted">Next</span>
-              <span className="font-semibold">CLI</span>
-            </a>
-          </div>
-        </article>
-
-        <aside className="hidden w-[200px] shrink-0 xl:block">
-          <div className="sticky top-28 flex flex-col gap-2.5">
-            <p className="font-mono text-[11px] tracking-[0.15em] text-muted uppercase">On this page</p>
-            {steps.map((s) => (
-              <a key={s.id} href={`#${s.id}`} className="text-[13px] text-muted hover:text-accent">
-                {s.title}
+        <Container className="flex flex-col gap-5 pb-14">
+          <p className="font-mono text-xs tracking-[0.15em] text-muted uppercase">Start here</p>
+          <div className="grid gap-[18px] md:grid-cols-3">
+            {paths.map(({ icon: Icon, title, body, cta, href, main }) => (
+              <a
+                key={title}
+                href={href}
+                className={`group flex flex-col gap-3 rounded-2xl border p-6 ${main ? "border-accent/35 bg-accent-soft" : "border-line bg-raised hover:border-muted"}`}
+              >
+                <span className={`grid size-10 place-items-center rounded-[10px] ${main ? "bg-accent text-ink" : "bg-accent-soft text-accent"}`}>
+                  <Icon className="size-5" />
+                </span>
+                <span className="font-display text-[22px] font-bold">{title}</span>
+                <span className="flex-1 text-[15px] leading-[1.55] text-muted">{body}</span>
+                <span className="inline-flex items-center gap-1.5 pt-1.5 font-semibold text-accent">
+                  {cta} <ArrowRight className="size-[15px] transition group-hover:translate-x-0.5" />
+                </span>
               </a>
             ))}
           </div>
-        </aside>
-      </div>
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-[1440px] justify-between px-5 py-6 text-[13px] text-muted sm:px-10 lg:px-20">
-          <span>© 2026 Meerko · AGPL-3.0</span>
-          <a href={`${repo}/edit/main/apps/web/src/app/docs/page.tsx`} className="hover:text-fg">
-            Edit this page on GitHub
-          </a>
-        </div>
-      </footer>
+        </Container>
+
+        <section className="border-y border-line bg-raised">
+          <Container className="flex flex-col gap-8 py-14">
+            <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+              <div className="flex flex-col gap-2">
+                <p className="font-mono text-xs tracking-[0.15em] text-muted uppercase">Concepts</p>
+                <h2 className="font-display text-4xl font-bold tracking-[-0.02em]">How Meerko works</h2>
+              </div>
+              <p className="max-w-[400px] text-[15px] leading-normal text-muted">One loop, from an empty table to a booked meeting. Each step has its own page.</p>
+            </div>
+            <ol className="grid gap-8 sm:grid-cols-2 lg:grid-cols-6 lg:gap-0">
+              {concepts.map(({ icon: Icon, title, body, href }, i) => (
+                <li key={title} className="lg:pr-5">
+                  <a href={href} className="group flex flex-col gap-3">
+                    <span className="flex items-center gap-2.5">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-full border border-line bg-ink text-accent transition group-hover:border-accent group-hover:bg-accent group-hover:text-ink">
+                        <Icon className="size-4" />
+                      </span>
+                      {i < concepts.length - 1 && <span className="hidden h-px flex-1 bg-line lg:block" />}
+                    </span>
+                    <span className="font-mono text-[11px] text-muted">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="text-[17px] font-semibold group-hover:text-accent">{title}</span>
+                    <span className="text-sm leading-normal text-muted">{body}</span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </Container>
+        </section>
+
+        <Container className="flex flex-col gap-8 pt-16 pb-14">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div className="flex flex-col gap-2">
+              <p className="font-mono text-xs tracking-[0.15em] text-muted uppercase">Reference</p>
+              <h2 className="font-display text-4xl font-bold tracking-[-0.02em]">Every tool and command</h2>
+            </div>
+            <p className="max-w-[400px] text-[15px] leading-normal text-muted">Generated from the code, so it matches what Meerko actually does.</p>
+          </div>
+          <div className="grid gap-[18px] lg:grid-cols-2">
+            <a href="/docs/mcp-tools" className="flex flex-col gap-4 rounded-2xl border border-line bg-raised p-[26px] hover:border-muted">
+              <span className="flex items-center justify-between gap-3">
+                <span className="font-display text-2xl font-bold">MCP tools</span>
+                <span className="rounded-full bg-accent-soft px-2.5 py-1 font-mono text-xs text-accent">
+                  {mcp.tools.length} tools · {mcp.prompts.length} commands
+                </span>
+              </span>
+              <span className="text-[15px] leading-normal text-muted">
+                What your agent can call: tables and rows, lead search and enrichment, mailboxes, sequences, replies and drafts, pipeline and credits.
+              </span>
+              <span className="flex flex-col">
+                {toolGroups.slice(0, 5).map((g) => (
+                  <span key={g.id} className="flex gap-3.5 border-t border-line py-2.5">
+                    <span className="w-28 shrink-0 text-sm font-semibold">{g.label}</span>
+                    <span className="font-mono text-[12.5px] leading-normal text-muted">{g.tools.slice(0, 4).join(" · ")}</span>
+                  </span>
+                ))}
+              </span>
+            </a>
+            <a href="/docs/cli" className="flex flex-col gap-4 rounded-2xl border border-line bg-raised p-[26px] hover:border-muted">
+              <span className="flex items-center justify-between gap-3">
+                <span className="font-display text-2xl font-bold">CLI</span>
+                <span className="rounded-full bg-accent-soft px-2.5 py-1 font-mono text-xs text-accent">{cli.commands.length} commands · --json</span>
+              </span>
+              <span className="text-[15px] leading-normal text-muted">The same features from your terminal or scripts. Add --json to any command for machine-readable output.</span>
+              <span className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-ink px-[18px] py-4 font-mono text-[13px]">
+                {terminal.map((l) => (
+                  <span key={l}>$ {l}</span>
+                ))}
+              </span>
+            </a>
+          </div>
+        </Container>
+
+        <Container className="grid gap-x-[18px] pb-20 md:grid-cols-3">
+          {[
+            { icon: KeyRound, title: "API keys", body: "For scripts and self-hosted servers without Google sign-in. Agents sign in with the browser.", href: "/docs/api-keys" },
+            { icon: FileText, title: "Edit these docs", body: "Every page is in the repo. Spot something wrong? Open a pull request.", href: `${site.githubUrl}/tree/main/apps/web/src/app/docs` },
+            { icon: Mail, title: "Ask on GitHub", body: "Questions and bugs go to GitHub issues, where the answers stay findable.", href: `${site.githubUrl}/issues`, github: true },
+          ].map(({ icon: Icon, title, body, href, github }) => (
+            <a key={title} href={href} className="group flex gap-3.5 border-t border-line py-[18px]">
+              {github ? <GitHubIcon className="mt-0.5 size-[18px] shrink-0 text-accent" /> : <Icon className="mt-0.5 size-[18px] shrink-0 text-accent" />}
+              <span className="flex flex-col gap-1">
+                <span className="font-semibold group-hover:text-accent">{title}</span>
+                <span className="text-sm leading-normal text-muted">{body}</span>
+              </span>
+            </a>
+          ))}
+        </Container>
+      </main>
+      <Footer />
     </>
   );
 }

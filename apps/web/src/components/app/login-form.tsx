@@ -37,7 +37,7 @@ function BrandPanel() {
 }
 
 /** `googleUrl` set: "Sign in with Google" (cloud). Unset: paste an API key (self-hosting without Google). */
-export function LoginForm({ googleUrl, inviteOnly, notice }: { googleUrl: string | null; inviteOnly: boolean; notice?: string }) {
+export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: string | null; inviteOnly: boolean; notice?: string; next?: string | null }) {
   const [state, action, pending] = useActionState(login, null);
   const error = state && !state.ok ? state.error : notice;
 
@@ -81,7 +81,7 @@ export function LoginForm({ googleUrl, inviteOnly, notice }: { googleUrl: string
                     <Ticket className="mt-0.5 size-[17px] shrink-0 text-accent" />
                     <p className="flex flex-col gap-1">
                       <span className="font-semibold">Meerko Cloud is invite-only for now.</span>
-                      <a href="/docs" className="text-accent hover:underline">
+                      <a href="/docs/self-hosting" className="text-accent hover:underline">
                         Not invited yet? Self-host Meerko for free →
                       </a>
                     </p>
@@ -95,6 +95,7 @@ export function LoginForm({ googleUrl, inviteOnly, notice }: { googleUrl: string
               </>
             ) : (
               <form action={action} className="flex flex-col gap-4">
+                {next && <input type="hidden" name="next" value={next} />}
                 <input
                   name="key"
                   type="password"
