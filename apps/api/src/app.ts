@@ -286,10 +286,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       db,
       { box, oauth: googleOAuth(), publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch },
       { replies: c.req.query("replies") !== "0" },
-    ).catch(async (err) => {
-      await analytics.captureException(err, undefined, { $exception_fingerprint: "api.tick" });
-      throw err;
-    });
+    );
     if (result.replyError) {
       console.error("reply scan failed:", result.replyError);
       await analytics.captureException(result.replyError, undefined, { $exception_fingerprint: "api.tick.replies" });
