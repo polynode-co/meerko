@@ -61,6 +61,8 @@ export function Footer() {
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-[22px]">
           <span className="font-mono text-xs text-muted">© 2026 Meerko · Open source under AGPL-3.0</span>
           <div className="flex items-center gap-6 text-[13px]">
+            <a href="/privacy" className="text-muted hover:text-fg">Privacy</a>
+            <a href="/terms" className="text-muted hover:text-fg">Terms</a>
             <a href="/login" className="text-muted hover:text-fg">Sign in</a>
             <a href={site.githubUrl} className="text-muted hover:text-fg">GitHub</a>
             <a href="#top" className="inline-flex items-center gap-1.5 hover:text-accent">

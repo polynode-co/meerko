@@ -11,6 +11,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...docPages.map((p) => ({ path: docHref(p.slug), changeFrequency: "weekly", priority: p.slug ? 0.6 : 0.8 })),
     { path: "/guides", changeFrequency: "weekly", priority: 0.7 },
     { path: "/alternatives", changeFrequency: "monthly", priority: 0.7 },
+    { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
+    { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
     ...guides.map((g) => ({ path: `/guides/${g.slug}`, changeFrequency: "monthly", priority: 0.7 })),
     ...alternatives.map((a) => ({ path: `/alternatives/${a.slug}`, changeFrequency: "monthly", priority: 0.7 })),
   ].map(({ path, changeFrequency, priority }) => ({

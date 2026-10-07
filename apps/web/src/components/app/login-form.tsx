@@ -113,7 +113,11 @@ export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: 
           </div>
         </div>
 
-        <span />
+        <p className="text-center text-xs text-muted">
+          By continuing you agree to the{" "}
+          <a href="/terms" className="text-fg hover:text-accent">Terms of service</a> and{" "}
+          <a href="/privacy" className="text-fg hover:text-accent">Privacy policy</a>.
+        </p>
       </main>
       <BrandPanel />
     </div>
