@@ -2,6 +2,7 @@
 
 import { Inbox, KeyRound, LayoutDashboard, LogOut, Send, Table2 } from "lucide-react";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "@/components/ui/brand";
 import { logout } from "@/app/app/actions";
@@ -76,7 +77,8 @@ export function Sidebar({ workspace, userEmail, mailbox, mailboxNeedsReconnect, 
         )}
         <div className="flex items-center justify-between gap-2 border-t border-line pt-2">
           {userEmail && <span className="truncate text-[11px] text-muted" title={userEmail}>{userEmail}</span>}
-          <form action={logout} className="shrink-0">
+          {/* reset() so whoever signs in next on this browser isn't merged into this person. */}
+          <form action={logout} onSubmit={() => posthog.reset()} className="shrink-0">
             <button className="flex items-center gap-1.5 text-[11px] text-muted hover:text-fg">
               <LogOut className="size-3" /> Sign out
             </button>

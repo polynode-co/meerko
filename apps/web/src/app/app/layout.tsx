@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PostHogIdentify } from "@/components/analytics/posthog-identify";
 import { Sidebar } from "@/components/app/sidebar";
 import { load } from "@/lib/meerko";
 
@@ -20,7 +21,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         inboxCount={replies.length}
         credits={credits}
       />
-      <main className="min-w-0 flex-1">{children}</main>
+      <PostHogIdentify user={me.user} workspace={me.workspace} />
+      {/* data-ph-mask: leads, replies and drafts are prospects' data, so session replays show them as masked text. */}
+      <main data-ph-mask className="min-w-0 flex-1">
+        {children}
+      </main>
     </div>
   );
 }

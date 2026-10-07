@@ -46,6 +46,16 @@ Codex, Cursor and Gemini CLI connect the same way, by URL. Without Google sign-i
 - **Tools:** tables and rows, lead search and enrichment, mailboxes, sequences, replies and drafts, pipeline and credits (32 in all; your agent lists them).
 - **Commands (MCP prompts):** `find-leads`, `write-sequence`, `triage-replies`, `pipeline`. In Claude Code they appear as `/mcp__meerko__find-leads` and so on. Anything that emails someone waits for your OK.
 
+## Analytics
+
+A self-hosted install sends no analytics: everything below is off unless you set a PostHog key (`.env.example`).
+
+Meerko Cloud uses [PostHog](https://posthog.com) (EU cloud), with one project per environment created by Terraform (`terraform/app/posthog.tf`):
+
+- **Web:** pageviews, clicks, session replays (inputs and dashboard data masked) and errors (`apps/web/src/instrumentation-client.ts`).
+- **API:** product events such as `sign_up`, `leads_searched` and `sequence_started` (`apps/api/src/analytics.ts`), and unexpected errors.
+- **MCP:** the hosted `/mcp` uses [PostHog MCP Analytics](https://posthog.com/docs/mcp-analytics) (`@posthog/mcp`): every tool call with its arguments, result, duration, client and the intent the agent states. It adds `context`, `conversation_id` and `llm_model` arguments to each tool, which the docs reference leaves out. The stdio server does the same only when `POSTHOG_API_KEY` is set.
+
 ## Repository layout
 
 | Path | What it is |

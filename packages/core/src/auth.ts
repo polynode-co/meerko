@@ -19,7 +19,8 @@ const hashToken = (token: string) => createHash("sha256").update(token).digest("
 
 /**
  * Finds or creates the user behind a Google sign-in, claims their invitations and, for a first
- * sign-in with signup open, creates their workspace. Returns the workspace the session acts on.
+ * sign-in with signup open, creates their workspace. Returns the workspace the session acts on, and
+ * whether this sign-in created the user.
  */
 export async function signInWithGoogle(db: Db, profile: GoogleProfile, signup: SignupMode) {
   // Invitations are matched by email, so only an address Google has verified may claim them.
@@ -28,6 +29,7 @@ export async function signInWithGoogle(db: Db, profile: GoogleProfile, signup: S
     const [bySub] = await tx.select().from(users).where(eq(users.googleSub, profile.sub));
     const [byEmail] = bySub ? [] : await tx.select().from(users).where(eq(users.email, profile.email));
     let user = bySub ?? byEmail;
+    const newUser = !user;
     if (user) {
       // A recreated Google account keeps its Meerko user; a changed address or name is picked up.
       [user] = await tx
@@ -50,7 +52,7 @@ export async function signInWithGoogle(db: Db, profile: GoogleProfile, signup: S
       .where(eq(memberships.userId, user!.id))
       .orderBy(asc(memberships.createdAt))
       .limit(1);
-    if (membership) return { userId: user!.id, workspaceId: membership.workspaceId };
+    if (membership) return { userId: user!.id, workspaceId: membership.workspaceId, newUser };
 
     // Throwing rolls back the new user row, so a refused stranger leaves nothing behind.
     if (signup === "invite") throw new SignInError(`${profile.email} hasn't been invited to Meerko yet.`);
@@ -61,7 +63,7 @@ export async function signInWithGoogle(db: Db, profile: GoogleProfile, signup: S
     await tx.insert(memberships).values({ userId: user!.id, workspaceId: ws!.id, role: "owner" });
     // The free tier the site promises; only counted when the server meters credits (MEERKO_CREDITS=on).
     await tx.insert(creditLedger).values({ workspaceId: ws!.id, delta: FREE_TIER_CREDITS, reason: "free_tier" });
-    return { userId: user!.id, workspaceId: ws!.id };
+    return { userId: user!.id, workspaceId: ws!.id, newUser };
   });
 }
 

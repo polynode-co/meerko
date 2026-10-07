@@ -5,6 +5,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { instrument } from "@posthog/mcp";
 import { createServer as createMcpServer } from "@meerko/mcp/server";
 import { MeerkoClient } from "@meerko/sdk";
 import {
@@ -95,6 +96,7 @@ import {
   type IcypeasQuery,
 } from "@meerko/core";
 import { STAGES, type Db } from "@meerko/db";
+import { createAnalytics, EVENTS, type Analytics } from "./analytics.ts";
 
 type Env = {
   Variables: {
@@ -225,6 +227,8 @@ export interface AppDeps {
    * MCP clients connect to. Defaults to the request's origin.
    */
   publicUrl?: string;
+  /** PostHog product events, errors and MCP analytics; a no-op when unset (tests, self-hosting without a key). */
+  analytics?: Analytics;
 }
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -247,6 +251,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     }
     return { client: deps.icypeas, credits };
   };
+  const analytics = deps.analytics ?? createAnalytics({});
   const app = new Hono<Env>();
 
   /** `url` if it's on the dashboard's origin, so the OAuth callback can't be used as an open redirect. */
@@ -281,8 +286,14 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       db,
       { box, oauth: googleOAuth(), publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch },
       { replies: c.req.query("replies") !== "0" },
-    );
-    if (result.replyError) console.error("reply scan failed:", result.replyError);
+    ).catch(async (err) => {
+      await analytics.captureException(err, undefined, { $exception_fingerprint: "api.tick" });
+      throw err;
+    });
+    if (result.replyError) {
+      console.error("reply scan failed:", result.replyError);
+      await analytics.captureException(result.replyError, undefined, { $exception_fingerprint: "api.tick.replies" });
+    }
     return c.json(result);
   });
 
@@ -317,6 +328,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!code || !state) return fail("This link is missing its sign-in code.");
     try {
       const mailbox = await connectGmail(db, box, googleOAuth(), state, code, deps.gmailFetch);
+      await analytics.capture({ distinctId: mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "gmail" } });
       if (returnTo) return c.redirect(backToApp(returnTo, { gmail_connected: mailbox.email }));
       return c.html(resultPage("Gmail connected", `Meerko can now send from ${mailbox.email}. You can close this tab.`));
     } catch (err) {
@@ -368,7 +380,10 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     }
     try {
       const profile = await deps.googleSignIn!.signInProfile(code);
-      const { userId, workspaceId } = await signInWithGoogle(db, profile, deps.signup ?? "invite");
+      const { userId, workspaceId, newUser } = await signInWithGoogle(db, profile, deps.signup ?? "invite");
+      const person = { email: profile.email, name: profile.name ?? null };
+      if (newUser) await analytics.capture({ distinctId: userId, event: EVENTS.signUp, workspaceId, properties: { method: "google" }, set: person });
+      await analytics.capture({ distinctId: userId, event: EVENTS.signInCompleted, workspaceId, properties: { method: "google" }, set: person });
       const authCode = await createAuthCode(db, userId, workspaceId);
       return c.redirect(backToApp(new URL("/auth/callback", deps.appUrl).toString(), { code: authCode }));
     } catch (err) {
@@ -522,7 +537,8 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   // Remote clients sign in with OAuth; an API key in the Authorization header also works.
   app.post("/mcp", async (c) => {
     const token = bearer(c);
-    if (!(await authenticate(token))) {
+    const auth = await authenticate(token);
+    if (!auth) {
       const metadata = `${issuer(c)}/.well-known/oauth-protected-resource/mcp`;
       const error = token ? `, error="invalid_token", error_description="The access token is invalid or expired"` : "";
       return c.json({ error: "Sign in to use Meerko" }, 401, { "www-authenticate": `Bearer resource_metadata="${metadata}"${error}` });
@@ -530,12 +546,28 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     // The tools call this same API in-process, as the caller, through the usual HTTP routes.
     const client = new MeerkoClient({ apiUrl: issuer(c), apiKey: token, fetch: ((input: string | URL | Request, init?: RequestInit) => app.request(input instanceof URL ? input.toString() : input, init)) as typeof fetch });
     const server = createMcpServer(() => client);
+    // PostHog MCP analytics ($mcp_tool_call, sessions, intent, errors). Instrumented here, not in createServer,
+    // so the tool reference generated from packages/mcp keeps the schemas without PostHog's injected arguments.
+    if (analytics.posthog) {
+      instrument(server, analytics.posthog, {
+        identify: async () => ({
+          distinctId: auth.user?.id ?? auth.workspaceId,
+          properties: auth.user ? { email: auth.user.email, name: auth.user.name } : { workspace_name: auth.workspaceName },
+          groups: { workspace: auth.workspaceId },
+        }),
+        serverBuild: analytics.common.$release,
+        eventProperties: async () => ({ ...analytics.common, surface: "mcp" }),
+        logger: (message) => console.warn(`[posthog-mcp] ${message}`),
+      });
+    }
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     await server.connect(transport);
     try {
       return await transport.handleRequest(c.req.raw);
     } finally {
       await server.close();
+      // Cloud Run throttles CPU once the response is sent, so events go out before it.
+      await analytics.posthog?.flush().catch(() => {});
     }
   });
   // Stateless: no server-initiated stream to open and no session to end.
@@ -551,6 +583,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     c.set("user", auth.user);
     await next();
   });
+
+  /** Who an event is about: the signed-in person, or the workspace for API keys and OAuth apps. */
+  const actor = (c: { var: Env["Variables"] }) => c.var.user?.id ?? c.var.workspaceId;
 
   v1.get("/me", (c) => c.json({ user: c.var.user, workspace: { id: c.var.workspaceId, name: c.var.workspaceName } }));
 
@@ -580,9 +615,14 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!oauthEnabled()) throw new HTTPException(404, { message: "OAuth isn't configured on this server" });
     const { request, approve } = await parse(oauthRequestInput.extend({ approve: z.boolean() }), await c.req.json().catch(() => ({})));
     try {
+      // Named before approving, while the request is certainly still readable.
+      const clientName = approve ? (await describeAuthorization(db, box!, request).catch(() => null))?.clientName : null;
       const redirectTo = approve
         ? await approveAuthorization(db, box!, request, { userId: c.var.user!.id, workspaceId: c.var.workspaceId }, issuer(c))
         : denyAuthorization(box!, request);
+      if (approve) {
+        await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.aiClientConnected, workspaceId: c.var.workspaceId, properties: { client_name: clientName } });
+      }
       return c.json({ redirect_to: redirectTo });
     } catch (err) {
       if (err instanceof OAuthError) throw new HTTPException(400, { message: err.message });
@@ -605,6 +645,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     requireUser(c);
     const { name } = await parse(z.object({ name: z.string().trim().min(1).max(100) }), await c.req.json().catch(() => ({})));
     const { id, key } = await createApiKey(db, c.var.workspaceId, name);
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.apiKeyCreated, workspaceId: c.var.workspaceId });
     return c.json({ id, name, key }, 201);
   });
 
@@ -655,7 +696,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.post("/tables/:id/enrich", async (c) => {
     const input = await parse(enrichInput, await c.req.json());
     const icy = await icypeasFor(c.var.workspaceId);
-    return c.json(await enrichRows(db, c.var.workspaceId, c.req.param("id"), [icypeasProvider(icy.client)], input, icy.credits));
+    const result = await enrichRows(db, c.var.workspaceId, c.req.param("id"), [icypeasProvider(icy.client)], input, icy.credits);
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.rowsEnriched, workspaceId: c.var.workspaceId, properties: { fields: input.fields, limit: input.limit } });
+    return c.json(result);
   });
 
   for (const kind of ["people", "companies"] as const) {
@@ -675,6 +718,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
         { kind, query: input.query as IcypeasQuery, limit: input.limit, tableId: input.table_id, tableName: input.table_name },
         icy.credits,
       );
+      await analytics.capture({ distinctId: actor(c), event: EVENTS.leadsSearched, workspaceId: c.var.workspaceId, properties: { kind, limit: input.limit ?? null } });
       return c.json(result, 201);
     });
   }
@@ -750,7 +794,11 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.json(await enrollSequenceRows(db, c.var.workspaceId, c.req.param("id"), { rowIds: input.row_ids, filter: input.filter, limit: input.limit }));
   });
 
-  v1.post("/sequences/:id/start", async (c) => c.json({ sequence: await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "active") }));
+  v1.post("/sequences/:id/start", async (c) => {
+    const sequence = await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "active");
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.sequenceStarted, workspaceId: c.var.workspaceId });
+    return c.json({ sequence });
+  });
   v1.post("/sequences/:id/pause", async (c) => c.json({ sequence: await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "paused") }));
   v1.get("/sequences/:id/pool", async (c) => c.json(await sequencePool(db, c.var.workspaceId, c.req.param("id"))));
   v1.get("/sequences/:id/stats", async (c) => c.json(await sequenceStats(db, c.var.workspaceId, c.req.param("id"))));
@@ -834,7 +882,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   app.route("/v1", v1);
 
-  app.onError((err, c) => {
+  app.onError(async (err, c) => {
     if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
@@ -853,6 +901,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if ((err as { code?: string }).code === "22P02" || (err as { cause?: { code?: string } }).cause?.code === "22P02")
       return c.json({ error: "Not found" }, 404);
     console.error(err);
+    // Only the unexpected 500s are exceptions; the mapped errors above are expected outcomes.
+    const who = (c.var as Partial<Env["Variables"]>).user?.id ?? (c.var as Partial<Env["Variables"]>).workspaceId;
+    await analytics.captureException(err, who, { $exception_fingerprint: `api:${c.req.method} ${c.req.routePath}`, path: c.req.path });
     return c.json({ error: "Internal server error" }, 500);
   });
 

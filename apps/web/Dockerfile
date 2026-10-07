@@ -10,8 +10,19 @@ RUN pnpm install --frozen-lockfile --filter @meerko/web...
 COPY packages/sdk packages/sdk
 COPY apps/web apps/web
 ARG NEXT_PUBLIC_SITE_URL
-ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @meerko/web build
+# PostHog (inlined into the browser bundle at build time): the public phc_ key, environment and release.
+ARG NEXT_PUBLIC_POSTHOG_KEY
+ARG NEXT_PUBLIC_APP_ENV
+ARG NEXT_PUBLIC_COMMIT_SHA
+# Source map upload target (prd); the personal key itself comes in as a BuildKit secret, never a build arg.
+ARG POSTHOG_CLI_PROJECT_ID
+ARG POSTHOG_CLI_HOST
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
+    NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV NEXT_PUBLIC_COMMIT_SHA=$NEXT_PUBLIC_COMMIT_SHA \
+    POSTHOG_CLI_PROJECT_ID=$POSTHOG_CLI_PROJECT_ID POSTHOG_CLI_HOST=$POSTHOG_CLI_HOST NEXT_TELEMETRY_DISABLED=1
+RUN --mount=type=secret,id=posthog_cli_api_key \
+    if [ -f /run/secrets/posthog_cli_api_key ]; then export POSTHOG_CLI_API_KEY="$(cat /run/secrets/posthog_cli_api_key)"; fi; \
+    pnpm --filter @meerko/web build
 
 FROM node:22-alpine
 WORKDIR /app

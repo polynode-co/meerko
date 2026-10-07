@@ -25,6 +25,7 @@ describe.skipIf(!process.env.DATABASE_URL)("auth (db)", () => {
   it("open signup creates a user, workspace and owner membership once", async () => {
     const first = await signInWithGoogle(db, profile("ana"), "open");
     workspaceIds.push(first.workspaceId);
+    expect(first.newUser).toBe(true);
     const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, first.workspaceId));
     expect(ws!.name).toBe("Ana's workspace");
     const [m] = await db.select().from(memberships).where(eq(memberships.userId, first.userId));
@@ -32,8 +33,9 @@ describe.skipIf(!process.env.DATABASE_URL)("auth (db)", () => {
     expect(await getBalance(db, first.workspaceId)).toBe(1000);
 
     // Signing in again reuses both, even if the Google account was recreated (new sub, same email).
-    expect(await signInWithGoogle(db, profile("ana"), "open")).toEqual(first);
-    expect(await signInWithGoogle(db, profile("ana", { sub: `new-${run}` }), "open")).toEqual(first);
+    const again = { ...first, newUser: false };
+    expect(await signInWithGoogle(db, profile("ana"), "open")).toEqual(again);
+    expect(await signInWithGoogle(db, profile("ana", { sub: `new-${run}` }), "open")).toEqual(again);
   });
 
   it("invite mode refuses strangers without leaving a user behind, and lets invited emails in", async () => {

@@ -21,6 +21,9 @@ COPY apps/api apps/api
 WORKDIR /repo/apps/api
 # Configuration (DATABASE_URL, MEERKO_* and the provider keys) comes from the environment.
 ENV NODE_ENV=production PORT=8080
+# The deployed commit: PostHog's $release and $mcp_server_build (set by Cloud Build).
+ARG COMMIT_SHA
+ENV COMMIT_SHA=$COMMIT_SHA
 USER node
 EXPOSE 8080
 CMD ["node_modules/.bin/tsx", "src/server.ts"]

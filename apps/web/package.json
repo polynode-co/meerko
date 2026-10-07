@@ -13,11 +13,14 @@
     "@meerko/sdk": "workspace:*",
     "lucide-react": "^1.52.0",
     "next": "^16.3.8",
+    "posthog-js": "^1.438.2",
+    "posthog-node": "^5.55.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@posthog/nextjs-config": "^1.11.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",

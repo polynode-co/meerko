@@ -40,7 +40,7 @@ export default function PrivacyPage() {
         [MailCheck, "We only keep Gmail messages from your Meerko threads", "Replies to emails Meerko sent, and messages from people in your sequences. The rest of your inbox is never stored."],
         [Lock, "Your Google tokens are encrypted", "Mailbox access tokens are stored encrypted, and we never see your Google password."],
         [Ban, "We don't sell data or train AI on it", "Meerko makes no AI calls. Your own agent does the thinking, on your side."],
-        [Cookie, "Essential cookies only", "No ads, no tracking pixels, no third-party analytics."],
+        [Cookie, "Product analytics with PostHog, no ads", "We measure how Meerko is used (in the EU) to improve it. No ads or tracking pixels."],
       ]}
     >
       <Section n={1} id="who-we-are" title="Who we are">
@@ -60,6 +60,8 @@ export default function PrivacyPage() {
             ["Your workspace", "Tables and leads you import or find, sequences, drafts, and their pipeline stages."],
             ["Emails", "Emails Meerko sends for you, and the replies in those threads."],
             ["Connected apps", "Apps you approve (like Claude Code), when they were connected and last used."],
+            ["Usage", "Pages you visit, clicks, and session recordings in which what you type and your workspace data are masked. Errors, with the page or request they happened on."],
+            ["Agent tool calls", "When an agent uses Meerko Cloud's MCP server: which tool it called, the arguments and result, the short reason the agent gives, the agent app and model, and how long it took. Never your conversation with the agent."],
             ["Technical", "Server logs with IP addresses, kept by our hosting provider for security."],
           ]}
         />
@@ -88,6 +90,7 @@ export default function PrivacyPage() {
           items={[
             "To run the service you asked for: search, enrichment, sequences, reply detection and the pipeline.",
             "To keep it secure: sign-in, abuse prevention and debugging.",
+            "To understand how Meerko is used and fix what breaks (product analytics and error tracking).",
             "To answer you when you contact support.",
             "We don't sell personal data or use it for advertising.",
           ]}
@@ -104,6 +107,13 @@ export default function PrivacyPage() {
           rows={[
             ["Google Cloud", "Hosting, scheduling and secret storage", "Belgium (EU)"],
             ["Supabase", "Database", "Germany (EU)"],
+            [
+              <a key="n" href="https://posthog.com/privacy" className="text-accent underline-offset-2 hover:underline">
+                PostHog
+              </a>,
+              "Product analytics, session recording, error tracking and agent tool-call analytics",
+              "Germany (EU)",
+            ],
             ["Icypeas", "Lead search and email finding: your search filters, and names with company domains", <Ph key="l">Location</Ph>],
           ]}
         />
@@ -111,7 +121,8 @@ export default function PrivacyPage() {
 
       <Section n={6} id="storage" title="Where it's stored">
         <p>
-          In the EU: the app runs in Google Cloud&apos;s Belgium region and the database in Supabase&apos;s Frankfurt region. When a provider
+          In the EU: the app runs in Google Cloud&apos;s Belgium region, the database in Supabase&apos;s Frankfurt region, and analytics in
+          PostHog&apos;s EU cloud (Frankfurt). When a provider
           outside the EU is involved, the transfer is covered by the European Commission&apos;s Standard Contractual Clauses.
         </p>
       </Section>
@@ -149,12 +160,13 @@ export default function PrivacyPage() {
       </Section>
 
       <Section n={10} id="cookies" title="Cookies">
-        <p>Only the cookies needed to sign you in. No analytics, advertising or third-party cookies.</p>
+        <p>The cookies needed to sign you in, and one analytics cookie from PostHog. No advertising cookies.</p>
         <Table
           head={["Cookie", "What it's for", "Lasts"]}
           rows={[
             ["meerko_session", "Keeps you signed in to the dashboard", "30 days"],
             ["meerko_next", "Brings you back to the page you were on after signing in", "15 minutes"],
+            ["ph_<key>_posthog", "PostHog analytics: recognises the same browser across visits (also kept in local storage)", "1 year"],
             ["meerko_signin_nonce", "Ties a Google sign-in to the browser that started it, so nobody can sign you in to their account", "10 minutes"],
           ]}
         />

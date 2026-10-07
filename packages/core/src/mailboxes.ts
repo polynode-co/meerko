@@ -58,7 +58,7 @@ export async function connectGmail(db: Db, box: SecretBox | null, oauth: GoogleO
       // Reconnecting heals a mailbox that lost access.
       set: { encryptedRefreshToken, status: "active", lastError: null },
     })
-    .returning({ id: mailboxes.id, email: mailboxes.email });
+    .returning({ id: mailboxes.id, email: mailboxes.email, workspaceId: mailboxes.workspaceId });
   return mailbox!;
 }
 
