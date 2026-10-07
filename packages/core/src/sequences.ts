@@ -3,17 +3,23 @@ import {
   asc,
   enrollments,
   eq,
+  gte,
+  inArray,
+  isNotNull,
   mailboxes,
   messages,
+  sequenceMailboxes,
   sequenceSteps,
   sequences,
   sql,
   suppressions,
   tableRows,
   type Db,
+  type MailboxAssignment,
   type SequenceStatus,
   type SQL,
 } from "@meerko/db";
+import { rampState } from "./sending/ramp.ts";
 import { isValidTimezone } from "./sending/window.ts";
 import { getTable, NotFoundError } from "./tables.ts";
 import { renderTemplate, templateVars } from "./template.ts";
@@ -28,7 +34,10 @@ export interface StepInput {
 
 export interface SequenceInput {
   tableId: string;
-  mailboxId: string;
+  /** The pool: every lead gets one of these mailboxes and keeps it for all steps. */
+  mailboxIds: string[];
+  /** How new leads are spread: most free capacity first (default), or the same number each. */
+  assignment?: MailboxAssignment;
   name: string;
   steps: StepInput[];
   timezone?: string;
@@ -36,7 +45,14 @@ export interface SequenceInput {
   windowEndHour?: number;
 }
 
+const MAX_POOL = 50;
+const DAY_MS = 24 * 60 * 60_000;
+
 function validate(input: Partial<SequenceInput>) {
+  if (input.mailboxIds) {
+    if (input.mailboxIds.length === 0) throw new SequenceError("A sequence needs at least one mailbox");
+    if (input.mailboxIds.length > MAX_POOL) throw new SequenceError(`A sequence can send from at most ${MAX_POOL} mailboxes`);
+  }
   if (input.steps) {
     if (input.steps.length === 0) throw new SequenceError("A sequence needs at least one step");
     if (!input.steps[0]!.subject?.trim()) throw new SequenceError("The first step needs a subject");
@@ -58,25 +74,33 @@ const stepRows = (sequenceId: string, steps: StepInput[]) =>
     body: s.body,
   }));
 
-async function assertMailbox(db: Db, workspaceId: string, mailboxId: string) {
-  const [mb] = await db
+async function assertMailboxes(db: Db, workspaceId: string, mailboxIds: string[]) {
+  const ids = [...new Set(mailboxIds)];
+  const found = await db
     .select({ id: mailboxes.id })
     .from(mailboxes)
-    .where(and(eq(mailboxes.workspaceId, workspaceId), eq(mailboxes.id, mailboxId)));
-  if (!mb) throw new NotFoundError(`Mailbox ${mailboxId} not found`);
+    .where(and(eq(mailboxes.workspaceId, workspaceId), inArray(mailboxes.id, ids)));
+  const missing = ids.filter((id) => !found.some((f) => f.id === id));
+  if (missing.length) throw new NotFoundError(`Mailbox ${missing.join(", ")} not found`);
+  return ids;
+}
+
+async function poolOf(db: Db, sequenceId: string) {
+  const rows = await db.select({ id: sequenceMailboxes.mailboxId }).from(sequenceMailboxes).where(eq(sequenceMailboxes.sequenceId, sequenceId));
+  return rows.map((r) => r.id);
 }
 
 export async function createSequence(db: Db, workspaceId: string, input: SequenceInput) {
   validate(input);
   await getTable(db, workspaceId, input.tableId);
-  await assertMailbox(db, workspaceId, input.mailboxId);
-  return db.transaction(async (tx) => {
+  const pool = await assertMailboxes(db, workspaceId, input.mailboxIds);
+  const seq = await db.transaction(async (tx) => {
     const [seq] = await tx
       .insert(sequences)
       .values({
         workspaceId,
         tableId: input.tableId,
-        mailboxId: input.mailboxId,
+        assignment: input.assignment,
         name: input.name,
         timezone: input.timezone,
         windowStartHour: input.windowStartHour,
@@ -84,8 +108,10 @@ export async function createSequence(db: Db, workspaceId: string, input: Sequenc
       })
       .returning();
     await tx.insert(sequenceSteps).values(stepRows(seq!.id, input.steps));
+    await tx.insert(sequenceMailboxes).values(pool.map((mailboxId) => ({ sequenceId: seq!.id, mailboxId })));
     return seq!;
   });
+  return { ...seq, mailboxIds: pool };
 }
 
 export async function getSequence(db: Db, workspaceId: string, id: string) {
@@ -94,8 +120,11 @@ export async function getSequence(db: Db, workspaceId: string, id: string) {
     .from(sequences)
     .where(and(eq(sequences.workspaceId, workspaceId), eq(sequences.id, id)));
   if (!seq) throw new NotFoundError(`Sequence ${id} not found`);
-  const steps = await db.select().from(sequenceSteps).where(eq(sequenceSteps.sequenceId, id)).orderBy(asc(sequenceSteps.position));
-  return { ...seq, steps };
+  const [steps, mailboxIds] = await Promise.all([
+    db.select().from(sequenceSteps).where(eq(sequenceSteps.sequenceId, id)).orderBy(asc(sequenceSteps.position)),
+    poolOf(db, id),
+  ]);
+  return { ...seq, mailboxIds, steps };
 }
 
 export function listSequences(db: Db, workspaceId: string) {
@@ -105,8 +134,10 @@ export function listSequences(db: Db, workspaceId: string) {
       name: sequences.name,
       status: sequences.status,
       tableId: sequences.tableId,
-      mailboxId: sequences.mailboxId,
-      enrolled: sql<number>`(select count(*)::int from ${enrollments} where ${enrollments.sequenceId} = ${sequences.id})`,
+      assignment: sequences.assignment,
+      mailboxIds: sql<string[]>`coalesce((select array_agg(${sequenceMailboxes}.mailbox_id) from ${sequenceMailboxes} where ${sequenceMailboxes}.sequence_id = ${sequences}.id), '{}')`,
+      // Qualified by hand: in a select without joins, drizzle renders columns unqualified, so "id" would bind to enrollments.
+      enrolled: sql<number>`(select count(*)::int from ${enrollments} where ${enrollments}.sequence_id = ${sequences}.id)`,
       createdAt: sequences.createdAt,
     })
     .from(sequences)
@@ -119,23 +150,31 @@ export async function updateSequence(db: Db, workspaceId: string, id: string, in
   const seq = await getSequence(db, workspaceId, id);
   validate({ ...input, windowStartHour: input.windowStartHour ?? seq.windowStartHour, windowEndHour: input.windowEndHour ?? seq.windowEndHour });
   if (input.steps && seq.status === "active") throw new SequenceError("Pause the sequence before changing its steps");
-  if (input.mailboxId) await assertMailbox(db, workspaceId, input.mailboxId);
+  const pool = input.mailboxIds ? await assertMailboxes(db, workspaceId, input.mailboxIds) : null;
   await db.transaction(async (tx) => {
-    const { steps, ...fields } = input;
+    const { steps, mailboxIds: _, ...fields } = input;
     if (Object.keys(fields).length) await tx.update(sequences).set(fields).where(eq(sequences.id, id));
     if (steps) {
       await tx.delete(sequenceSteps).where(eq(sequenceSteps.sequenceId, id));
       await tx.insert(sequenceSteps).values(stepRows(id, steps));
     }
+    if (pool) {
+      await tx.delete(sequenceMailboxes).where(eq(sequenceMailboxes.sequenceId, id));
+      await tx.insert(sequenceMailboxes).values(pool.map((mailboxId) => ({ sequenceId: id, mailboxId })));
+    }
   });
+  // Leads not emailed yet move off mailboxes that left the pool; leads mid-thread stay on theirs.
+  if (pool) await reassignUnsent(db, workspaceId, id);
   return getSequence(db, workspaceId, id);
 }
 
 export async function setSequenceStatus(db: Db, workspaceId: string, id: string, status: Exclude<SequenceStatus, "draft">) {
   const seq = await getSequence(db, workspaceId, id);
   if (status === "active") {
-    const [mb] = await db.select({ status: mailboxes.status }).from(mailboxes).where(eq(mailboxes.id, seq.mailboxId));
-    if (mb?.status !== "active") throw new SequenceError("The sequence's mailbox lost access; reconnect it with `meerko mailboxes connect`");
+    const pool = seq.mailboxIds.length ? await db.select({ status: mailboxes.status }).from(mailboxes).where(inArray(mailboxes.id, seq.mailboxIds)) : [];
+    if (!pool.some((m) => m.status === "active")) {
+      throw new SequenceError("None of the sequence's mailboxes can send; reconnect one with `meerko mailboxes connect`");
+    }
   }
   await db.update(sequences).set({ status }).where(eq(sequences.id, id));
   return { ...seq, status };
@@ -205,7 +244,7 @@ export async function enrollRows(
   const enrolledSet = new Set(existing.map((e) => e.rowId));
 
   const skipped: Record<SkipReason, number> = { no_email: 0, undeliverable: 0, suppressed: 0, missing_vars: 0, already_enrolled: 0 };
-  const toInsert: { sequenceId: string; rowId: string; email: string; nextSendAt: Date }[] = [];
+  const toInsert: { sequenceId: string; rowId: string; email: string; nextSendAt: Date; mailboxId?: string }[] = [];
   const now = opts.now ?? new Date();
   for (const row of rows) {
     const email = typeof row.data.email === "string" ? row.data.email.trim().toLowerCase() : "";
@@ -216,8 +255,139 @@ export async function enrollRows(
     else if (vars.some((v) => isBlank(row.data[v]))) skipped.missing_vars++;
     else toInsert.push({ sequenceId: id, rowId: row.id, email, nextSendAt: now });
   }
-  if (toInsert.length) await db.insert(enrollments).values(toInsert).onConflictDoNothing();
-  return { enrolled: toInsert.length, skipped };
+  if (toInsert.length) {
+    const assigned = await assignMailboxes(db, seq, toInsert.length, now);
+    toInsert.forEach((e, i) => (e.mailboxId = assigned[i]));
+    await db.insert(enrollments).values(toInsert).onConflictDoNothing();
+  }
+  const byMailbox: Record<string, number> = {};
+  for (const e of toInsert) byMailbox[e.mailboxId!] = (byMailbox[e.mailboxId!] ?? 0) + 1;
+  return { enrolled: toInsert.length, skipped, byMailbox };
+}
+
+/**
+ * Picks a mailbox from the sequence's pool for each of `count` new leads. "capacity" puts each lead on the
+ * mailbox with the least work per email it may send today (so a ramping inbox gets fewer); "even" gives each
+ * the same number. Mailboxes that lost access are skipped.
+ */
+export async function assignMailboxes(db: Db, seq: { id: string; assignment: MailboxAssignment; mailboxIds: string[] }, count: number, now = new Date()) {
+  if (seq.mailboxIds.length === 0) throw new SequenceError("The sequence has no mailboxes to send from");
+  const pool = await db
+    .select({ id: mailboxes.id, status: mailboxes.status, dailyLimit: mailboxes.dailyLimit, rampStartedAt: mailboxes.rampStartedAt })
+    .from(mailboxes)
+    .where(inArray(mailboxes.id, seq.mailboxIds));
+  const usable = pool.filter((m) => m.status === "active");
+  if (usable.length === 0) throw new SequenceError("None of the sequence's mailboxes can send; reconnect one with `meerko mailboxes connect`");
+  // Current load: leads still being emailed, from this sequence ("even") or from any sequence ("capacity").
+  const load = await db
+    .select({ mailboxId: enrollments.mailboxId, n: sql<number>`count(*)::int` })
+    .from(enrollments)
+    .where(
+      and(
+        eq(enrollments.state, "active"),
+        inArray(enrollments.mailboxId, usable.map((m) => m.id)),
+        ...(seq.assignment === "even" ? [eq(enrollments.sequenceId, seq.id)] : []),
+      ),
+    )
+    .groupBy(enrollments.mailboxId);
+  const counts = new Map(usable.map((m) => [m.id, load.find((l) => l.mailboxId === m.id)?.n ?? 0]));
+  const weight = new Map(usable.map((m) => [m.id, seq.assignment === "even" ? 1 : rampState(m, now).effectiveLimit]));
+  const picks: string[] = [];
+  for (let i = 0; i < count; i++) {
+    let best = usable[0]!.id;
+    for (const m of usable) {
+      if (counts.get(m.id)! / weight.get(m.id)! < counts.get(best)! / weight.get(best)!) best = m.id;
+    }
+    picks.push(best);
+    counts.set(best, counts.get(best)! + 1);
+  }
+  return picks;
+}
+
+/**
+ * Moves leads that haven't been emailed yet off mailboxes that are no longer in their sequence's pool (or
+ * were deleted). Leads already mid-thread can't switch mailbox, so if theirs is gone they stop.
+ */
+export async function reassignUnsent(db: Db, workspaceId?: string, sequenceId?: string, now = new Date()) {
+  const orphans = await db
+    .select({ id: enrollments.id, sequenceId: enrollments.sequenceId, nextStep: enrollments.nextStep })
+    .from(enrollments)
+    .innerJoin(sequences, eq(enrollments.sequenceId, sequences.id))
+    .where(
+      and(
+        eq(enrollments.state, "active"),
+        ...(workspaceId ? [eq(sequences.workspaceId, workspaceId)] : []),
+        ...(sequenceId ? [eq(enrollments.sequenceId, sequenceId)] : []),
+        sql`(${enrollments.mailboxId} is null or not exists (select 1 from ${sequenceMailboxes} sm where sm.sequence_id = ${enrollments.sequenceId} and sm.mailbox_id = ${enrollments.mailboxId}))`,
+      ),
+    );
+  if (orphans.length === 0) return { moved: 0, stopped: 0 };
+  const midThread = orphans.filter((o) => o.nextStep > 0);
+  if (midThread.length) {
+    await db
+      .update(enrollments)
+      .set({ state: "stopped", nextSendAt: null, lastError: "Its mailbox left the sequence, and follow-ups must come from the same mailbox" })
+      .where(inArray(enrollments.id, midThread.map((o) => o.id)));
+  }
+  let moved = 0;
+  const unsent = orphans.filter((o) => o.nextStep === 0);
+  for (const seqId of new Set(unsent.map((o) => o.sequenceId))) {
+    const [seq] = await db.select({ id: sequences.id, assignment: sequences.assignment }).from(sequences).where(eq(sequences.id, seqId));
+    const ids = unsent.filter((o) => o.sequenceId === seqId).map((o) => o.id);
+    let picks: string[];
+    try {
+      picks = await assignMailboxes(db, { ...seq!, mailboxIds: await poolOf(db, seqId) }, ids.length, now);
+    } catch {
+      continue; // No usable mailbox right now; they wait.
+    }
+    for (const [i, id] of ids.entries()) await db.update(enrollments).set({ mailboxId: picks[i] }).where(eq(enrollments.id, id));
+    moved += ids.length;
+  }
+  return { moved, stopped: midThread.length };
+}
+
+/** The sequence's mailboxes with today's sending and how many of its leads each one has, for the pool panel. */
+export async function sequencePool(db: Db, workspaceId: string, id: string, now = new Date()) {
+  const seq = await getSequence(db, workspaceId, id);
+  if (seq.mailboxIds.length === 0) return { assignment: seq.assignment, sentToday: 0, capacityToday: 0, mailboxes: [] };
+  const since = new Date(now.getTime() - DAY_MS);
+  const [rows, sent, leads] = await Promise.all([
+    db
+      .select({ id: mailboxes.id, email: mailboxes.email, displayName: mailboxes.displayName, status: mailboxes.status, dailyLimit: mailboxes.dailyLimit, rampStartedAt: mailboxes.rampStartedAt })
+      .from(mailboxes)
+      .where(inArray(mailboxes.id, seq.mailboxIds))
+      .orderBy(mailboxes.email),
+    db
+      .select({ mailboxId: messages.mailboxId, n: sql<number>`count(*)::int` })
+      .from(messages)
+      .where(and(inArray(messages.mailboxId, seq.mailboxIds), eq(messages.direction, "out"), gte(messages.sentAt, since)))
+      .groupBy(messages.mailboxId),
+    db
+      .select({ mailboxId: enrollments.mailboxId, n: sql<number>`count(*)::int` })
+      .from(enrollments)
+      .where(and(eq(enrollments.sequenceId, id), isNotNull(enrollments.mailboxId)))
+      .groupBy(enrollments.mailboxId),
+  ]);
+  const list = rows.map((m) => {
+    const ramp = rampState(m, now);
+    return {
+      id: m.id,
+      email: m.email,
+      displayName: m.displayName,
+      status: m.status,
+      dailyLimit: m.dailyLimit,
+      effectiveLimit: ramp.effectiveLimit,
+      rampDay: ramp.rampDay,
+      sentToday: sent.find((s) => s.mailboxId === m.id)?.n ?? 0,
+      leads: leads.find((l) => l.mailboxId === m.id)?.n ?? 0,
+    };
+  });
+  return {
+    assignment: seq.assignment,
+    sentToday: list.reduce((n, m) => n + m.sentToday, 0),
+    capacityToday: list.filter((m) => m.status === "active").reduce((n, m) => n + m.effectiveLimit, 0),
+    mailboxes: list,
+  };
 }
 
 export async function sequenceStats(db: Db, workspaceId: string, id: string) {
@@ -231,7 +401,8 @@ export async function sequenceStats(db: Db, workspaceId: string, id: string) {
     .select({ n: sql<number>`count(*)::int` })
     .from(messages)
     .innerJoin(enrollments, eq(messages.enrollmentId, enrollments.id))
-    .where(and(eq(enrollments.sequenceId, id), eq(messages.direction, "out")));
+    // Sequence emails only: approved reply drafts are outbound too, but have no step.
+    .where(and(eq(enrollments.sequenceId, id), eq(messages.direction, "out"), isNotNull(messages.step)));
   // Per step: how many got it, and how many answered after it (their last email was this step).
   const sentByStep = await db
     .select({ step: messages.step, n: sql<number>`count(*)::int` })
@@ -278,6 +449,7 @@ export async function listSequenceRecipients(db: Db, workspaceId: string, id: st
       state: enrollments.state,
       /** Steps sent so far. */
       stepsSent: enrollments.nextStep,
+      mailboxEmail: mailboxes.email,
       nextSendAt: enrollments.nextSendAt,
       lastError: enrollments.lastError,
       // to_json gives an ISO 8601 string, which every browser parses; the raw timestamptz text isn't.
@@ -285,6 +457,7 @@ export async function listSequenceRecipients(db: Db, workspaceId: string, id: st
     })
     .from(enrollments)
     .innerJoin(tableRows, eq(enrollments.rowId, tableRows.id))
+    .leftJoin(mailboxes, eq(enrollments.mailboxId, mailboxes.id))
     .where(eq(enrollments.sequenceId, id))
     .orderBy(sql`coalesce((select max(${messages.sentAt}) from ${messages} where ${messages.enrollmentId} = ${enrollments.id}), ${enrollments.createdAt}) desc`)
     .limit(Math.min(limit, 1000));

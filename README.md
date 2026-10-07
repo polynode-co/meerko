@@ -43,7 +43,7 @@ claude mcp add --transport http --scope user meerko http://localhost:8787/mcp
 
 Codex, Cursor and Gemini CLI connect the same way, by URL. Without Google sign-in configured, send an API key instead: `--header "Authorization: Bearer mk_..."`. The server also runs locally over stdio: `claude mcp add meerko -- npx tsx /absolute/path/to/meerko/packages/mcp/src/index.ts` (it uses the CLI's saved login).
 
-- **Tools:** tables and rows, lead search and enrichment, mailboxes, sequences, replies and drafts, pipeline and credits (31 in all; your agent lists them).
+- **Tools:** tables and rows, lead search and enrichment, mailboxes, sequences, replies and drafts, pipeline and credits (32 in all; your agent lists them).
 - **Commands (MCP prompts):** `find-leads`, `write-sequence`, `triage-replies`, `pipeline`. In Claude Code they appear as `/mcp__meerko__find-leads` and so on. Anything that emails someone waits for your OK.
 
 ## Repository layout

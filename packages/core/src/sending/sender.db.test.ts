@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDb, enrollments, eq, mailboxes, messages, tableRows, workspaces, type Db } from "@meerko/db";
 import { GMAIL_SCOPES, GoogleOAuth } from "../mail/gmail.ts";
 import { SecretBox } from "../provider-keys.ts";
-import { createSequence, enrollRows, listSequenceRecipients, previewSequence, sequenceStats, setSequenceStatus, SequenceError } from "../sequences.ts";
+import { createSequence, enrollRows, listSequenceRecipients, listSequences, previewSequence, sequenceStats, setSequenceStatus, SequenceError } from "../sequences.ts";
 import { createTable, insertRows } from "../tables.ts";
 import { createUnsubscribeToken, readUnsubscribeToken, runSendTick, unsubscribe } from "./sender.ts";
 
@@ -55,7 +55,7 @@ describe.skipIf(!process.env.DATABASE_URL)("sequence sender (db)", () => {
     seqId = (
       await createSequence(db, ws, {
         tableId: table.id,
-        mailboxId,
+        mailboxIds: [mailboxId],
         name: "Agencies",
         steps: [
           { subject: "Quick question, {{first_name}}", body: "Hi {{first_name}}, how does {{company}} handle social?" },
@@ -75,7 +75,7 @@ describe.skipIf(!process.env.DATABASE_URL)("sequence sender (db)", () => {
 
   it("enrolls only rows that are safe to email", async () => {
     const res = await enrollRows(db, ws, seqId, { now: MON_1030_MADRID });
-    expect(res).toEqual({ enrolled: 2, skipped: { no_email: 1, undeliverable: 1, suppressed: 0, missing_vars: 1, already_enrolled: 0 } });
+    expect(res).toMatchObject({ enrolled: 2, skipped: { no_email: 1, undeliverable: 1, suppressed: 0, missing_vars: 1, already_enrolled: 0 } });
     expect((await enrollRows(db, ws, seqId, { now: MON_1030_MADRID })).skipped.already_enrolled).toBe(2);
 
     const preview = await previewSequence(db, ws, seqId);
@@ -113,6 +113,7 @@ describe.skipIf(!process.env.DATABASE_URL)("sequence sender (db)", () => {
     expect(sent[1]!.raw).toContain(`In-Reply-To: ${firstId}`);
 
     expect(await sequenceStats(db, ws, seqId)).toMatchObject({ enrolled: 1, emailsSent: 2, states: { completed: 1 } });
+    expect(await listSequences(db, ws)).toMatchObject([{ id: seqId, enrolled: 1 }]);
     expect((await sequenceStats(db, ws, seqId)).steps).toEqual([
       { position: 0, sent: 1, repliedAfter: 0 },
       { position: 1, sent: 1, repliedAfter: 0 },

@@ -183,6 +183,11 @@ export const mailboxes = pgTable(
     displayName: text("display_name"),
     encryptedRefreshToken: text("encrypted_refresh_token").notNull(),
     dailyLimit: integer("daily_limit").notNull().default(50),
+    /**
+     * Set while a new mailbox ramps up: its daily limit grows from a few emails to daily_limit over
+     * the ramp, so a fresh inbox doesn't start at full volume. Null means no ramp (full limit).
+     */
+    rampStartedAt: timestamp("ramp_started_at", { withTimezone: true }),
     status: text("status").$type<"active" | "error">().notNull().default("active"),
     lastError: text("last_error"),
     /** Inbox is scanned for replies from this time onward (with some overlap). */
@@ -193,14 +198,16 @@ export const mailboxes = pgTable(
 );
 
 export type SequenceStatus = "draft" | "active" | "paused";
+export type MailboxAssignment = "capacity" | "even";
 export type EnrollmentState = "active" | "completed" | "replied" | "unsubscribed" | "bounced" | "stopped" | "failed";
 
 export const sequences = pgTable("sequences", {
   id: id(),
   workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   tableId: uuid("table_id").notNull().references(() => dataTables.id, { onDelete: "cascade" }),
-  mailboxId: uuid("mailbox_id").notNull().references(() => mailboxes.id, { onDelete: "restrict" }),
   name: text("name").notNull(),
+  /** How new leads are spread over the mailbox pool: most free capacity first, or the same number each. */
+  assignment: text("assignment").$type<MailboxAssignment>().notNull().default("capacity"),
   status: text("status").$type<SequenceStatus>().notNull().default("draft"),
   /** Sends happen on weekdays between these local hours, in this IANA timezone. */
   timezone: text("timezone").notNull().default("Europe/Madrid"),
@@ -208,6 +215,17 @@ export const sequences = pgTable("sequences", {
   windowEndHour: integer("window_end_hour").notNull().default(17),
   createdAt: createdAt(),
 });
+
+/** The mailboxes a sequence sends from (rotation). Each lead is assigned one of them when enrolled. */
+export const sequenceMailboxes = pgTable(
+  "sequence_mailboxes",
+  {
+    sequenceId: uuid("sequence_id").notNull().references(() => sequences.id, { onDelete: "cascade" }),
+    // Deleting a mailbox takes it out of pools (deleteMailbox refuses when it's a sequence's only one).
+    mailboxId: uuid("mailbox_id").notNull().references(() => mailboxes.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.sequenceId, t.mailboxId] }), index("sequence_mailboxes_mailbox_idx").on(t.mailboxId)],
+);
 
 export const sequenceSteps = pgTable(
   "sequence_steps",
@@ -230,6 +248,8 @@ export const enrollments = pgTable(
     id: id(),
     sequenceId: uuid("sequence_id").notNull().references(() => sequences.id, { onDelete: "cascade" }),
     rowId: uuid("row_id").notNull().references(() => tableRows.id, { onDelete: "cascade" }),
+    /** The mailbox this lead's emails come from; every step stays on it so the thread holds together. */
+    mailboxId: uuid("mailbox_id").references(() => mailboxes.id, { onDelete: "set null" }),
     email: text("email").notNull(),
     state: text("state").$type<EnrollmentState>().notNull().default("active"),
     /** Position of the next step to send. */

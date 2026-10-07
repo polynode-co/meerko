@@ -189,7 +189,7 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
   server.registerTool(
     "list_mailboxes",
     {
-      description: "List connected sending mailboxes with their daily limit and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail.",
+      description: "List connected sending mailboxes with their daily limit, what they may send today (effectiveLimit, lower while a new mailbox ramps up; rampDay) and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail.",
       inputSchema: {},
     },
     () => run(() => client().listMailboxes()),
@@ -198,15 +198,26 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
   server.registerTool(
     "update_mailbox",
     {
-      description: "Set a mailbox's daily send limit (start low, e.g. 30-50/day for a new inbox) or the sender name recipients see.",
+      description: `Set a mailbox's daily send limit, the sender name recipients see, or its ramp.
+New mailboxes ramp up automatically: they start at 10 emails a day and grow to their daily limit over 21 days (list_mailboxes shows effectiveLimit and rampDay). Turn the ramp off only for an inbox that already sends regularly.`,
       inputSchema: {
         mailbox_id: z.string(),
         daily_limit: z.number().int().min(1).max(500).optional(),
         display_name: z.string().optional(),
+        ramp: z.boolean().optional().describe("true restarts the 21-day ramp from today; false sends at the full daily limit now"),
       },
     },
-    ({ mailbox_id, daily_limit, display_name }) =>
-      run(() => client().updateMailbox(mailbox_id, { dailyLimit: daily_limit, displayName: display_name })),
+    ({ mailbox_id, daily_limit, display_name, ramp }) =>
+      run(() => client().updateMailbox(mailbox_id, { dailyLimit: daily_limit, displayName: display_name, ramp })),
+  );
+
+  server.registerTool(
+    "check_domains",
+    {
+      description: `Check SPF, DKIM and DMARC for every domain the workspace sends from. A missing record is a common reason mail lands in spam: tell the user which record to add before starting a sequence. "managed" means consumer Gmail, where Google handles it. DKIM is checked at Google Workspace's default selector ("google").`,
+      inputSchema: {},
+    },
+    () => run(() => client().mailboxHealth()),
   );
 
   server.registerTool(
@@ -221,13 +232,17 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
   server.registerTool(
     "create_sequence",
     {
-      description: `Create a DRAFT email sequence for a table, sent from one connected mailbox (see list_mailboxes).
+      description: `Create a DRAFT email sequence for a table, sent from a pool of one or more connected mailboxes (see list_mailboxes). Each lead is assigned one mailbox and every step comes from it, in the same thread; more mailboxes means more volume per day.
 Write short, plain, personal emails: step 1 with a subject, 1-3 follow-ups that reply in the same thread. Use only {{vars}} that the table's rows actually have; rows missing a used variable are skipped at enrollment.
 Then: preview_sequence to check, enroll_rows, show the user the preview and enrollment counts, and only call start_sequence after the user approves.`,
       inputSchema: {
         table_id: z.string(),
         name: z.string(),
-        mailbox_id: z.string(),
+        mailbox_ids: z.array(z.string()).min(1).max(50),
+        assignment: z
+          .enum(["capacity", "even"])
+          .optional()
+          .describe("How leads are spread over the mailboxes: capacity (default) gives more to mailboxes that can send more today; even gives each the same number"),
         steps: z.array(stepSchema).min(1).max(10),
         timezone: z.string().optional().describe("IANA timezone of the recipients, e.g. Europe/Madrid (default)"),
         window_start_hour: z.number().int().min(0).max(23).optional().describe("Local hour sending starts on weekdays (default 9)"),
@@ -240,11 +255,13 @@ Then: preview_sequence to check, enroll_rows, show the user the preview and enro
   server.registerTool(
     "update_sequence",
     {
-      description: "Edit a sequence's name, mailbox, send window or steps (steps replace all existing ones; pause an active sequence first).",
+      description:
+        "Edit a sequence's name, mailbox pool, assignment, send window or steps (steps replace all existing ones; pause an active sequence first). Changing mailbox_ids moves leads not yet emailed to the new pool; leads already mid-thread stay on their mailbox, or stop if it was removed.",
       inputSchema: {
         sequence_id: z.string(),
         name: z.string().optional(),
-        mailbox_id: z.string().optional(),
+        mailbox_ids: z.array(z.string()).min(1).max(50).optional(),
+        assignment: z.enum(["capacity", "even"]).optional(),
         steps: z.array(stepSchema).min(1).max(10).optional(),
         timezone: z.string().optional(),
         window_start_hour: z.number().int().min(0).max(23).optional(),
@@ -302,8 +319,17 @@ Then: preview_sequence to check, enroll_rows, show the user the preview and enro
 
   server.registerTool(
     "sequence_stats",
-    { description: "A sequence's enrollment states (active, completed, replied, unsubscribed, failed...), emails sent and reply rate.", inputSchema: { sequence_id: z.string() } },
-    ({ sequence_id }) => run(() => client().sequenceStats(sequence_id)),
+    {
+      description:
+        "A sequence's enrollment states (active, completed, replied, unsubscribed, failed...), emails sent, reply rate, and its mailbox pool: each mailbox's sends today against its limit, ramp day and number of leads.",
+      inputSchema: { sequence_id: z.string() },
+    },
+    ({ sequence_id }) =>
+      run(async () => {
+        const c = client();
+        const [stats, pool] = await Promise.all([c.sequenceStats(sequence_id), c.sequencePool(sequence_id)]);
+        return { ...stats, pool };
+      }),
   );
 
   server.registerTool(
@@ -422,7 +448,7 @@ Write like a person answering an email: short, specific to what they said, in th
         `Write a 3-step cold email sequence for the Meerko table "${table}".${offer ? ` The offer: ${offer}.` : ""}\n` +
           "- Short, plain-text, one clear ask per email; personalise with {{first_name}}, {{company}} and other columns the table has.\n" +
           "- Step 1 gets a subject; steps 2 and 3 reply in the same thread 3 and 4 days later.\n" +
-          "- Pick the mailbox with list_mailboxes, create it with create_sequence, then show me preview_sequence for two rows.\n" +
+          "- Send from every healthy mailbox I have (list_mailboxes; skip ones in error), create it with create_sequence, then show me preview_sequence for two rows. Run check_domains and tell me about any missing DNS record.\n" +
           "Don't enroll anyone or start the sequence until I say so.",
       ),
   );

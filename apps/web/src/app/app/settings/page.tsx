@@ -38,7 +38,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <span className="font-mono text-[13px]">{m.email}</span>
               {m.lastError && <span className="text-xs text-[#e5795b]">{m.lastError}</span>}
             </span>
-            <span className="font-mono text-xs text-muted">{m.dailyLimit}/day</span>
+            <span className="font-mono text-xs text-muted">{m.rampDay ? `${m.effectiveLimit}/day today · ramp day ${m.rampDay}/21 → ${m.dailyLimit}` : `${m.dailyLimit}/day`}</span>
             <Pill tone={m.status === "active" ? "signal" : "neutral"}>{m.status === "active" ? "connected" : "reconnect"}</Pill>
             {m.status === "error" && (
               <form action={connectGmail}>

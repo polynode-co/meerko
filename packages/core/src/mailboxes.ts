@@ -1,8 +1,10 @@
 import { randomBytes } from "node:crypto";
-import { and, eq, mailboxes, type Db } from "@meerko/db";
+import { and, eq, mailboxes, sequenceMailboxes, sequences, sql, type Db } from "@meerko/db";
 import { GmailClient, type GoogleOAuth } from "./mail/gmail.ts";
 import { buildMime } from "./mail/mime.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "./provider-keys.ts";
+import { domainHealthFor } from "./mail/domain-health.ts";
+import { rampState } from "./sending/ramp.ts";
 import { NotFoundError } from "./tables.ts";
 
 const STATE_TTL_MS = 10 * 60_000;
@@ -49,7 +51,8 @@ export async function connectGmail(db: Db, box: SecretBox | null, oauth: GoogleO
   const encryptedRefreshToken = box!.encrypt(refreshToken);
   const [mailbox] = await db
     .insert(mailboxes)
-    .values({ workspaceId, provider: "gmail", email: emailAddress.toLowerCase(), encryptedRefreshToken })
+    // A new mailbox ramps up from a few emails a day; reconnecting an existing one doesn't restart it.
+    .values({ workspaceId, provider: "gmail", email: emailAddress.toLowerCase(), encryptedRefreshToken, rampStartedAt: new Date() })
     .onConflictDoUpdate({
       target: [mailboxes.workspaceId, mailboxes.email],
       // Reconnecting heals a mailbox that lost access.
@@ -65,31 +68,63 @@ const publicColumns = {
   email: mailboxes.email,
   displayName: mailboxes.displayName,
   dailyLimit: mailboxes.dailyLimit,
+  rampStartedAt: mailboxes.rampStartedAt,
   status: mailboxes.status,
   lastError: mailboxes.lastError,
   createdAt: mailboxes.createdAt,
 };
 
-export function listMailboxes(db: Db, workspaceId: string) {
-  return db.select(publicColumns).from(mailboxes).where(eq(mailboxes.workspaceId, workspaceId)).orderBy(mailboxes.createdAt);
+/** Adds today's limit (lower while ramping) and the ramp day. */
+const withRamp = <T extends { dailyLimit: number; rampStartedAt: Date | null }>(m: T, now = new Date()) => ({ ...m, ...rampState(m, now) });
+
+export async function listMailboxes(db: Db, workspaceId: string) {
+  const rows = await db.select(publicColumns).from(mailboxes).where(eq(mailboxes.workspaceId, workspaceId)).orderBy(mailboxes.createdAt);
+  return rows.map((m) => withRamp(m));
+}
+
+/** SPF, DKIM and DMARC for each domain the workspace sends from. */
+export async function mailboxDomainHealth(db: Db, workspaceId: string) {
+  const rows = await db.select({ email: mailboxes.email }).from(mailboxes).where(eq(mailboxes.workspaceId, workspaceId));
+  return domainHealthFor(rows.map((r) => r.email.split("@")[1]!));
 }
 
 export async function updateMailbox(
   db: Db,
   workspaceId: string,
   id: string,
-  patch: { dailyLimit?: number; displayName?: string | null },
+  patch: { dailyLimit?: number; displayName?: string | null; ramp?: boolean },
 ) {
+  const { ramp, ...fields } = patch;
   const [row] = await db
     .update(mailboxes)
-    .set(patch)
+    // Turning the ramp on starts it over from today; off sends at the full limit straight away.
+    .set({ ...fields, ...(ramp === undefined ? {} : { rampStartedAt: ramp ? new Date() : null }) })
     .where(and(eq(mailboxes.workspaceId, workspaceId), eq(mailboxes.id, id)))
     .returning(publicColumns);
   if (!row) throw new NotFoundError(`Mailbox ${id} not found`);
-  return row;
+  return withRamp(row);
 }
 
+/** A mailbox can't be removed while it's the only one a sequence sends from. */
+export class MailboxInUseError extends Error {}
+
 export async function deleteMailbox(db: Db, workspaceId: string, id: string) {
+  const onlySender = await db
+    .select({ name: sequences.name })
+    .from(sequenceMailboxes)
+    .innerJoin(sequences, eq(sequenceMailboxes.sequenceId, sequences.id))
+    .where(
+      and(
+        eq(sequenceMailboxes.mailboxId, id),
+        sql`(select count(*) from ${sequenceMailboxes} sm where sm.sequence_id = ${sequenceMailboxes.sequenceId}) = 1`,
+      ),
+    );
+  if (onlySender.length) {
+    throw new MailboxInUseError(`This mailbox is the only one sending ${onlySender.map((s) => `"${s.name}"`).join(", ")}. Add another mailbox to the pool first.`);
+  }
+  // Leaving other pools: leads that haven't been emailed yet move to the pool's other mailboxes when the
+  // sequence next enrolls or sends; leads mid-thread keep their history but stop (their mailbox is gone).
+  await db.delete(sequenceMailboxes).where(eq(sequenceMailboxes.mailboxId, id));
   const res = await db
     .delete(mailboxes)
     .where(and(eq(mailboxes.workspaceId, workspaceId), eq(mailboxes.id, id)))

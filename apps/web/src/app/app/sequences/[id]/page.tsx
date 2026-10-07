@@ -1,6 +1,7 @@
 import { CircleCheck, Eye, TriangleAlert, Users } from "lucide-react";
 import Link from "next/link";
 import { MeerkoApiError } from "@meerko/sdk";
+import { MailboxPoolCard } from "@/components/app/mailbox-pool";
 import { SequenceToggle } from "@/components/app/sequence-toggle";
 import { Card, formatWhen, PageHeader, Pill, type PillTone } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
@@ -44,17 +45,15 @@ function personStatus(r: Recipient, totalSteps: number, sending: boolean): { tex
 export default async function SequencePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ row?: string }> }) {
   const { id } = await params;
   const { row } = await searchParams;
-  const [seq, stats, mailboxes, recipients] = await load((c) =>
-    Promise.all([c.getSequence(id), c.sequenceStats(id), c.listMailboxes(), c.sequenceRecipients(id)]),
+  const [seq, stats, mailboxes, recipients, pool, domains] = await load((c) =>
+    Promise.all([c.getSequence(id), c.sequenceStats(id), c.listMailboxes(), c.sequenceRecipients(id), c.sequencePool(id), c.mailboxHealth()]),
   );
   const table = await load((c) => c.getTable(seq.tableId));
   // The table may have no rows yet; the preview is optional.
   const preview = await load((c) => c.previewSequence(id, row).catch((e) => (e instanceof MeerkoApiError && e.status === 404 ? null : Promise.reject(e))));
-  const mailbox = mailboxes.find((m) => m.id === seq.mailboxId);
-  const nextSend = recipients
-    .filter((r) => r.state === "active" && r.nextSendAt)
-    .map((r) => r.nextSendAt!)
-    .sort()[0];
+  const working = pool.mailboxes.filter((m) => m.status === "active");
+  const next = recipients.filter((r) => r.state === "active" && r.nextSendAt).sort((a, b) => a.nextSendAt!.localeCompare(b.nextSendAt!))[0];
+  const nextSend = next?.nextSendAt ?? undefined;
 
   // One sentence on what is happening right now, and what (if anything) the user should do.
   const banner =
@@ -62,8 +61,12 @@ export default async function SequencePage({ params, searchParams }: { params: P
       ? { tone: "border-accent/60 bg-accent-soft", title: "Not started yet", text: "Check the emails below, then start sending. Nothing goes out until you do." }
       : seq.status === "paused"
         ? { tone: "border-line bg-raised", title: "Paused", text: "No emails go out until you resume. People who reply are still detected." }
-        : mailbox?.status === "error"
-          ? { tone: "border-[#e5795b]/60 bg-[#e5795b]/10", title: "Stopped: the mailbox lost access", text: "Reconnect it in Settings and sending picks up where it left off." }
+        : working.length === 0
+          ? {
+              tone: "border-[#e5795b]/60 bg-[#e5795b]/10",
+              title: pool.mailboxes.length === 1 ? "Stopped: the mailbox lost access" : "Stopped: every mailbox lost access",
+              text: "Reconnect them in Settings and sending picks up where it left off.",
+            }
           : stats.remaining === 0
             ? {
                 tone: "border-line bg-raised",
@@ -93,8 +96,9 @@ export default async function SequencePage({ params, searchParams }: { params: P
         title={seq.name}
         meta={
           <span>
-            Sends from <span className="text-fg">{mailbox?.email ?? "a removed mailbox"}</span>
-            {mailbox && <> · up to {mailbox.dailyLimit} emails a day</>} · weekdays {seq.windowStartHour}:00–{seq.windowEndHour}:00 ({seq.timezone.replace(/_/g, " ")} time) · people from{" "}
+            Sends from{" "}
+            <span className="text-fg">{pool.mailboxes.length === 1 ? pool.mailboxes[0]!.email : `${pool.mailboxes.length} mailboxes`}</span> · up to{" "}
+            {pool.capacityToday} emails today · weekdays {seq.windowStartHour}:00–{seq.windowEndHour}:00 ({seq.timezone.replace(/_/g, " ")} time) · people from{" "}
             <Link href={`/app/leads/${table.id}`} className="text-fg underline decoration-line underline-offset-2 hover:decoration-fg">
               {table.name}
             </Link>
@@ -123,6 +127,14 @@ export default async function SequencePage({ params, searchParams }: { params: P
         ))}
       </Card>
 
+      <MailboxPoolCard
+        sequenceId={id}
+        pool={pool}
+        domains={domains}
+        mailboxes={mailboxes}
+        nextSend={seq.status === "active" && next ? { at: formatSendTime(next.nextSendAt!), from: next.mailboxEmail ?? undefined } : undefined}
+      />
+
       <Card className="overflow-hidden">
         <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
           <Users className="size-4 text-accent" />
@@ -139,6 +151,7 @@ export default async function SequencePage({ params, searchParams }: { params: P
                   <th className="px-5 py-2.5 font-normal">Person</th>
                   <th className="px-3 py-2.5 font-normal">Status</th>
                   <th className="px-3 py-2.5 font-normal">Emails received</th>
+                  {pool.mailboxes.length > 1 && <th className="px-3 py-2.5 font-normal">From</th>}
                   <th className="px-5 py-2.5 text-right font-normal">Last email</th>
                 </tr>
               </thead>
@@ -163,6 +176,7 @@ export default async function SequencePage({ params, searchParams }: { params: P
                       <td className="px-3 py-3 font-mono text-xs text-muted">
                         {r.stepsSent} of {seq.steps.length}
                       </td>
+                      {pool.mailboxes.length > 1 && <td className="px-3 py-3 font-mono text-xs text-muted">{r.mailboxEmail ?? "—"}</td>}
                       <td className="px-5 py-3 text-right font-mono text-xs text-muted">{r.lastSentAt ? formatWhen(r.lastSentAt) : "—"}</td>
                     </tr>
                   );

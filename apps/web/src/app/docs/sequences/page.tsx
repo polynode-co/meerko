@@ -35,6 +35,7 @@ export default function Page() {
       toc={[
         ["lifecycle", "Lifecycle"],
         ["steps", "Steps"],
+        ["pool", "Sending from several mailboxes"],
         ["when", "When emails go out"],
         ["skipped", "Who gets skipped"],
         ["stops", "When it stops for a lead"],
@@ -89,12 +90,31 @@ export default function Page() {
       />
       <CodeBlock title="steps.json" lines={steps.map((text) => ({ text }))} code={steps.join("\n")} />
 
+      <H2 id="pool">Sending from several mailboxes</H2>
+      <p>
+        A sequence sends from a pool of one or more of your mailboxes. Each lead is assigned one mailbox when you enroll them, and every
+        step goes out from it, in the same thread. More mailboxes means more emails a day, without pushing any single inbox past a safe
+        volume.
+      </p>
+      <Fields
+        head={["Assignment", "How leads are spread"]}
+        rows={[
+          ["capacity", "The default. Each lead goes to the mailbox with the most room today, so a mailbox still ramping up gets fewer."],
+          ["even", "Each mailbox gets the same number of leads."],
+        ]}
+      />
+      <p>
+        Mailboxes that need reconnecting get no new leads, and their leads wait while the rest keep sending. Change the pool any time, from
+        the sequence&apos;s <strong className="text-fg">Edit pool</strong> button or with <Tool name="update_sequence" />: leads that
+        haven&apos;t been emailed yet move to the new pool, and leads already mid-thread stay on their mailbox.
+      </p>
+
       <H2 id="when">When emails go out</H2>
       <Facts
         items={[
           ["Send window", "9:00–17:00", <>Monday to Friday, in the recipients&apos; timezone. Set window_start_hour and window_end_hour.</>],
           ["Timezone", "Europe/Madrid", "The default. Pass any IANA timezone, e.g. America/New_York."],
-          ["Daily limit", "Per mailbox", <>Each mailbox&apos;s own limit and spacing apply. <L href="/docs/mailboxes#limits">Mailboxes</L>.</>],
+          ["Daily limit", "Per mailbox", <>Each mailbox&apos;s own limit, ramp and spacing apply. <L href="/docs/mailboxes#limits">Mailboxes</L>.</>],
         ]}
       />
       <p>
@@ -126,7 +146,7 @@ export default function Page() {
 
       <H2 id="ask">Ask your agent</H2>
       <AskAgent>
-        Write a 3-step sequence for the Fintech CTOs table from my main mailbox, show me the preview for the first lead, then enroll everyone with a verified email.
+        Write a 3-step sequence for the Fintech CTOs table from all my healthy mailboxes, show me the preview for the first lead, then enroll everyone with a verified email.
       </AskAgent>
       <p>
         Or use <C>/mcp__meerko__write-sequence</C>, which drafts the steps and shows you previews without enrolling anyone.

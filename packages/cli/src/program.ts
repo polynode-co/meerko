@@ -324,18 +324,43 @@ mailboxes
     const list = await MeerkoClient.fromEnv().listMailboxes();
     if (json()) return console.log(JSON.stringify(list, null, 2));
     if (list.length === 0) return console.log("No mailboxes. Connect one with `meerko mailboxes connect`.");
-    console.table(list.map((m) => ({ id: m.id, email: m.email, name: m.displayName ?? "", daily_limit: m.dailyLimit, status: m.status, error: m.lastError ?? "" })));
+    console.table(
+      list.map((m) => ({
+        id: m.id,
+        email: m.email,
+        name: m.displayName ?? "",
+        today: m.rampDay ? `${m.effectiveLimit}/day (ramp day ${m.rampDay}/21)` : `${m.effectiveLimit}/day`,
+        status: m.status,
+        error: m.lastError ?? "",
+      })),
+    );
+  });
+
+mailboxes
+  .command("health")
+  .description("check SPF, DKIM and DMARC for every domain you send from")
+  .action(async () => {
+    const domains = await MeerkoClient.fromEnv().mailboxHealth();
+    if (json()) return console.log(JSON.stringify(domains, null, 2));
+    if (domains.length === 0) return console.log("No mailboxes connected yet.");
+    console.table(domains.map((d) => ({ domain: d.domain, spf: d.spf, dkim: d.dkim, dmarc: d.dmarc })));
+    if (domains.some((d) => [d.spf, d.dkim, d.dmarc].includes("missing"))) {
+      console.log("Missing records make spam more likely; the email deliverability guide on the Meerko site has the setup steps.");
+    }
   });
 
 mailboxes
   .command("set <mailboxId>")
-  .description("change a mailbox's daily send limit or sender name")
+  .description("change a mailbox's daily send limit, sender name or ramp")
   .option("--daily-limit <n>", "max emails per day from this mailbox")
   .option("--name <displayName>", 'sender name shown to recipients, e.g. "Pia from Slalom"')
-  .action(async (id: string, opts: { dailyLimit?: string; name?: string }) => {
+  .option("--ramp", "restart the 21-day ramp from today (new mailboxes ramp automatically)")
+  .option("--no-ramp", "send at the full daily limit now")
+  .action(async (id: string, opts: { dailyLimit?: string; name?: string; ramp?: boolean }) => {
     const m = await MeerkoClient.fromEnv().updateMailbox(id, {
       dailyLimit: opts.dailyLimit ? Number(opts.dailyLimit) : undefined,
       displayName: opts.name,
+      ramp: opts.ramp,
     });
     console.log(json() ? JSON.stringify(m) : `${m.email}: ${m.dailyLimit}/day, name "${m.displayName ?? ""}"`);
   });
@@ -371,7 +396,7 @@ seqs
 
 seqs
   .command("create <tableId> <file>")
-  .description('create a draft sequence from JSON: {"name","mailbox_id","steps":[{"subject","body"},{"body","delay_days"}]}')
+  .description('create a draft sequence from JSON: {"name","mailbox_ids":[…],"steps":[{"subject","body"},{"body","delay_days"}]}')
   .action(async (tableId: string, file: string) => {
     const seq = await MeerkoClient.fromEnv().createSequence({ ...JSON.parse(readFileSync(file, "utf8")), table_id: tableId });
     console.log(json() ? JSON.stringify(seq, null, 2) : `Created draft "${seq.name}" (${seq.id}) with ${seq.steps.length} steps. Preview it with \`meerko seq preview ${seq.id}\`.`);
@@ -427,6 +452,23 @@ seqs
     if (json()) return console.log(JSON.stringify(s, null, 2));
     console.log(`${s.name} (${s.status}): ${s.enrolled} enrolled, ${s.emailsSent} emails sent, ${s.replyRate}% replied`);
     console.table(s.states);
+  });
+
+seqs
+  .command("pool <sequenceId>")
+  .description("the mailboxes a sequence sends from, with today's sends and leads per mailbox")
+  .action(async (id: string) => {
+    const p = await MeerkoClient.fromEnv().sequencePool(id);
+    if (json()) return console.log(JSON.stringify(p, null, 2));
+    console.log(`${p.sentToday} of ${p.capacityToday} sends today, assignment: ${p.assignment}`);
+    console.table(
+      p.mailboxes.map((m) => ({
+        email: m.email,
+        status: m.status === "active" ? (m.rampDay ? `ramping, day ${m.rampDay}/21` : "ready") : "reconnect",
+        today: `${m.sentToday}/${m.effectiveLimit}`,
+        leads: m.leads,
+      })),
+    );
   });
 
 const replies = program.command("replies").description("replies to your sequences");

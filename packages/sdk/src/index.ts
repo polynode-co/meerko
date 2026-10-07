@@ -59,9 +59,43 @@ export interface Mailbox {
   email: string;
   displayName: string | null;
   dailyLimit: number;
+  /** Set while a new mailbox ramps up to its daily limit. */
+  rampStartedAt: string | null;
+  /** What it may send in the next 24 hours: lower than dailyLimit while ramping. */
+  effectiveLimit: number;
+  /** Day of the ramp (1-based), or null when not ramping. */
+  rampDay: number | null;
   status: "active" | "error";
   lastError: string | null;
   createdAt: string;
+}
+
+export type MailboxAssignment = "capacity" | "even";
+
+/** SPF, DKIM (Google selector) and DMARC for a sending domain. "managed": consumer Gmail, handled by Google. */
+export interface DomainHealth {
+  domain: string;
+  spf: "pass" | "missing" | "managed";
+  dkim: "pass" | "missing" | "managed";
+  dmarc: "pass" | "missing" | "managed";
+}
+
+/** A sequence's mailboxes with today's sending, for the pool panel. */
+export interface SequencePool {
+  assignment: MailboxAssignment;
+  sentToday: number;
+  capacityToday: number;
+  mailboxes: {
+    id: string;
+    email: string;
+    displayName: string | null;
+    status: "active" | "error";
+    dailyLimit: number;
+    effectiveLimit: number;
+    rampDay: number | null;
+    sentToday: number;
+    leads: number;
+  }[];
 }
 
 export interface SequenceStep {
@@ -72,7 +106,10 @@ export interface SequenceStep {
 }
 export interface SequenceInput {
   name: string;
-  mailbox_id: string;
+  /** The mailbox pool: each lead gets one of these and keeps it for every step. */
+  mailbox_ids: string[];
+  /** How new leads are spread over the pool (default "capacity"). */
+  assignment?: MailboxAssignment;
   steps: SequenceStep[];
   timezone?: string;
   window_start_hour?: number;
@@ -83,7 +120,8 @@ export interface Sequence {
   name: string;
   status: "draft" | "active" | "paused";
   tableId: string;
-  mailboxId: string;
+  mailboxIds: string[];
+  assignment: MailboxAssignment;
   timezone: string;
   windowStartHour: number;
   windowEndHour: number;
@@ -341,11 +379,17 @@ export class MeerkoClient {
     return this.request<{ mailboxes: Mailbox[] }>("GET", "/mailboxes").then((r) => r.mailboxes);
   }
 
-  updateMailbox(id: string, patch: { dailyLimit?: number; displayName?: string | null }) {
+  updateMailbox(id: string, patch: { dailyLimit?: number; displayName?: string | null; ramp?: boolean }) {
     return this.request<{ mailbox: Mailbox }>("PATCH", `/mailboxes/${id}`, {
       daily_limit: patch.dailyLimit,
       display_name: patch.displayName,
+      ramp: patch.ramp,
     }).then((r) => r.mailbox);
+  }
+
+  /** SPF, DKIM and DMARC for every domain the workspace sends from. */
+  mailboxHealth() {
+    return this.request<{ domains: DomainHealth[] }>("GET", "/mailboxes/health").then((r) => r.domains);
   }
 
   deleteMailbox(id: string) {
@@ -386,7 +430,11 @@ export class MeerkoClient {
   }
 
   enrollRows(id: string, opts: { row_ids?: string[]; filter?: Record<string, unknown>; limit?: number } = {}) {
-    return this.request<{ enrolled: number; skipped: Record<string, number> }>("POST", `/sequences/${id}/enroll`, opts);
+    return this.request<{ enrolled: number; skipped: Record<string, number>; byMailbox: Record<string, number> }>("POST", `/sequences/${id}/enroll`, opts);
+  }
+
+  sequencePool(id: string) {
+    return this.request<SequencePool>("GET", `/sequences/${id}/pool`);
   }
 
   startSequence(id: string) {
@@ -422,6 +470,8 @@ export class MeerkoClient {
         firstName: string | null;
         lastName: string | null;
         company: string | null;
+        /** The mailbox this person is emailed from (null if it was removed). */
+        mailboxEmail: string | null;
         state: "active" | "completed" | "replied" | "unsubscribed" | "bounced" | "stopped" | "failed";
         stepsSent: number;
         nextSendAt: string | null;

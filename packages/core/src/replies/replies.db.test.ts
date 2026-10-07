@@ -81,9 +81,9 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
       { first_name: "Tandem", email: "fran@reply-example.com" },
     ]);
     const steps = [{ subject: "Quick question, {{first_name}}", body: "Hi {{first_name}}" }, { body: "Bump", delayDays: 3 }];
-    seqId = (await createSequence(db, ws, { tableId: table.id, mailboxId: mb!.id, name: "Agencies", steps })).id;
+    seqId = (await createSequence(db, ws, { tableId: table.id, mailboxIds: [mb!.id], name: "Agencies", steps })).id;
     // A second, not-yet-started sequence that also includes Pia.
-    otherSeqId = (await createSequence(db, ws, { tableId: table.id, mailboxId: mb!.id, name: "Later", steps })).id;
+    otherSeqId = (await createSequence(db, ws, { tableId: table.id, mailboxIds: [mb!.id], name: "Later", steps })).id;
     await enrollRows(db, ws, otherSeqId, { filter: { first_name: "Pia" }, now: MON_1030 });
     await setSequenceStatus(db, ws, otherSeqId, "active");
     await db.update(enrollments).set({ nextSendAt: later(60 * 24 * 7) }).where(eq(enrollments.sequenceId, otherSeqId));
@@ -176,6 +176,7 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     expect(pending[0]!.thread.map((t) => t.direction)).toEqual(["out", "in"]);
 
     const before = sends.length;
+    const { emailsSent } = await sequenceStats(db, ws, seqId);
     const res = await approveDraft(db, ws, draft.id, { box, oauth, fetch }, "Hi Pia, it's $5 per account. Wednesday at 10?\n\nIker");
     expect(res).toMatchObject({ sent: true, to: "pia@slalom.example", subject: "Re: Quick question, Pia" });
     const sent = sends.at(-1)!;
@@ -196,6 +197,8 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     await approveDraft(db, ws, followUp.id, { box, oauth, fetch });
     expect(sends.length).toBe(before + 2);
     expect(sends.at(-1)!.threadId).toBe(threadOf["pia@slalom.example"]);
+    // Replies aren't sequence emails, so they don't count as sent by the sequence.
+    expect((await sequenceStats(db, ws, seqId)).emailsSent).toBe(emailsSent);
 
     // Someone who unsubscribed after replying can't be emailed, and discarding works.
     const orionDraft = await draftReply(db, ws, orion.id, "Sure!");

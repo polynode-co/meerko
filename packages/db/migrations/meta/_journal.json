@@ -71,6 +71,27 @@
       "when": 1791301211243,
       "tag": "0009_oauth",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791366757966,
+      "tag": "0010_mailbox_rotation",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791366764785,
+      "tag": "0011_drop_sequence_mailbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791366964172,
+      "tag": "0012_pool_mailbox_cascade",
+      "breakpoints": true
     }
   ]
 }

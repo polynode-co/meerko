@@ -62,6 +62,11 @@ export async function revokeApiKey(id: string) {
   return run((c) => c.revokeApiKey(id).then(() => "Key revoked"), ["/app/settings"]);
 }
 
+/** Saves a sequence's mailbox pool and how new leads are spread over it. */
+export async function updatePool(id: string, mailboxIds: string[], assignment: "capacity" | "even") {
+  return run((c) => c.updateSequence(id, { mailbox_ids: mailboxIds, assignment }).then(() => "Pool saved"), [`/app/sequences/${id}`]);
+}
+
 export async function disconnectApp(id: string) {
   return run((c) => c.revokeConnectedApp(id).then(() => "App disconnected"), ["/app/settings"]);
 }

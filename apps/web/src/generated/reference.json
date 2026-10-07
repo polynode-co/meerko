@@ -380,7 +380,7 @@
       },
       {
         "name": "list_mailboxes",
-        "description": "List connected sending mailboxes with their daily limit and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail.",
+        "description": "List connected sending mailboxes with their daily limit, what they may send today (effectiveLimit, lower while a new mailbox ramps up; rampDay) and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -389,7 +389,7 @@
       },
       {
         "name": "update_mailbox",
-        "description": "Set a mailbox's daily send limit (start low, e.g. 30-50/day for a new inbox) or the sender name recipients see.",
+        "description": "Set a mailbox's daily send limit, the sender name recipients see, or its ramp.\nNew mailboxes ramp up automatically: they start at 10 emails a day and grow to their daily limit over 21 days (list_mailboxes shows effectiveLimit and rampDay). Turn the ramp off only for an inbox that already sends regularly.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -403,11 +403,24 @@
             },
             "display_name": {
               "type": "string"
+            },
+            "ramp": {
+              "description": "true restarts the 21-day ramp from today; false sends at the full daily limit now",
+              "type": "boolean"
             }
           },
           "required": [
             "mailbox_id"
           ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "check_domains",
+        "description": "Check SPF, DKIM and DMARC for every domain the workspace sends from. A missing record is a common reason mail lands in spam: tell the user which record to add before starting a sequence. \"managed\" means consumer Gmail, where Google handles it. DKIM is checked at Google Workspace's default selector (\"google\").",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
           "$schema": "http://json-schema.org/draft-07/schema#"
         }
       },
@@ -433,7 +446,7 @@
       },
       {
         "name": "create_sequence",
-        "description": "Create a DRAFT email sequence for a table, sent from one connected mailbox (see list_mailboxes).\nWrite short, plain, personal emails: step 1 with a subject, 1-3 follow-ups that reply in the same thread. Use only {{vars}} that the table's rows actually have; rows missing a used variable are skipped at enrollment.\nThen: preview_sequence to check, enroll_rows, show the user the preview and enrollment counts, and only call start_sequence after the user approves.",
+        "description": "Create a DRAFT email sequence for a table, sent from a pool of one or more connected mailboxes (see list_mailboxes). Each lead is assigned one mailbox and every step comes from it, in the same thread; more mailboxes means more volume per day.\nWrite short, plain, personal emails: step 1 with a subject, 1-3 follow-ups that reply in the same thread. Use only {{vars}} that the table's rows actually have; rows missing a used variable are skipped at enrollment.\nThen: preview_sequence to check, enroll_rows, show the user the preview and enrollment counts, and only call start_sequence after the user approves.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -443,8 +456,21 @@
             "name": {
               "type": "string"
             },
-            "mailbox_id": {
-              "type": "string"
+            "mailbox_ids": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "assignment": {
+              "description": "How leads are spread over the mailboxes: capacity (default) gives more to mailboxes that can send more today; even gives each the same number",
+              "type": "string",
+              "enum": [
+                "capacity",
+                "even"
+              ]
             },
             "steps": {
               "minItems": 1,
@@ -493,7 +519,7 @@
           "required": [
             "table_id",
             "name",
-            "mailbox_id",
+            "mailbox_ids",
             "steps"
           ],
           "$schema": "http://json-schema.org/draft-07/schema#"
@@ -501,7 +527,7 @@
       },
       {
         "name": "update_sequence",
-        "description": "Edit a sequence's name, mailbox, send window or steps (steps replace all existing ones; pause an active sequence first).",
+        "description": "Edit a sequence's name, mailbox pool, assignment, send window or steps (steps replace all existing ones; pause an active sequence first). Changing mailbox_ids moves leads not yet emailed to the new pool; leads already mid-thread stay on their mailbox, or stop if it was removed.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -511,8 +537,20 @@
             "name": {
               "type": "string"
             },
-            "mailbox_id": {
-              "type": "string"
+            "mailbox_ids": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "assignment": {
+              "type": "string",
+              "enum": [
+                "capacity",
+                "even"
+              ]
             },
             "steps": {
               "minItems": 1,
@@ -658,7 +696,7 @@
       },
       {
         "name": "sequence_stats",
-        "description": "A sequence's enrollment states (active, completed, replied, unsubscribed, failed...), emails sent and reply rate.",
+        "description": "A sequence's enrollment states (active, completed, replied, unsubscribed, failed...), emails sent, reply rate, and its mailbox pool: each mailbox's sends today against its limit, ramp day and number of leads.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -1137,9 +1175,15 @@
         "options": []
       },
       {
+        "usage": "meerko mailboxes health",
+        "group": "mailboxes",
+        "description": "check SPF, DKIM and DMARC for every domain you send from",
+        "options": []
+      },
+      {
         "usage": "meerko mailboxes set <mailboxId>",
         "group": "mailboxes",
-        "description": "change a mailbox's daily send limit or sender name",
+        "description": "change a mailbox's daily send limit, sender name or ramp",
         "options": [
           {
             "flags": "--daily-limit <n>",
@@ -1149,6 +1193,16 @@
           {
             "flags": "--name <displayName>",
             "description": "sender name shown to recipients, e.g. \"Pia from Slalom\"",
+            "required": false
+          },
+          {
+            "flags": "--ramp",
+            "description": "restart the 21-day ramp from today (new mailboxes ramp automatically)",
+            "required": false
+          },
+          {
+            "flags": "--no-ramp",
+            "description": "send at the full daily limit now",
             "required": false
           }
         ]
@@ -1180,7 +1234,7 @@
       {
         "usage": "meerko sequences create <tableId> <file>",
         "group": "sequences",
-        "description": "create a draft sequence from JSON: {\"name\",\"mailbox_id\",\"steps\":[{\"subject\",\"body\"},{\"body\",\"delay_days\"}]}",
+        "description": "create a draft sequence from JSON: {\"name\",\"mailbox_ids\":[…],\"steps\":[{\"subject\",\"body\"},{\"body\",\"delay_days\"}]}",
         "options": []
       },
       {
@@ -1228,6 +1282,12 @@
         "usage": "meerko sequences stats <sequenceId>",
         "group": "sequences",
         "description": "enrollment states, emails sent and reply rate",
+        "options": []
+      },
+      {
+        "usage": "meerko sequences pool <sequenceId>",
+        "group": "sequences",
+        "description": "the mailboxes a sequence sends from, with today's sends and leads per mailbox",
         "options": []
       },
       {

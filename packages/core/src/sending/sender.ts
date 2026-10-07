@@ -19,7 +19,9 @@ import { buildMime } from "../mail/mime.ts";
 import { markMailboxError } from "../mailboxes.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "../provider-keys.ts";
 import { advanceStage } from "../pipeline.ts";
+import { reassignUnsent } from "../sequences.ts";
 import { renderTemplate } from "../template.ts";
+import { rampState } from "./ramp.ts";
 import { nextWindowStart, type SendWindow } from "./window.ts";
 
 const DAY_MS = 24 * 60 * 60_000;
@@ -91,12 +93,15 @@ export async function runSendTick(db: Db, deps: SenderDeps): Promise<TickResult>
   const random = deps.random ?? Math.random;
   const result: TickResult = { sent: 0, deferred: 0, failed: 0, skippedMailboxes: [] };
 
-  // Mailboxes that have due work in an active sequence.
+  // Leads whose mailbox left the pool (or was deleted) get a new one before anything is sent.
+  await reassignUnsent(db, undefined, undefined, now);
+
+  // Mailboxes that have due work in an active sequence. Each lead is sent from the mailbox it was assigned.
   const due = await db
-    .selectDistinct({ id: mailboxes.id, dailyLimit: mailboxes.dailyLimit })
+    .selectDistinct({ id: mailboxes.id, dailyLimit: mailboxes.dailyLimit, rampStartedAt: mailboxes.rampStartedAt })
     .from(enrollments)
     .innerJoin(sequences, eq(enrollments.sequenceId, sequences.id))
-    .innerJoin(mailboxes, eq(sequences.mailboxId, mailboxes.id))
+    .innerJoin(mailboxes, eq(enrollments.mailboxId, mailboxes.id))
     .where(and(eq(enrollments.state, "active"), lte(enrollments.nextSendAt, now), eq(sequences.status, "active"), eq(mailboxes.status, "active")));
 
   for (const mb of due) {
@@ -109,7 +114,8 @@ export async function runSendTick(db: Db, deps: SenderDeps): Promise<TickResult>
       .where(and(eq(messages.mailboxId, mb.id), eq(messages.direction, "out"), gte(messages.sentAt, new Date(now.getTime() - DAY_MS))))) as [
       { sentToday: number; lastSentAt: Date | string | null },
     ];
-    if (sentToday >= mb.dailyLimit) {
+    // A new mailbox sends less while it ramps up.
+    if (sentToday >= rampState(mb, now).effectiveLimit) {
       result.skippedMailboxes.push({ mailboxId: mb.id, reason: "daily_limit" });
       continue;
     }
@@ -137,7 +143,7 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
       .innerJoin(sequences, eq(enrollments.sequenceId, sequences.id))
       .where(
         and(
-          eq(sequences.mailboxId, mailboxId),
+          eq(enrollments.mailboxId, mailboxId),
           eq(sequences.status, "active"),
           eq(enrollments.state, "active"),
           lte(enrollments.nextSendAt, now),

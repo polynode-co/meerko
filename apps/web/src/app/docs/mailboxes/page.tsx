@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { DocsShell, docsMetadata } from "@/components/docs/shell";
+import { googleSources } from "@/lib/sources";
 import { AskAgent, C, Callout, Facts, H2, L, Tool } from "@/components/docs/ui";
 
 export const metadata = docsMetadata("mailboxes", "Send cold email from your own Gmail | Meerko docs");
@@ -18,10 +19,12 @@ export default function Page() {
       toc={[
         ["connect", "Connecting Gmail"],
         ["limits", "Daily limit and spacing"],
+        ["ramp", "Ramp-up for new mailboxes"],
+        ["domains", "Domain health"],
         ["test", "Sending a test"],
         ["reconnect", "When a mailbox needs reconnecting"],
       ]}
-      tools={["connect_gmail", "list_mailboxes", "update_mailbox", "send_test_email"]}
+      tools={["connect_gmail", "list_mailboxes", "update_mailbox", "send_test_email", "check_domains"]}
     >
       <H2 id="connect">Connecting Gmail</H2>
       <p>
@@ -48,6 +51,30 @@ export default function Page() {
         <L href="/guides/email-deliverability">deliverability</L> guides.
       </p>
       <AskAgent>Set my main mailbox to 30 emails a day, with the sender name &quot;Ana from Acme&quot;.</AskAgent>
+
+      <H2 id="ramp">Ramp-up for new mailboxes</H2>
+      <p>
+        A brand-new inbox that suddenly sends 50 cold emails a day looks suspicious. So every mailbox you connect ramps up on its own: it
+        starts at 10 emails a day and climbs evenly to its daily limit over 21 days. The dashboard and <Tool name="list_mailboxes" /> show
+        today&apos;s limit and the ramp day.
+      </p>
+      <p>
+        Connecting an inbox that already sends regularly? Turn the ramp off with <Tool name="update_mailbox" /> (<C>ramp: false</C>) or{" "}
+        <C>pnpm meerko mailboxes set &lt;id&gt; --no-ramp</C>. <C>--ramp</C> starts it again from today.
+      </p>
+
+      <H2 id="domains">Domain health</H2>
+      <p>
+        Google asks every sender to set up SPF or DKIM, and bulk senders to have SPF, DKIM and DMARC (
+        <L href={googleSources.senderGuidelines.url}>Google&apos;s sender guidelines</L>). Meerko looks up all three for every domain you
+        send from and shows them on each sequence, so a missing record doesn&apos;t go unnoticed. Ask your agent, or run{" "}
+        <C>pnpm meerko mailboxes health</C>:
+      </p>
+      <AskAgent>Check my sending domains and tell me which DNS records to add.</AskAgent>
+      <p>
+        DKIM is checked at Google Workspace&apos;s default selector (<C>google</C>). For plain Gmail addresses, Google handles all three for
+        you. The <L href="/guides/email-deliverability">deliverability guide</L> has the setup steps.
+      </p>
 
       <H2 id="test">Sending a test</H2>
       <p>

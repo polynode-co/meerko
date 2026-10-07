@@ -74,6 +74,9 @@ import {
   searchLeads,
   updateRows,
   verifyApiKey,
+  mailboxDomainHealth,
+  MailboxInUseError,
+  sequencePool,
   approveAuthorization,
   denyAuthorization,
   describeAuthorization,
@@ -149,17 +152,23 @@ const stepInput = z.object({
 });
 const sequenceFields = {
   name: z.string().min(1).max(200),
-  mailbox_id: z.string(),
+  // The mailbox pool. `mailbox_id` (one mailbox) is still accepted from older clients.
+  mailbox_ids: z.array(z.string()).min(1).max(50).optional(),
+  mailbox_id: z.string().optional(),
+  assignment: z.enum(["capacity", "even"]).optional(),
   steps: z.array(stepInput).min(1).max(10),
   timezone: z.string().optional(),
   window_start_hour: z.number().int().min(0).max(23).optional(),
   window_end_hour: z.number().int().min(1).max(24).optional(),
 };
-const createSequenceInput = z.object({ table_id: z.string(), ...sequenceFields });
+const createSequenceInput = z
+  .object({ table_id: z.string(), ...sequenceFields })
+  .refine((i) => i.mailbox_ids?.length || i.mailbox_id, { message: "mailbox_ids is required" });
 const updateSequenceInput = z.object(sequenceFields).partial();
 const toSequenceInput = (i: z.infer<typeof updateSequenceInput>) => ({
   name: i.name,
-  mailboxId: i.mailbox_id,
+  mailboxIds: i.mailbox_ids ?? (i.mailbox_id ? [i.mailbox_id] : undefined),
+  assignment: i.assignment,
   steps: i.steps?.map((s) => ({ subject: s.subject, body: s.body, delayDays: s.delay_days })),
   timezone: i.timezone,
   windowStartHour: i.window_start_hour,
@@ -685,15 +694,22 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.patch("/mailboxes/:id", async (c) => {
     const input = await parse(
-      z.object({ daily_limit: z.number().int().min(1).max(500).optional(), display_name: z.string().max(100).nullable().optional() }),
+      z.object({
+        daily_limit: z.number().int().min(1).max(500).optional(),
+        display_name: z.string().max(100).nullable().optional(),
+        ramp: z.boolean().optional(),
+      }),
       await c.req.json(),
     );
     const mailbox = await updateMailbox(db, c.var.workspaceId, c.req.param("id"), {
       dailyLimit: input.daily_limit,
       displayName: input.display_name,
+      ramp: input.ramp,
     });
     return c.json({ mailbox });
   });
+
+  v1.get("/mailboxes/health", async (c) => c.json({ domains: await mailboxDomainHealth(db, c.var.workspaceId) }));
 
   v1.delete("/mailboxes/:id", async (c) => c.json({ deleted: await deleteMailbox(db, c.var.workspaceId, c.req.param("id")) }));
 
@@ -710,7 +726,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const seq = await createSequence(db, c.var.workspaceId, {
       ...toSequenceInput(input),
       tableId: input.table_id,
-      mailboxId: input.mailbox_id,
+      mailboxIds: toSequenceInput(input).mailboxIds!,
       name: input.name,
       steps: input.steps.map((s) => ({ subject: s.subject, body: s.body, delayDays: s.delay_days })),
     });
@@ -736,6 +752,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/sequences/:id/start", async (c) => c.json({ sequence: await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "active") }));
   v1.post("/sequences/:id/pause", async (c) => c.json({ sequence: await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "paused") }));
+  v1.get("/sequences/:id/pool", async (c) => c.json(await sequencePool(db, c.var.workspaceId, c.req.param("id"))));
   v1.get("/sequences/:id/stats", async (c) => c.json(await sequenceStats(db, c.var.workspaceId, c.req.param("id"))));
   v1.get("/sequences/:id/recipients", async (c) =>
     c.json({ recipients: await listSequenceRecipients(db, c.var.workspaceId, c.req.param("id")) }),
@@ -822,6 +839,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
     if (err instanceof SequenceError || err instanceof ReplyError) return c.json({ error: err.message }, 400);
+    if (err instanceof MailboxInUseError) return c.json({ error: err.message }, 409);
     if (err instanceof EncryptionNotConfiguredError) return c.json({ error: err.message }, 503);
     if (err instanceof GmailError) return c.json({ error: err.message }, err.needsReconnect ? 409 : 502);
     if (err instanceof IcypeasError) {

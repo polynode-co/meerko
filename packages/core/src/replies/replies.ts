@@ -80,7 +80,8 @@ export async function runReplyTick(db: Db, deps: ReplyDeps): Promise<ReplyTickRe
       .innerJoin(sequenceSteps, and(eq(sequenceSteps.sequenceId, sequences.id), eq(sequenceSteps.position, 0)))
       .where(
         and(
-          eq(sequences.mailboxId, mb.id),
+          // The mailbox this lead was emailed from (rotation spreads a sequence over several).
+          eq(enrollments.mailboxId, mb.id),
           isNotNull(enrollments.gmailThreadId),
           sql`exists (select 1 from ${messages} where ${messages.enrollmentId} = ${enrollments.id} and ${messages.sentAt} >= ${watchFrom})`,
         ),
