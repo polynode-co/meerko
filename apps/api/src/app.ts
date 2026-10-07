@@ -104,6 +104,8 @@ type Env = {
     workspaceName: string;
     /** Set for dashboard sessions; null for API keys and OAuth apps (CLI, MCP, scripts). */
     user: { id: string; email: string; name: string | null; role: string } | null;
+    /** Who analytics events are about: the person behind a session or an OAuth app, else the workspace. Grants nothing. */
+    actorId: string;
   };
 };
 
@@ -415,12 +417,15 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!token) return null;
     const session = await verifySession(db, token);
     if (session) {
-      return { workspaceId: session.workspaceId, workspaceName: session.workspaceName, user: { id: session.userId, email: session.email, name: session.name, role: session.role } };
+      const user = { id: session.userId, email: session.email, name: session.name, role: session.role };
+      return { workspaceId: session.workspaceId, workspaceName: session.workspaceName, user, actor: { id: user.id, email: user.email } };
     }
+    // An OAuth app acts for the person who approved it. It still gets no `user`, so it can't manage keys or apps;
+    // `actor` only tells analytics who it is.
     const oauth = await verifyAccessToken(db, token);
-    if (oauth) return { workspaceId: oauth.workspaceId, workspaceName: oauth.workspaceName, user: null };
+    if (oauth) return { workspaceId: oauth.workspaceId, workspaceName: oauth.workspaceName, user: null, actor: { id: oauth.userId, email: oauth.email } };
     const key = await verifyApiKey(db, token);
-    return key ? { workspaceId: key.workspaceId, workspaceName: key.workspaceName, user: null } : null;
+    return key ? { workspaceId: key.workspaceId, workspaceName: key.workspaceName, user: null, actor: null } : null;
   };
 
   // --- OAuth for MCP clients and the CLI (see core/oauth.ts) ---
@@ -547,11 +552,19 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     // so the tool reference generated from packages/mcp keeps the schemas without PostHog's injected arguments.
     if (analytics.posthog) {
       instrument(server, analytics.posthog, {
+        // The same person as on the web dashboard (user id), so agent and dashboard activity join up.
         identify: async () => ({
-          distinctId: auth.user?.id ?? auth.workspaceId,
-          properties: auth.user ? { email: auth.user.email, name: auth.user.name } : { workspace_name: auth.workspaceName },
+          distinctId: auth.actor?.id ?? auth.workspaceId,
+          properties: auth.actor ? { email: auth.actor.email } : { workspace_name: auth.workspaceName },
           groups: { workspace: auth.workspaceId },
         }),
+        // The recorded initialize request includes its HTTP headers, among them the caller's IP (forwarded,
+        // x-forwarded-for). Analytics doesn't need them, so they never leave the server.
+        beforeSend: (event) => {
+          const params = event.properties?.$mcp_parameters as { extra?: unknown } | undefined;
+          if (params && typeof params === "object") delete params.extra;
+          return event;
+        },
         serverBuild: analytics.common.$release,
         eventProperties: async () => ({ ...analytics.common, surface: "mcp" }),
         logger: (message) => console.warn(`[posthog-mcp] ${message}`),
@@ -578,11 +591,12 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     c.set("workspaceId", auth.workspaceId);
     c.set("workspaceName", auth.workspaceName);
     c.set("user", auth.user);
+    c.set("actorId", auth.actor?.id ?? auth.workspaceId);
     await next();
   });
 
-  /** Who an event is about: the signed-in person, or the workspace for API keys and OAuth apps. */
-  const actor = (c: { var: Env["Variables"] }) => c.var.user?.id ?? c.var.workspaceId;
+  /** Who an event is about: the person behind a session or an OAuth app, or the workspace for API keys. */
+  const actor = (c: { var: Env["Variables"] }) => c.var.actorId;
 
   v1.get("/me", (c) => c.json({ user: c.var.user, workspace: { id: c.var.workspaceId, name: c.var.workspaceName } }));
 
@@ -899,7 +913,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       return c.json({ error: "Not found" }, 404);
     console.error(err);
     // Only the unexpected 500s are exceptions; the mapped errors above are expected outcomes.
-    const who = (c.var as Partial<Env["Variables"]>).user?.id ?? (c.var as Partial<Env["Variables"]>).workspaceId;
+    const who = (c.var as Partial<Env["Variables"]>).actorId;
     await analytics.captureException(err, who, { $exception_fingerprint: `api:${c.req.method} ${c.req.routePath}`, path: c.req.path });
     return c.json({ error: "Internal server error" }, 500);
   });
