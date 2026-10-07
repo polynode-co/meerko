@@ -10,7 +10,7 @@ const stats = [
 
 // The README's self-host steps; the output lines are what the scripts print.
 const lines: [string, string][] = [
-  ["$ git clone https://github.com/iker-gonzalez/meerko", "text-fg"],
+  ["$ git clone https://github.com/iker-gonzalez/meerko.ai", "text-fg"],
   ["$ cd meerko && pnpm install && cp .env.example .env", "text-fg"],
   ["$ pnpm db:up && pnpm db:migrate", "text-fg"],
   ["Migrations applied.", "text-signal"],
