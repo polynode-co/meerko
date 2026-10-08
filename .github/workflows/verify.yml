@@ -1,0 +1,38 @@
+name: verify
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # dev -> main pull requests break fast-forward promotion; fail them on sight.
+  promotion-shape:
+    name: promotion shape
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main' && github.head_ref == 'dev'
+    steps:
+      - name: Reject dev -> main pull requests
+        run: |
+          echo "::error::Don't promote with a pull request from dev into main."
+          echo "It puts a merge commit on main that dev doesn't have, which blocks fast-forward promotion."
+          echo ""
+          echo "Close this PR and run the 'promote' workflow instead (Actions -> promote, type 'promote'),"
+          echo "or from a terminal: git push origin origin/dev:refs/heads/main"
+          exit 1
+
+  # Manual only: typecheck and the unit tests, for when you want the answer without a deploy.
+  # The database tests skip here (no DATABASE_URL).
+  checks:
+    name: typecheck and tests
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test

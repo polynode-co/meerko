@@ -1,0 +1,83 @@
+name: promote
+
+# Promotes dev to main (production) by fast-forward, the only supported way to release.
+#
+# A pull request from dev into main leaves a merge commit on main that dev never has, so main
+# diverges and every later fast-forward is rejected (antwork.io learned this three times in two
+# days). Fast-forwarding keeps main byte-identical to dev, so "what's in production" is never a
+# question.
+#
+# Pushing to main fires the prd Cloud Build triggers. Cloud Build is a GitHub App, so it gets the
+# push webhook even though the push comes from GITHUB_TOKEN; check that a prd build starts the first
+# time. Run prd database migrations before promoting a commit that adds one (docs/DEPLOY.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "promote" to deploy dev to production'
+        required: true
+        default: ''
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: fast-forward main to dev
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check the confirmation
+        if: inputs.confirm != 'promote'
+        run: |
+          echo "::error::Type 'promote' to confirm. This deploys dev to production."
+          exit 1
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # real history, to test ancestry
+
+      - name: Verify main can fast-forward to dev
+        run: |
+          git fetch origin dev main
+          DEV=$(git rev-parse origin/dev)
+          MAIN=$(git rev-parse origin/main)
+
+          if [ "$DEV" = "$MAIN" ]; then
+            echo "::notice::main is already at dev ($DEV). Nothing to promote."
+            echo "ALREADY_LEVEL=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          # Only possible when main is an ancestor of dev. If it isn't, main has commits dev
+          # doesn't, almost always a merge commit from a dev->main pull request.
+          if ! git merge-base --is-ancestor "$MAIN" "$DEV"; then
+            echo "::error::main has diverged from dev, so it can't fast-forward."
+            echo "Commits on main that dev doesn't have:"
+            git log --oneline "$DEV..$MAIN"
+            echo ""
+            echo "To recover: git checkout dev && git merge origin/main && git push origin dev"
+            echo "Confirm 'git rev-parse dev^{tree}' is unchanged by that merge, then re-run."
+            exit 1
+          fi
+
+          echo "ALREADY_LEVEL=false" >> "$GITHUB_ENV"
+          {
+            echo "### Promoting to production"
+            echo ""
+            echo "\`$MAIN\` -> \`$DEV\`"
+            echo ""
+            git log --oneline --no-merges "$MAIN..$DEV" | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fast-forward main
+        if: env.ALREADY_LEVEL == 'false'
+        run: |
+          # A plain push is fast-forward only; git rejects anything else. Never --force: it would
+          # rewrite production history.
+          git push origin "$(git rev-parse origin/dev):refs/heads/main"
+          echo "::notice::main is now at $(git rev-parse origin/dev). The prd Cloud Build triggers fire on this push."

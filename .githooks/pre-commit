@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# Refuse commits made directly on dev or main.
+#
+# Several Claude Code sessions share one working tree and one HEAD. When any session runs
+# `git checkout dev`, every other session's next commit silently lands on dev instead of its own
+# branch, and a later `git push -u origin <branch>` publishes a branch without the work. This hook
+# can't stop a peer moving HEAD; it makes the consequence loud at the moment it would happen,
+# while the changes are still staged.
+#
+# Committing straight to dev or main isn't something you want anyway: dev moves by merging feature
+# branches, and main (production) only moves by fast-forward from dev.
+#
+# Deliberate override, for the rare legitimate case:
+#   ALLOW_COMMIT_ON_TRUNK=1 git commit ...
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+case "$branch" in
+  dev|main)
+    if [ "$ALLOW_COMMIT_ON_TRUNK" = "1" ]; then
+      exit 0
+    fi
+    cat >&2 <<MSG
+
+  Refusing to commit directly on '$branch'.
+
+  This tree is shared by several sessions. If you didn't deliberately check out '$branch',
+  another session moved HEAD and this commit was about to land on the wrong branch.
+
+  Your changes are still staged. To put them somewhere safe:
+
+      git checkout -b <your-branch>
+      git commit ...
+
+  If you really meant to commit to '$branch':
+
+      ALLOW_COMMIT_ON_TRUNK=1 git commit ...
+
+MSG
+    exit 1
+    ;;
+esac
+
+exit 0
