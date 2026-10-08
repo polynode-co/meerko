@@ -90,7 +90,10 @@ export function ContactCard({ title, email }: { title: string; email: string }) 
       <div className="flex flex-1 flex-col gap-1">
         <p className="font-display text-xl font-bold text-fg">{title}</p>
         <p className="text-sm">
-          <Ph>{email}</Ph> · <Ph>Legal entity name</Ph>, <Ph>Registered address</Ph>
+          <a href={`mailto:${email}`} className="font-medium text-accent underline-offset-2 hover:underline">
+            {email}
+          </a>{" "}
+          · <Ph>Legal entity name</Ph>, <Ph>Registered address</Ph>
         </p>
       </div>
     </div>

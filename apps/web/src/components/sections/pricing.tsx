@@ -38,7 +38,7 @@ const plans = [
     sub: "Volume credits",
     features: ["Volume credit pricing", "Custom sending limits", "Onboarding help", "Dedicated support"],
     cta: "Talk to us",
-    href: "mailto:hello@example.com",
+    href: `mailto:${site.contactEmail}`,
   },
 ];
 

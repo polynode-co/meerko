@@ -1,6 +1,7 @@
 import { BadgeCheck, Ban, Cookie, Download, Eye, Lock, MailCheck, Pencil, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import { Bullets, ContactCard, LegalShell, Ph, Section, Table, Callout } from "@/components/legal/shell";
+import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Privacy policy | Meerko",
@@ -147,7 +148,11 @@ export default function PrivacyPage() {
           ))}
         </div>
         <p>
-          Email <Ph>privacy@domain</Ph> and we&apos;ll answer within 30 days. You can also complain to your data protection authority.
+          Email{" "}
+          <a href={`mailto:${site.contactEmail}`} className="font-medium text-accent underline-offset-2 hover:underline">
+            {site.contactEmail}
+          </a>{" "}
+          and we&apos;ll answer within 30 days. You can also complain to your data protection authority.
         </p>
       </Section>
 
@@ -173,7 +178,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section n={11} id="contact" title="Contact">
-        <ContactCard title="Questions about your data?" email="privacy@domain" />
+        <ContactCard title="Questions about your data?" email={site.contactEmail} />
         <p>We&apos;ll post changes here and update the date at the top. For significant changes, we&apos;ll email account owners first.</p>
       </Section>
     </LegalShell>

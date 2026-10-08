@@ -1,6 +1,7 @@
 import { Code, Coins, Database, MailWarning } from "lucide-react";
 import type { Metadata } from "next";
 import { Bullets, Callout, ContactCard, LegalShell, Ph, Section } from "@/components/legal/shell";
+import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Terms of service | Meerko",
@@ -143,7 +144,7 @@ export default function TermsPage() {
       </Section>
 
       <Section n={12} id="contact" title="Contact">
-        <ContactCard title="Questions about these terms?" email="legal@domain" />
+        <ContactCard title="Questions about these terms?" email={site.contactEmail} />
         <p>
           We&apos;ll post changes here and update the date at the top. For changes that affect you materially, we&apos;ll email account owners
           at least <Ph>30</Ph> days before they take effect.

@@ -7,6 +7,9 @@ export const site = {
   pricingUrl: "/pricing",
   // Cloud plans start by signing in (Google); the first sign-in creates the workspace.
   signupUrl: "/login",
+  // Shared inbox for sales, support, privacy and legal questions. A polynode.co Workspace group
+  // (core-infrastructure environments/com/workspace) that answers on meerko.ai as an alias domain.
+  contactEmail: "contact@meerko.ai",
   // Self-hosting starts from the repo (not on npm yet).
   installCommand: "git clone https://github.com/iker-gonzalez/meerko.ai",
 };
