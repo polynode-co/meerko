@@ -22,14 +22,16 @@ Deploy dev when you want to see it:
 (the dev deploy command is in the maintainers' private runbook)
 ```
 
-**Promote by fast-forward only**: run the `promote` workflow (Actions → promote, type `promote`), or
-`git push origin origin/dev:refs/heads/main`. **Never open a pull request from `dev` into `main`**: it
+**Releases are daily**: the `promote` workflow fast-forwards `main` to `dev` on its own at 20:00
+Madrid time, shipping whatever merged that day. A hotfix doesn't wait: merge it to `dev`, then run
+`promote` by hand (Actions → promote, type `promote`); it ships everything else on `dev` too, so
+hold a risky PR unmerged until it's ready. **Promote by fast-forward only**. **Never open a pull request from `dev` into `main`**: it
 puts a merge commit on `main` that `dev` doesn't have, and every later fast-forward is rejected.
 `verify.yml` fails such PRs. If `main` has diverged anyway: `git checkout dev && git merge origin/main
 && git push origin dev`, confirm `git rev-parse dev^{tree}` didn't change, then promote.
 
 Migrations don't run on deploy. Run them against the dev or prd database before deploying a commit
-that adds one (docs/DEPLOY.md); a migration that drops something goes after the code that stops
+that adds one, and against prd **before merging it to `dev`**, since the 20:00 promote ships it unattended (docs/DEPLOY.md); a migration that drops something goes after the code that stops
 using it.
 
 ## Making a change

@@ -2,16 +2,27 @@ name: promote
 
 # Promotes dev to main (production) by fast-forward, the only supported way to release.
 #
-# A pull request from dev into main leaves a merge commit on main that dev never has, so main
-# diverges and every later fast-forward is rejected (antwork.io learned this three times in two
-# days). Fast-forwarding keeps main byte-identical to dev, so "what's in production" is never a
-# question.
+# Release rhythm: this runs on its own every day at 20:00 Madrid time and ships whatever
+# merged to dev that day. A hotfix doesn't wait: merge it to dev, then run this by hand
+# (Actions -> promote, type "promote"). That ships everything else on dev with it, so hold
+# a risky PR unmerged until it's ready to go out.
 #
-# Pushing to main fires the prd Cloud Build triggers. Cloud Build is a GitHub App, so it gets the
-# push webhook even though the push comes from GITHUB_TOKEN; check that a prd build starts the first
-# time. Run prd database migrations before promoting a commit that adds one (docs/DEPLOY.md).
+# A pull request from dev into main leaves a merge commit on main that dev never has, so main
+# diverges and every later fast-forward is rejected. Fast-forwarding keeps main byte-identical
+# to dev, so "what's in production" is never a question.
+#
+# Pushing to main fires the prd Cloud Build triggers. Cloud Build is a GitHub App, so it gets
+# the push webhook even though the push comes from GITHUB_TOKEN.
+#
+# Migrations don't run on deploy, and nobody is watching at 20:00: run a migration against the
+# prd database before merging the PR that adds it to dev (docs/DEPLOY.md).
 
 on:
+  schedule:
+    # Cron is UTC and Madrid shifts between UTC+1 and UTC+2, so both hours are listed and the
+    # gate below keeps only the one that is 20:00 in Madrid today.
+    - cron: '0 18 * * *'
+    - cron: '0 19 * * *'
   workflow_dispatch:
     inputs:
       confirm:
@@ -32,16 +43,29 @@ jobs:
 
     steps:
       - name: Check the confirmation
-        if: inputs.confirm != 'promote'
+        if: github.event_name == 'workflow_dispatch' && inputs.confirm != 'promote'
         run: |
           echo "::error::Type 'promote' to confirm. This deploys dev to production."
           exit 1
 
+      - name: Keep only the run that is 20:00 in Madrid
+        if: github.event_name == 'schedule'
+        run: |
+          # +0200 in summer -> 18 UTC, +0100 in winter -> 19 UTC.
+          OFFSET=$(TZ=Europe/Madrid date +%z | cut -c2-3)
+          WANT="0 $((20 - 10#$OFFSET)) * * *"
+          if [ "${{ github.event.schedule }}" != "$WANT" ]; then
+            echo "::notice::Not 20:00 in Madrid on this schedule; skipping."
+            echo "SKIP=true" >> "$GITHUB_ENV"
+          fi
+
       - uses: actions/checkout@v4
+        if: env.SKIP != 'true'
         with:
           fetch-depth: 0 # real history, to test ancestry
 
       - name: Verify main can fast-forward to dev
+        if: env.SKIP != 'true'
         run: |
           git fetch origin dev main
           DEV=$(git rev-parse origin/dev)
@@ -75,7 +99,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fast-forward main
-        if: env.ALREADY_LEVEL == 'false'
+        if: env.SKIP != 'true' && env.ALREADY_LEVEL == 'false'
         run: |
           # A plain push is fast-forward only; git rejects anything else. Never --force: it would
           # rewrite production history.
