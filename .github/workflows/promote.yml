@@ -14,6 +14,11 @@ name: promote
 # Pushing to main fires the prd Cloud Build triggers. Cloud Build is a GitHub App, so it gets
 # the push webhook even though the push comes from GITHUB_TOKEN.
 #
+# Every promote that ships something ends in a GitHub Release tagged prd-YYYY-MM-DD (Madrid
+# date; a same-day hotfix gets .2, .3, ...), listing the commits it shipped. The tag is the
+# exact commit prd runs, so it is also the rollback point. Tags never deploy: the prd triggers
+# only match the main branch.
+#
 # Migrations don't run on deploy, and nobody is watching at 20:00: run a migration against the
 # prd database before merging the PR that adds it to dev (docs/DEPLOY.md).
 
@@ -90,6 +95,8 @@ jobs:
           fi
 
           echo "ALREADY_LEVEL=false" >> "$GITHUB_ENV"
+          echo "FROM=$MAIN" >> "$GITHUB_ENV"
+          echo "TO=$DEV" >> "$GITHUB_ENV"
           {
             echo "### Promoting to production"
             echo ""
@@ -105,3 +112,21 @@ jobs:
           # rewrite production history.
           git push origin "$(git rev-parse origin/dev):refs/heads/main"
           echo "::notice::main is now at $(git rev-parse origin/dev). The prd Cloud Build triggers fire on this push."
+
+      - name: Record the release
+        if: env.SKIP != 'true' && env.ALREADY_LEVEL == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BASE="prd-$(TZ=Europe/Madrid date +%Y-%m-%d)"
+          TAG="$BASE"; N=1
+          while git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || git ls-remote --exit-code --tags origin "$TAG" >/dev/null; do
+            N=$((N + 1)); TAG="$BASE.$N"
+          done
+          {
+            echo "Promoted \`${FROM:0:8}\` -> \`${TO:0:8}\`."
+            echo ""
+            git log --format='- %s' --no-merges "$FROM..$TO"
+          } > notes.md
+          gh release create "$TAG" --target "$TO" --title "$TAG" --notes-file notes.md
+          echo "::notice::Released $TAG."
