@@ -239,6 +239,23 @@ export class MeerkoApiError extends Error {
   }
 }
 
+export type Billing =
+  | { enabled: false }
+  | {
+      enabled: true;
+      plan: "free" | "pro";
+      /** Stripe's subscription status (`active`, `past_due`, `canceled`…); null without a subscription. */
+      status: string | null;
+      current_period_end: string | null;
+      cancel_at_period_end: boolean;
+      /** Whether there's a Stripe customer, i.e. anything for the billing portal to show. */
+      has_customer: boolean;
+      balance: number;
+      pro_monthly_credits: number;
+      /** Credits in one top-up pack. */
+      credit_pack: number;
+    };
+
 export class MeerkoClient {
   constructor(private config: MeerkoConfig) {}
 
@@ -540,7 +557,23 @@ export class MeerkoClient {
   }
 
   getCredits() {
-    return this.request<{ enabled: boolean; balance: number | null }>("GET", "/credits");
+    /** `plan` and `buy_url` only on Meerko Cloud, where credits can be bought. */
+    return this.request<{ enabled: boolean; balance: number | null; plan?: "free" | "pro"; buy_url?: string }>("GET", "/credits");
+  }
+
+  /** The workspace's plan and subscription on Meerko Cloud; `{ enabled: false }` on a self-hosted install. */
+  getBilling() {
+    return this.request<Billing>("GET", "/billing");
+  }
+
+  /** A Stripe Checkout URL for Pro or for credit packs (dashboard session, workspace owner). */
+  startCheckout(input: { kind: "pro" } | { kind: "credits"; packs?: number }) {
+    return this.request<{ url: string }>("POST", "/billing/checkout", input).then((r) => r.url);
+  }
+
+  /** A Stripe customer portal URL: card, invoices, cancelling Pro (dashboard session, workspace owner). */
+  openBillingPortal() {
+    return this.request<{ url: string }>("POST", "/billing/portal").then((r) => r.url);
   }
 
   updateRows(tableId: string, updates: { id: string; data: Record<string, unknown> }[]) {

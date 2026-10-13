@@ -13,6 +13,9 @@ export const EVENTS = {
   leadsSearched: "leads_searched",
   rowsEnriched: "rows_enriched",
   sequenceStarted: "sequence_started",
+  checkoutStarted: "checkout_started",
+  subscriptionChanged: "subscription_changed",
+  creditsPurchased: "credits_purchased",
 } as const;
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];
 

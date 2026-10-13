@@ -36,6 +36,10 @@ export default function Page() {
         Google asks for two permissions: sending email, and reading your inbox (to spot replies). Tick both. Meerko only fetches in full
         the messages in threads it started or from people in your sequences; other mail is never stored.
       </p>
+      <p>
+        On Meerko Cloud, the Free plan connects one mailbox and <L href="/pricing">Pro</L> connects as many as you like. Reconnecting a
+        mailbox you already have always works. Self-hosted installs have no limit.
+      </p>
 
       <H2 id="limits">Daily limit and spacing</H2>
       <Facts

@@ -413,7 +413,11 @@ Write like a person answering an email: short, specific to what they said, in th
 
   server.registerTool(
     "get_credits",
-    { description: "Show the workspace's credit balance (null when self-hosted with your own provider keys).", inputSchema: {} },
+    {
+      description:
+        "Show the workspace's credit balance (null when self-hosted with your own provider keys). On Meerko Cloud it also returns the plan and buy_url, the page where a person can buy more credits: share it when credits run out.",
+      inputSchema: {},
+    },
     () => run(() => client().getCredits()),
   );
 

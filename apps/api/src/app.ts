@@ -90,6 +90,18 @@ import {
   revokeOAuthToken,
   startAuthorization,
   verifyAccessToken,
+  BillingError,
+  isStripeError,
+  getBilling,
+  handleStripeEvent,
+  openPortal,
+  PlanLimitError,
+  PRO_MONTHLY_CREDITS,
+  CREDIT_PACK_CREDITS,
+  MAX_CREDIT_PACKS,
+  startCheckout,
+  verifyStripeEvent,
+  type BillingConfig,
   type CreditPolicy,
   type GoogleOAuth,
   type SecretBox,
@@ -231,6 +243,8 @@ export interface AppDeps {
   publicUrl?: string;
   /** PostHog product events, errors and MCP analytics; a no-op when unset (tests, self-hosting without a key). */
   analytics?: Analytics;
+  /** Stripe on Meerko Cloud: plans, credit packs and plan limits. Unset (self-hosting) turns all of it off. */
+  billing?: BillingConfig;
 }
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -316,6 +330,32 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.html(resultPage("Unsubscribed", `${target.email} won't receive any more emails from this sender.`));
   });
 
+  // Stripe's webhooks, authenticated by their signature. A 500 makes Stripe retry for up to 3 days, and every
+  // grant is keyed to its Stripe object, so retries and redeliveries never add credits twice.
+  app.post("/stripe/webhook", async (c) => {
+    if (!deps.billing) return c.json({ error: "Not found" }, 404);
+    const payload = await c.req.text();
+    let event;
+    try {
+      event = verifyStripeEvent(deps.billing, payload, c.req.header("stripe-signature") ?? "");
+    } catch {
+      return c.json({ error: "Invalid signature" }, 400);
+    }
+    try {
+      const outcome = await handleStripeEvent(db, deps.billing, event);
+      if (outcome?.type === "subscription") {
+        await analytics.capture({ distinctId: outcome.workspaceId, event: EVENTS.subscriptionChanged, workspaceId: outcome.workspaceId, properties: { plan: outcome.plan, change: outcome.status } });
+      } else if (outcome?.type === "credits" && outcome.granted) {
+        await analytics.capture({ distinctId: outcome.workspaceId, event: EVENTS.creditsPurchased, workspaceId: outcome.workspaceId, properties: { credits: outcome.credits, reason: outcome.reason } });
+      }
+      return c.json({ received: true });
+    } catch (err) {
+      console.error(`stripe ${event.type} ${event.id} failed:`, err);
+      await analytics.captureException(err, undefined, { $exception_fingerprint: "api.stripe.webhook", event_type: event.type });
+      return c.json({ error: "Webhook failed" }, 500);
+    }
+  });
+
   // Public: Google redirects the user's browser here, so it's authenticated by the encrypted `state`, not an API key.
   app.get("/oauth/google/callback", async (c) => {
     const { code, state, error } = c.req.query();
@@ -326,12 +366,12 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (error) return fail(`Google said: ${error}. Try connecting again.`);
     if (!code || !state) return fail("This link is missing its sign-in code.");
     try {
-      const mailbox = await connectGmail(db, box, googleOAuth(), state, code, deps.gmailFetch);
+      const mailbox = await connectGmail(db, box, googleOAuth(), state, code, deps.gmailFetch, { enforcePlan: !!deps.billing });
       await analytics.capture({ distinctId: mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "gmail" } });
       if (returnTo) return c.redirect(backToApp(returnTo, { gmail_connected: mailbox.email }));
       return c.html(resultPage("Gmail connected", `Meerko can now send from ${mailbox.email}. You can close this tab.`));
     } catch (err) {
-      if (!(err instanceof GmailError) && !(err instanceof OAuthStateError)) console.error(err);
+      if (!(err instanceof GmailError) && !(err instanceof OAuthStateError) && !(err instanceof PlanLimitError)) console.error(err);
       return fail((err as Error).message);
     }
   });
@@ -701,8 +741,61 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   });
 
   v1.get("/credits", async (c) =>
-    c.json({ enabled: credits.enabled, balance: credits.enabled ? await getBalance(db, c.var.workspaceId) : null }),
+    c.json({
+      enabled: credits.enabled,
+      balance: credits.enabled ? await getBalance(db, c.var.workspaceId) : null,
+      // Where a person tops up; agents can hand this link over when a lookup runs out.
+      ...(deps.billing ? { plan: (await getBilling(db, c.var.workspaceId)).plan, buy_url: `${deps.appUrl}/app/settings#billing` } : {}),
+    }),
   );
+
+  // --- Billing (Meerko Cloud only) ---
+  const billing = () => {
+    if (!deps.billing) throw new HTTPException(404, { message: "Billing isn't enabled on this server" });
+    return deps.billing;
+  };
+  /** Money moves only for a signed-in owner, never for an API key or an agent. */
+  const requireOwner = (c: { var: Env["Variables"] }) => {
+    requireUser(c, "Sign in to the dashboard to manage billing");
+    if (c.var.user!.role !== "owner") throw new HTTPException(403, { message: "Only a workspace owner can manage billing" });
+  };
+
+  v1.get("/billing", async (c) => {
+    if (!deps.billing) return c.json({ enabled: false });
+    const b = await getBilling(db, c.var.workspaceId);
+    return c.json({
+      enabled: true,
+      plan: b.plan,
+      status: b.status,
+      current_period_end: b.currentPeriodEnd,
+      cancel_at_period_end: b.cancelAtPeriodEnd,
+      has_customer: !!b.customerId,
+      balance: await getBalance(db, c.var.workspaceId),
+      pro_monthly_credits: PRO_MONTHLY_CREDITS,
+      credit_pack: CREDIT_PACK_CREDITS,
+    });
+  });
+
+  v1.post("/billing/checkout", async (c) => {
+    const cfg = billing();
+    requireOwner(c);
+    const input = await parse(
+      z.discriminatedUnion("kind", [
+        z.object({ kind: z.literal("pro") }),
+        z.object({ kind: z.literal("credits"), packs: z.number().int().min(1).max(MAX_CREDIT_PACKS).default(1) }),
+      ]),
+      await c.req.json().catch(() => ({})),
+    );
+    const url = await startCheckout(db, cfg, c.var.workspaceId, c.var.user!.email, input);
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.checkoutStarted, workspaceId: c.var.workspaceId, properties: { kind: input.kind } });
+    return c.json({ url });
+  });
+
+  v1.post("/billing/portal", async (c) => {
+    const cfg = billing();
+    requireOwner(c);
+    return c.json({ url: await openPortal(db, cfg, c.var.workspaceId) });
+  });
 
   v1.post("/tables/:id/enrich", async (c) => {
     const input = await parse(enrichInput, await c.req.json());
@@ -899,6 +992,14 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
     if (err instanceof SequenceError || err instanceof ReplyError) return c.json({ error: err.message }, 400);
     if (err instanceof MailboxInUseError) return c.json({ error: err.message }, 409);
+    if (err instanceof PlanLimitError) return c.json({ error: err.message }, 402);
+    if (err instanceof BillingError) return c.json({ error: err.message }, 409);
+    if (isStripeError(err)) {
+      // Still an exception (a bad key or a Stripe outage needs looking at), but the person gets a plain answer.
+      console.error(err);
+      await analytics.captureException(err, (c.var as Partial<Env["Variables"]>).actorId, { $exception_fingerprint: `api.stripe:${c.req.routePath}` });
+      return c.json({ error: "Payments are unavailable right now. Try again in a minute." }, 502);
+    }
     if (err instanceof EncryptionNotConfiguredError) return c.json({ error: err.message }, 503);
     if (err instanceof GmailError) return c.json({ error: err.message }, err.needsReconnect ? 409 : 502);
     if (err instanceof IcypeasError) {
