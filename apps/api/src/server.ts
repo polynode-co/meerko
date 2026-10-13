@@ -1,5 +1,5 @@
 import { serve } from "@hono/node-server";
-import { GoogleOAuth, IcypeasClient, SecretBox, type SignupMode } from "@meerko/core";
+import { GoogleOAuth, IcypeasClient, SecretBox, stripeFromEnv, type SignupMode } from "@meerko/core";
 import { createDb } from "@meerko/db";
 import { createAnalytics } from "./analytics.ts";
 import { createApp } from "./app.ts";
@@ -9,9 +9,12 @@ const icypeasKey = process.env.ICYPEAS_API_KEY;
 const publicUrl = process.env.MEERKO_PUBLIC_URL ?? `http://localhost:${port}`;
 const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
 const analytics = createAnalytics();
+// On when STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and both price ids are set (Meerko Cloud).
+const billing = stripeFromEnv();
 const app = createApp(createDb(), {
   icypeas: icypeasKey ? new IcypeasClient({ apiKey: icypeasKey }) : undefined,
-  credits: { enabled: process.env.MEERKO_CREDITS === "on" },
+  // Selling credits only makes sense where they're spent, so billing turns metering on.
+  credits: { enabled: process.env.MEERKO_CREDITS === "on" || !!billing },
   secretBox: SecretBox.fromEnv(),
   googleOAuth:
     GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
@@ -35,6 +38,7 @@ const app = createApp(createDb(), {
   signup: process.env.MEERKO_SIGNUP === "open" ? "open" : ("invite" satisfies SignupMode),
   publicUrl,
   analytics,
+  billing,
 });
 
 serve({ fetch: app.fetch, port }, () => console.log(`Meerko API listening on http://localhost:${port}`));

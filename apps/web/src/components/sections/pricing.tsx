@@ -28,7 +28,8 @@ const plans = [
     sub: "4,900 credits / month",
     features: ["Unlimited mailboxes", "Sending & reply scan, 24/7", "Reply drafting & triage", "Email support"],
     cta: "Get started",
-    href: site.signupUrl,
+    // Sign in (or up), then upgrade from Settings, where Checkout starts.
+    href: `${site.signupUrl}?next=${encodeURIComponent("/app/settings#billing")}`,
     popular: true,
   },
   {
@@ -135,7 +136,9 @@ export const pricingFaq = [
   ["What uses credits?", "Only data that costs us money: finding and verifying emails, and lead search. Sending, reply detection and drafts don't."],
   ["Do misses cost anything?", "No. If no email is found, or the lookup fails, you aren't charged."],
   ["Can I use my own Icypeas key on Cloud?", "Yes. Add it with `meerko keys set icypeas` and lookups run on your key, with no credits charged."],
-  ["What happens when I run out?", "Lookups stop until you add credits. Sequences, reply detection and drafts keep running."],
+  ["What happens when I run out?", "Lookups stop until you add credits. Top up in Settings on any plan, in packs of 1,000 credits for $10. Sequences, reply detection and drafts keep running."],
+  ["Do credits expire?", "No. Free, bought and monthly Pro credits all stay in your balance, and you keep them if you cancel Pro."],
+  ["How do I cancel Pro?", "In Settings → Manage billing. Pro runs to the end of the month you paid for, then you're back on Free with the credits you have left."],
   ["Can I move from Cloud to self-hosted?", "Any time. It's the same code: ask us for an export of your workspace and load it into your own Postgres."],
 ];
 

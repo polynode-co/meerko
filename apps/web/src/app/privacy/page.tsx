@@ -60,6 +60,7 @@ export default function PrivacyPage() {
             ["Mailboxes", "The Gmail address you connect, its access tokens (encrypted), your sender name and daily limit."],
             ["Your workspace", "Tables and leads you import or find, sequences, drafts, and their pipeline stages."],
             ["Emails", "Emails Meerko sends for you, and the replies in those threads."],
+            ["Billing", "Your plan, subscription status and renewal date, your credit balance and purchases, and the ID Stripe gives your account. Card details stay with Stripe."],
             ["Connected apps", "Apps you approve (like Claude Code), when they were connected and last used."],
             ["Usage", "Pages you visit, clicks, and session recordings in which what you type and your workspace data are masked. Errors, with the page or request they happened on."],
             ["Agent tool calls", "When an agent uses Meerko Cloud's MCP server: which tool it called, the arguments and result, the short reason the agent gives, the agent app and model, and how long it took. Never your conversation with the agent."],
@@ -114,6 +115,13 @@ export default function PrivacyPage() {
               </a>,
               "Product analytics, session recording, error tracking and agent tool-call analytics",
               "Germany (EU)",
+            ],
+            [
+              <a key="s" href="https://stripe.com/privacy" className="text-accent underline-offset-2 hover:underline">
+                Stripe
+              </a>,
+              "Payments: your billing name, email, address and tax ID, and your card, which Meerko never sees",
+              "Ireland (EU) and United States",
             ],
             ["Icypeas", "Lead search and email finding: your search filters, and names with company domains", <Ph key="l">Location</Ph>],
           ]}

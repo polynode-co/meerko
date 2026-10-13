@@ -581,5 +581,7 @@ program
   .action(async () => {
     const res = await MeerkoClient.fromEnv().getCredits();
     if (json()) return console.log(JSON.stringify(res));
-    console.log(res.enabled ? `${res.balance} credits` : "Credits are off (self-hosted with your own provider keys).");
+    if (!res.enabled) return console.log("Credits are off (self-hosted with your own provider keys).");
+    console.log(`${res.balance} credits${res.plan ? ` · ${res.plan === "pro" ? "Pro" : "Free"} plan` : ""}`);
+    if (res.buy_url) console.log(`Buy more: ${res.buy_url}`);
   });

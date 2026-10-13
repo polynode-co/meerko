@@ -126,3 +126,28 @@ export async function connectGmail() {
   const { url } = await client.connectGmail(undefined, `${site.url}/app/settings`);
   redirect(url);
 }
+
+/** Sends the browser to a Stripe page, or back to Settings with the API's reason when it refused. */
+async function toStripe(fn: (c: MeerkoClient) => Promise<string>) {
+  let url: string;
+  try {
+    url = await fn(await meerko());
+  } catch (err) {
+    if (!(err instanceof MeerkoApiError)) throw err;
+    url = `/app/settings?billing_error=${encodeURIComponent(err.message)}#billing`;
+  }
+  redirect(url);
+}
+
+export async function upgradeToPro() {
+  await toStripe((c) => c.startCheckout({ kind: "pro" }));
+}
+
+export async function buyCredits(form: FormData) {
+  const packs = Number(form.get("packs") ?? 1);
+  await toStripe((c) => c.startCheckout({ kind: "credits", packs: Number.isInteger(packs) && packs > 0 ? packs : 1 }));
+}
+
+export async function manageBilling() {
+  await toStripe((c) => c.openBillingPortal());
+}

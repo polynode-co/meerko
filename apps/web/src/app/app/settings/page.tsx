@@ -2,14 +2,17 @@ import { KeyRound, Mail } from "lucide-react";
 import { connectGmail } from "@/app/app/actions";
 import { buttonClass, Card, PageHeader, Pill } from "@/components/app/ui";
 import { ApiKeysCard } from "@/components/app/api-keys-card";
+import { BillingCard } from "@/components/app/billing-card";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
 import { apiUrl, load } from "@/lib/meerko";
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ gmail_connected?: string; gmail_error?: string }> }) {
-  // The API's Gmail OAuth callback redirects back here with the outcome.
-  const { gmail_connected, gmail_error } = await searchParams;
-  const [mailboxes, credits, keys, apiKeys, apps, me] = await load((c) =>
-    Promise.all([c.listMailboxes(), c.getCredits(), c.listProviderKeys(), c.listApiKeys(), c.listConnectedApps(), c.me()]),
+type Search = { gmail_connected?: string; gmail_error?: string; billing?: string; billing_error?: string };
+
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<Search> }) {
+  // The API's Gmail OAuth callback, and Stripe Checkout, redirect back here with the outcome.
+  const { gmail_connected, gmail_error, billing: paid, billing_error } = await searchParams;
+  const [mailboxes, credits, keys, apiKeys, apps, me, billing] = await load((c) =>
+    Promise.all([c.listMailboxes(), c.getCredits(), c.listProviderKeys(), c.listApiKeys(), c.listConnectedApps(), c.me(), c.getBilling()]),
   );
   return (
     <div className="flex max-w-4xl flex-col gap-6 px-8 py-7">
@@ -49,17 +52,21 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         ))}
       </Card>
 
+      {billing.enabled && <BillingCard billing={billing} canManage={me.user?.role === "owner"} paid={paid} error={billing_error} />}
+
       <ConnectedAppsCard apps={apps} canManage={!!me.user} />
 
       <ApiKeysCard keys={apiKeys} apiUrl={apiUrl()} canManage={!!me.user} />
 
       <Card className="overflow-hidden">
         <div className="border-b border-line px-5 py-4">
-          <h2 className="flex items-center gap-2 text-[15px] font-semibold"><KeyRound className="size-4 text-accent" />Credits & provider keys</h2>
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold"><KeyRound className="size-4 text-accent" />{billing.enabled ? "Provider keys" : "Credits & provider keys"}</h2>
         </div>
         <div className="flex flex-col gap-3 px-5 py-4 text-[13px]">
           <p>
-            {credits.enabled ? (
+            {billing.enabled ? (
+              "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged."
+            ) : credits.enabled ? (
               <>Balance: <span className="font-mono">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 8, verifications 1, search results 1. Misses are free.</>
             ) : (
               "Credits are off on this install: searches and enrichment use your own provider keys."

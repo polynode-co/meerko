@@ -99,9 +99,11 @@ export default function TermsPage() {
               ; misses are free.
             </>,
             "Free credits have no cash value and can be withdrawn if they're abused.",
+            "Pro is billed monthly in advance and renews until you cancel it in Settings → Manage billing. Cancelling stops the next renewal; Pro lasts until the end of the month you paid for.",
+            "Credits don't expire while your account is open, including Pro's monthly credits after you cancel.",
             <>
-              Paid credits: <Ph>refund and expiry policy</Ph>. Prices can change with <Ph>30</Ph> days&apos; notice; credits you already bought
-              keep their value.
+              Payments are processed by Stripe. Refunds: <Ph>refund policy</Ph>. Prices can change with <Ph>30</Ph> days&apos; notice;
+              credits you already bought keep their value.
             </>,
           ]}
         />

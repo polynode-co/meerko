@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export type ColumnType = "text" | "number" | "email" | "url" | "boolean" | "json";
 
@@ -21,9 +21,20 @@ export interface ColumnDef {
 const id = () => uuid("id").primaryKey().defaultRandom();
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
+/** `pro` comes from a Stripe subscription (or is set by hand to comp a workspace). Self-hosted installs ignore it. */
+export const PLANS = ["free", "pro"] as const;
+export type Plan = (typeof PLANS)[number];
+
 export const workspaces = pgTable("workspaces", {
   id: id(),
   name: text("name").notNull(),
+  plan: text("plan").$type<Plan>().notNull().default("free"),
+  // Billing on Meerko Cloud, mirrored from Stripe by its webhooks.
+  stripeCustomerId: text("stripe_customer_id").unique(),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionStatus: text("subscription_status"),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
   createdAt: createdAt(),
 });
 
@@ -136,6 +147,8 @@ export const creditLedger = pgTable(
     delta: integer("delta").notNull(),
     reason: text("reason").notNull(),
     refId: uuid("ref_id"),
+    /** The Stripe object a grant came from (`stripe:cs_…`, `stripe:in_…`); unique, so a redelivered webhook grants once. */
+    externalRef: text("external_ref").unique(),
     createdAt: createdAt(),
   },
   (t) => [index("credit_ledger_workspace_id_idx").on(t.workspaceId)],

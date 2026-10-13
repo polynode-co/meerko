@@ -5,6 +5,7 @@ import { buildMime } from "./mail/mime.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "./provider-keys.ts";
 import { domainHealthFor } from "./mail/domain-health.ts";
 import { rampState } from "./sending/ramp.ts";
+import { assertMailboxAllowed } from "./billing.ts";
 import { NotFoundError } from "./tables.ts";
 
 const STATE_TTL_MS = 10 * 60_000;
@@ -44,10 +45,20 @@ export function readOAuthReturnTo(box: SecretBox | null, state: string): string 
 }
 
 /** Completes the OAuth callback: exchanges the code, reads the address and stores (or reconnects) the mailbox. */
-export async function connectGmail(db: Db, box: SecretBox | null, oauth: GoogleOAuth, state: string, code: string, fetchImpl?: typeof fetch) {
+export async function connectGmail(
+  db: Db,
+  box: SecretBox | null,
+  oauth: GoogleOAuth,
+  state: string,
+  code: string,
+  fetchImpl?: typeof fetch,
+  /** Meerko Cloud caps mailboxes by plan; self-hosted installs don't. */
+  opts: { enforcePlan?: boolean } = {},
+) {
   const workspaceId = readOAuthState(box, state);
   const { refreshToken } = await oauth.exchangeCode(code);
   const { emailAddress } = await new GmailClient(oauth, refreshToken, fetchImpl).profile();
+  if (opts.enforcePlan) await assertMailboxAllowed(db, workspaceId, emailAddress);
   const encryptedRefreshToken = box!.encrypt(refreshToken);
   const [mailbox] = await db
     .insert(mailboxes)
