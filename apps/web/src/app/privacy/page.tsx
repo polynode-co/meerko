@@ -1,6 +1,6 @@
 import { BadgeCheck, Ban, Cookie, Download, Eye, Lock, MailCheck, Pencil, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
-import { Bullets, ContactCard, LegalShell, Ph, Section, Table, Callout } from "@/components/legal/shell";
+import { Bullets, ContactCard, LEGAL_ENTITY, LegalShell, Section, Table, Callout } from "@/components/legal/shell";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -46,7 +46,8 @@ export default function PrivacyPage() {
     >
       <Section n={1} id="who-we-are" title="Who we are">
         <p>
-          Meerko Cloud is run by <Ph>Legal entity name</Ph>, <Ph>Registered address</Ph> (&quot;Meerko&quot;, &quot;we&quot;). For your account,
+          Meerko Cloud is run by {LEGAL_ENTITY.name}, {LEGAL_ENTITY.address}, tax ID (CIF) {LEGAL_ENTITY.taxId} (&quot;Meerko&quot;,
+          &quot;we&quot;). For your account,
           we decide how your data is used (we&apos;re the controller). For the leads and emails you put into Meerko, we only process them on
           your instructions (we&apos;re your processor).
         </p>
@@ -123,7 +124,7 @@ export default function PrivacyPage() {
               "Payments: your billing name, email, address and tax ID, and your card, which Meerko never sees",
               "Ireland (EU) and United States",
             ],
-            ["Icypeas", "Lead search and email finding: your search filters, and names with company domains", <Ph key="l">Location</Ph>],
+            ["Icypeas", "Lead search and email finding: your search filters, and names with company domains", "France (EU)"],
           ]}
         />
       </Section>
@@ -138,8 +139,8 @@ export default function PrivacyPage() {
 
       <Section n={7} id="retention" title="How long we keep it">
         <p>
-          For as long as your account is open. When you ask us to delete your account, we delete your workspace data within <Ph>30</Ph>{" "}
-          days, and it leaves backups within <Ph>X</Ph> days after that. Disconnecting a mailbox or an app ends its access straight away.
+          For as long as your account is open. When you ask us to delete your account, we delete your workspace data within 30 days, except
+          where the law requires us to keep it (invoices, for example). Disconnecting a mailbox or an app ends its access straight away.
         </p>
       </Section>
 

@@ -1,6 +1,6 @@
 import { Code, Coins, Database, MailWarning } from "lucide-react";
 import type { Metadata } from "next";
-import { Bullets, Callout, ContactCard, LegalShell, Ph, Section } from "@/components/legal/shell";
+import { Bullets, Callout, ContactCard, LEGAL_ENTITY, LegalShell, Section } from "@/components/legal/shell";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -39,7 +39,8 @@ export default function TermsPage() {
     >
       <Section n={1} id="agreement" title="The agreement">
         <p>
-          These terms are between you and <Ph>Legal entity name</Ph>, <Ph>Registered address</Ph> (&quot;Meerko&quot;, &quot;we&quot;). By using
+          These terms are between you and {LEGAL_ENTITY.name}, {LEGAL_ENTITY.address}, tax ID (CIF) {LEGAL_ENTITY.taxId} (&quot;Meerko&quot;,
+          &quot;we&quot;). By using
           Meerko Cloud you accept them. If you use it for a company, you confirm you&apos;re allowed to accept them on its behalf.
         </p>
       </Section>
@@ -84,7 +85,11 @@ export default function TermsPage() {
           <a href="/privacy" className="text-accent underline-offset-2 hover:underline">
             Privacy policy
           </a>
-          . Our data processing agreement is at <Ph>DPA link</Ph>.
+          . If you need a data processing agreement for the leads and emails we process for you, write to{" "}
+          <a href={`mailto:${site.contactEmail}`} className="text-accent underline-offset-2 hover:underline">
+            {site.contactEmail}
+          </a>{" "}
+          and we&apos;ll sign one with you.
         </p>
       </Section>
 
@@ -102,8 +107,9 @@ export default function TermsPage() {
             "Pro is billed monthly in advance and renews until you cancel it in Settings → Manage billing. Cancelling stops the next renewal; Pro lasts until the end of the month you paid for.",
             "Credits don't expire while your account is open, including Pro's monthly credits after you cancel.",
             <>
-              Payments are processed by Stripe. Refunds: <Ph>refund policy</Ph>. Prices can change with <Ph>30</Ph> days&apos; notice;
-              credits you already bought keep their value.
+              Payments are processed by Stripe. You can cancel Pro at any time; there are no refunds for part of a month. Other refunds,
+              including for unused credit packs, are handled case by case: write to {site.contactEmail}. Prices can change with 30 days&apos;
+              notice; credits you already bought keep their value.
             </>,
           ]}
         />
@@ -127,7 +133,7 @@ export default function TermsPage() {
       <Section n={9} id="liability" title="Liability">
         <p>
           To the extent the law allows, we aren&apos;t liable for indirect or consequential losses, and our total liability is capped at what
-          you paid us in the <Ph>12</Ph> months before the claim. Nothing here limits liability that can&apos;t legally be limited.
+          you paid us in the 12 months before the claim. Nothing here limits liability that can&apos;t legally be limited.
         </p>
       </Section>
 
@@ -140,7 +146,7 @@ export default function TermsPage() {
 
       <Section n={11} id="law" title="Governing law">
         <p>
-          These terms are governed by the laws of <Ph>Country</Ph>, and disputes go to the courts of <Ph>City</Ph>, unless your local
+          These terms are governed by the laws of Spain, and disputes go to the courts of Bilbao, unless your local
           consumer law gives you other rights.
         </p>
       </Section>
@@ -149,7 +155,7 @@ export default function TermsPage() {
         <ContactCard title="Questions about these terms?" email={site.contactEmail} />
         <p>
           We&apos;ll post changes here and update the date at the top. For changes that affect you materially, we&apos;ll email account owners
-          at least <Ph>30</Ph> days before they take effect.
+          at least 30 days before they take effect.
         </p>
       </Section>
     </LegalShell>

@@ -4,7 +4,14 @@ import { Footer } from "@/components/sections/footer";
 import { Nav } from "@/components/sections/nav";
 import { Container } from "@/components/ui/primitives";
 
-export const LEGAL_UPDATED = "7 October 2026";
+export const LEGAL_UPDATED = "13 October 2026";
+
+/** Who runs Meerko Cloud: the same company as Antwork (its privacy and terms pages say the same). */
+export const LEGAL_ENTITY = {
+  name: "Polynode Technologies, S.L.",
+  address: "C/ Gordoniz 22-7, 48012 Bilbao (Bizkaia), Spain",
+  taxId: "ESB75994186",
+};
 
 const legalNav: [label: string, href: string, icon: LucideIcon][] = [
   ["Privacy policy", "/privacy", Shield],
@@ -93,7 +100,7 @@ export function ContactCard({ title, email }: { title: string; email: string }) 
           <a href={`mailto:${email}`} className="font-medium text-accent underline-offset-2 hover:underline">
             {email}
           </a>{" "}
-          · <Ph>Legal entity name</Ph>, <Ph>Registered address</Ph>
+          · {LEGAL_ENTITY.name}, {LEGAL_ENTITY.address}
         </p>
       </div>
     </div>
