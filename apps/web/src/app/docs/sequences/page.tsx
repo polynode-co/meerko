@@ -107,7 +107,8 @@ export default function Page() {
       <p>
         Mailboxes that need reconnecting get no new leads, and their leads wait while the rest keep sending. Change the pool any time, from
         the sequence&apos;s <strong className="text-fg">Edit pool</strong> button or with <Tool name="update_sequence" />: leads that
-        haven&apos;t been emailed yet move to the new pool, and leads already mid-thread stay on their mailbox.
+        haven&apos;t been emailed yet move to the new pool. Leads already mid-thread stay on their mailbox, or stop if you removed
+        that mailbox from the pool.
       </p>
 
       <H2 id="when">When emails go out</H2>
@@ -124,7 +125,11 @@ export default function Page() {
       </p>
 
       <H2 id="skipped">Who gets skipped</H2>
-      <p>Enrolling never sends anything. <Tool name="enroll_rows" /> skips, and counts, any row that has:</p>
+      <p>
+        Enrolling never sends anything. <Tool name="enroll_rows" /> adds up to 1,000 rows per call by default (5,000 at most; call again
+        for more), and the dashboard&apos;s <strong className="text-fg">Add everyone</strong> button up to 5,000. Both skip, and count,
+        any row that has:
+      </p>
       <IconList
         icon={CircleSlash}
         items={[

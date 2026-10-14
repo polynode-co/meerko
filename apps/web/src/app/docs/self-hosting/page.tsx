@@ -29,6 +29,7 @@ export default function Page() {
         ["search", "Turn on lead search"],
         ["env", "Environment variables"],
         ["agent", "Connect your agent"],
+        ["docker", "Run it all with Docker"],
         ["production", "Running it in production"],
         ["updating", "Updating"],
       ]}
@@ -46,8 +47,9 @@ export default function Page() {
       <p>You need Node 20 or later, pnpm and Docker.</p>
 
       <Step n={1} id="install" title="Install">
-        {sh([`git clone ${site.githubUrl} ~/meerko`, "cd ~/meerko", "pnpm install", "cp .env.example .env"])}
+        {sh([`git clone --branch main ${site.githubUrl} ~/meerko`, "cd ~/meerko", "pnpm install", "cp .env.example .env"])}
         <p>
+          <C>main</C> is the released code, the same that runs Meerko Cloud; <C>dev</C> has changes not released yet.{" "}
           <C>.env</C> works as-is for a local install. You&apos;ll fill in the Google and search keys in steps 4 and 5.
         </p>
       </Step>
@@ -69,7 +71,8 @@ export default function Page() {
         </p>
         <p>
           Until you connect Google, the worker logs &quot;Sender idle&quot; and sends nothing. Tables, imports and AI columns already
-          work.
+          work. Once Google sign-in is on (step 4), the login page offers it instead; the API-key form stays at{" "}
+          <C>localhost:3000/login?method=key</C>.
         </p>
       </Step>
 
@@ -81,7 +84,9 @@ export default function Page() {
             <L href={docsSources.enableApis.url}>Google&apos;s guide</L>).
           </li>
           <li>
-            Configure the OAuth consent screen and add the Google accounts you&apos;ll send from as test users.
+            Configure the OAuth consent screen. If everyone who&apos;ll send works in one Google Workspace organisation, choose{" "}
+            <strong className="text-fg">Internal</strong>: Google then needs no verification and shows no warning to anyone in your
+            domain. Otherwise choose External and add the Google accounts you&apos;ll send from as test users.
           </li>
           <li>
             Create an OAuth client of type <strong className="text-fg">Web application</strong> with these authorized redirect URIs:
@@ -106,7 +111,7 @@ export default function Page() {
           <p>
             While the consent screen is in &quot;Testing&quot;, Google expires the refresh token after 7 days (
             <L href={docsSources.refreshExpiry.url}>Google&apos;s docs</L>). Meerko then marks the mailbox for reconnecting and pauses its
-            sends until you do. Publish the consent screen to avoid it. Never change <C>MEERKO_ENCRYPTION_KEY</C> once mailboxes are
+            sends until you do. An Internal app, or a published External one, avoids it. Never change <C>MEERKO_ENCRYPTION_KEY</C> once mailboxes are
             connected: the stored tokens can&apos;t be read without it.
           </p>
         </Callout>
@@ -127,22 +132,26 @@ export default function Page() {
 
       <H2 id="env">Environment variables</H2>
       <p>
-        All of them live in <C>.env</C> at the repo root; <C>.env.example</C> has comments for each.
+        All of them live in <C>.env</C> at the repo root; <C>.env.example</C> has comments for each. Running from source, the
+        dashboard (<C>pnpm dev</C>) reads <C>apps/web/.env.local</C> instead, and its defaults work for a local install.
       </p>
       <Fields
         head={["Variable", "What it's for"]}
         rows={[
           ["DATABASE_URL", "Postgres connection string. Required."],
           ["PORT", "The API's port. Default 8787."],
-          ["MEERKO_PUBLIC_URL", "The API's public URL, used for the Google redirects and unsubscribe links. Default http://localhost:8787."],
-          ["MEERKO_APP_URL", "The dashboard's URL. After connecting Gmail or signing in, the browser comes back here, and apps are approved on its consent page. Default http://localhost:3000."],
-          ["MEERKO_API_URL", "Where the dashboard, the CLI and the MCP server reach the API. Default http://localhost:8787."],
-          ["MEERKO_ENCRYPTION_KEY", "32 bytes, base64. Encrypts Gmail tokens, provider keys and unsubscribe links. Required to send and for app sign-in."],
+          ["MEERKO_PUBLIC_URL", "The API's public URL: Google redirects, unsubscribe links, and the API and MCP addresses the dashboard shows. Default http://localhost:8787."],
+          ["MEERKO_APP_URL", "The dashboard's URL. After connecting Gmail or signing in, the browser comes back here, and apps are approved on its consent page. Required for Google sign-in, agent sign-in and billing; .env.example sets http://localhost:3000."],
+          ["MEERKO_API_URL", "Where the dashboard's server, the CLI and the MCP server reach the API. Default http://localhost:8787."],
+          ["MEERKO_ENCRYPTION_KEY", "32 bytes, base64. Encrypts Gmail tokens, provider keys and unsubscribe links. Required to send, to sign in with Google, for agent sign-in and to store provider keys."],
           ["GOOGLE_CLIENT_ID · GOOGLE_CLIENT_SECRET", "Your OAuth client. Required to send email and to sign in with Google."],
           ["MEERKO_SIGNUP", "invite (default): only addresses added with pnpm db:invite can sign in with Google. open: anyone can."],
           ["ICYPEAS_API_KEY", "Lead search and email finding for every workspace on this server."],
-          ["MEERKO_CREDITS", "off (default) when self-hosting. on meters search and enrichment in credits, as on Meerko Cloud."],
+          ["MEERKO_CREDITS", "off (default) when self-hosting. on meters search and enrichment in credits, as on Meerko Cloud. Setting up Stripe turns it on."],
           ["MEERKO_TICK_SECRET", "Meerko Cloud only, where a scheduler replaces the worker. Leave it empty."],
+          ["STRIPE_*", "Billing, as on Meerko Cloud (see .env.example). Leave them empty: no billing and no plan limits."],
+          ["POSTHOG_API_KEY · NEXT_PUBLIC_POSTHOG_KEY", "Product analytics. Leave them empty and nothing is sent anywhere."],
+          ["NEXT_PUBLIC_SITE_URL", "The dashboard's public URL, built into its image (Docker builds only). Same as MEERKO_APP_URL."],
         ]}
       />
 
@@ -158,6 +167,21 @@ export default function Page() {
         <L href="/docs/codex-cursor">Codex & Cursor</L>.
       </p>
 
+      <H2 id="docker">Run it all with Docker</H2>
+      <p>
+        <C>docker-compose.selfhost.yml</C> runs everything in containers: Postgres, the migrations, the API, the worker and the
+        dashboard. You need Docker and the <C>.env</C> from step 1, with Google and the encryption key filled in (step 4).
+      </p>
+      {sh([
+        "docker compose -f docker-compose.selfhost.yml up -d --build",
+        "docker compose -f docker-compose.selfhost.yml run --rm tools packages/core/src/seed.ts   # prints an API key",
+      ])}
+      <p>
+        The dashboard is on <C>http://localhost:3000</C> and the API on <C>http://localhost:8787</C>, as with <C>pnpm dev</C>, so the
+        same Google redirect URIs work. Migrations run on every <C>up</C>. Invite someone with{" "}
+        <C>run --rm tools packages/core/src/invite.ts you@example.com</C>.
+      </p>
+
       <H2 id="production">Running it in production</H2>
       <ul className="flex list-disc flex-col gap-2 pl-6">
         <li>
@@ -165,22 +189,30 @@ export default function Page() {
           redirects to it. Update the OAuth client&apos;s redirect URIs to match.
         </li>
         <li>
-          Build the API and dashboard images from the repo root with <C>apps/api/Dockerfile</C> and <C>apps/web/Dockerfile</C>. The
-          dashboard takes <C>NEXT_PUBLIC_SITE_URL</C> at build time (same origin as <C>MEERKO_APP_URL</C>) and <C>MEERKO_API_URL</C> at
-          runtime.
+          Set <C>MEERKO_APP_URL</C> to the dashboard&apos;s public URL too, and serve both over HTTPS behind a reverse proxy. With
+          Docker Compose, point the proxy at ports 3000 and 8787.
         </li>
         <li>
-          Keep a worker running: <C>pnpm --filter @meerko/worker start</C>. Running more than one at once is safe.
-          On shutdown it finishes the current pass first.
+          Or build the images yourself from the repo root: <C>apps/api/Dockerfile</C>, <C>apps/worker/Dockerfile</C> and{" "}
+          <C>apps/web/Dockerfile</C>. Each listens on port 8080 (the worker listens on none). The dashboard takes{" "}
+          <C>NEXT_PUBLIC_SITE_URL</C> at build time, and <C>MEERKO_API_URL</C> and <C>MEERKO_PUBLIC_URL</C> at runtime.
         </li>
         <li>
-          Run <C>pnpm db:migrate</C> against the production database before each deploy; migrations don&apos;t run on start.
+          Keep one worker running (more is safe): it sends the emails and finds the replies. On shutdown it finishes the current pass
+          first.
+        </li>
+        <li>
+          Outside Docker Compose, run <C>pnpm db:migrate</C> against the production database before each deploy; migrations
+          don&apos;t run on start.
         </li>
         <li>Back up Postgres, and the encryption key with it.</li>
       </ul>
 
       <H2 id="updating">Updating</H2>
       {sh(["git pull", "pnpm install", "pnpm db:migrate"])}
+      <p>
+        With Docker: <C>git pull</C>, then <C>docker compose -f docker-compose.selfhost.yml up -d --build</C>, which also migrates.
+      </p>
     </DocsShell>
   );
 }

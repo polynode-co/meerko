@@ -83,7 +83,8 @@ export default function Page() {
       <H2 id="test">Sending a test</H2>
       <p>
         <Tool name="send_test_email" /> sends a short &quot;Meerko test email&quot; from the mailbox to an address you choose. Send it to
-        yourself to check the connection.
+        yourself to check the connection. In the dashboard it&apos;s <strong className="text-fg">Send test</strong> next to each
+        mailbox in Settings; from the terminal, <C>pnpm meerko mailboxes test &lt;id&gt; --to you@example.com</C>.
       </p>
 
       <H2 id="reconnect">When a mailbox needs reconnecting</H2>

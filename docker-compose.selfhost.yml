@@ -1,0 +1,91 @@
+# The whole of Meerko in containers: Postgres, migrations, the API, the worker and the dashboard.
+#
+#   cp .env.example .env               # then fill in Google and the encryption key (docs: /docs/self-hosting)
+#   docker compose -f docker-compose.selfhost.yml up -d --build
+#   docker compose -f docker-compose.selfhost.yml run --rm tools packages/core/src/seed.ts    # prints an API key
+#
+# The dashboard is on http://localhost:3000 and the API on http://localhost:8787. On a server, put both behind
+# HTTPS and set MEERKO_PUBLIC_URL and MEERKO_APP_URL in .env to their public addresses.
+# (docker-compose.yml, used by `pnpm db:up`, is only the database for running Meerko from source.)
+
+x-env: &env
+  env_file: .env
+  environment:
+    # Containers reach Postgres by its service name, whatever DATABASE_URL in .env says.
+    DATABASE_URL: postgres://meerko:meerko@postgres:5432/meerko
+    PORT: "8080"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: meerko
+      POSTGRES_PASSWORD: meerko
+      POSTGRES_DB: meerko
+    volumes:
+      - meerko-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meerko"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  # Applies database migrations, then exits. Everything else waits for it.
+  migrate:
+    <<: *env
+    image: meerko-api
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    working_dir: /repo/packages/db
+    command: ["/repo/apps/api/node_modules/.bin/tsx", "src/migrate.ts"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    <<: *env
+    image: meerko-api
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    ports: ["8787:8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  worker:
+    <<: *env
+    build: { context: ., dockerfile: apps/worker/Dockerfile }
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  web:
+    env_file: .env
+    environment:
+      PORT: "8080"
+      # The dashboard's server calls the API inside the network; browsers use MEERKO_PUBLIC_URL from .env.
+      MEERKO_API_URL: http://api:8080
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Inlined at build time: the dashboard's own public address.
+        NEXT_PUBLIC_SITE_URL: ${MEERKO_APP_URL:-http://localhost:3000}
+    ports: ["3000:8080"]
+    depends_on: [api]
+    restart: unless-stopped
+
+  # One-off commands:  docker compose -f docker-compose.selfhost.yml run --rm tools <script> [args]
+  #   packages/core/src/seed.ts ["Workspace name"]          a workspace and its API key
+  #   packages/core/src/invite.ts you@example.com           lets an address sign in with Google
+  tools:
+    <<: *env
+    image: meerko-api
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    working_dir: /repo
+    entrypoint: ["/repo/apps/api/node_modules/.bin/tsx"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    profiles: ["tools"]
+
+volumes:
+  meerko-data:

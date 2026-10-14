@@ -1,7 +1,7 @@
 import { CodeBlock } from "@/components/docs/code-block";
 import { DocsShell, docsMetadata } from "@/components/docs/shell";
 import { C, Callout, Fields, H2, L } from "@/components/docs/ui";
-import { apiUrl, mcpUrl } from "@/lib/meerko";
+import { mcpUrl, publicApiUrl } from "@/lib/meerko";
 
 export const metadata = docsMetadata("api-keys");
 
@@ -47,13 +47,14 @@ export default function Page() {
         rows={[
           ["HTTP", <>Send it as a bearer token: <C>Authorization: Bearer mk_…</C>.</>],
           ["MCP", <>The same header on <C>{mcpUrl()}</C>. <L href="/docs/claude-code#other-ways">Example</L>.</>],
-          ["CLI", <><C>pnpm meerko login --key mk_… --url {apiUrl()}</C>, or set <C>MEERKO_API_KEY</C>.</>],
+          ["CLI", <><C>pnpm meerko login --key mk_… --url {publicApiUrl()}</C>, or set <C>MEERKO_API_KEY</C>.</>],
+          ["Dashboard", <>Paste it at <C>/login?method=key</C>. Signed in with a key, you can&apos;t buy credits or manage keys.</>],
         ]}
       />
       <CodeBlock
         title="bash"
-        code={`curl -H "Authorization: Bearer mk_…" ${apiUrl()}/v1/tables`}
-        lines={[{ text: `$ curl -H "Authorization: Bearer mk_…" ${apiUrl()}/v1/tables` }]}
+        code={`curl -H "Authorization: Bearer mk_…" ${publicApiUrl()}/v1/tables`}
+        lines={[{ text: `$ curl -H "Authorization: Bearer mk_…" ${publicApiUrl()}/v1/tables` }]}
       />
 
       <H2 id="revoke">Revoking</H2>

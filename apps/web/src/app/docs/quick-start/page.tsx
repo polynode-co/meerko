@@ -38,7 +38,8 @@ export default function Page() {
         <p>
           In the dashboard, open <L href="/app/settings">Settings</L> and click <strong className="text-fg">Connect Gmail</strong>.
           Google asks for permission to send email and read your inbox: tick every box, or Meerko can&apos;t send or see replies. New
-          mailboxes send up to 50 emails a day; <L href="/docs/mailboxes">Mailboxes</L> explains how to change that.
+          mailboxes start at 10 emails a day and ramp up to their limit (50 by default) over 21 days;{" "}
+          <L href="/docs/mailboxes">Mailboxes</L> explains how to change that.
         </p>
       </Step>
 
