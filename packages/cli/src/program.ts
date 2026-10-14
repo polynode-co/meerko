@@ -176,7 +176,7 @@ tables
       res.addedColumns.forEach((c) => added.add(c.key));
     }
     if (json()) return console.log(JSON.stringify({ inserted, addedColumns: [...added] }));
-    console.log(`Imported ${inserted} rows.` + (added.size ? ` New columns: ${[...added].join(", ")}` : ""));
+    console.log(`Imported ${inserted} ${inserted === 1 ? "row" : "rows"}.` + (added.size ? ` New columns: ${[...added].join(", ")}` : ""));
   });
 
 tables

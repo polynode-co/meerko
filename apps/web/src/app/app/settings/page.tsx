@@ -5,7 +5,7 @@ import { ApiKeysCard } from "@/components/app/api-keys-card";
 import { BillingCard } from "@/components/app/billing-card";
 import { TestEmail } from "@/components/app/test-email";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
-import { apiUrl, load } from "@/lib/meerko";
+import { load, publicApiUrl } from "@/lib/meerko";
 
 type Search = { gmail_connected?: string; gmail_error?: string; billing?: string; billing_error?: string };
 
@@ -58,7 +58,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       <ConnectedAppsCard apps={apps} canManage={!!me.user} />
 
-      <ApiKeysCard keys={apiKeys} apiUrl={apiUrl()} canManage={!!me.user} />
+      <ApiKeysCard keys={apiKeys} apiUrl={publicApiUrl()} canManage={!!me.user} />
 
       <Card className="overflow-hidden">
         <div className="border-b border-line px-5 py-4">

@@ -14,13 +14,16 @@ Meerko is an agent-native outbound engine for GTM engineers. You drive it from y
 Requires Node 20+, pnpm and Docker.
 
 ```bash
+git clone --branch main https://github.com/iker-gonzalez/meerko.ai meerko && cd meerko
 pnpm install
 cp .env.example .env
 pnpm db:up          # Postgres on localhost:54329
 pnpm db:migrate
 pnpm db:seed        # prints an API key (mk_...)
-pnpm --filter @meerko/api dev   # API on http://localhost:8787
+pnpm dev            # API on :8787, the worker, and the dashboard on http://localhost:3000
 ```
+
+Log in to the dashboard with the API key. To send email, add a Google OAuth client to `.env`; the [self-hosting guide](https://meerko.ai/docs/self-hosting) walks through it, and through running everything in Docker instead (`docker-compose.selfhost.yml`).
 
 ### CLI
 
@@ -64,14 +67,13 @@ Meerko Cloud uses [PostHog](https://posthog.com) (EU cloud), with one project pe
 | `apps/worker` | Background worker: sends due emails and scans for replies |
 | `apps/web` | Site, docs and dashboard (Next.js + Tailwind v4) — `pnpm --filter @meerko/web dev`, then open http://localhost:3000 |
 | `packages/db` | Drizzle schema and migrations (Postgres) |
-| `packages/core` | Domain logic: tables, column inference, API keys |
+| `packages/core` | Domain logic: tables and enrichment, sending and replies, sign-in and OAuth, billing |
 | `packages/sdk` | Typed HTTP client shared by the CLI and MCP server |
 | `packages/cli` | The `meerko` CLI (alias `mk`) |
 | `packages/mcp` | MCP server for coding agents |
-| `ee/` | Future enterprise features (commercial license) |
 
 Run checks with `pnpm typecheck` and `pnpm test`. The docs' MCP and CLI reference is generated from `packages/mcp` and `packages/cli`: after changing a tool or command, run `pnpm docs:reference` (the web typecheck fails while it's stale).
 
 ## License
 
-Everything outside `ee/` is [AGPL-3.0](LICENSE). The `ee/` directory is under a separate commercial license ([ee/LICENSE](ee/LICENSE)).
+[AGPL-3.0](LICENSE).

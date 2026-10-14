@@ -128,7 +128,7 @@ Write "N/A" when a row lacks what the instruction needs, so it isn't returned ag
   server.registerTool(
     "find_people",
     {
-      description: `Search the lead database for people and save them as rows in a table (first_name, last_name, title, company, domain, company_size, location, linkedin_url).
+      description: `Search the lead database for people and save them as rows in a table (first_name, last_name, title, company, domain, company_size, industry, location, linkedin_url, company_linkedin_url).
 ${filterGuide}
 People fields: currentJobTitle, pastJobTitle, firstname, lastname, location, keyword, skills, languages, school, currentCompanyName, currentCompanyWebsite, currentCompanyUrn, "currentCompany.industry", "currentCompany.location", "currentCompany.keyword"; ranges: "currentCompany.headcount", "currentCompany.revenue", totalYearsOfExperience; growth: "currentCompany.headcountGrowth" {timespan: "6months"|"12months"|"24months", min, max}.`,
       inputSchema: { query: z.record(z.string(), z.record(z.string(), z.unknown())), ...leadSearchInput },
@@ -144,7 +144,7 @@ People fields: currentJobTitle, pastJobTitle, firstname, lastname, location, key
   server.registerTool(
     "find_companies",
     {
-      description: `Search the lead database for companies and save them as rows in a table (company, domain, industry, employees, location, description, linkedin_url, company_urn).
+      description: `Search the lead database for companies and save them as rows in a table (company, domain, industry, employees, location, founded_year, description, linkedin_url, company_urn).
 ${filterGuide}
 Company fields: name, industry (LinkedIn industry names, e.g. "Financial Services", "Software Development"), location, keyword, domain, type; ranges: headcount, revenue (USD); growth: headcountGrowth {timespan, min, max}.
 To get decision-makers at the found companies, pass their company_urn values to find_people as currentCompanyUrn.`,

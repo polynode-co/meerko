@@ -124,7 +124,14 @@ export async function enrichEmails(tableId: string) {
 export async function connectGmail() {
   const client = await meerko();
   // Google sends the browser to the API's callback, which redirects back here with the outcome.
-  const { url } = await client.connectGmail(undefined, `${site.url}/app/settings`);
+  let url: string;
+  try {
+    url = (await client.connectGmail(undefined, `${site.url}/app/settings`)).url;
+  } catch (err) {
+    // E.g. a self-hosted server without a Google OAuth client yet: say so on the page instead of crashing it.
+    if (!(err instanceof MeerkoApiError)) throw err;
+    url = `/app/settings?gmail_error=${encodeURIComponent(err.message)}`;
+  }
   redirect(url);
 }
 

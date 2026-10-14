@@ -9,6 +9,11 @@ import { MeerkoApiError, MeerkoClient } from "@meerko/sdk";
  */
 export const SESSION_COOKIE = "meerko_session";
 export const apiUrl = () => process.env.MEERKO_API_URL ?? "http://localhost:8787";
+/**
+ * The API as browsers and agents reach it: sign-in redirects, the MCP URL, examples in the docs. The same as
+ * apiUrl() unless MEERKO_PUBLIC_URL says otherwise, as in Docker Compose, where this server calls http://api:8080.
+ */
+export const publicApiUrl = () => process.env.MEERKO_PUBLIC_URL || apiUrl();
 
 const THIRTY_DAYS_S = 60 * 60 * 24 * 30;
 
@@ -47,4 +52,4 @@ export const NEXT_COOKIE = "meerko_next";
 export const safeNext = (next: string | null | undefined) => (next && /^\/(?![/\\])/.test(next) ? next : null);
 
 /** The hosted MCP endpoint that agents connect to (they sign in with OAuth). */
-export const mcpUrl = () => new URL("/mcp", apiUrl()).toString();
+export const mcpUrl = () => new URL("/mcp", publicApiUrl()).toString();

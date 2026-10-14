@@ -47,8 +47,9 @@ export default function Page() {
 
       <H2 id="import">Importing</H2>
       <p>
-        In the dashboard, <L href="/app/leads">Leads → Import CSV</L> turns a CSV with a header row (up to 10,000 rows) into a new
-        table. <Tool name="import_rows" /> takes up to 10,000 rows per call; unknown keys become new columns. From the terminal, the CLI reads
+        In the dashboard, <L href="/app/leads">Leads → Import CSV</L> turns a CSV with a header row (up to 10,000 rows and 10 MB)
+        into a new table, and <strong className="text-fg">Add lead</strong> on a table&apos;s page adds one person by hand (an email is
+        required; without a table yet, it creates &quot;My leads&quot;). <Tool name="import_rows" /> takes up to 10,000 rows per call; unknown keys become new columns. From the terminal, the CLI reads
         a CSV with a header row or a JSON array:
       </p>
       <CodeBlock title="bash" code={'pnpm meerko tables create "Fintech CTOs Spain"\npnpm meerko tables import <tableId> leads.csv'} lines={[{ text: '$ pnpm meerko tables create "Fintech CTOs Spain"' }, { text: "$ pnpm meerko tables import <tableId> leads.csv" }]} />
