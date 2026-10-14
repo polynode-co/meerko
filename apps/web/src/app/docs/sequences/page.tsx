@@ -46,7 +46,8 @@ export default function Page() {
       <Callout icon={ShieldCheck}>
         <p>
           Nothing is sent until the sequence is started. Your agent shows you a preview and the enrollment counts first, and starts only
-          after you approve.
+          after you approve. You can also write one yourself in the dashboard: <L href="/app/sequences/new">Sequences → New sequence</L>,
+          then add the people and start it from the sequence&apos;s page.
         </p>
       </Callout>
 

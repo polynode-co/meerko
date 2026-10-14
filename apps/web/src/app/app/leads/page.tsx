@@ -1,5 +1,6 @@
 import { Table2 } from "lucide-react";
 import Link from "next/link";
+import { ImportCsv } from "@/components/app/import-csv";
 import { Card, EmptyState, PageHeader } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
 
@@ -7,12 +8,14 @@ export default async function LeadsPage() {
   const tables = await load((c) => c.listTables());
   return (
     <div className="flex flex-col gap-6 px-8 py-7">
-      <PageHeader eyebrow="Leads" title="Tables" meta={`${tables.length} ${tables.length === 1 ? "table" : "tables"}`} />
+      <PageHeader eyebrow="Leads" title="Tables" meta={`${tables.length} ${tables.length === 1 ? "table" : "tables"}`} actions={tables.length > 0 && <ImportCsv />} />
       <Card className="overflow-hidden">
         {tables.length === 0 ? (
           <EmptyState icon={Table2} title="No tables yet">
-            Ask your agent to find leads (“find 50 fintech CTOs in Spain”), or import a CSV with{" "}
-            <span className="font-mono text-fg">meerko tables import</span>.
+            <span className="flex flex-col items-center gap-3">
+              Import a CSV of the people you want to email, or ask your agent to find leads (“find 50 fintech CTOs in Spain”).
+              <ImportCsv variant="primary" />
+            </span>
           </EmptyState>
         ) : (
           tables.map((t) => (

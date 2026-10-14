@@ -1,6 +1,6 @@
-import { Send } from "lucide-react";
+import { Plus, Send } from "lucide-react";
 import Link from "next/link";
-import { AgentHint, Card, EmptyState, PageHeader, Pill } from "@/components/app/ui";
+import { AgentHint, buttonClass, Card, EmptyState, PageHeader, Pill } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
 
 export default async function SequencesPage() {
@@ -8,11 +8,23 @@ export default async function SequencesPage() {
   const stats = await load((c) => Promise.all(sequences.map((s) => c.sequenceStats(s.id))));
   return (
     <div className="flex flex-col gap-6 px-8 py-7">
-      <PageHeader eyebrow="Sequences" title="Sequences" meta="Multi-step emails sent from your own mailbox, stopped automatically when someone replies." />
+      <PageHeader
+        eyebrow="Sequences"
+        title="Sequences"
+        meta="Multi-step emails sent from your own mailbox, stopped automatically when someone replies."
+        actions={
+          <Link href="/app/sequences/new" className={buttonClass("primary")}>
+            <Plus className="size-[15px]" /> New sequence
+          </Link>
+        }
+      />
       <Card className="overflow-hidden">
         {stats.length === 0 ? (
           <EmptyState icon={Send} title="No sequences yet">
-            <AgentHint command="write a 3-step sequence for my agencies table and show me a preview">Your agent writes sequences.</AgentHint>
+            <span className="flex flex-col items-center gap-3">
+              Write one here with “New sequence”, or let your agent draft it for you.
+              <AgentHint command="write a 3-step sequence for my agencies table and show me a preview">Your agent can write it too.</AgentHint>
+            </span>
           </EmptyState>
         ) : (
           stats.map((s) => (

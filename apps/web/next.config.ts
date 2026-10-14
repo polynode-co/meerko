@@ -22,6 +22,8 @@ const nextConfig: NextConfig = {
   },
   // PostHog's API paths end in a slash; a redirect would break them.
   skipTrailingSlashRedirect: true,
+  // CSV imports go through a server action (app/app/actions.ts importCsv); the default cap is 1 MB.
+  experimental: { serverActions: { bodySizeLimit: "10mb" } },
   // Only when maps are uploaded (below); otherwise Next would serve them publicly.
   productionBrowserSourceMaps: Boolean(process.env.POSTHOG_CLI_API_KEY),
 };

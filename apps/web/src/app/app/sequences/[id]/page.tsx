@@ -1,6 +1,7 @@
 import { CircleCheck, Eye, TriangleAlert, Users } from "lucide-react";
 import Link from "next/link";
 import { MeerkoApiError } from "@meerko/sdk";
+import { EnrollButton } from "@/components/app/enroll-button";
 import { MailboxPoolCard } from "@/components/app/mailbox-pool";
 import { SequenceToggle } from "@/components/app/sequence-toggle";
 import { Card, formatWhen, PageHeader, Pill, type PillTone } from "@/components/app/ui";
@@ -58,7 +59,13 @@ export default async function SequencePage({ params, searchParams }: { params: P
   // One sentence on what is happening right now, and what (if anything) the user should do.
   const banner =
     seq.status === "draft"
-      ? { tone: "border-accent/60 bg-accent-soft", title: "Not started yet", text: "Check the emails below, then start sending. Nothing goes out until you do." }
+      ? {
+          tone: "border-accent/60 bg-accent-soft",
+          title: "Not started yet",
+          text: stats.enrolled
+            ? "Check the emails below, then start sending. Nothing goes out until you do."
+            : "Add the people below and check what they'll receive, then start sending. Nothing goes out until you do.",
+        }
       : seq.status === "paused"
         ? { tone: "border-line bg-raised", title: "Paused", text: "No emails go out until you resume. People who reply are still detected." }
         : working.length === 0
@@ -71,7 +78,7 @@ export default async function SequencePage({ params, searchParams }: { params: P
             ? {
                 tone: "border-line bg-raised",
                 title: "Nothing left to send",
-                text: stats.enrolled ? "Everyone has replied, finished or stopped. Enroll more leads to keep going." : "No one is enrolled yet. Ask your agent to enroll leads from the table.",
+                text: stats.enrolled ? "Everyone has replied, finished or stopped. Add more people to keep going." : "No one is in it yet. Add the people from the table below.",
               }
             : {
                 tone: "border-signal/50 bg-signal/5",
@@ -139,10 +146,14 @@ export default async function SequencePage({ params, searchParams }: { params: P
         <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
           <Users className="size-4 text-accent" />
           <h2 className="text-[15px] font-semibold">People</h2>
-          <span className="text-xs text-muted">who is in this sequence and what happens next</span>
+          <span className="flex-1 text-xs text-muted">who is in this sequence and what happens next</span>
+          <EnrollButton sequenceId={id} tableName={table.name} />
         </div>
         {recipients.length === 0 ? (
-          <p className="px-5 py-6 text-[13px] text-muted">Nobody yet. Ask your agent to “enroll the verified leads from {table.name}”.</p>
+          <p className="px-5 py-6 text-[13px] text-muted">
+            Nobody yet. Add everyone from {table.name} who has an email, or ask your agent to “enroll the verified leads from {table.name}”.
+            Nothing is sent until you start the sequence.
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-[13px]">

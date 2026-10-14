@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type ReplyIntent, type Stage } from "@meerko/sdk";
+import { parse as parseCsv } from "csv-parse/sync";
+import { MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type ReplyIntent, type SequenceStep, type Stage } from "@meerko/sdk";
 import { apiUrl, meerko, safeNext, SESSION_COOKIE, setSessionCookie } from "@/lib/meerko";
 import { site } from "@/lib/site";
 
@@ -150,4 +151,98 @@ export async function buyCredits(form: FormData) {
 
 export async function manageBilling() {
   await toStripe((c) => c.openBillingPortal());
+}
+
+// next.config.ts lets action bodies reach 10 MB for this; the API takes 10,000 rows per call.
+const MAX_CSV_BYTES = 10 * 1024 * 1024;
+const MAX_CSV_ROWS = 10_000;
+
+/** A CSV with a header row becomes a new leads table; the browser then opens it. */
+export async function importCsv(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose a CSV file" };
+  if (file.size > MAX_CSV_BYTES) return { ok: false, error: "That file is over 10 MB. Split it, or import it with the CLI." };
+  let rows: Record<string, string>[];
+  try {
+    rows = parseCsv(await file.text(), { columns: true, skip_empty_lines: true, trim: true, bom: true, relax_column_count: true });
+  } catch (err) {
+    return { ok: false, error: `That doesn't read as a CSV: ${(err as Error).message}` };
+  }
+  if (rows.length === 0) return { ok: false, error: "The file has a header row but no rows under it" };
+  if (rows.length > MAX_CSV_ROWS) return { ok: false, error: `That's ${rows.length.toLocaleString("en")} rows; import up to ${MAX_CSV_ROWS.toLocaleString("en")} at a time` };
+  const name = String(form.get("name") ?? "").trim() || file.name.replace(/\.csv$/i, "") || "Imported leads";
+
+  let tableId: string;
+  try {
+    const client = await meerko();
+    const table = await client.createTable({ name });
+    for (let i = 0; i < rows.length; i += 1000) await client.insertRows(table.id, rows.slice(i, i + 1000));
+    tableId = table.id;
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+  revalidatePath("/app/leads");
+  redirect(`/app/leads/${tableId}`);
+}
+
+export interface NewSequence {
+  name: string;
+  tableId: string;
+  mailboxIds: string[];
+  steps: SequenceStep[];
+  timezone: string;
+  windowStartHour: number;
+  windowEndHour: number;
+}
+
+/** Saves a draft sequence (nothing sends until it's started) and opens it. */
+export async function createSequence(input: NewSequence): Promise<ActionResult> {
+  if (!input.name.trim()) return { ok: false, error: "Give the sequence a name" };
+  if (!input.mailboxIds.length) return { ok: false, error: "Pick at least one mailbox to send from" };
+  if (!input.steps.length || input.steps.some((s) => !s.body.trim())) return { ok: false, error: "Every email needs a body" };
+  if (!input.steps[0]!.subject?.trim()) return { ok: false, error: "The first email needs a subject" };
+  let id: string;
+  try {
+    const seq = await (await meerko()).createSequence({
+      table_id: input.tableId,
+      name: input.name.trim(),
+      mailbox_ids: input.mailboxIds,
+      // Follow-ups have no subject of their own: they're sent as replies in the first email's thread.
+      steps: input.steps.map((s, i) => ({ subject: i === 0 ? s.subject!.trim() : null, body: s.body, delay_days: i === 0 ? 0 : s.delay_days })),
+      timezone: input.timezone,
+      window_start_hour: input.windowStartHour,
+      window_end_hour: input.windowEndHour,
+    });
+    id = seq.id;
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+  revalidatePath("/app/sequences");
+  redirect(`/app/sequences/${id}`);
+}
+
+const SKIP_LABELS: Record<string, string> = {
+  no_email: "without an email",
+  undeliverable: "with an undeliverable email",
+  suppressed: "who unsubscribed or bounced before",
+  missing_vars: "missing a placeholder value",
+  already_enrolled: "already in it",
+};
+
+/** Adds everyone in the sequence's table who can be emailed. Nothing sends until the sequence is started. */
+export async function enrollTable(sequenceId: string) {
+  return run(async (c) => {
+    const r = await c.enrollRows(sequenceId, { limit: 5000 });
+    const skipped = Object.entries(r.skipped)
+      .filter(([, n]) => n > 0)
+      .map(([why, n]) => `${n} ${SKIP_LABELS[why] ?? why}`);
+    return `Added ${r.enrolled} ${r.enrolled === 1 ? "person" : "people"}${skipped.length ? ` · skipped ${skipped.join(", ")}` : ""}`;
+  }, [`/app/sequences/${sequenceId}`, "/app/sequences"]);
+}
+
+export async function sendTestEmail(mailboxId: string, to: string) {
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to.trim())) return { ok: false, error: "Enter an email address" } as const;
+  return run((c) => c.sendTestEmail(mailboxId, to.trim()).then(() => `Test email sent to ${to.trim()}`), []);
 }

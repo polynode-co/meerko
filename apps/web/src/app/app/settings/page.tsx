@@ -3,6 +3,7 @@ import { connectGmail } from "@/app/app/actions";
 import { buttonClass, Card, PageHeader, Pill } from "@/components/app/ui";
 import { ApiKeysCard } from "@/components/app/api-keys-card";
 import { BillingCard } from "@/components/app/billing-card";
+import { TestEmail } from "@/components/app/test-email";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
 import { apiUrl, load } from "@/lib/meerko";
 
@@ -43,6 +44,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </span>
             <span className="font-mono text-xs text-muted">{m.rampDay ? `${m.effectiveLimit}/day today · ramp day ${m.rampDay}/21 → ${m.dailyLimit}` : `${m.dailyLimit}/day`}</span>
             <Pill tone={m.status === "active" ? "signal" : "neutral"}>{m.status === "active" ? "connected" : "reconnect"}</Pill>
+            {m.status === "active" && <TestEmail mailboxId={m.id} defaultTo={me.user?.email} />}
             {m.status === "error" && (
               <form action={connectGmail}>
                 <button className={buttonClass()}>Reconnect</button>
