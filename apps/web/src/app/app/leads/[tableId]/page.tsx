@@ -1,8 +1,9 @@
+import { Send } from "lucide-react";
 import Link from "next/link";
 import { STAGES, type Stage } from "@meerko/sdk";
 import { EnrichButton } from "@/components/app/enrich-button";
 import { LeadsTable, type LeadColumn } from "@/components/app/leads-table";
-import { AgentHint, PageHeader } from "@/components/app/ui";
+import { AgentHint, buttonClass, PageHeader } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
 
 const PAGE = 50;
@@ -59,7 +60,14 @@ export default async function TablePage({
         eyebrow="Leads / Table"
         title={table.name}
         meta={`${table.rowCount.toLocaleString("en")} rows · ${table.columns.length} columns`}
-        actions={keys.has("first_name") || keys.has("email") ? <EnrichButton tableId={tableId} /> : undefined}
+        actions={
+          <>
+            {(keys.has("first_name") || keys.has("email")) && <EnrichButton tableId={tableId} />}
+            <Link href={`/app/sequences/new?table=${tableId}`} className={buttonClass()}>
+              <Send className="size-[15px]" /> New sequence
+            </Link>
+          </>
+        }
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1 rounded-lg border border-line bg-raised p-[3px]">
