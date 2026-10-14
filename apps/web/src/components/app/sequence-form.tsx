@@ -74,7 +74,7 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
             <select value={tableId} onChange={(e) => setTableId(e.target.value)} className={field}>
               {tables.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name} ({t.rowCount.toLocaleString("en")} rows)
+                  {t.name} ({t.rowCount.toLocaleString("en")} {t.rowCount === 1 ? "row" : "rows"})
                 </option>
               ))}
             </select>
