@@ -2,7 +2,7 @@
 export const site = {
   // `||` not `??`: an unset Docker build arg arrives as an empty string.
   url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-  githubUrl: "https://github.com/iker-gonzalez/meerko.ai",
+  githubUrl: "https://github.com/polynode-co/meerko",
   docsUrl: "/docs",
   pricingUrl: "/pricing",
   // Cloud plans start by signing in (Google); the first sign-in creates the workspace.
@@ -11,5 +11,5 @@ export const site = {
   // (core-infrastructure environments/com/workspace) that answers on meerko.ai as an alias domain.
   contactEmail: "contact@meerko.ai",
   // Self-hosting starts from the repo (not on npm yet).
-  installCommand: "git clone https://github.com/iker-gonzalez/meerko.ai",
+  installCommand: "git clone https://github.com/polynode-co/meerko",
 };
