@@ -1,5 +1,6 @@
 import { Mail, Table2 } from "lucide-react";
 import Link from "next/link";
+import { AddLead } from "@/components/app/add-lead";
 import { ImportCsv } from "@/components/app/import-csv";
 import { SequenceForm } from "@/components/app/sequence-form";
 import { buttonClass, Card, EmptyState, PageHeader } from "@/components/app/ui";
@@ -22,8 +23,11 @@ export default async function NewSequencePage({ searchParams }: { searchParams: 
         <Card>
           <EmptyState icon={Table2} title="Add the people to email first">
             <span className="flex flex-col items-center gap-3">
-              Import a CSV of leads, or ask your agent to find some.
-              <ImportCsv variant="primary" />
+              Import a CSV of leads, add someone by hand (yourself, for a test), or ask your agent to find some.
+              <span className="flex flex-wrap items-start justify-center gap-2">
+                <ImportCsv variant="primary" />
+                <AddLead />
+              </span>
             </span>
           </EmptyState>
         </Card>

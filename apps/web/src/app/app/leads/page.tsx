@@ -1,5 +1,6 @@
 import { Table2 } from "lucide-react";
 import Link from "next/link";
+import { AddLead } from "@/components/app/add-lead";
 import { ImportCsv } from "@/components/app/import-csv";
 import { Card, EmptyState, PageHeader } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
@@ -13,8 +14,12 @@ export default async function LeadsPage() {
         {tables.length === 0 ? (
           <EmptyState icon={Table2} title="No tables yet">
             <span className="flex flex-col items-center gap-3">
-              Import a CSV of the people you want to email, or ask your agent to find leads (“find 50 fintech CTOs in Spain”).
-              <ImportCsv variant="primary" />
+              Import a CSV of the people you want to email, add them one by one, or ask your agent to find leads (“find 50 fintech CTOs in
+              Spain”).
+              <span className="flex flex-wrap items-start justify-center gap-2">
+                <ImportCsv variant="primary" />
+                <AddLead />
+              </span>
             </span>
           </EmptyState>
         ) : (

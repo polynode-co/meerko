@@ -1,6 +1,7 @@
 import { Send } from "lucide-react";
 import Link from "next/link";
 import { STAGES, type Stage } from "@meerko/sdk";
+import { AddLead } from "@/components/app/add-lead";
 import { EnrichButton } from "@/components/app/enrich-button";
 import { LeadsTable, type LeadColumn } from "@/components/app/leads-table";
 import { AgentHint, buttonClass, PageHeader } from "@/components/app/ui";
@@ -63,6 +64,7 @@ export default async function TablePage({
         actions={
           <>
             {(keys.has("first_name") || keys.has("email")) && <EnrichButton tableId={tableId} />}
+            <AddLead floating tableId={tableId} extraColumns={table.columns.filter((c) => !MERGED.has(c.key) && !c.prompt).map((c) => ({ key: c.key, name: c.name }))} />
             <Link href={`/app/sequences/new?table=${tableId}`} className={buttonClass()}>
               <Send className="size-[15px]" /> New sequence
             </Link>

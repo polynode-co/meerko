@@ -246,3 +246,39 @@ export async function sendTestEmail(mailboxId: string, to: string) {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to.trim())) return { ok: false, error: "Enter an email address" } as const;
   return run((c) => c.sendTestEmail(mailboxId, to.trim()).then(() => `Test email sent to ${to.trim()}`), []);
 }
+
+// The columns the dashboard shows as Name / Company / Email; the add-lead form asks for these by name.
+const LEAD_FIELDS = ["first_name", "last_name", "email", "company", "title"] as const;
+
+/**
+ * Adds one person to a table. Without a table (a new workspace), it first creates "My leads".
+ * Extra columns arrive as `col:<key>`, so placeholders like {{pain_point}} get a value too.
+ */
+export async function addLead(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const row: Record<string, string> = {};
+  for (const key of LEAD_FIELDS) {
+    const v = String(form.get(key) ?? "").trim();
+    if (v) row[key] = key === "email" ? v.toLowerCase() : v;
+  }
+  for (const [name, value] of form.entries()) {
+    const v = typeof value === "string" ? value.trim() : "";
+    if (name.startsWith("col:") && v) row[name.slice(4)] = v;
+  }
+  if (!row.email) return { ok: false, error: "Add their email: sequences only send to people with one" };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)) return { ok: false, error: "That email doesn't look right" };
+
+  let tableId = String(form.get("tableId") ?? "");
+  const created = !tableId;
+  try {
+    const client = await meerko();
+    if (!tableId) tableId = (await client.createTable({ name: "My leads" })).id;
+    await client.insertRows(tableId, [row]);
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+  revalidatePath(`/app/leads/${tableId}`);
+  revalidatePath("/app/leads");
+  if (created) redirect(`/app/leads/${tableId}`);
+  return { ok: true, message: `Added ${[row.first_name, row.last_name].filter(Boolean).join(" ") || row.email}` };
+}
