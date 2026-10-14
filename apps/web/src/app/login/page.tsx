@@ -29,11 +29,15 @@ async function signInOptions(next: string | null) {
   }
 }
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ expired?: string; error?: string; next?: string }> }) {
-  const { expired, error, next: rawNext } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ expired?: string; error?: string; next?: string; method?: string }> }) {
+  const { expired, error, next: rawNext, method } = await searchParams;
   const next = safeNext(rawNext);
   // Already signed in: skip the form. (`expired` means the dashboard just rejected the credential.)
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (token && !expired && (await isSignedIn(token))) redirect(next ?? "/app");
-  return <LoginForm {...await signInOptions(next)} next={next} notice={error ?? (expired ? "Your session expired. Sign in again." : undefined)} />;
+  const options = await signInOptions(next);
+  // ?method=key shows the API-key form even where Google sign-in is on: for app reviewers given a key, who can't
+  // pass Google's new-location checks on a shared account.
+  if (method === "key") options.googleUrl = null;
+  return <LoginForm {...options} next={next} notice={error ?? (expired ? "Your session expired. Sign in again." : undefined)} />;
 }
