@@ -14,7 +14,7 @@ Meerko is an agent-native outbound engine for GTM engineers. You drive it from y
 Requires Node 20+, pnpm and Docker.
 
 ```bash
-git clone --branch main https://github.com/iker-gonzalez/meerko.ai meerko && cd meerko
+git clone --branch main https://github.com/polynode-co/meerko meerko && cd meerko
 pnpm install
 cp .env.example .env
 pnpm db:up          # Postgres on localhost:54329

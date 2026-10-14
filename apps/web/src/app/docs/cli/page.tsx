@@ -30,8 +30,8 @@ export default function Page() {
       </p>
       <CodeBlock
         title="bash"
-        code={`git clone https://github.com/iker-gonzalez/meerko.ai ~/meerko && cd ~/meerko && pnpm install\npnpm meerko login --url ${apiUrl()}`}
-        lines={[{ text: "$ git clone https://github.com/iker-gonzalez/meerko.ai ~/meerko && cd ~/meerko && pnpm install" }, { text: `$ pnpm meerko login --url ${apiUrl()}` }]}
+        code={`git clone https://github.com/polynode-co/meerko ~/meerko && cd ~/meerko && pnpm install\npnpm meerko login --url ${apiUrl()}`}
+        lines={[{ text: "$ git clone https://github.com/polynode-co/meerko ~/meerko && cd ~/meerko && pnpm install" }, { text: `$ pnpm meerko login --url ${apiUrl()}` }]}
       />
       <p>
         Without <C>--url</C> it uses <C>http://localhost:8787</C>, a self-hosted API on this machine. On a server without Google sign-in,
