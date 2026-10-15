@@ -2,7 +2,7 @@ import { BellRing, PenLine, ShieldCheck } from "lucide-react";
 import { CodeBlock } from "@/components/docs/code-block";
 import { DocsShell, docsMetadata } from "@/components/docs/shell";
 import { C, Callout, Cards, Fields, H2, L, Step, Tool } from "@/components/docs/ui";
-import { ROUTINE_PROMPT } from "@/lib/agent-hook";
+import { ROUTINE_PROMPT, routineSetupPrompt } from "@/lib/agent-hook";
 import { publicApiUrl } from "@/lib/meerko";
 
 export const metadata = docsMetadata("wake-your-agent", "Wake your AI agent when cold email replies arrive | Meerko docs");
@@ -122,12 +122,22 @@ export default function Page() {
         </p>
       </Step>
       <Step n={2} id="routine-create" title="Create the routine">
-        <p>Create a routine that uses that connector, with this prompt:</p>
+        <p>
+          The quickest way is to let Claude create it: paste this into a Claude chat, or run <C>/schedule</C> in Claude Code and paste it
+          there. Claude saves the routine and links you to it.
+        </p>
+        {code("setup prompt", routineSetupPrompt(drafterUrl), true)}
+        <p>
+          To create it yourself at <L href="https://claude.ai/code/routines">claude.ai/code/routines</L> instead, keep only the Meerko
+          connector, add no repositories, and use this prompt:
+        </p>
         {code("prompt", ROUTINE_PROMPT, true)}
       </Step>
       <Step n={3} id="routine-trigger" title="Add an API trigger and paste it into Meerko">
         <p>
-          Add an API trigger to the routine. Paste its URL and token under <L href="/app/settings">Settings → Wake your agent</L>, then
+          Only the routines page can make an API trigger&apos;s token, so this step is always yours. Open the routine at{" "}
+          <L href="https://claude.ai/code/routines">claude.ai/code/routines</L>, choose <strong>Edit</strong>, add an API trigger and
+          generate its token (it&apos;s shown once). Paste its URL and token under <L href="/app/settings">Settings → Wake your agent</L>, then
           click <strong>Send test</strong>. The routine runs once, with nothing to do.
         </p>
       </Step>

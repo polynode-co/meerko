@@ -5,7 +5,7 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import type { AgentHook } from "@meerko/sdk";
 import { enableAgentHook, removeAgentHook, saveAgentHook, testAgentHook } from "@/app/app/actions";
 import { buttonClass, Card, formatWhen, Pill } from "@/components/app/ui";
-import { ROUTINE_PROMPT } from "@/lib/agent-hook";
+import { ROUTINE_PROMPT, routineSetupPrompt } from "@/lib/agent-hook";
 
 const inputClass = "min-w-0 flex-1 rounded-lg border border-line bg-ink px-3 py-2 text-[13px] outline-none focus:border-accent";
 
@@ -106,11 +106,18 @@ export function AgentHookCard({ hook, drafterUrl, canManage }: { hook: AgentHook
                   {copied === "url" && <span className="ml-2 text-signal">copied</span>}
                 </li>
                 <li>
-                  Create a routine that uses that connector, with this prompt{" "}
-                  <button type="button" onClick={() => copy(ROUTINE_PROMPT, "prompt")} className="text-accent hover:underline">Copy prompt</button>
-                  {copied === "prompt" && <span className="ml-2 text-signal">copied</span>}
+                  Have Claude create the routine: paste the{" "}
+                  <button type="button" onClick={() => copy(routineSetupPrompt(drafterUrl), "setup")} className="text-accent hover:underline">setup prompt</button>
+                  {copied === "setup" && <span className="ml-1 text-signal">(copied)</span>} into a Claude chat or <span className="font-mono">/schedule</span>.
+                  Or create it yourself with this{" "}
+                  <button type="button" onClick={() => copy(ROUTINE_PROMPT, "prompt")} className="text-accent hover:underline">prompt</button>
+                  {copied === "prompt" && <span className="ml-1 text-signal">(copied)</span>}.
                 </li>
-                <li>Add an API trigger to the routine and paste its URL and token here.</li>
+                <li>
+                  At{" "}
+                  <a href="https://claude.ai/code/routines" target="_blank" rel="noreferrer" className="text-accent hover:underline">claude.ai/code/routines</a>,
+                  edit the routine, add an API trigger, generate its token and paste the URL and token here.
+                </li>
               </ol>
               <input name="url" required placeholder="https://api.anthropic.com/v1/claude_code/routines/…/fire" className={inputClass} />
               <input name="token" type="password" required autoComplete="off" placeholder="Trigger token" className={inputClass} />
