@@ -6,7 +6,7 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { instrument } from "@posthog/mcp";
-import { createServer as createMcpServer } from "@meerko/mcp/server";
+import { createServer as createMcpServer, DRAFTER_PROMPTS, DRAFTER_TOOLS } from "@meerko/mcp/server";
 import { MeerkoClient } from "@meerko/sdk";
 import {
   addColumn,
@@ -45,6 +45,12 @@ import {
   OAuthStateError,
   readOAuthReturnTo,
   createApiKey,
+  AgentHookError,
+  deleteAgentHook,
+  enableAgentHook,
+  getAgentHook,
+  setAgentHook,
+  testAgentHook,
   createAuthCode,
   deleteSession,
   exchangeAuthCode,
@@ -107,7 +113,7 @@ import {
   type SecretBox,
   type IcypeasQuery,
 } from "@meerko/core";
-import { STAGES, type Db } from "@meerko/db";
+import { AGENT_HOOK_KINDS, API_KEY_SCOPES, STAGES, type ApiKeyScope, type Db } from "@meerko/db";
 import { createAnalytics, EVENTS, type Analytics } from "./analytics.ts";
 
 type Env = {
@@ -118,6 +124,8 @@ type Env = {
     user: { id: string; email: string; name: string | null; role: string } | null;
     /** Who analytics events are about: the person behind a session or an OAuth app, else the workspace. Grants nothing. */
     actorId: string;
+    /** `replies`: may only read replies and save drafts (see REPLIES_SCOPE_ROUTES). */
+    scope: ApiKeyScope;
   };
 };
 
@@ -203,6 +211,19 @@ const enrichInput = z.object({
   overwrite: z.boolean().default(false),
 });
 
+/**
+ * What a `replies`-scoped credential may call: read replies and save drafts. An agent woken by an agent hook reads
+ * email from strangers, so it must not be able to approve drafts, send, enroll or spend credits.
+ */
+const REPLIES_SCOPE_ROUTES: [method: string, path: RegExp][] = [
+  ["GET", /^\/v1\/me$/],
+  ["GET", /^\/v1\/replies$/],
+  ["POST", /^\/v1\/replies\/[^/]+\/(classify|draft)$/],
+  ["GET", /^\/v1\/drafts$/],
+];
+/** Sent by the in-process client behind /mcp/drafter. It can only narrow a credential, so sending it yourself gains nothing. */
+const SCOPE_HEADER = "x-meerko-scope";
+
 async function parse<T extends z.ZodType>(schema: T, data: unknown): Promise<z.infer<T>> {
   const result = await schema.safeParseAsync(data);
   if (!result.success) throw new HTTPException(400, { message: z.prettifyError(result.error) });
@@ -229,6 +250,10 @@ export interface AppDeps {
   tick?: { secret: string; publicUrl: string };
   /** The web dashboard's URL (MEERKO_APP_URL). Gmail connect may only send the browser back to this origin. */
   appUrl?: string;
+  /** Lets agent hooks call private addresses (MEERKO_ALLOW_PRIVATE_HOOKS=1, self-hosting only). */
+  allowPrivateHooks?: boolean;
+  /** Overrides fetch for agent hook calls (tests). */
+  hookFetch?: typeof fetch;
   /**
    * "Sign in with Google" for the dashboard: an OAuth client whose redirect is /auth/google/callback.
    * Unset (self-hosting without Google, or no MEERKO_APP_URL) means the dashboard logs in with an API key.
@@ -256,6 +281,7 @@ const resultPage = (title: string, message: string) =>
 export function createApp(db: Db, deps: AppDeps = {}) {
   const credits = deps.credits ?? { enabled: false };
   const box = deps.secretBox ?? null;
+  const hookDeps = () => ({ appUrl: deps.appUrl, hookFetch: deps.hookFetch, allowPrivateHooks: deps.allowPrivateHooks });
   const icypeasForKey = deps.icypeasForKey ?? ((apiKey: string) => new IcypeasClient({ apiKey }));
 
   /** A workspace's own Icypeas key wins and is never metered; otherwise the server's key and credit policy apply. */
@@ -300,12 +326,16 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.tick || given.length !== expected.length || !timingSafeEqual(given, expected)) return c.json({ error: "Not found" }, 404);
     const result = await runWorkerTick(
       db,
-      { box, oauth: googleOAuth(), publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch },
+      { box, oauth: googleOAuth(), publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, ...hookDeps() },
       { replies: c.req.query("replies") !== "0" },
     );
     if (result.replyError) {
       console.error("reply scan failed:", result.replyError);
       await analytics.captureException(result.replyError, undefined, { $exception_fingerprint: "api.tick.replies" });
+    }
+    if (result.hookError) {
+      console.error("agent hooks failed:", result.hookError);
+      await analytics.captureException(result.hookError, undefined, { $exception_fingerprint: "api.tick.agent_hooks" });
     }
     return c.json(result);
   });
@@ -458,14 +488,14 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const session = await verifySession(db, token);
     if (session) {
       const user = { id: session.userId, email: session.email, name: session.name, role: session.role };
-      return { workspaceId: session.workspaceId, workspaceName: session.workspaceName, user, actor: { id: user.id, email: user.email } };
+      return { workspaceId: session.workspaceId, workspaceName: session.workspaceName, user, actor: { id: user.id, email: user.email }, scope: "full" as ApiKeyScope };
     }
     // An OAuth app acts for the person who approved it. It still gets no `user`, so it can't manage keys or apps;
     // `actor` only tells analytics who it is.
     const oauth = await verifyAccessToken(db, token);
-    if (oauth) return { workspaceId: oauth.workspaceId, workspaceName: oauth.workspaceName, user: null, actor: { id: oauth.userId, email: oauth.email } };
+    if (oauth) return { workspaceId: oauth.workspaceId, workspaceName: oauth.workspaceName, user: null, actor: { id: oauth.userId, email: oauth.email }, scope: "full" as ApiKeyScope };
     const key = await verifyApiKey(db, token);
-    return key ? { workspaceId: key.workspaceId, workspaceName: key.workspaceName, user: null, actor: null } : null;
+    return key ? { workspaceId: key.workspaceId, workspaceName: key.workspaceName, user: null, actor: null, scope: key.scope } : null;
   };
 
   // --- OAuth for MCP clients and the CLI (see core/oauth.ts) ---
@@ -482,12 +512,14 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   app.use("/oauth/token", publicCors);
   app.use("/oauth/revoke", publicCors);
   app.use("/mcp", publicCors);
+  app.use("/mcp/drafter", publicCors);
 
-  // RFC 9728: tells MCP clients where to sign in for /mcp.
-  const resourceMetadata = (c: Context) =>
-    c.json({ resource: `${issuer(c)}/mcp`, authorization_servers: [issuer(c)], bearer_methods_supported: ["header"], resource_name: "Meerko" });
-  app.get("/.well-known/oauth-protected-resource", resourceMetadata);
-  app.get("/.well-known/oauth-protected-resource/mcp", resourceMetadata);
+  // RFC 9728: tells MCP clients where to sign in for /mcp (and /mcp/drafter, the same sign-in).
+  const resourceMetadata = (path: string, name: string) => (c: Context) =>
+    c.json({ resource: `${issuer(c)}/${path}`, authorization_servers: [issuer(c)], bearer_methods_supported: ["header"], resource_name: name });
+  app.get("/.well-known/oauth-protected-resource", resourceMetadata("mcp", "Meerko"));
+  app.get("/.well-known/oauth-protected-resource/mcp", resourceMetadata("mcp", "Meerko"));
+  app.get("/.well-known/oauth-protected-resource/mcp/drafter", resourceMetadata("mcp/drafter", "Meerko (drafts only)"));
 
   // RFC 8414
   const serverMetadata = (c: Context) => {
@@ -509,6 +541,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   };
   app.get("/.well-known/oauth-authorization-server", serverMetadata);
   app.get("/.well-known/oauth-authorization-server/mcp", serverMetadata);
+  app.get("/.well-known/oauth-authorization-server/mcp/drafter", serverMetadata);
 
   // RFC 7591 dynamic client registration. Clients are public (no secret); PKCE protects the code.
   app.post("/oauth/register", async (c) => {
@@ -577,17 +610,25 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   // --- Hosted MCP server (Streamable HTTP, stateless) ---
   // Remote clients sign in with OAuth; an API key in the Authorization header also works.
-  app.post("/mcp", async (c) => {
+  // `drafter` serves only the reply tools, for an agent woken by an agent hook (a Claude Code routine adds this URL
+  // as its connector). The API enforces the same limit on every call it makes.
+  const serveMcp = async (c: Context, drafter: boolean) => {
     const token = bearer(c);
     const auth = await authenticate(token);
+    const resource = drafter ? "mcp/drafter" : "mcp";
     if (!auth) {
-      const metadata = `${issuer(c)}/.well-known/oauth-protected-resource/mcp`;
+      const metadata = `${issuer(c)}/.well-known/oauth-protected-resource/${resource}`;
       const error = token ? `, error="invalid_token", error_description="The access token is invalid or expired"` : "";
       return c.json({ error: "Sign in to use Meerko" }, 401, { "www-authenticate": `Bearer resource_metadata="${metadata}"${error}` });
     }
     // The tools call this same API in-process, as the caller, through the usual HTTP routes.
-    const client = new MeerkoClient({ apiUrl: issuer(c), apiKey: token, fetch: ((input: string | URL | Request, init?: RequestInit) => app.request(input instanceof URL ? input.toString() : input, init)) as typeof fetch });
-    const server = createMcpServer(() => client);
+    const inProcess = (input: string | URL | Request, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      if (drafter) headers.set(SCOPE_HEADER, "replies");
+      return app.request(input instanceof URL ? input.toString() : input, { ...init, headers });
+    };
+    const client = new MeerkoClient({ apiUrl: issuer(c), apiKey: token, fetch: inProcess as typeof fetch });
+    const server = createMcpServer(() => client, drafter ? { only: { tools: DRAFTER_TOOLS, prompts: DRAFTER_PROMPTS } } : {});
     // PostHog MCP analytics ($mcp_tool_call, sessions, intent, errors). Instrumented here, not in createServer,
     // so the tool reference generated from packages/mcp keeps the schemas without PostHog's injected arguments.
     if (analytics.posthog) {
@@ -606,7 +647,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
           return event;
         },
         serverBuild: analytics.common.$release,
-        eventProperties: async () => ({ ...analytics.common, surface: "mcp" }),
+        eventProperties: async () => ({ ...analytics.common, surface: drafter ? "mcp_drafter" : "mcp" }),
         logger: (message) => console.warn(`[posthog-mcp] ${message}`),
       });
     }
@@ -619,15 +660,25 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       // Cloud Run throttles CPU once the response is sent, so events go out before it.
       await analytics.posthog?.flush().catch(() => {});
     }
-  });
+  };
+  app.post("/mcp", (c) => serveMcp(c, false));
+  app.post("/mcp/drafter", (c) => serveMcp(c, true));
   // Stateless: no server-initiated stream to open and no session to end.
-  app.on(["GET", "DELETE"], "/mcp", (c) => c.json({ error: "Method not allowed" }, 405, { allow: "POST" }));
+  app.on(["GET", "DELETE"], ["/mcp", "/mcp/drafter"], (c) => c.json({ error: "Method not allowed" }, 405, { allow: "POST" }));
 
   const v1 = new Hono<Env>();
 
   v1.use(async (c, next) => {
     const auth = await authenticate(bearer(c));
     if (!auth) throw new HTTPException(401, { message: "Missing or invalid API key" });
+    const scope: ApiKeyScope = c.req.header(SCOPE_HEADER) === "replies" ? "replies" : auth.scope;
+    if (scope === "replies") {
+      const path = new URL(c.req.url).pathname;
+      if (!REPLIES_SCOPE_ROUTES.some(([method, re]) => method === c.req.method && re.test(path))) {
+        throw new HTTPException(403, { message: "This credential can only read replies and save drafts" });
+      }
+    }
+    c.set("scope", scope);
     c.set("workspaceId", auth.workspaceId);
     c.set("workspaceName", auth.workspaceName);
     c.set("user", auth.user);
@@ -694,16 +745,51 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/api-keys", async (c) => {
     requireUser(c);
-    const { name } = await parse(z.object({ name: z.string().trim().min(1).max(100) }), await c.req.json().catch(() => ({})));
-    const { id, key } = await createApiKey(db, c.var.workspaceId, name);
-    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.apiKeyCreated, workspaceId: c.var.workspaceId });
-    return c.json({ id, name, key }, 201);
+    const { name, scope } = await parse(
+      z.object({ name: z.string().trim().min(1).max(100), scope: z.enum(API_KEY_SCOPES).default("full") }),
+      await c.req.json().catch(() => ({})),
+    );
+    const { id, key } = await createApiKey(db, c.var.workspaceId, name, scope);
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.apiKeyCreated, workspaceId: c.var.workspaceId, properties: { scope } });
+    return c.json({ id, name, scope, key }, 201);
   });
 
   v1.delete("/api-keys/:id", async (c) => {
     requireUser(c);
     await revokeApiKey(db, c.var.workspaceId, c.req.param("id"));
     return c.body(null, 204);
+  });
+
+  // Agent hook: rings the user's own agent when replies arrive. Managed by a signed-in person, like keys.
+  v1.get("/agent-hook", async (c) => c.json({ hook: await getAgentHook(db, c.var.workspaceId) }));
+
+  v1.put("/agent-hook", async (c) => {
+    requireUser(c, "Sign in to the dashboard to set up your agent");
+    const input = await parse(
+      z.object({ kind: z.enum(AGENT_HOOK_KINDS), url: z.string().trim().min(1).max(2000), token: z.string().trim().max(2000).optional() }),
+      await c.req.json().catch(() => ({})),
+    );
+    const { hook, secret } = await setAgentHook(db, box, c.var.workspaceId, input, { allowPrivate: deps.allowPrivateHooks });
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.agentHookConfigured, workspaceId: c.var.workspaceId, properties: { kind: input.kind } });
+    return c.json(secret ? { hook, secret } : { hook });
+  });
+
+  v1.delete("/agent-hook", async (c) => {
+    requireUser(c, "Sign in to the dashboard to set up your agent");
+    await deleteAgentHook(db, c.var.workspaceId);
+    return c.body(null, 204);
+  });
+
+  v1.post("/agent-hook/enable", async (c) => {
+    requireUser(c, "Sign in to the dashboard to set up your agent");
+    await enableAgentHook(db, c.var.workspaceId);
+    return c.json({ hook: await getAgentHook(db, c.var.workspaceId) });
+  });
+
+  v1.post("/agent-hook/test", async (c) => {
+    requireUser(c, "Sign in to the dashboard to set up your agent");
+    const result = await testAgentHook(db, c.var.workspaceId, { box, appUrl: deps.appUrl, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
+    return c.json(result);
   });
 
   v1.get("/tables", async (c) => c.json({ tables: await listTables(db, c.var.workspaceId) }));
@@ -990,7 +1076,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
-    if (err instanceof SequenceError || err instanceof ReplyError) return c.json({ error: err.message }, 400);
+    if (err instanceof SequenceError || err instanceof ReplyError || err instanceof AgentHookError) return c.json({ error: err.message }, 400);
     if (err instanceof MailboxInUseError) return c.json({ error: err.message }, 409);
     if (err instanceof PlanLimitError) return c.json({ error: err.message }, 402);
     if (err instanceof BillingError) return c.json({ error: err.message }, 409);

@@ -26,6 +26,7 @@ const app = createApp(createDb(), {
       : undefined,
   tick: process.env.MEERKO_TICK_SECRET ? { secret: process.env.MEERKO_TICK_SECRET, publicUrl } : undefined,
   appUrl: process.env.MEERKO_APP_URL,
+  allowPrivateHooks: process.env.MEERKO_ALLOW_PRIVATE_HOOKS === "1",
   // Same OAuth client as Gmail, its own redirect URI and identity-only scopes.
   googleSignIn:
     GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET

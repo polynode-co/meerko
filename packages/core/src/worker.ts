@@ -1,4 +1,5 @@
 import type { Db } from "@meerko/db";
+import { runAgentNotifyTick, type AgentNotifyResult } from "./agent-hooks.ts";
 import { runReplyTick, type ReplyTickResult } from "./replies/replies.ts";
 import { runSendTick, type SenderDeps, type TickResult } from "./sending/sender.ts";
 
@@ -6,6 +7,9 @@ export interface WorkerTickResult {
   replies?: ReplyTickResult;
   /** A failed reply scan (e.g. Gmail down) is reported but doesn't stop sending. */
   replyError?: string;
+  /** Agent hooks rung for replies still waiting for the user's agent. */
+  hooks?: AgentNotifyResult;
+  hookError?: string;
   send: TickResult;
 }
 
@@ -15,13 +19,19 @@ export interface WorkerTickResult {
  * `POST /internal/tick` (cloud, so nothing has to stay running). Overlapping passes are safe: sends are
  * claimed with SKIP LOCKED and each inbound Gmail message is stored once.
  */
-export async function runWorkerTick(db: Db, deps: SenderDeps, opts: { replies: boolean }): Promise<WorkerTickResult> {
+export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string; hookFetch?: typeof fetch; allowPrivateHooks?: boolean }, opts: { replies: boolean }): Promise<WorkerTickResult> {
   const result: Partial<WorkerTickResult> = {};
   if (opts.replies) {
     try {
       result.replies = await runReplyTick(db, { box: deps.box, oauth: deps.oauth, now: deps.now, fetch: deps.fetch });
     } catch (err) {
       result.replyError = err instanceof Error ? err.message : String(err);
+    }
+    // Then ring the user's agent about replies waiting for it (including ones from earlier passes).
+    try {
+      result.hooks = await runAgentNotifyTick(db, { box: deps.box, appUrl: deps.appUrl, now: deps.now, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
+    } catch (err) {
+      result.hookError = err instanceof Error ? err.message : String(err);
     }
   }
   return { ...result, send: await runSendTick(db, deps) };

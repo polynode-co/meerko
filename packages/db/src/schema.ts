@@ -38,6 +38,9 @@ export const workspaces = pgTable("workspaces", {
   createdAt: createdAt(),
 });
 
+export const API_KEY_SCOPES = ["full", "replies"] as const;
+export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
+
 export const apiKeys = pgTable("api_keys", {
   id: id(),
   workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
@@ -45,6 +48,8 @@ export const apiKeys = pgTable("api_keys", {
   // Only the SHA-256 hash is stored; the raw key is shown once at creation.
   keyHash: text("key_hash").notNull().unique(),
   prefix: text("prefix").notNull(),
+  /** `full`, or `replies`: read replies and write drafts only, for an agent Meerko wakes up (see agent_hooks). */
+  scope: text("scope").$type<ApiKeyScope>().notNull().default("full"),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
@@ -303,6 +308,8 @@ export const messages = pgTable(
     intent: text("intent"),
     /** When the user (or their agent) dealt with an inbound reply. */
     handledAt: timestamp("handled_at", { withTimezone: true }),
+    /** When the workspace's agent hook was told about this reply, so it is announced once. */
+    agentNotifiedAt: timestamp("agent_notified_at", { withTimezone: true }),
     sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -310,6 +317,10 @@ export const messages = pgTable(
     index("messages_thread_idx").on(t.gmailThreadId),
     // Each Gmail message is stored once, however many times the inbox is scanned.
     uniqueIndex("messages_mailbox_gmail_id_idx").on(t.mailboxId, t.gmailId),
+    // Replies still waiting for the user's agent (see agent_hooks).
+    index("messages_agent_pending_idx")
+      .on(t.workspaceId)
+      .where(sql`${t.direction} = 'in' and ${t.intent} is null and ${t.agentNotifiedAt} is null`),
   ],
 );
 
@@ -325,6 +336,33 @@ export const suppressions = pgTable(
   },
   (t) => [uniqueIndex("suppressions_workspace_email_idx").on(t.workspaceId, t.email)],
 );
+
+export const AGENT_HOOK_KINDS = ["claude_routine", "webhook"] as const;
+export type AgentHookKind = (typeof AGENT_HOOK_KINDS)[number];
+
+/**
+ * Where Meerko rings the user's own agent when new replies arrive: a Claude Code routine's fire URL or any
+ * webhook. Meerko makes the call; the agent does the thinking. The secret is the routine's bearer token or the
+ * webhook's signing secret, encrypted with MEERKO_ENCRYPTION_KEY.
+ */
+export const agentHooks = pgTable("agent_hooks", {
+  id: id(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .unique()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  kind: text("kind").$type<AgentHookKind>().notNull(),
+  url: text("url").notNull(),
+  encryptedSecret: text("encrypted_secret").notNull(),
+  secretLast4: text("secret_last4").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  lastFiredAt: timestamp("last_fired_at", { withTimezone: true }),
+  lastStatus: integer("last_status"),
+  lastError: text("last_error"),
+  /** The first failure since the last success; the hook turns itself off after a day of them. */
+  failingSince: timestamp("failing_since", { withTimezone: true }),
+  createdAt: createdAt(),
+});
 
 /** An answer the user's agent drafted for an inbound reply. Sent only when a human approves it. */
 export const replyDrafts = pgTable(

@@ -29,6 +29,7 @@ export const docPages: DocPage[] = [
   { slug: "mailboxes", group: "Concepts", title: "Mailboxes", description: "Connect the Gmail inboxes Meerko sends from, and set their daily limits." },
   { slug: "sequences", group: "Concepts", title: "Sequences", description: "Multi-step emails sent from your Gmail, in the same thread, inside a send window." },
   { slug: "replies", group: "Concepts", title: "Replies & drafts", description: "Sort replies by intent and approve the answers your agent drafts." },
+  { slug: "wake-your-agent", group: "Concepts", title: "Wake your agent", description: "Have Meerko call your own agent when replies arrive, so drafts are ready when you are." },
   { slug: "pipeline", group: "Concepts", title: "Pipeline", description: "Lead stages from new to won, and which moves happen on their own." },
   { slug: "credits", group: "Concepts", title: "Credits", description: "What costs credits on Meerko Cloud, and how to use your own provider keys." },
   { slug: "mcp-tools", group: "Reference", title: "MCP tools", description: "Every tool and command the Meerko MCP server gives your agent." },

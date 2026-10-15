@@ -76,6 +76,9 @@ export default function Page() {
         </p>
       </Callout>
       <AskAgent>/mcp__meerko__triage-replies</AskAgent>
+      <p>
+        To have drafts ready without asking, let Meerko <L href="/docs/wake-your-agent">wake your agent</L> when replies arrive.
+      </p>
 
       <H2 id="inbox">The inbox</H2>
       <Cards

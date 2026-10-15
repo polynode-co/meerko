@@ -16,6 +16,7 @@ export const EVENTS = {
   checkoutStarted: "checkout_started",
   subscriptionChanged: "subscription_changed",
   creditsPurchased: "credits_purchased",
+  agentHookConfigured: "agent_hook_configured",
 } as const;
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];
 

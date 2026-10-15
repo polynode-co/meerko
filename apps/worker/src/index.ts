@@ -5,7 +5,7 @@ import { createDb } from "@meerko/db";
 
 const TICK_MS = 30_000;
 const REPLY_EVERY_TICKS = 4;
-const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MEERKO_PUBLIC_URL } = process.env;
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MEERKO_PUBLIC_URL, MEERKO_APP_URL, MEERKO_ALLOW_PRIVATE_HOOKS } = process.env;
 const publicUrl = MEERKO_PUBLIC_URL ?? "http://localhost:8787";
 const box = SecretBox.fromEnv();
 
@@ -27,8 +27,14 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !box) {
   const tick = async () => {
     busy = true;
     try {
-      const { replies: r, replyError, send: res } = await runWorkerTick(db, { box, oauth, publicUrl }, { replies: ticks++ % REPLY_EVERY_TICKS === 0 });
+      const { replies: r, replyError, hooks, hookError, send: res } = await runWorkerTick(
+        db,
+        { box, oauth, publicUrl, appUrl: MEERKO_APP_URL, allowPrivateHooks: MEERKO_ALLOW_PRIVATE_HOOKS === "1" },
+        { replies: ticks++ % REPLY_EVERY_TICKS === 0 },
+      );
       if (replyError) console.error("reply scan failed:", replyError);
+      if (hookError) console.error("agent hooks failed:", hookError);
+      if (hooks && (hooks.rung || hooks.failed)) console.log(`agent hooks: ${hooks.rung} rung for ${hooks.replies} replies, ${hooks.failed} failed`);
       if (r && (r.replies || r.bounces || r.unsubscribes || r.outOfOffice)) {
         console.log(`replies: ${r.replies} replies, ${r.bounces} bounces, ${r.unsubscribes} unsubscribes, ${r.outOfOffice} out of office`);
       }
