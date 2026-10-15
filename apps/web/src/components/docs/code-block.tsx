@@ -4,7 +4,18 @@ import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
 /** A titled code block; the copy button copies `code` (the commands without prompts). */
-export function CodeBlock({ title, lines, code }: { title: string; lines: { text: string; tone?: "muted" | "accent" }[]; code?: string }) {
+export function CodeBlock({
+  title,
+  lines,
+  code,
+  wrap = false,
+}: {
+  title: string;
+  lines: { text: string; tone?: "muted" | "accent" }[];
+  code?: string;
+  /** Wrap long lines (prose like a prompt) instead of scrolling sideways. */
+  wrap?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-raised">
@@ -26,7 +37,7 @@ export function CodeBlock({ title, lines, code }: { title: string; lines: { text
           </button>
         )}
       </div>
-      <pre className="overflow-x-auto px-[18px] py-4 font-mono text-[13.5px] leading-normal">
+      <pre className={`${wrap ? "whitespace-pre-wrap break-words" : "overflow-x-auto"} px-[18px] py-4 font-mono text-[13.5px] leading-normal`}>
         {lines.map((l, i) => (
           <div key={i} className={l.tone === "muted" ? "text-muted" : l.tone === "accent" ? "text-accent" : "text-fg"}>
             {l.text}

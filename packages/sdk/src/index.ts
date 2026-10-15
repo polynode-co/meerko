@@ -49,7 +49,21 @@ export interface ApiKey {
   id: string;
   name: string;
   prefix: string;
+  /** `replies`: may only read replies and save drafts. */
+  scope: "full" | "replies";
   lastUsedAt: string | null;
+  createdAt: string;
+}
+
+/** Where Meerko rings your own agent when replies arrive. The token or signing secret is never returned. */
+export interface AgentHook {
+  kind: "claude_routine" | "webhook";
+  url: string;
+  secretLast4: string;
+  enabled: boolean;
+  lastFiredAt: string | null;
+  lastStatus: number | null;
+  lastError: string | null;
   createdAt: string;
 }
 
@@ -333,8 +347,30 @@ export class MeerkoClient {
   }
 
   /** Needs a dashboard session. The returned `key` is shown once; only its prefix is kept. */
-  createApiKey(name: string) {
-    return this.request<{ id: string; name: string; key: string }>("POST", "/api-keys", { name });
+  createApiKey(name: string, scope: ApiKey["scope"] = "full") {
+    return this.request<{ id: string; name: string; scope: ApiKey["scope"]; key: string }>("POST", "/api-keys", { name, scope });
+  }
+
+  getAgentHook() {
+    return this.request<{ hook: AgentHook | null }>("GET", "/agent-hook").then((r) => r.hook);
+  }
+
+  /** Needs a dashboard session. A webhook's signing `secret` is returned once. */
+  setAgentHook(input: { kind: AgentHook["kind"]; url: string; token?: string }) {
+    return this.request<{ hook: AgentHook; secret?: string }>("PUT", "/agent-hook", input);
+  }
+
+  deleteAgentHook() {
+    return this.request<void>("DELETE", "/agent-hook");
+  }
+
+  enableAgentHook() {
+    return this.request<{ hook: AgentHook }>("POST", "/agent-hook/enable").then((r) => r.hook);
+  }
+
+  /** Sends a test call now and reports how the hook answered. */
+  testAgentHook() {
+    return this.request<{ ok: boolean; status: number | null; error: string | null }>("POST", "/agent-hook/test");
   }
 
   revokeApiKey(id: string) {

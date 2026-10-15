@@ -17,7 +17,10 @@ export function ApiKeysCard({ keys, apiUrl, canManage }: { keys: ApiKey[]; apiUr
     <Card className="overflow-hidden">
       <div className="border-b border-line px-5 py-4">
         <h2 className="flex items-center gap-2 text-[15px] font-semibold"><Terminal className="size-4 text-accent" />API keys</h2>
-        <p className="mt-1 text-[13px] text-muted">For self-hosted setups and your own scripts. Each key can use everything in this workspace.</p>
+        <p className="mt-1 text-[13px] text-muted">
+          For self-hosted setups and your own scripts. A full key can use everything in this workspace; a drafts-only key can just read
+          replies and save drafts.
+        </p>
       </div>
 
       {canManage && (
@@ -29,6 +32,10 @@ export function ApiKeysCard({ keys, apiUrl, canManage }: { keys: ApiKey[]; apiUr
             placeholder="Name, e.g. laptop or claude-code"
             className="min-w-0 flex-1 rounded-lg border border-line bg-ink px-3 py-2 text-[13px] outline-none focus:border-accent"
           />
+          <select name="scope" defaultValue="full" aria-label="What the key can do" className="rounded-lg border border-line bg-ink px-3 py-2 text-[13px] outline-none focus:border-accent">
+            <option value="full">Full access</option>
+            <option value="replies">Drafts only (for a woken agent)</option>
+          </select>
           <button disabled={creating} className={buttonClass("primary")}>{creating ? "Creating…" : "Create key"}</button>
         </form>
       )}
@@ -48,7 +55,7 @@ export function ApiKeysCard({ keys, apiUrl, canManage }: { keys: ApiKey[]; apiUr
         <div key={k.id} className="flex flex-wrap items-center gap-4 border-b border-line px-5 py-3 last:border-0">
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="text-[13px] font-medium">{k.name}</span>
-            <span className="font-mono text-[11px] text-muted">{k.prefix}…</span>
+            <span className="font-mono text-[11px] text-muted">{k.prefix}…{k.scope === "replies" ? " · drafts only" : ""}</span>
           </span>
           <span className="font-mono text-xs text-muted">{k.lastUsedAt ? `used ${formatWhen(k.lastUsedAt)}` : "never used"}</span>
           {canManage && (

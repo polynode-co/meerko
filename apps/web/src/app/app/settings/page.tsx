@@ -5,6 +5,7 @@ import { ApiKeysCard } from "@/components/app/api-keys-card";
 import { BillingCard } from "@/components/app/billing-card";
 import { TestEmail } from "@/components/app/test-email";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
+import { AgentHookCard } from "@/components/app/agent-hook-card";
 import { load, publicApiUrl } from "@/lib/meerko";
 
 type Search = { gmail_connected?: string; gmail_error?: string; billing?: string; billing_error?: string };
@@ -12,8 +13,8 @@ type Search = { gmail_connected?: string; gmail_error?: string; billing?: string
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Search> }) {
   // The API's Gmail OAuth callback, and Stripe Checkout, redirect back here with the outcome.
   const { gmail_connected, gmail_error, billing: paid, billing_error } = await searchParams;
-  const [mailboxes, credits, keys, apiKeys, apps, me, billing] = await load((c) =>
-    Promise.all([c.listMailboxes(), c.getCredits(), c.listProviderKeys(), c.listApiKeys(), c.listConnectedApps(), c.me(), c.getBilling()]),
+  const [mailboxes, credits, keys, apiKeys, apps, me, billing, hook] = await load((c) =>
+    Promise.all([c.listMailboxes(), c.getCredits(), c.listProviderKeys(), c.listApiKeys(), c.listConnectedApps(), c.me(), c.getBilling(), c.getAgentHook()]),
   );
   return (
     <div className="flex max-w-4xl flex-col gap-6 px-8 py-7">
@@ -57,6 +58,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {billing.enabled && <BillingCard billing={billing} canManage={me.user?.role === "owner"} paid={paid} error={billing_error} />}
 
       <ConnectedAppsCard apps={apps} canManage={!!me.user} />
+
+      <AgentHookCard hook={hook} drafterUrl={new URL("/mcp/drafter", publicApiUrl()).toString()} canManage={!!me.user} />
 
       <ApiKeysCard keys={apiKeys} apiUrl={publicApiUrl()} canManage={!!me.user} />
 

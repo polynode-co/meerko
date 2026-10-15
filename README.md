@@ -48,6 +48,7 @@ Codex, Cursor and Gemini CLI connect the same way, by URL. Without Google sign-i
 
 - **Tools:** tables and rows, lead search and enrichment, mailboxes, sequences, replies and drafts, pipeline and credits (32 in all; your agent lists them).
 - **Commands (MCP prompts):** `find-leads`, `write-sequence`, `triage-replies`, `pipeline`. In Claude Code they appear as `/mcp__meerko__find-leads` and so on. Anything that emails someone waits for your OK.
+- **Wake your agent:** when replies arrive, Meerko can call a Claude Code routine or any webhook so your agent drafts the answers while you're away. The woken agent connects to `/mcp/drafter` (or uses a drafts-only API key), which can read replies and save drafts but never send. Set it up under Settings → Wake your agent; see the [docs](https://meerko.ai/docs/wake-your-agent).
 
 ## Analytics
 

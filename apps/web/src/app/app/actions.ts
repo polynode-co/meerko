@@ -49,14 +49,51 @@ export async function logout() {
 export async function createApiKey(_: unknown, form: FormData): Promise<ActionResult & { key?: string }> {
   const name = String(form.get("name") ?? "").trim();
   if (!name) return { ok: false, error: "Give the key a name, like the machine or agent that will use it" };
+  const scope = form.get("scope") === "replies" ? "replies" : "full";
   try {
-    const { key } = await (await meerko()).createApiKey(name);
+    const { key } = await (await meerko()).createApiKey(name, scope);
     revalidatePath("/app/settings");
     return { ok: true, key };
   } catch (err) {
     if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
     throw err;
   }
+}
+
+/** Saves where Meerko rings your agent. A webhook's signing secret comes back once, for the card to show. */
+export async function saveAgentHook(_: unknown, form: FormData): Promise<ActionResult & { secret?: string }> {
+  const kind = form.get("kind") === "webhook" ? "webhook" : "claude_routine";
+  const url = String(form.get("url") ?? "").trim();
+  const token = String(form.get("token") ?? "").trim();
+  if (!url) return { ok: false, error: kind === "webhook" ? "Enter the URL Meerko should call" : "Paste the routine's API trigger URL" };
+  if (kind === "claude_routine" && !token) return { ok: false, error: "Paste the routine's API trigger token" };
+  try {
+    const { secret } = await (await meerko()).setAgentHook({ kind, url, token: kind === "claude_routine" ? token : undefined });
+    revalidatePath("/app/settings");
+    return { ok: true, message: "Saved. Send a test to check it.", secret };
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+export async function testAgentHook(): Promise<ActionResult> {
+  try {
+    const res = await (await meerko()).testAgentHook();
+    revalidatePath("/app/settings");
+    return res.ok ? { ok: true, message: `Test delivered (HTTP ${res.status})` } : { ok: false, error: res.error ?? "The test failed" };
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+export async function enableAgentHook() {
+  return run((c) => c.enableAgentHook().then(() => "Turned back on"), ["/app/settings"]);
+}
+
+export async function removeAgentHook() {
+  return run((c) => c.deleteAgentHook().then(() => "Removed"), ["/app/settings"]);
 }
 
 export async function revokeApiKey(id: string) {
