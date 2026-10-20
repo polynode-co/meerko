@@ -55,7 +55,7 @@ export default function TermsPage() {
       <Section n={3} id="account" title="Your account">
         <Bullets
           items={[
-            "Meerko Cloud is invite-only for now. Sign in with a Google account you control, and keep it secure.",
+            "Sign in with a Google account you control, and keep it secure. Your first sign-in creates your workspace.",
             "You're responsible for what happens in your workspace, including what API keys and connected apps do. An agent you approve acts with your authority.",
             "Disconnect apps and revoke keys you no longer use, from Settings.",
           ]}
