@@ -89,7 +89,7 @@ export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: 
                 ) : (
                   <p className="flex gap-2.5 text-sm text-muted">
                     <Gift className="mt-0.5 size-[17px] shrink-0 text-accent" />
-                    New to Meerko? Your first sign-in creates your workspace with 1,000 free credits.
+                    New to Meerko? Your first sign-in creates your workspace with 200 free credits.
                   </p>
                 )}
               </>

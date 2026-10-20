@@ -5,7 +5,7 @@ import type { EnrichField } from "./enrichment/types.ts";
 export const CREDIT_PRICES: Record<EnrichField, number> = { email: 8, email_verification: 1 };
 /** Per person/company returned by a lead search (Icypeas charges us per result too). Counts are free. */
 export const SEARCH_RESULT_CREDITS = 1;
-export const FREE_TIER_CREDITS = 1000;
+export const FREE_TIER_CREDITS = 200;
 
 export class InsufficientCreditsError extends Error {
   constructor(readonly balance: number, readonly needed: number) {

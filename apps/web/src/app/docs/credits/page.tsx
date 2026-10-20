@@ -13,7 +13,7 @@ export default function Page() {
       lead={
         <p>
           On Meerko Cloud, lead search and email finding cost credits. Sending, replies, AI columns and everything else don&apos;t. New
-          workspaces start with 1,000 free credits.
+          workspaces start with 200 free credits.
         </p>
       }
       toc={[

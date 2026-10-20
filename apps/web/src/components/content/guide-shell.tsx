@@ -79,7 +79,7 @@ export function Timeline({ steps, highlight }: { steps: [label: string, text: st
 const ctas = {
   start: {
     title: "Run this from your coding agent",
-    body: "Meerko finds the leads, sends the sequence from your own Gmail and stops it when someone replies. Self-host it for free or start on Meerko Cloud with 1,000 free credits.",
+    body: "Meerko finds the leads, sends the sequence from your own Gmail and stops it when someone replies. Self-host it for free or start on Meerko Cloud with 200 free credits.",
     primary: ["Get started free", site.pricingUrl],
     secondary: ["Connect it to Claude Code", "/docs/claude-code"],
   },

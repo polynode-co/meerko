@@ -12,7 +12,7 @@ export function FinalCta() {
               Put a meerkat on lookout
               <br className="hidden lg:block" /> for your next customer.
             </h2>
-            <p className="text-lg text-muted">Self-host it for free, or start on Meerko Cloud with 1,000 free credits.</p>
+            <p className="text-lg text-muted">Self-host it for free, or start on Meerko Cloud with 200 free credits.</p>
             <div className="flex flex-wrap gap-3">
               <PrimaryButton href={site.pricingUrl}>Get started free</PrimaryButton>
               <a
