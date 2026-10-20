@@ -9,17 +9,21 @@ const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MEERKO_PUBLIC_URL, MEERKO_APP_UR
 const publicUrl = MEERKO_PUBLIC_URL ?? "http://localhost:8787";
 const box = SecretBox.fromEnv();
 
-if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !box) {
-  console.log("Sender idle: set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and MEERKO_ENCRYPTION_KEY to send email.");
-  // Stay up so `pnpm dev` doesn't fail; there's nothing to do without Gmail.
+if (!box) {
+  console.log("Sender idle: set MEERKO_ENCRYPTION_KEY to send email.");
+  // Stay up so `pnpm dev` doesn't fail; there's nothing to do without stored mailbox credentials.
   setInterval(() => {}, 1 << 30);
 } else {
   const db = createDb();
-  const oauth = new GoogleOAuth({
-    clientId: GOOGLE_CLIENT_ID,
-    clientSecret: GOOGLE_CLIENT_SECRET,
-    redirectUri: new URL("/oauth/google/callback", publicUrl).toString(),
-  });
+  // Only mailboxes connected through the Gmail API need it; app-password mailboxes work without.
+  const oauth =
+    GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
+      ? new GoogleOAuth({
+          clientId: GOOGLE_CLIENT_ID,
+          clientSecret: GOOGLE_CLIENT_SECRET,
+          redirectUri: new URL("/oauth/google/callback", publicUrl).toString(),
+        })
+      : undefined;
   let busy = false;
   let stopping = false;
   let ticks = 0;

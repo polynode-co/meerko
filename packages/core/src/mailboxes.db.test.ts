@@ -33,13 +33,13 @@ describe.skipIf(!process.env.DATABASE_URL)("mailboxes (db)", () => {
     expect(mb.email).toBe("pia@slalom.example");
     const [row] = await db.select().from(mailboxes).where(eq(mailboxes.id, mb.id));
     expect(row!.encryptedRefreshToken).not.toContain("refresh-secret");
-    expect(box.decrypt(row!.encryptedRefreshToken)).toBe("refresh-secret");
+    expect(box.decrypt(row!.encryptedRefreshToken!)).toBe("refresh-secret");
 
-    expect(await sendTestEmail(db, box, oauth, ws!.id, mb.id, "me@x.com", fetch)).toMatchObject({ id: "m1" });
+    expect(await sendTestEmail(db, ws!.id, mb.id, "me@x.com", { box, oauth, fetch })).toMatchObject({ id: "m1" });
 
     // A revoked token marks the mailbox as needing a reconnect...
     refreshFails = true;
-    await expect(sendTestEmail(db, box, oauth, ws!.id, mb.id, "me@x.com", fetch)).rejects.toMatchObject({ needsReconnect: true });
+    await expect(sendTestEmail(db, ws!.id, mb.id, "me@x.com", { box, oauth, fetch })).rejects.toMatchObject({ needsReconnect: true });
     expect((await listMailboxes(db, ws!.id))[0]).toMatchObject({ status: "error" });
 
     // ...and connecting the same address again heals the same mailbox.

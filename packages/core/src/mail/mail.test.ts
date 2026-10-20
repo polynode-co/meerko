@@ -70,7 +70,7 @@ describe("GmailClient", () => {
     const { fetch, calls } = fakeGoogle({ access_token: "tok", expires_in: 3600 });
     const gmail = new GmailClient(new GoogleOAuth({ ...config, fetch }), "refresh", fetch);
     await gmail.profile();
-    await gmail.send("Subject: hi\r\n\r\nbody", "t0");
+    await gmail.send({ raw: "Subject: hi\r\n\r\nbody" }, "t0");
     expect(calls.filter((c) => c.url.includes("oauth2")).length).toBe(1);
     const sent = JSON.parse(calls.at(-1)!.body);
     expect(Buffer.from(sent.raw, "base64url").toString()).toBe("Subject: hi\r\n\r\nbody");

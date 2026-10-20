@@ -5,6 +5,7 @@ import {
   enrollments,
   eq,
   isNotNull,
+  isNull,
   mailboxes,
   messages,
   sequences,
@@ -15,7 +16,9 @@ import {
   type Db,
   type SQL,
 } from "@meerko/db";
-import { GmailClient, GmailError, type GoogleOAuth } from "../mail/gmail.ts";
+import { mailClient, type MailClient } from "../mail/client.ts";
+import { GmailError, type GmailMessage, type GoogleOAuth } from "../mail/gmail.ts";
+import type { ImapConnectors } from "../mail/gmail-imap.ts";
 import { addressOf, bodyText, header, stripQuoted } from "../mail/parse.ts";
 import { markMailboxError } from "../mailboxes.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "../provider-keys.ts";
@@ -31,9 +34,10 @@ const WATCH_DAYS = 60;
 
 export interface ReplyDeps {
   box: SecretBox | null;
-  oauth: GoogleOAuth;
+  oauth?: GoogleOAuth;
   now?: () => Date;
   fetch?: typeof fetch;
+  imap?: ImapConnectors;
 }
 
 export interface ReplyTickResult {
@@ -65,81 +69,126 @@ export async function runReplyTick(db: Db, deps: ReplyDeps): Promise<ReplyTickRe
 
   const boxes = await db.select().from(mailboxes).where(eq(mailboxes.status, "active"));
   for (const mb of boxes) {
-    // Threads this mailbox started for a sequence, with the first step's subject.
-    const watched = await db
-      .selectDistinctOn([enrollments.id], {
-        enrollmentId: enrollments.id,
-        workspaceId: sequences.workspaceId,
-        email: enrollments.email,
-        threadId: enrollments.gmailThreadId,
-        originalSubject: sequenceSteps.subject,
-        firstSentAt: sql<string>`(select min(${messages.sentAt}) from ${messages} where ${messages.enrollmentId} = ${enrollments.id})`,
-      })
-      .from(enrollments)
-      .innerJoin(sequences, eq(enrollments.sequenceId, sequences.id))
-      .innerJoin(sequenceSteps, and(eq(sequenceSteps.sequenceId, sequences.id), eq(sequenceSteps.position, 0)))
-      .where(
-        and(
-          // The mailbox this lead was emailed from (rotation spreads a sequence over several).
-          eq(enrollments.mailboxId, mb.id),
-          isNotNull(enrollments.gmailThreadId),
-          sql`exists (select 1 from ${messages} where ${messages.enrollmentId} = ${enrollments.id} and ${messages.sentAt} >= ${watchFrom})`,
-        ),
-      );
-    if (watched.length === 0) continue;
-
-    const byThread = new Map<string, Watched>();
-    const byEmail = new Map<string, Watched>();
-    for (const w of watched) {
-      const entry = { enrollmentId: w.enrollmentId, workspaceId: w.workspaceId, email: w.email, originalSubject: w.originalSubject ?? "" };
-      byThread.set(w.threadId!, entry);
-      byEmail.set(w.email, entry);
-    }
-
-    const earliest = Math.min(...watched.map((w) => Date.parse(w.firstSentAt)));
-    const since = Math.max(earliest, (mb.repliesCheckedAt?.getTime() ?? earliest) - OVERLAP_MS);
-    const gmail = new GmailClient(deps.oauth, deps.box.decrypt(mb.encryptedRefreshToken), deps.fetch);
-
+    let client: MailClient | undefined;
+    // Opened only when the mailbox has something to check.
+    const open = () => (client ??= mailClient(mb, { box: deps.box!, oauth: deps.oauth, fetch: deps.fetch, imap: deps.imap }));
     try {
-      const ids = await gmail.listMessageIds(`after:${Math.floor(since / 1000)} -from:me`);
-      const known = new Set(
-        (
-          await db
-            .select({ gmailId: messages.gmailId })
-            .from(messages)
-            .where(and(eq(messages.mailboxId, mb.id), sql`${messages.gmailId} in ${ids.length ? ids.map((i) => i.id) : [""]}`))
-        ).map((m) => m.gmailId),
-      );
-
-      for (const { id, threadId } of ids) {
-        if (known.has(id)) continue;
-        result.scanned++;
-        let target = byThread.get(threadId);
-        if (!target) {
-          // Not one of our threads: a cheap header-only fetch tells us if an enrolled person wrote in fresh.
-          const meta = await gmail.getMessage(id, "metadata", ["From"]);
-          target = byEmail.get(addressOf(header(meta, "From")));
-          if (!target) continue;
-        }
-        const full = await gmail.getMessage(id, "full");
-        const intent = await recordInbound(db, mb.id, mb.email, target, full);
-        if (intent === undefined) continue;
-        if (intent === "bounce") result.bounces++;
-        else if (intent === "unsubscribe") result.unsubscribes++;
-        else if (intent === "out_of_office") result.outOfOffice++;
-        else result.replies++;
-      }
-      await db.update(mailboxes).set({ repliesCheckedAt: now }).where(eq(mailboxes.id, mb.id));
+      await scanMailbox(db, mb, open, now, watchFrom, result);
     } catch (err) {
       if (err instanceof GmailError && err.needsReconnect) await markMailboxError(db, mb.id, err.message);
       else throw err;
+    } finally {
+      await client?.close();
     }
   }
   return result;
 }
 
+type MailboxRow = typeof mailboxes.$inferSelect;
+
+async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: Date, watchFrom: string, result: ReplyTickResult) {
+  await fillMissingThreadIds(db, mb.id, open, watchFrom);
+  // Threads this mailbox started for a sequence, with the first step's subject.
+  const watched = await db
+    .selectDistinctOn([enrollments.id], {
+      enrollmentId: enrollments.id,
+      workspaceId: sequences.workspaceId,
+      email: enrollments.email,
+      threadId: enrollments.gmailThreadId,
+      originalSubject: sequenceSteps.subject,
+      firstSentAt: sql<string>`(select min(${messages.sentAt}) from ${messages} where ${messages.enrollmentId} = ${enrollments.id})`,
+    })
+    .from(enrollments)
+    .innerJoin(sequences, eq(enrollments.sequenceId, sequences.id))
+    .innerJoin(sequenceSteps, and(eq(sequenceSteps.sequenceId, sequences.id), eq(sequenceSteps.position, 0)))
+    .where(
+      and(
+        // The mailbox this lead was emailed from (rotation spreads a sequence over several).
+        eq(enrollments.mailboxId, mb.id),
+        isNotNull(enrollments.gmailThreadId),
+        sql`exists (select 1 from ${messages} where ${messages.enrollmentId} = ${enrollments.id} and ${messages.sentAt} >= ${watchFrom})`,
+      ),
+    );
+  if (watched.length === 0) return;
+
+  const byThread = new Map<string, Watched>();
+  const byEmail = new Map<string, Watched>();
+  for (const w of watched) {
+    const entry = { enrollmentId: w.enrollmentId, workspaceId: w.workspaceId, email: w.email, originalSubject: w.originalSubject ?? "" };
+    byThread.set(w.threadId!, entry);
+    byEmail.set(w.email, entry);
+  }
+
+  const earliest = Math.min(...watched.map((w) => Date.parse(w.firstSentAt)));
+  const since = Math.max(earliest, (mb.repliesCheckedAt?.getTime() ?? earliest) - OVERLAP_MS);
+
+  const client = open();
+  const ids = await client.listMessageIds(`after:${Math.floor(since / 1000)} -from:me`);
+  const known = new Set(
+    (
+      await db
+        .select({ gmailId: messages.gmailId })
+        .from(messages)
+        .where(and(eq(messages.mailboxId, mb.id), sql`${messages.gmailId} in ${ids.length ? ids.map((i) => i.id) : [""]}`))
+    ).map((m) => m.gmailId),
+  );
+
+  for (const { id, threadId } of ids) {
+    if (known.has(id)) continue;
+    result.scanned++;
+    let target = byThread.get(threadId);
+    if (!target) {
+      // Not one of our threads: a cheap header-only fetch tells us if an enrolled person wrote in fresh.
+      const meta = await client.getMessage(id, "metadata", ["From"]);
+      target = byEmail.get(addressOf(header(meta, "From")));
+      if (!target) continue;
+    }
+    const full = await client.getMessage(id, "full");
+    const intent = await recordInbound(db, mb.id, mb.email, target, full);
+    if (intent === undefined) continue;
+    if (intent === "bounce") result.bounces++;
+    else if (intent === "unsubscribe") result.unsubscribes++;
+    else if (intent === "out_of_office") result.outOfOffice++;
+    else result.replies++;
+  }
+  await db.update(mailboxes).set({ repliesCheckedAt: now }).where(eq(mailboxes.id, mb.id));
+}
+
+/**
+ * Over IMAP a sent email's Gmail ids come from finding its copy, which can lag the send. Looks up the
+ * ones still missing, so their threads are watched for replies.
+ */
+async function fillMissingThreadIds(db: Db, mailboxId: string, open: () => MailClient, watchFrom: string) {
+  const missing = await db
+    .select({ id: messages.id, enrollmentId: messages.enrollmentId, rfcMessageId: messages.rfcMessageId })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.mailboxId, mailboxId),
+        eq(messages.direction, "out"),
+        isNull(messages.gmailThreadId),
+        isNotNull(messages.rfcMessageId),
+        sql`${messages.sentAt} >= ${watchFrom}`,
+      ),
+    );
+  if (!missing.length) return;
+  const client = open();
+  if (!client.findByMessageId) return;
+  for (const m of missing) {
+    const found = await client.findByMessageId(m.rfcMessageId!);
+    if (!found.id || !found.threadId) continue;
+    await db.update(messages).set({ gmailId: found.id, gmailThreadId: found.threadId }).where(eq(messages.id, m.id));
+    if (m.enrollmentId) {
+      await db
+        .update(enrollments)
+        .set({ gmailThreadId: found.threadId })
+        .where(and(eq(enrollments.id, m.enrollmentId), isNull(enrollments.gmailThreadId)));
+    }
+  }
+}
+
 /** Stores one inbound message and applies its effect. Returns undefined if it was already stored. */
-async function recordInbound(db: Db, mailboxId: string, mailboxEmail: string, target: Watched, msg: Awaited<ReturnType<GmailClient["getMessage"]>>) {
+async function recordInbound(db: Db, mailboxId: string, mailboxEmail: string, target: Watched, msg: GmailMessage) {
   const replyText = stripQuoted(bodyText(msg));
   const intent: RuleIntent | null = classifyByRules(msg, replyText, target.originalSubject);
 

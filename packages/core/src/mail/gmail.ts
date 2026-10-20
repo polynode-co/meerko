@@ -1,4 +1,6 @@
 // Gmail over Google's REST endpoints with fetch, like the Icypeas client: no googleapis dependency.
+import type { MailClient, OutgoingRaw } from "./client.ts";
+
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GMAIL_URL = "https://gmail.googleapis.com/gmail/v1/users/me";
@@ -141,7 +143,7 @@ export interface GmailSendResult {
 }
 
 /** Gmail API client for one mailbox. Refreshes and caches its access token. */
-export class GmailClient {
+export class GmailClient implements MailClient {
   private accessToken?: { value: string; expiresAt: number };
   private readonly fetch: typeof fetch;
 
@@ -158,8 +160,8 @@ export class GmailClient {
   }
 
   /** Sends a raw RFC 822 message. Pass `threadId` to keep follow-ups in the sender's thread too. */
-  send(raw: string, threadId?: string) {
-    return this.call<GmailSendResult>("POST", "/messages/send", { raw: Buffer.from(raw).toString("base64url"), threadId });
+  send(email: Pick<OutgoingRaw, "raw">, threadId?: string) {
+    return this.call<GmailSendResult>("POST", "/messages/send", { raw: Buffer.from(email.raw).toString("base64url"), threadId });
   }
 
   /** Message ids matching a Gmail search query (e.g. `after:1759650000 -from:me`), following pages up to `max`. */
@@ -182,6 +184,8 @@ export class GmailClient {
     for (const h of metadataHeaders) params.append("metadataHeaders", h);
     return this.call<GmailMessage>("GET", `/messages/${id}?${params}`);
   }
+
+  async close() {}
 
   private async token() {
     if (this.accessToken && this.accessToken.expiresAt - 60_000 > Date.now()) return this.accessToken.value;

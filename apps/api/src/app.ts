@@ -326,7 +326,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.tick || given.length !== expected.length || !timingSafeEqual(given, expected)) return c.json({ error: "Not found" }, 404);
     const result = await runWorkerTick(
       db,
-      { box, oauth: googleOAuth(), publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, ...hookDeps() },
+      { box, oauth: deps.googleOAuth, publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, ...hookDeps() },
       { replies: c.req.query("replies") !== "0" },
     );
     if (result.replyError) {
@@ -949,7 +949,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/mailboxes/:id/test", async (c) => {
     const { to } = await parse(z.object({ to: z.string().email() }), await c.req.json());
-    const sent = await sendTestEmail(db, box, googleOAuth(), c.var.workspaceId, c.req.param("id"), to, deps.gmailFetch);
+    const sent = await sendTestEmail(db, c.var.workspaceId, c.req.param("id"), to, { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch });
     return c.json({ sent: true, messageId: sent.id });
   });
 
@@ -1034,7 +1034,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/drafts/:id/approve", async (c) => {
     const { body } = await parse(z.object({ body: z.string().min(1).max(20_000).optional() }), await c.req.json().catch(() => ({})));
-    return c.json(await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: googleOAuth(), fetch: deps.gmailFetch }, body));
+    return c.json(await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch }, body));
   });
 
   v1.post("/drafts/:id/discard", async (c) => {
