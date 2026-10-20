@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { parse as parseCsv } from "csv-parse/sync";
-import { MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type ReplyIntent, type SequenceStep, type Stage } from "@meerko/sdk";
+import { MAIL_PROVIDERS, MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type MailProviderId, type MailServers, type ReplyIntent, type SequenceStep, type Stage } from "@meerko/sdk";
 import { apiUrl, meerko, safeNext, SESSION_COOKIE, setSessionCookie } from "@/lib/meerko";
 import { site } from "@/lib/site";
 
@@ -158,16 +158,18 @@ export async function enrichEmails(tableId: string) {
   }, [`/app/leads/${tableId}`, "/app"]);
 }
 
-/** Connects a Gmail inbox with an app password. Gmail checks it first; a refusal comes back as the form's error. */
-export async function connectAppPassword(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+/** Connects an inbox with an app password: Gmail, a preset provider or any IMAP/SMTP server. A refusal comes back as the form's error. */
+export async function connectMailbox(_: ActionResult | null, form: FormData): Promise<ActionResult> {
   const field = (name: string) => String(form.get(name) ?? "").trim();
+  const provider = (field("provider") || "gmail") as MailProviderId;
+  if (!(provider in MAIL_PROVIDERS)) return { ok: false, error: "Pick an email provider" };
+  const account = { email: field("email"), password: field("password"), login: field("login") || undefined, displayName: field("name") || undefined };
+  const servers: MailServers | undefined =
+    provider === "other"
+      ? { imap: { host: field("imap_host"), port: 993 }, smtp: { host: field("smtp_host"), port: Number(field("smtp_port")) || 465 } }
+      : MAIL_PROVIDERS[provider].servers;
   return run(async (c) => {
-    const mailbox = await c.connectGmailAppPassword({
-      email: field("email"),
-      password: field("password"),
-      login: field("login") || undefined,
-      displayName: field("name") || undefined,
-    });
+    const mailbox = servers ? await c.connectImapMailbox({ ...account, servers }) : await c.connectGmailAppPassword(account);
     return `Connected ${mailbox.email}. Send yourself a test email to see how it lands.`;
   }, ["/app/settings"]);
 }

@@ -1,5 +1,5 @@
 // Gmail over Google's REST endpoints with fetch, like the Icypeas client: no googleapis dependency.
-import type { MailClient, OutgoingRaw } from "./client.ts";
+import type { InboundRef, MailClient, OutgoingRaw } from "./client.ts";
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -162,6 +162,11 @@ export class GmailClient implements MailClient {
   /** Sends a raw RFC 822 message. Pass `threadId` to keep follow-ups in the sender's thread too. */
   send(email: Pick<OutgoingRaw, "raw">, threadId?: string) {
     return this.call<GmailSendResult>("POST", "/messages/send", { raw: Buffer.from(email.raw).toString("base64url"), threadId });
+  }
+
+  /** Mail that arrived since `since`, not sent by this account. */
+  listInbound(since: Date): Promise<InboundRef[]> {
+    return this.listMessageIds(`after:${Math.floor(since.getTime() / 1000)} -from:me`);
   }
 
   /** Message ids matching a Gmail search query (e.g. `after:1759650000 -from:me`), following pages up to `max`. */

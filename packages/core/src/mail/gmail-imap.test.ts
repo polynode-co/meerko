@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { bodyText, header } from "./parse.ts";
 import { fakeGmail } from "./fake-gmail-imap.ts";
-import { decodeWords, GmailImapClient, parseHeaders } from "./gmail-imap.ts";
+import { GmailImapClient } from "./gmail-imap.ts";
+import { decodeWords, parseHeaders } from "./imap-common.ts";
 
 const account = { email: "iker@meerko.ai", login: "iker@polynode.co", password: "abcdabcdabcdabcd" };
 const email = (n: number, extra = "") => ({

@@ -13,6 +13,8 @@ export * from "./provider-keys.ts";
 export * from "./mail/client.ts";
 export * from "./mail/gmail.ts";
 export * from "./mail/gmail-imap.ts";
+export * from "./mail/imap-common.ts";
+export * from "./mail/imap.ts";
 export * from "./mail/mime.ts";
 export * from "./mailboxes.ts";
 export * from "./sending/window.ts";

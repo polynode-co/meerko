@@ -48,7 +48,8 @@ describe.skipIf(!process.env.DATABASE_URL)("connecting mailboxes (db)", () => {
 
   const v1 = (path: string, init: RequestInit = {}, a = app) =>
     a.request(`/v1${path}`, { ...init, headers: { authorization: `Bearer ${key}`, "content-type": "application/json" } });
-  const connect = (body: object, a = app) => v1("/mailboxes/gmail/app-password", { method: "POST", body: JSON.stringify(body) }, a);
+  const connect = (body: object, a = app) =>
+    v1(`/mailboxes/${"imap_host" in body ? "imap" : "gmail/app-password"}`, { method: "POST", body: JSON.stringify(body) }, a);
 
   it("offers app passwords, and Google's consent page only when it's turned on", async () => {
     expect(await (await v1("/mailboxes/connect")).json()).toEqual({ oauth: false, url: "https://app.example/app/settings?connect=gmail" });
@@ -96,6 +97,36 @@ describe.skipIf(!process.env.DATABASE_URL)("connecting mailboxes (db)", () => {
     expect(mailbox).toMatchObject({ id: old!.id, provider: "gmail_imap", status: "active", lastError: null, login: null });
     const [row] = await db.select().from(mailboxes).where(eq(mailboxes.id, old!.id));
     expect(row!.encryptedRefreshToken).toBeNull();
+  });
+
+  it("connects any IMAP/SMTP provider after signing in, and refuses private servers and plain ports", async () => {
+    let address = "203.0.113.10";
+    const generic: ImapConnectors = {
+      ...imap,
+      resolve: async () => [address],
+      imap: (auth, server) => {
+        logins.push(`imap ${auth.user} ${server.host} ${server.address}`);
+        return { capabilities: new Map(), on: () => {}, connect: async () => {}, logout: async () => {}, list: async () => [] } as unknown as ReturnType<ImapConnectors["imap"]>;
+      },
+    };
+    const genericApp = createApp(db, { secretBox: box, imap: generic });
+    const body = { email: "ana@acme.eu", password: GOOD, imap_host: "imappro.zoho.eu", smtp_host: "smtppro.zoho.eu", smtp_port: 587 };
+    const res = await connect(body, genericApp);
+    expect(res.status).toBe(201);
+    expect((await res.json()).mailbox).toMatchObject({
+      provider: "imap",
+      email: "ana@acme.eu",
+      servers: { imap: { host: "imappro.zoho.eu", port: 993 }, smtp: { host: "smtppro.zoho.eu", port: 587 } },
+    });
+    expect(logins.at(-1)).toBe("imap ana@acme.eu imappro.zoho.eu 203.0.113.10");
+
+    address = "169.254.169.254";
+    const internal = await connect({ ...body, email: "bo@acme.eu" }, genericApp);
+    expect(internal.status).toBe(400);
+    expect((await internal.json()).error).toMatch(/public internet address/);
+    address = "203.0.113.10";
+    const plain = await connect({ ...body, email: "bo@acme.eu", smtp_port: 25 }, genericApp);
+    expect((await plain.json()).error).toMatch(/use 465 or 587/);
   });
 
   it("limits attempts per workspace", async () => {

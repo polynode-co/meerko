@@ -1,11 +1,10 @@
 // Gmail over IMAP and SMTP with an app password: no Gmail API scopes, so no Google verification or CASA
 // (docs/APP_PASSWORD_PLAN.md). Gmail's IMAP extensions keep it shaped like the API client: X-GM-RAW takes
 // the same search syntax, and X-GM-MSGID / X-GM-THRID are the API's message and thread ids in decimal.
-import { ImapFlow, type FetchMessageObject } from "imapflow";
-import { simpleParser } from "mailparser";
-import nodemailer from "nodemailer";
-import type { MailClient, OutgoingRaw, SentIds } from "./client.ts";
+import type { FetchMessageObject } from "imapflow";
+import type { InboundRef, MailClient, OutgoingRaw, SentIds } from "./client.ts";
 import { GmailError, type GmailMessage } from "./gmail.ts";
+import { defaultConnectors, guardMail, parseHeaders, toPayload, type ImapConnectors, type ImapSession, type SmtpTransport } from "./imap-common.ts";
 
 export interface GmailAccount {
   /** The address mail is sent from. */
@@ -15,25 +14,9 @@ export interface GmailAccount {
   password: string;
 }
 
-type ImapSession = Pick<ImapFlow, "connect" | "logout" | "list" | "mailboxOpen" | "noop" | "search" | "fetch" | "fetchOne" | "capabilities" | "on">;
-
-interface SmtpTransport {
-  sendMail(mail: { envelope: { from: string; to: string[] }; raw: string }): Promise<unknown>;
-  verify(): Promise<unknown>;
-  close(): void;
-}
-
-/** Opens the IMAP and SMTP connections. Tests pass fakes. */
-export interface ImapConnectors {
-  imap(auth: { user: string; pass: string }): ImapSession;
-  smtp(auth: { user: string; pass: string }): SmtpTransport;
-  /** Waits between lookups of a just-sent message. */
-  sleep?(ms: number): Promise<void>;
-}
-
-const connectors: ImapConnectors = {
-  imap: (auth) => new ImapFlow({ host: "imap.gmail.com", port: 993, secure: true, auth, logger: false }),
-  smtp: (auth) => nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth }),
+const SERVERS = {
+  imap: { host: "imap.gmail.com", port: 993 },
+  smtp: { host: "smtp.gmail.com", port: 465 },
 };
 
 /** Waits before looking for a just-sent message again. Gmail had it indexed within 2 s when tested. */
@@ -49,7 +32,7 @@ export class GmailImapClient implements MailClient {
 
   constructor(
     private readonly account: GmailAccount,
-    private readonly connect: ImapConnectors = connectors,
+    private readonly connect: ImapConnectors = defaultConnectors,
   ) {}
 
   private sleep(ms: number) {
@@ -86,6 +69,11 @@ export class GmailImapClient implements MailClient {
     if (!uids || !uids.length) return NO_IDS;
     const msg = await guard(() => imap.fetchOne(String(uids[0]), { uid: true, threadId: true }, { uid: true }));
     return msg ? this.remember(msg) : NO_IDS;
+  }
+
+  /** Mail that arrived since `since`, not sent by this account. */
+  listInbound(since: Date): Promise<InboundRef[]> {
+    return this.listMessageIds(`after:${Math.floor(since.getTime() / 1000)} -from:me`);
   }
 
   async listMessageIds(q: string, max = 500) {
@@ -129,13 +117,13 @@ export class GmailImapClient implements MailClient {
   }
 
   private smtp() {
-    return (this.transport ??= this.connect.smtp({ user: this.account.login, pass: this.account.password }));
+    return (this.transport ??= this.connect.smtp({ user: this.account.login, pass: this.account.password }, SERVERS.smtp));
   }
 
   /** One IMAP session per client, with All Mail open read-only: every message is there, whatever its labels. */
   private imap() {
     this.session ??= (async () => {
-      const imap = this.connect.imap({ user: this.account.login, pass: this.account.password });
+      const imap = this.connect.imap({ user: this.account.login, pass: this.account.password }, SERVERS.imap);
       // ImapFlow emits connection errors as events; the next command reports them.
       imap.on("error", () => {});
       await guard(() => imap.connect());
@@ -167,57 +155,6 @@ export class GmailImapClient implements MailClient {
 /** X-GM-MSGID / X-GM-THRID are decimal; the API (and what's stored) uses hex. */
 const hex = (decimal: string) => BigInt(decimal).toString(16);
 
-/** Maps IMAP and SMTP failures to GmailError; a rejected password means the user must reconnect. */
-async function guard<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof GmailError) throw err;
-    const e = err as { authenticationFailed?: boolean; code?: string; responseCode?: number; message?: string };
-    if (e.authenticationFailed || e.code === "EAUTH") {
-      throw new GmailError("Gmail didn't accept the app password. Create a new one at myaccount.google.com/apppasswords and connect the mailbox again", e.responseCode, true);
-    }
-    throw new GmailError(`Gmail IMAP/SMTP: ${e.message ?? String(err)}`, e.responseCode);
-  }
-}
-
-/** Header lines, unfolded, with RFC 2047 encoded words decoded (the API returns them decoded too). */
-export function parseHeaders(block: string): { name: string; value: string }[] {
-  return block
-    .replace(/\r?\n[ \t]+/g, " ")
-    .split(/\r?\n/)
-    .map((line) => {
-      const i = line.indexOf(":");
-      return i > 0 ? { name: line.slice(0, i).trim(), value: decodeWords(line.slice(i + 1).trim()) } : null;
-    })
-    .filter((h): h is { name: string; value: string } => h !== null);
-}
-
-/** "=?UTF-8?B?w4lsw6g=?=" -> "Élè". */
-export function decodeWords(value: string): string {
-  return value.replace(/(\?=)\s+(?==\?)/g, "$1").replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, (word, charset: string, enc: string, text: string) => {
-    const bytes =
-      enc.toUpperCase() === "B"
-        ? Buffer.from(text, "base64")
-        : Buffer.from(text.replace(/_/g, " ").replace(/=([0-9A-Fa-f]{2})/g, (_, h: string) => String.fromCharCode(parseInt(h, 16))), "latin1");
-    try {
-      return new TextDecoder(charset.split("*")[0]).decode(bytes);
-    } catch {
-      return word;
-    }
-  });
-}
-
-/** The parts of a message that parse.ts reads: headers, and the text and HTML bodies (decoded by mailparser). */
-async function toPayload(source: Buffer): Promise<Pick<GmailMessage, "payload" | "snippet">> {
-  const raw = source.toString("utf8");
-  const end = raw.search(/\r?\n\r?\n/);
-  const headers = parseHeaders(end < 0 ? raw : raw.slice(0, end));
-  const parsed = await simpleParser(source);
-  const encode = (s: string) => ({ data: Buffer.from(s).toString("base64url") });
-  const parts = [
-    ...(parsed.text ? [{ mimeType: "text/plain", body: encode(parsed.text) }] : []),
-    ...(typeof parsed.html === "string" ? [{ mimeType: "text/html", body: encode(parsed.html) }] : []),
-  ];
-  return { snippet: (parsed.text ?? "").replace(/\s+/g, " ").trim().slice(0, 200), payload: { mimeType: "multipart/alternative", headers, parts } };
-}
+/** A rejected password means the user must make a new app password and reconnect. */
+const guard = <T>(fn: () => Promise<T>) =>
+  guardMail(fn, { auth: "Gmail didn't accept the app password. Create a new one at myaccount.google.com/apppasswords and connect the mailbox again", other: "Gmail IMAP/SMTP" });

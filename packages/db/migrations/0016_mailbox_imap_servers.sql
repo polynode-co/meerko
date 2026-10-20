@@ -1,0 +1,2 @@
+ALTER TABLE "mailboxes" ADD COLUMN "servers" jsonb;--> statement-breakpoint
+ALTER TABLE "mailboxes" ADD CONSTRAINT "mailboxes_imap_servers" CHECK ("mailboxes"."provider" <> 'imap' or "mailboxes"."servers" is not null);

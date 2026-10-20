@@ -44,12 +44,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <Card className="overflow-hidden">
         {/* Keyed so Reconnect (a new ?email=) opens a fresh form. */}
         <MailboxConnect key={`${connect}:${email}`} oauth={connectOptions.oauth} initialOpen={connect === "gmail"} initialEmail={email} />
-        {mailboxes.length === 0 && <p className="px-5 py-6 text-[13px] text-muted">Connect the Gmail or Google Workspace inbox you send from.</p>}
+        {mailboxes.length === 0 && <p className="px-5 py-6 text-[13px] text-muted">Connect the inbox you send from: Gmail, Google Workspace, Zoho, Fastmail or any IMAP/SMTP provider.</p>}
         {mailboxes.map((m) => (
           <div key={m.id} className="flex flex-wrap items-center gap-4 border-b border-line px-5 py-4 last:border-0">
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="font-mono text-[13px]">{m.email}</span>
-              {m.login && <span className="font-mono text-[11px] text-muted">signs in as {m.login}</span>}
+              {(m.login || m.servers) && (
+                <span className="font-mono text-[11px] text-muted">
+                  {[m.servers && `via ${m.servers.imap.host}`, m.login && `signs in as ${m.login}`].filter(Boolean).join(" · ")}
+                </span>
+              )}
               {m.lastError && <span className="text-xs text-[#e5795b]">{m.lastError}</span>}
             </span>
             <span className="font-mono text-xs text-muted">{m.rampDay ? `${m.effectiveLimit}/day today · ramp day ${m.rampDay}/21 → ${m.dailyLimit}` : `${m.dailyLimit}/day`}</span>

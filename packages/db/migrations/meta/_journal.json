@@ -113,6 +113,13 @@
       "when": 1792497708686,
       "tag": "0015_mailbox_app_password",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792506573065,
+      "tag": "0016_mailbox_imap_servers",
+      "breakpoints": true
     }
   ]
 }

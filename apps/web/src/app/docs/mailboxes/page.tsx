@@ -17,7 +17,7 @@ export default function Page() {
         </p>
       }
       toc={[
-        ["connect", "Connecting Gmail"],
+        ["connect", "Connecting a mailbox"],
         ["limits", "Daily limit and spacing"],
         ["ramp", "Ramp-up for new mailboxes"],
         ["domains", "Domain health"],
@@ -26,7 +26,7 @@ export default function Page() {
       ]}
       tools={["connect_gmail", "list_mailboxes", "update_mailbox", "send_test_email", "check_domains"]}
     >
-      <H2 id="connect">Connecting Gmail</H2>
+      <H2 id="connect">Connecting a mailbox</H2>
       <p>
         Meerko connects to Gmail and Google Workspace inboxes with an <strong className="text-fg">app password</strong>: it sends
         through Gmail&apos;s SMTP server and reads replies over IMAP, as a mail app would. To make one:
@@ -40,7 +40,7 @@ export default function Page() {
           Open <L href="https://myaccount.google.com/apppasswords">App passwords</L>, name it &quot;Meerko&quot; and copy the 16 letters.
         </li>
         <li>
-          Paste it in <L href="/app/settings?connect=gmail">Settings → Connect Gmail</L>, or run <C>pnpm meerko mailboxes connect</C>.
+          Paste it in <L href="/app/settings?connect=gmail">Settings → Connect mailbox</L>, or run <C>pnpm meerko mailboxes connect</C>.
           Meerko checks it with Gmail before saving it, encrypted.
         </li>
       </ol>
@@ -51,6 +51,14 @@ export default function Page() {
       <p>
         If the address is an alias of another Google account (say <C>you@brand.com</C> on a <C>you@company.com</C> account), also enter
         the account you sign in with: Gmail only accepts that one. Meerko still sends from the alias.
+      </p>
+      <p>
+        <strong className="text-fg">Zoho Mail, Fastmail or any other provider</strong> with IMAP and SMTP connects the same way: pick it in
+        the form, or run <C>pnpm meerko mailboxes connect --provider zoho</C> (<C>zoho-eu</C>, <C>fastmail</C> or <C>other</C>). Turn on IMAP
+        for the account and use an app password if the provider offers them. For a provider that isn&apos;t listed, choose Other and enter
+        its IMAP server (port 993) and SMTP server (465 or 587): Meerko only connects over TLS, and only to public servers. When the
+        provider doesn&apos;t file sent emails in Sent itself, Meerko saves a copy there. Outlook and Microsoft 365 don&apos;t allow password
+        sign-in, so they can&apos;t connect yet.
       </p>
       <p>
         Meerko only fetches in full the messages in threads it started or from people in your sequences; other mail is never stored or

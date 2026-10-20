@@ -18,7 +18,7 @@ import {
 } from "@meerko/db";
 import { mailClient, type MailClient } from "../mail/client.ts";
 import { GmailError, type GmailMessage, type GoogleOAuth } from "../mail/gmail.ts";
-import type { ImapConnectors } from "../mail/gmail-imap.ts";
+import type { ImapConnectors } from "../mail/imap-common.ts";
 import { addressOf, bodyText, header, stripQuoted } from "../mail/parse.ts";
 import { markMailboxError } from "../mailboxes.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "../provider-keys.ts";
@@ -95,6 +95,7 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
       workspaceId: sequences.workspaceId,
       email: enrollments.email,
       threadId: enrollments.gmailThreadId,
+      messageIds: enrollments.messageIds,
       originalSubject: sequenceSteps.subject,
       firstSentAt: sql<string>`(select min(${messages.sentAt}) from ${messages} where ${messages.enrollmentId} = ${enrollments.id})`,
     })
@@ -116,6 +117,8 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
   for (const w of watched) {
     const entry = { enrollmentId: w.enrollmentId, workspaceId: w.workspaceId, email: w.email, originalSubject: w.originalSubject ?? "" };
     byThread.set(w.threadId!, entry);
+    // Generic IMAP replies are matched by the Message-IDs they answer.
+    for (const id of w.messageIds) byThread.set(id, entry);
     byEmail.set(w.email, entry);
   }
 
@@ -123,7 +126,7 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
   const since = Math.max(earliest, (mb.repliesCheckedAt?.getTime() ?? earliest) - OVERLAP_MS);
 
   const client = open();
-  const ids = await client.listMessageIds(`after:${Math.floor(since / 1000)} -from:me`);
+  const ids = await client.listInbound(new Date(since));
   const known = new Set(
     (
       await db
@@ -133,10 +136,10 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
     ).map((m) => m.gmailId),
   );
 
-  for (const { id, threadId } of ids) {
+  for (const { id, threadId, refs } of ids) {
     if (known.has(id)) continue;
     result.scanned++;
-    let target = byThread.get(threadId);
+    let target = byThread.get(threadId) ?? refs?.map((r) => byThread.get(r)).find(Boolean);
     if (!target) {
       // Not one of our threads: a cheap header-only fetch tells us if an enrolled person wrote in fresh.
       const meta = await client.getMessage(id, "metadata", ["From"]);

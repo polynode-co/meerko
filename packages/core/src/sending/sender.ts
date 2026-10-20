@@ -16,7 +16,7 @@ import {
 } from "@meerko/db";
 import { mailClient, type MailClient, type SentIds } from "../mail/client.ts";
 import { GmailError, type GoogleOAuth } from "../mail/gmail.ts";
-import type { ImapConnectors } from "../mail/gmail-imap.ts";
+import type { ImapConnectors } from "../mail/imap-common.ts";
 import { buildMime } from "../mail/mime.ts";
 import { markMailboxError } from "../mailboxes.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "../provider-keys.ts";
