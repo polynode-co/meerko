@@ -450,7 +450,7 @@ export class MeerkoClient {
   }
 
   sendTestEmail(id: string, to: string) {
-    return this.request<{ sent: boolean; messageId: string }>("POST", `/mailboxes/${id}/test`, { to });
+    return this.request<{ sent: boolean; messageId: string | null }>("POST", `/mailboxes/${id}/test`, { to });
   }
 
   listSequences() {

@@ -1,5 +1,7 @@
 import { and, asc, enrollments, eq, mailboxes, messages, replyDrafts, sql, suppressions, tableRows, type Db } from "@meerko/db";
-import { GmailClient, type GoogleOAuth } from "../mail/gmail.ts";
+import { mailClient, type MailClient, type SentIds } from "../mail/client.ts";
+import type { GoogleOAuth } from "../mail/gmail.ts";
+import type { ImapConnectors } from "../mail/gmail-imap.ts";
 import { buildMime } from "../mail/mime.ts";
 import { markMailboxError } from "../mailboxes.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "../provider-keys.ts";
@@ -87,8 +89,9 @@ export async function discardDraft(db: Db, workspaceId: string, draftId: string)
 
 export interface ApproveDeps {
   box: SecretBox | null;
-  oauth: GoogleOAuth;
+  oauth?: GoogleOAuth;
   fetch?: typeof fetch;
+  imap?: ImapConnectors;
 }
 
 /**
@@ -137,14 +140,17 @@ export async function approveDraft(db: Db, workspaceId: string, draftId: string,
     .returning({ id: replyDrafts.id });
   if (claimed.length === 0) throw new ReplyError("This draft is already being sent");
 
-  const gmail = new GmailClient(deps.oauth, deps.box.decrypt(mailbox.encryptedRefreshToken), deps.fetch);
-  let sent;
+  let sent: SentIds;
+  let client: MailClient | undefined;
   try {
-    sent = await gmail.send(raw, reply.gmailThreadId ?? undefined);
+    client = mailClient(mailbox, { box: deps.box, oauth: deps.oauth, fetch: deps.fetch, imap: deps.imap });
+    sent = await client.send({ raw, messageId, from: mailbox.email, to: reply.fromEmail }, reply.gmailThreadId ?? undefined);
   } catch (err) {
     await db.update(replyDrafts).set({ status: "pending" }).where(eq(replyDrafts.id, draftId));
     if ((err as { needsReconnect?: boolean }).needsReconnect) await markMailboxError(db, mailbox.id, (err as Error).message);
     throw err;
+  } finally {
+    await client?.close();
   }
 
   return db.transaction(async (tx) => {
@@ -156,7 +162,7 @@ export async function approveDraft(db: Db, workspaceId: string, draftId: string,
         enrollmentId: reply.enrollmentId,
         direction: "out",
         gmailId: sent.id,
-        gmailThreadId: sent.threadId,
+        gmailThreadId: sent.threadId ?? reply.gmailThreadId,
         rfcMessageId: messageId,
         fromEmail: mailbox.email,
         toEmail: reply.fromEmail,

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, boolean, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export type ColumnType = "text" | "number" | "email" | "url" | "boolean" | "json";
 
@@ -190,16 +190,22 @@ export const providerKeys = pgTable(
   (t) => [uniqueIndex("provider_keys_workspace_provider_idx").on(t.workspaceId, t.provider)],
 );
 
-/** Connected sending mailboxes. The OAuth refresh token is encrypted with MEERKO_ENCRYPTION_KEY. */
+/**
+ * Connected sending mailboxes: `gmail` through the Gmail API (OAuth refresh token), `gmail_imap` through
+ * IMAP and SMTP with an app password. The credential is encrypted with MEERKO_ENCRYPTION_KEY.
+ */
 export const mailboxes = pgTable(
   "mailboxes",
   {
     id: id(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    provider: text("provider").$type<"gmail">().notNull(),
+    provider: text("provider").$type<MailboxProvider>().notNull(),
     email: text("email").notNull(),
+    /** The Google account to sign in as when `email` is an alias of it (gmail_imap). Null means `email`. */
+    login: text("login"),
     displayName: text("display_name"),
-    encryptedRefreshToken: text("encrypted_refresh_token").notNull(),
+    encryptedRefreshToken: text("encrypted_refresh_token"),
+    encryptedPassword: text("encrypted_password"),
     dailyLimit: integer("daily_limit").notNull().default(50),
     /**
      * Set while a new mailbox ramps up: its daily limit grows from a few emails to daily_limit over
@@ -212,9 +218,13 @@ export const mailboxes = pgTable(
     repliesCheckedAt: timestamp("replies_checked_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("mailboxes_workspace_email_idx").on(t.workspaceId, t.email)],
+  (t) => [
+    uniqueIndex("mailboxes_workspace_email_idx").on(t.workspaceId, t.email),
+    check("mailboxes_one_credential", sql`(${t.encryptedRefreshToken} is null) <> (${t.encryptedPassword} is null)`),
+  ],
 );
 
+export type MailboxProvider = "gmail" | "gmail_imap";
 export type SequenceStatus = "draft" | "active" | "paused";
 export type MailboxAssignment = "capacity" | "even";
 export type EnrollmentState = "active" | "completed" | "replied" | "unsubscribed" | "bounced" | "stopped" | "failed";

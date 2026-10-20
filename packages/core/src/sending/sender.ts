@@ -14,7 +14,9 @@ import {
   tableRows,
   type Db,
 } from "@meerko/db";
-import { GmailClient, GmailError, type GoogleOAuth } from "../mail/gmail.ts";
+import { mailClient, type MailClient, type SentIds } from "../mail/client.ts";
+import { GmailError, type GoogleOAuth } from "../mail/gmail.ts";
+import type { ImapConnectors } from "../mail/gmail-imap.ts";
 import { buildMime } from "../mail/mime.ts";
 import { markMailboxError } from "../mailboxes.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "../provider-keys.ts";
@@ -33,12 +35,14 @@ const FOLLOWUP_JITTER_MS = 60 * 60_000;
 
 export interface SenderDeps {
   box: SecretBox | null;
-  oauth: GoogleOAuth;
+  /** Unset when Google OAuth isn't configured; only mailboxes connected through the Gmail API need it. */
+  oauth?: GoogleOAuth;
   /** Base URL for unsubscribe links, e.g. MEERKO_PUBLIC_URL. */
   publicUrl: string;
   now?: () => Date;
   random?: () => number;
   fetch?: typeof fetch;
+  imap?: ImapConnectors;
 }
 
 // ---------- Unsubscribe tokens ----------
@@ -205,10 +209,11 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
       headers: { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
     });
 
-    let sent: { id: string; threadId: string };
+    let sent: SentIds;
+    let client: MailClient | undefined;
     try {
-      const gmail = new GmailClient(deps.oauth, deps.box!.decrypt(mailbox.encryptedRefreshToken), deps.fetch);
-      sent = await gmail.send(raw, en.gmailThreadId ?? undefined);
+      client = mailClient(mailbox, { box: deps.box!, oauth: deps.oauth, fetch: deps.fetch, imap: deps.imap });
+      sent = await client.send({ raw, messageId, from: mailbox.email, to: en.email }, en.gmailThreadId ?? undefined);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (err instanceof GmailError && err.needsReconnect) {
@@ -218,6 +223,8 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
       }
       await tx.update(enrollments).set({ state: "failed", nextSendAt: null, lastError: message }).where(eq(enrollments.id, en.id));
       return "failed";
+    } finally {
+      await client?.close();
     }
 
     await tx.insert(messages).values({
@@ -241,7 +248,8 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
       .update(enrollments)
       .set({
         nextStep: en.nextStep + 1,
-        gmailThreadId: sent.threadId,
+        // Over IMAP the ids can be missing until the reply tick finds the sent copy.
+        gmailThreadId: sent.threadId ?? en.gmailThreadId,
         messageIds: [...en.messageIds, messageId],
         state: next ? "active" : "completed",
         nextSendAt: next ? new Date(now.getTime() + next.delayDays * DAY_MS + random() * FOLLOWUP_JITTER_MS) : null,

@@ -106,6 +106,13 @@
       "when": 1792053488135,
       "tag": "0014_agent_hooks",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792497708686,
+      "tag": "0015_mailbox_app_password",
+      "breakpoints": true
     }
   ]
 }

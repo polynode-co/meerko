@@ -1,6 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { and, eq, mailboxes, sequenceMailboxes, sequences, sql, type Db } from "@meerko/db";
+import { mailClient } from "./mail/client.ts";
 import { GmailClient, type GoogleOAuth } from "./mail/gmail.ts";
+import type { ImapConnectors } from "./mail/gmail-imap.ts";
 import { buildMime } from "./mail/mime.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "./provider-keys.ts";
 import { domainHealthFor } from "./mail/domain-health.ts";
@@ -143,17 +145,6 @@ export async function deleteMailbox(db: Db, workspaceId: string, id: string) {
   return res.length > 0;
 }
 
-/** A Gmail client for a stored mailbox. */
-export async function mailboxClient(db: Db, box: SecretBox | null, oauth: GoogleOAuth, workspaceId: string, id: string, fetchImpl?: typeof fetch) {
-  const [row] = await db
-    .select()
-    .from(mailboxes)
-    .where(and(eq(mailboxes.workspaceId, workspaceId), eq(mailboxes.id, id)));
-  if (!row) throw new NotFoundError(`Mailbox ${id} not found`);
-  if (!box) throw new EncryptionNotConfiguredError();
-  return { mailbox: row, gmail: new GmailClient(oauth, box.decrypt(row.encryptedRefreshToken), fetchImpl) };
-}
-
 /** Records a lost connection so the user is told to reconnect, and sending skips the mailbox. */
 export async function markMailboxError(db: Db, id: string, error: string) {
   await db.update(mailboxes).set({ status: "error", lastError: error }).where(eq(mailboxes.id, id));
@@ -162,22 +153,30 @@ export async function markMailboxError(db: Db, id: string, error: string) {
 /** Sends a one-off test email, proving the connection works end to end. */
 export async function sendTestEmail(
   db: Db,
-  box: SecretBox | null,
-  oauth: GoogleOAuth,
   workspaceId: string,
   id: string,
   to: string,
-  fetchImpl?: typeof fetch,
+  deps: { box: SecretBox | null; oauth?: GoogleOAuth; fetch?: typeof fetch; imap?: ImapConnectors },
 ) {
-  const { mailbox, gmail } = await mailboxClient(db, box, oauth, workspaceId, id, fetchImpl);
-  const { raw } = buildMime({
+  const [mailbox] = await db
+    .select()
+    .from(mailboxes)
+    .where(and(eq(mailboxes.workspaceId, workspaceId), eq(mailboxes.id, id)));
+  if (!mailbox) throw new NotFoundError(`Mailbox ${id} not found`);
+  if (!deps.box) throw new EncryptionNotConfiguredError();
+  const { raw, messageId } = buildMime({
     from: { email: mailbox.email, name: mailbox.displayName },
     to,
     subject: "Meerko test email",
     text: `This test email was sent through Meerko from ${mailbox.email}.\n\nIf you can read it, the mailbox is connected.`,
   });
   try {
-    return await gmail.send(raw);
+    const client = mailClient(mailbox, { box: deps.box, oauth: deps.oauth, fetch: deps.fetch, imap: deps.imap });
+    try {
+      return await client.send({ raw, messageId, from: mailbox.email, to });
+    } finally {
+      await client.close();
+    }
   } catch (err) {
     if ((err as { needsReconnect?: boolean }).needsReconnect) await markMailboxError(db, id, (err as Error).message);
     throw err;
