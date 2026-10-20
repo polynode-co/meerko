@@ -446,6 +446,26 @@ Write like a person answering an email: short, specific to what they said, in th
   );
 
   tool(
+    "delete_rows",
+    {
+      description:
+        "Permanently delete leads (rows) from a table, e.g. poor fits or a person who asked to be removed. Their sequences stop; emails already sent and do-not-email entries (unsubscribes, bounces) are kept. Prefer move_stage to `lost` to keep a lead's history. Confirm with the user before deleting.",
+      inputSchema: { table_id: z.string(), row_ids: z.array(z.string()).min(1).max(1000) },
+    },
+    ({ table_id, row_ids }) => run(() => client().deleteRows(table_id, row_ids)),
+  );
+
+  tool(
+    "delete_table",
+    {
+      description:
+        "Permanently delete a table with all its rows and its paused or draft sequences. Refused while one of its sequences is active (pause it first). Confirm with the user before deleting.",
+      inputSchema: { table_id: z.string() },
+    },
+    ({ table_id }) => run(() => client().deleteTable(table_id)),
+  );
+
+  tool(
     "get_credits",
     {
       description:

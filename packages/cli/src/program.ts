@@ -224,6 +224,29 @@ tables
   });
 
 tables
+  .command("delete-rows <tableId> <rowIds...>")
+  .description("delete leads by row id (their sequences stop; sent emails and do-not-email entries stay)")
+  .action(async (tableId: string, rowIds: string[]) => {
+    const { deleted } = await MeerkoClient.fromEnv().deleteRows(tableId, rowIds);
+    console.log(json() ? JSON.stringify({ deleted }) : `Deleted ${deleted} row${deleted === 1 ? "" : "s"}.`);
+  });
+
+tables
+  .command("delete <tableId>")
+  .description("delete a table with its rows and its paused or draft sequences (pause active ones first)")
+  .option("-y, --yes", "don't ask for confirmation")
+  .action(async (tableId: string, opts: { yes?: boolean }) => {
+    const client = MeerkoClient.fromEnv();
+    if (!opts.yes) {
+      const table = await client.getTable(tableId);
+      const answer = await ask(`Delete "${table.name}" and all its rows? Type the table name to confirm: `);
+      if (answer !== table.name) throw new Error("Not deleted: the name didn't match.");
+    }
+    const res = await client.deleteTable(tableId);
+    console.log(json() ? JSON.stringify(res) : `Deleted the table, ${res.rows} rows and ${res.sequences} sequence${res.sequences === 1 ? "" : "s"}.`);
+  });
+
+tables
   .command("pending <tableId> <column>")
   .description("print rows whose AI column is still empty, with the instruction rendered per row (JSON)")
   .option("-l, --limit <n>", "max rows", "25")

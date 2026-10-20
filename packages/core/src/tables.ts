@@ -1,4 +1,4 @@
-import { and, dataTables, desc, eq, sql, tableRows, type ColumnDef, type Db, type Stage } from "@meerko/db";
+import { and, dataTables, desc, eq, inArray, sequences, sql, tableRows, type ColumnDef, type Db, type Stage } from "@meerko/db";
 import { coerceRow, inferNewColumns, normalizeRow, toColumnKey } from "./columns.ts";
 import { renderTemplate } from "./template.ts";
 
@@ -116,6 +116,45 @@ export async function updateRows(
     if (addedColumns.length) await tx.update(dataTables).set({ columns }).where(eq(dataTables.id, tableId));
   });
   return { updated, addedColumns };
+}
+
+/**
+ * Deletes rows (leads) from a table. Their sequence enrollments go with them, so nothing more is sent;
+ * emails already sent stay in the history, and do-not-email entries (unsubscribes, bounces) are kept
+ * so a deleted person can't be imported and emailed again.
+ */
+export async function deleteRows(db: Db, workspaceId: string, tableId: string, rowIds: string[]) {
+  await getTable(db, workspaceId, tableId);
+  if (rowIds.length === 0) return { deleted: 0 };
+  const res = await db
+    .delete(tableRows)
+    .where(and(eq(tableRows.tableId, tableId), inArray(tableRows.id, rowIds)))
+    .returning({ id: tableRows.id });
+  return { deleted: res.length };
+}
+
+/** A table can't be deleted while one of its sequences is sending. */
+export class TableInUseError extends Error {}
+
+/**
+ * Deletes a table with its rows and its (paused or draft) sequences. Refuses while a sequence is active,
+ * so an agent can't stop a live campaign by accident: pause it first.
+ */
+export async function deleteTable(db: Db, workspaceId: string, tableId: string) {
+  await getTable(db, workspaceId, tableId);
+  const active = await db
+    .select({ name: sequences.name })
+    .from(sequences)
+    .where(and(eq(sequences.tableId, tableId), eq(sequences.status, "active")));
+  if (active.length) {
+    throw new TableInUseError(`Pause ${active.map((s) => `"${s.name}"`).join(", ")} first: ${active.length === 1 ? "it's" : "they're"} still sending to this table.`);
+  }
+  const [{ rows, seqs }] = (await db.execute(
+    sql`select (select count(*) from ${tableRows} where ${tableRows.tableId} = ${tableId})::int as rows,
+               (select count(*) from ${sequences} where ${sequences.tableId} = ${tableId})::int as seqs`,
+  )) as unknown as [{ rows: number; seqs: number }];
+  await db.delete(dataTables).where(and(eq(dataTables.workspaceId, workspaceId), eq(dataTables.id, tableId)));
+  return { deleted: true, rows, sequences: seqs };
 }
 
 /**

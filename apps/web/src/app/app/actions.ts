@@ -143,6 +143,20 @@ export async function moveStage(tableId: string, rowIds: string[], stage: string
   );
 }
 
+export async function deleteRows(tableId: string, rowIds: string[]) {
+  return run(
+    (c) => c.deleteRows(tableId, rowIds).then((r) => `Deleted ${r.deleted} lead${r.deleted === 1 ? "" : "s"}`),
+    [`/app/leads/${tableId}`, "/app"],
+  );
+}
+
+/** Deletes a table, then leaves its (now missing) page for the list of tables. */
+export async function deleteTable(tableId: string): Promise<ActionResult> {
+  const res = await run((c) => c.deleteTable(tableId).then(() => undefined), ["/app/leads", "/app"]);
+  if (res.ok) redirect("/app/leads");
+  return res;
+}
+
 export async function setSequenceRunning(sequenceId: string, running: boolean) {
   return run(
     (c) => (running ? c.startSequence(sequenceId) : c.pauseSequence(sequenceId)).then((s) => `${s.name} ${running ? "started" : "paused"}`),

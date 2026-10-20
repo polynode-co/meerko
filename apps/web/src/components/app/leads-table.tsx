@@ -1,10 +1,10 @@
 "use client";
 
-import { Loader, Sparkles } from "lucide-react";
+import { Loader, Sparkles, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import type { Row } from "@meerko/sdk";
 import { STAGES } from "@meerko/sdk/constants";
-import { moveStage } from "@/app/app/actions";
+import { deleteRows, moveStage } from "@/app/app/actions";
 import { buttonClass, Pill, stageTone } from "./ui";
 
 export interface LeadColumn {
@@ -95,12 +95,16 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
   const toggle = (id: string) => setSelected((s) => (s.has(id) ? new Set([...s].filter((x) => x !== id)) : new Set(s).add(id)));
   const all = rows.length > 0 && selected.size === rows.length;
 
-  const move = (stage: string) =>
+  // Deleting asks once more inline (no browser dialog), since it can't be undone.
+  const [confirming, setConfirming] = useState(false);
+  const act = (fn: () => ReturnType<typeof moveStage>) =>
     start(async () => {
-      const res = await moveStage(tableId, [...selected], stage);
+      const res = await fn();
       setMessage(res.ok ? (res.message ?? null) : res.error);
+      setConfirming(false);
       if (res.ok) setSelected(new Set());
     });
+  const move = (stage: string) => act(() => moveStage(tableId, [...selected], stage));
 
   return (
     <div className="flex flex-col gap-3">
@@ -115,6 +119,23 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
                   {s}
                 </button>
               ))}
+              <span className="ml-auto flex items-center gap-2">
+                {confirming ? (
+                  <>
+                    <span className="text-xs">Delete {selected.size} for good? Their sequences stop.</span>
+                    <button disabled={pending} onClick={() => act(() => deleteRows(tableId, [...selected]))} className={`${buttonClass("ghost")} px-2.5 py-1 text-xs text-[#e5795b]`}>
+                      Delete
+                    </button>
+                    <button disabled={pending} onClick={() => setConfirming(false)} className={`${buttonClass("ghost")} px-2.5 py-1 text-xs`}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button disabled={pending} onClick={() => setConfirming(true)} className={`${buttonClass("ghost")} px-2.5 py-1 text-xs`}>
+                    <Trash2 className="size-3.5" /> Delete
+                  </button>
+                )}
+              </span>
             </>
           ) : (
             <span className="text-muted">{message}</span>
