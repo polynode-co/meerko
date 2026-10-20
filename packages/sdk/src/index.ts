@@ -614,6 +614,16 @@ export class MeerkoClient {
     return this.request<{ discarded: boolean }>("POST", `/drafts/${id}/discard`);
   }
 
+  /** Delete leads. Their sequence enrollments stop; sent emails and do-not-email entries are kept. */
+  deleteRows(tableId: string, rowIds: string[]) {
+    return this.request<{ deleted: number }>("POST", `/tables/${tableId}/rows/delete`, { row_ids: rowIds });
+  }
+
+  /** Delete a table with its rows and its paused or draft sequences. Refused (409) while a sequence is active. */
+  deleteTable(tableId: string) {
+    return this.request<{ deleted: boolean; rows: number; sequences: number }>("DELETE", `/tables/${tableId}`);
+  }
+
   /** Move leads to a pipeline stage by hand (e.g. meeting, won, lost). */
   moveStage(tableId: string, rowIds: string[], stage: Stage) {
     return this.request<{ moved: number }>("POST", `/tables/${tableId}/rows/stage`, { row_ids: rowIds, stage });

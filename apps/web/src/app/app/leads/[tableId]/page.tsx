@@ -2,6 +2,7 @@ import { Send } from "lucide-react";
 import Link from "next/link";
 import { STAGES, type Stage } from "@meerko/sdk";
 import { AddLead } from "@/components/app/add-lead";
+import { DeleteTable } from "@/components/app/delete-table";
 import { EnrichButton } from "@/components/app/enrich-button";
 import { LeadsTable, type LeadColumn } from "@/components/app/leads-table";
 import { AgentHint, buttonClass, PageHeader } from "@/components/app/ui";
@@ -68,6 +69,7 @@ export default async function TablePage({
             <Link href={`/app/sequences/new?table=${tableId}`} className={buttonClass()}>
               <Send className="size-[15px]" /> New sequence
             </Link>
+            <DeleteTable tableId={tableId} rowCount={table.rowCount} />
           </>
         }
       />

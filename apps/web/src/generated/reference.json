@@ -882,6 +882,47 @@
         }
       },
       {
+        "name": "delete_rows",
+        "description": "Permanently delete leads (rows) from a table, e.g. poor fits or a person who asked to be removed. Their sequences stop; emails already sent and do-not-email entries (unsubscribes, bounces) are kept. Prefer move_stage to `lost` to keep a lead's history. Confirm with the user before deleting.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "row_ids": {
+              "minItems": 1,
+              "maxItems": 1000,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "table_id",
+            "row_ids"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "delete_table",
+        "description": "Permanently delete a table with all its rows and its paused or draft sequences. Refused while one of its sequences is active (pause it first). Confirm with the user before deleting.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "table_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
         "name": "get_credits",
         "description": "Show the workspace's credit balance (null when self-hosted with your own provider keys). On Meerko Cloud it also returns the plan and buy_url, the page where a person can buy more credits: share it when credits run out.",
         "inputSchema": {
@@ -1048,6 +1089,24 @@
           {
             "flags": "-s, --stage <stage>",
             "description": "only rows at this pipeline stage (new, contacted, replied, meeting, won, lost)",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko tables delete-rows <tableId> <rowIds...>",
+        "group": "tables",
+        "description": "delete leads by row id (their sequences stop; sent emails and do-not-email entries stay)",
+        "options": []
+      },
+      {
+        "usage": "meerko tables delete <tableId>",
+        "group": "tables",
+        "description": "delete a table with its rows and its paused or draft sequences (pause active ones first)",
+        "options": [
+          {
+            "flags": "-y, --yes",
+            "description": "don't ask for confirmation",
             "required": false
           }
         ]

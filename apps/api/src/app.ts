@@ -86,6 +86,9 @@ import {
   mailboxDomainHealth,
   MailboxConnectError,
   MailboxInUseError,
+  TableInUseError,
+  deleteRows,
+  deleteTable,
   sequencePool,
   approveAuthorization,
   denyAuthorization,
@@ -1138,6 +1141,14 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.json({ discarded: true });
   });
 
+  // POST rather than DELETE-with-a-body, which some HTTP clients drop.
+  v1.post("/tables/:id/rows/delete", async (c) => {
+    const { row_ids } = await parse(z.object({ row_ids: z.array(z.string()).min(1).max(1000) }), await c.req.json());
+    return c.json(await deleteRows(db, c.var.workspaceId, c.req.param("id"), row_ids));
+  });
+
+  v1.delete("/tables/:id", async (c) => c.json(await deleteTable(db, c.var.workspaceId, c.req.param("id"))));
+
   v1.post("/tables/:id/rows/stage", async (c) => {
     const { row_ids, stage } = await parse(z.object({ row_ids: z.array(z.string()).min(1).max(1000), stage: z.enum(STAGES) }), await c.req.json());
     return c.json(await moveStage(db, c.var.workspaceId, c.req.param("id"), row_ids, stage));
@@ -1173,7 +1184,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
     if (err instanceof SequenceError || err instanceof ReplyError || err instanceof AgentHookError) return c.json({ error: err.message }, 400);
-    if (err instanceof MailboxInUseError) return c.json({ error: err.message }, 409);
+    if (err instanceof MailboxInUseError || err instanceof TableInUseError) return c.json({ error: err.message }, 409);
     if (err instanceof MailboxConnectError) return c.json({ error: err.message }, 400);
     if (err instanceof PlanLimitError) return c.json({ error: err.message }, 402);
     if (err instanceof BillingError) return c.json({ error: err.message }, 409);
