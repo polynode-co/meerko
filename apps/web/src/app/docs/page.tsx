@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 const paths = [
-  { icon: Cloud, title: "Meerko Cloud", body: "Sign in, connect Gmail and add Meerko to your agent with one command. New workspaces start with 1,000 free credits.", cta: "Quick start", href: "/docs/quick-start", main: true },
+  { icon: Cloud, title: "Meerko Cloud", body: "Sign in, connect Gmail and add Meerko to your agent with one command. New workspaces start with 200 free credits.", cta: "Quick start", href: "/docs/quick-start", main: true },
   { icon: Server, title: "Self-host", body: "Run the API, the worker, the web app and Postgres yourself, with your own provider keys. AGPL-3.0.", cta: "Self-hosting guide", href: "/docs/self-hosting" },
   { icon: Plug, title: "Connect your agent", body: "Add the hosted MCP server to Claude Code, Codex, Cursor or any MCP client, and sign in with your browser.", cta: "Connect Claude Code", href: "/docs/claude-code" },
 ];

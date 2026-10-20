@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { authCodes, createDb, eq, memberships, sessions, users, workspaces, type Db } from "@meerko/db";
 import { createApiKey, listApiKeys, revokeApiKey } from "./api-keys.ts";
-import { getBalance } from "./credits.ts";
+import { FREE_TIER_CREDITS, getBalance } from "./credits.ts";
 import { createAuthCode, deleteSession, exchangeAuthCode, inviteToWorkspace, SignInError, signInWithGoogle, verifySession } from "./auth.ts";
 import { NotFoundError } from "./tables.ts";
 
@@ -30,7 +30,7 @@ describe.skipIf(!process.env.DATABASE_URL)("auth (db)", () => {
     expect(ws!.name).toBe("Ana's workspace");
     const [m] = await db.select().from(memberships).where(eq(memberships.userId, first.userId));
     expect(m!.role).toBe("owner");
-    expect(await getBalance(db, first.workspaceId)).toBe(1000);
+    expect(await getBalance(db, first.workspaceId)).toBe(FREE_TIER_CREDITS);
 
     // Signing in again reuses both, even if the Google account was recreated (new sub, same email).
     const again = { ...first, newUser: false };

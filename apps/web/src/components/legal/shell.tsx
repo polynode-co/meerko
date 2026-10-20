@@ -1,4 +1,4 @@
-import { Calendar, Cloud, Cookie, FileText, Mail, PencilLine, Server, Shield, type LucideIcon } from "lucide-react";
+import { Calendar, Cloud, Cookie, FileText, Mail, Server, Shield, type LucideIcon } from "lucide-react";
 import { Toc } from "@/components/content/client";
 import { Footer } from "@/components/sections/footer";
 import { Nav } from "@/components/sections/nav";
@@ -174,11 +174,6 @@ export function LegalShell({ title, path, toc, summary, children }: LegalShellPr
                 ))}
               </div>
             </div>
-
-            <p className="flex items-center gap-3 rounded-[10px] border border-accent/35 px-4 py-3 text-[13.5px] text-fg">
-              <PencilLine className="size-4 shrink-0 text-accent" />
-              Fields in [brackets] are filled in once the company details are final.
-            </p>
 
             {children}
           </article>

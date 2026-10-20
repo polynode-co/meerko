@@ -16,7 +16,7 @@ const plans = [
     name: "Cloud Free",
     price: "$0",
     per: "to start",
-    sub: "1,000 credits included",
+    sub: "200 credits included",
     features: ["Hosted & maintained", "1 mailbox", "Managed enrichment", "All agent tools"],
     cta: "Start free",
     href: site.signupUrl,

@@ -36,7 +36,7 @@ export function Hero() {
             <PrimaryButton href={site.pricingUrl}>Get started free</PrimaryButton>
             <CopyCommand command={site.installCommand} />
           </div>
-          <p className="text-sm text-muted">Free forever when self-hosted. 1,000 free credits on Meerko Cloud.</p>
+          <p className="text-sm text-muted">Free forever when self-hosted. 200 free credits on Meerko Cloud.</p>
         </div>
 
         <div className="relative w-full max-w-[600px] lg:h-[560px] lg:w-[600px] lg:shrink-0">
