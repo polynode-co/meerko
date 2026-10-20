@@ -1,4 +1,4 @@
-import { Ticket } from "lucide-react";
+import { Server } from "lucide-react";
 import { CodeBlock } from "@/components/docs/code-block";
 import { DocsShell, docsMetadata } from "@/components/docs/shell";
 import { AskAgent, C, Callout, L, Step } from "@/components/docs/ui";
@@ -20,17 +20,16 @@ export default function Page() {
         ["first-list", "Build your first list"],
       ]}
     >
-      <Callout icon={Ticket}>
+      <Callout icon={Server}>
         <p>
-          Meerko Cloud is invite-only for now. Not invited yet? <L href="/docs/self-hosting">Self-host Meerko</L>: it&apos;s the same
-          code, free under AGPL-3.0.
+          Rather run it yourself? <L href="/docs/self-hosting">Self-host Meerko</L>: it&apos;s the same code, free under AGPL-3.0.
         </p>
       </Callout>
 
       <Step n={1} id="sign-in" title="Sign in">
         <p>
-          Open <L href="/login">Sign in</L> and continue with the Google account your invite went to. New workspaces start with 1,000
-          free credits: see <L href="/docs/credits">Credits</L> for what they pay for.
+          Open <L href="/login">Sign in</L> and continue with your Google account: the first sign-in creates your workspace. New
+          workspaces start with 200 free credits: see <L href="/docs/credits">Credits</L> for what they pay for.
         </p>
       </Step>
 
