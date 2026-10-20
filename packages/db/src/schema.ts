@@ -192,7 +192,8 @@ export const providerKeys = pgTable(
 
 /**
  * Connected sending mailboxes: `gmail` through the Gmail API (OAuth refresh token), `gmail_imap` through
- * IMAP and SMTP with an app password. The credential is encrypted with MEERKO_ENCRYPTION_KEY.
+ * Gmail's IMAP and SMTP with an app password, `imap` through any provider's IMAP and SMTP with a password.
+ * The credential is encrypted with MEERKO_ENCRYPTION_KEY.
  */
 export const mailboxes = pgTable(
   "mailboxes",
@@ -206,6 +207,8 @@ export const mailboxes = pgTable(
     displayName: text("display_name"),
     encryptedRefreshToken: text("encrypted_refresh_token"),
     encryptedPassword: text("encrypted_password"),
+    /** The IMAP and SMTP servers of an `imap` mailbox (Gmail's are fixed). */
+    servers: jsonb("servers").$type<MailboxServers>(),
     dailyLimit: integer("daily_limit").notNull().default(50),
     /**
      * Set while a new mailbox ramps up: its daily limit grows from a few emails to daily_limit over
@@ -221,10 +224,13 @@ export const mailboxes = pgTable(
   (t) => [
     uniqueIndex("mailboxes_workspace_email_idx").on(t.workspaceId, t.email),
     check("mailboxes_one_credential", sql`(${t.encryptedRefreshToken} is null) <> (${t.encryptedPassword} is null)`),
+    check("mailboxes_imap_servers", sql`${t.provider} <> 'imap' or ${t.servers} is not null`),
   ],
 );
 
-export type MailboxProvider = "gmail" | "gmail_imap";
+export type MailboxProvider = "gmail" | "gmail_imap" | "imap";
+/** Where an `imap` mailbox connects (TLS: IMAP 993, SMTP 465 or 587). */
+export type MailboxServers = { imap: { host: string; port: number }; smtp: { host: string; port: number } };
 export type SequenceStatus = "draft" | "active" | "paused";
 export type MailboxAssignment = "capacity" | "even";
 export type EnrollmentState = "active" | "completed" | "replied" | "unsubscribed" | "bounced" | "stopped" | "failed";

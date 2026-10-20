@@ -1,8 +1,10 @@
 import { randomBytes } from "node:crypto";
-import { and, eq, mailboxes, sequenceMailboxes, sequences, sql, type Db } from "@meerko/db";
+import { and, eq, mailboxes, sequenceMailboxes, sequences, sql, type Db, type MailboxServers } from "@meerko/db";
 import { mailClient } from "./mail/client.ts";
 import { GmailClient, GmailError, type GoogleOAuth } from "./mail/gmail.ts";
-import { GmailImapClient, type ImapConnectors } from "./mail/gmail-imap.ts";
+import { GmailImapClient } from "./mail/gmail-imap.ts";
+import { ImapClient } from "./mail/imap.ts";
+import type { ImapConnectors } from "./mail/imap-common.ts";
 import { buildMime } from "./mail/mime.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "./provider-keys.ts";
 import { domainHealthFor } from "./mail/domain-health.ts";
@@ -69,7 +71,7 @@ export async function connectGmail(
     .onConflictDoUpdate({
       target: [mailboxes.workspaceId, mailboxes.email],
       // Reconnecting heals a mailbox that lost access (and moves an app-password mailbox to the API).
-      set: { provider: "gmail", login: null, encryptedRefreshToken, encryptedPassword: null, status: "active", lastError: null },
+      set: { provider: "gmail", login: null, servers: null, encryptedRefreshToken, encryptedPassword: null, status: "active", lastError: null },
     })
     .returning({ id: mailboxes.id, email: mailboxes.email, workspaceId: mailboxes.workspaceId });
   return mailbox!;
@@ -80,6 +82,7 @@ const publicColumns = {
   provider: mailboxes.provider,
   email: mailboxes.email,
   login: mailboxes.login,
+  servers: mailboxes.servers,
   displayName: mailboxes.displayName,
   dailyLimit: mailboxes.dailyLimit,
   rampStartedAt: mailboxes.rampStartedAt,
@@ -133,15 +136,66 @@ export async function connectGmailAppPassword(
     await client.close();
   }
 
-  const encryptedPassword = box.encrypt(password);
-  const credential = { provider: "gmail_imap" as const, login: login === email ? null : login, encryptedPassword, encryptedRefreshToken: null };
-  const displayName = input.displayName?.trim() || undefined;
+  return savePasswordMailbox(db, box, workspaceId, { provider: "gmail_imap", email, login, password, displayName: input.displayName, servers: null });
+}
+
+/**
+ * Connects any provider's inbox over IMAP and SMTP (Zoho, Fastmail, a host's mail server) with its password
+ * or app password. The servers must be public, on TLS ports; Meerko signs in to both before storing anything.
+ */
+export async function connectImapMailbox(
+  db: Db,
+  box: SecretBox | null,
+  workspaceId: string,
+  input: { email: string; password: string; login?: string | null; displayName?: string | null; servers: MailboxServers },
+  opts: { enforcePlan?: boolean; imap?: ImapConnectors } = {},
+) {
+  if (!box) throw new EncryptionNotConfiguredError();
+  const email = input.email.trim().toLowerCase();
+  const login = input.login?.trim() || email;
+  const servers: MailboxServers = {
+    imap: { host: input.servers.imap.host.trim().toLowerCase(), port: input.servers.imap.port },
+    smtp: { host: input.servers.smtp.host.trim().toLowerCase(), port: input.servers.smtp.port },
+  };
+  if (opts.enforcePlan) await assertMailboxAllowed(db, workspaceId, email);
+
+  const client = new ImapClient({ email, login, password: input.password, servers }, opts.imap);
+  try {
+    await client.verify();
+  } catch (err) {
+    if (!(err instanceof GmailError)) throw err;
+    if (err.needsReconnect && (err.status === 535 || /didn't accept the password/.test(err.message))) {
+      throw new MailboxConnectError(
+        `${servers.imap.host} didn't accept the password for ${login}. Check it, and whether your provider wants an app password or needs IMAP turned on.`,
+      );
+    }
+    throw new MailboxConnectError(err.message);
+  } finally {
+    await client.close();
+  }
+  return savePasswordMailbox(db, box, workspaceId, { provider: "imap", email, login, password: input.password, displayName: input.displayName, servers });
+}
+
+/** Stores a password-based mailbox. Reconnecting the same address heals it, keeps its ramp and replaces its credential. */
+async function savePasswordMailbox(
+  db: Db,
+  box: SecretBox,
+  workspaceId: string,
+  m: { provider: "gmail_imap" | "imap"; email: string; login: string; password: string; displayName?: string | null; servers: MailboxServers | null },
+) {
+  const credential = {
+    provider: m.provider,
+    login: m.login.toLowerCase() === m.email ? null : m.login,
+    encryptedPassword: box.encrypt(m.password),
+    encryptedRefreshToken: null,
+    servers: m.servers,
+  };
+  const displayName = m.displayName?.trim() || undefined;
   const [mailbox] = await db
     .insert(mailboxes)
-    .values({ workspaceId, email, displayName, ...credential, rampStartedAt: new Date() })
+    .values({ workspaceId, email: m.email, displayName, ...credential, rampStartedAt: new Date() })
     .onConflictDoUpdate({
       target: [mailboxes.workspaceId, mailboxes.email],
-      // Reconnecting heals a mailbox that lost access, and keeps its ramp.
       set: { ...credential, ...(displayName ? { displayName } : {}), status: "active", lastError: null },
     })
     .returning(publicColumns);

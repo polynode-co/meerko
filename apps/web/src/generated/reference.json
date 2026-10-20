@@ -366,7 +366,7 @@
       },
       {
         "name": "connect_gmail",
-        "description": "Start connecting a Gmail/Google Workspace inbox to send from. The user connects it themselves with a Google app password: give them the returned link (or CLI command) and its steps, then call list_mailboxes to confirm it's connected. Never ask for the app password or any password in chat.",
+        "description": "Start connecting an inbox to send from: Gmail/Google Workspace, Zoho, Fastmail or any IMAP/SMTP provider (not Outlook/Microsoft 365 yet). The user connects it themselves with an app password: give them the returned link (or CLI command) and its steps, then call list_mailboxes to confirm it's connected. Never ask for the password or any password in chat.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -1159,7 +1159,7 @@
       {
         "usage": "meerko mailboxes connect",
         "group": "mailboxes",
-        "description": "connect a Gmail or Google Workspace inbox with an app password (reads it from MEERKO_APP_PASSWORD or asks)",
+        "description": "connect an inbox with its app password: Gmail by default, or --provider zoho, zoho-eu, fastmail or other (reads it from MEERKO_APP_PASSWORD or asks)",
         "options": [
           {
             "flags": "-e, --email <address>",
@@ -1167,8 +1167,30 @@
             "required": false
           },
           {
+            "flags": "-p, --provider <provider>",
+            "description": "gmail (default), zoho, zoho-eu, fastmail, other",
+            "default": "gmail",
+            "required": false
+          },
+          {
             "flags": "--login <account>",
-            "description": "the Google account to sign in as, when the address is an alias of it",
+            "description": "the account to sign in as, when it isn't the address (a Gmail alias's account, or a provider's user name)",
+            "required": false
+          },
+          {
+            "flags": "--imap-host <host>",
+            "description": "with --provider other: the IMAP server (TLS, port 993)",
+            "required": false
+          },
+          {
+            "flags": "--smtp-host <host>",
+            "description": "with --provider other: the SMTP server",
+            "required": false
+          },
+          {
+            "flags": "--smtp-port <port>",
+            "description": "with --provider other: 465 (TLS, default) or 587 (STARTTLS)",
+            "default": "465",
             "required": false
           },
           {

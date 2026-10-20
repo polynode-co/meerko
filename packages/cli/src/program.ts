@@ -11,11 +11,14 @@ import { parse as parseCsv } from "csv-parse/sync";
 import {
   CONFIG_PATH,
   DEFAULT_API_URL,
+  MAIL_PROVIDERS,
   MeerkoClient,
   readStoredConfig,
   REPLY_INTENTS,
   STAGES,
   writeStoredConfig,
+  type MailProviderId,
+  type MailServers,
   type ReplyIntent,
   type Row,
   type Stage,
@@ -319,27 +322,44 @@ const mailboxes = program.command("mailboxes").description("connect the inboxes 
 
 mailboxes
   .command("connect")
-  .description("connect a Gmail or Google Workspace inbox with an app password (reads it from MEERKO_APP_PASSWORD or asks)")
+  .description("connect an inbox with its app password: Gmail by default, or --provider zoho, zoho-eu, fastmail or other (reads it from MEERKO_APP_PASSWORD or asks)")
   .option("-e, --email <address>", "the address to send from")
-  .option("--login <account>", "the Google account to sign in as, when the address is an alias of it")
+  .option("-p, --provider <provider>", `gmail (default), ${Object.keys(MAIL_PROVIDERS).filter((p) => p !== "gmail").join(", ")}`, "gmail")
+  .option("--login <account>", "the account to sign in as, when it isn't the address (a Gmail alias's account, or a provider's user name)")
+  .option("--imap-host <host>", "with --provider other: the IMAP server (TLS, port 993)")
+  .option("--smtp-host <host>", "with --provider other: the SMTP server")
+  .option("--smtp-port <port>", "with --provider other: 465 (TLS, default) or 587 (STARTTLS)", "465")
   .option("--name <name>", "sender name shown to recipients")
   .option("--google", "use Google's consent page instead, where the server has it on")
-  .action(async (opts: { email?: string; login?: string; name?: string; google?: boolean }) => {
-    const client = MeerkoClient.fromEnv();
-    if (opts.google) return connectWithGoogle(client, opts.email);
+  .action(
+    async (opts: { email?: string; provider: string; login?: string; imapHost?: string; smtpHost?: string; smtpPort: string; name?: string; google?: boolean }) => {
+      const client = MeerkoClient.fromEnv();
+      if (opts.google) return connectWithGoogle(client, opts.email);
+      if (!(opts.provider in MAIL_PROVIDERS)) throw new Error(`Unknown provider "${opts.provider}". Use one of: ${Object.keys(MAIL_PROVIDERS).join(", ")}`);
+      const provider = opts.provider as MailProviderId;
+      let servers = MAIL_PROVIDERS[provider].servers;
+      if (provider === "other") {
+        if (!opts.imapHost || !opts.smtpHost) throw new Error("--provider other needs --imap-host and --smtp-host");
+        servers = { imap: { host: opts.imapHost, port: 993 }, smtp: { host: opts.smtpHost, port: Number(opts.smtpPort) } };
+      }
 
-    const email = opts.email ?? (await ask("Address to send from: "));
-    let password = process.env.MEERKO_APP_PASSWORD;
-    if (!password) {
-      console.log(
-        "Create an app password for this account at https://myaccount.google.com/apppasswords (it needs 2-Step Verification on).\n" +
-          "Google emails you a security alert when it's created and first used: that's expected.\n",
-      );
-      password = await ask("App password (16 letters, not shown): ", true);
-    }
-    const mailbox = await client.connectGmailAppPassword({ email, password, login: opts.login, displayName: opts.name });
-    console.log(`Connected ${mailbox.email} (${mailbox.id}). Send a test with \`meerko mailboxes test ${mailbox.id} --to <you>\`.`);
-  });
+      const email = opts.email ?? (await ask("Address to send from: "));
+      let password = process.env.MEERKO_APP_PASSWORD;
+      if (!password) {
+        console.log(
+          provider === "gmail"
+            ? "Create an app password for this account at https://myaccount.google.com/apppasswords (it needs 2-Step Verification on).\n" +
+                "Google emails you a security alert when it's created and first used: that's expected.\n"
+            : `Use an app password from ${MAIL_PROVIDERS[provider].name} if it offers them, and make sure IMAP is turned on for the account.\n`,
+        );
+        password = await ask(provider === "gmail" ? "App password (16 letters, not shown): " : "Password or app password (not shown): ", true);
+      }
+      const mailbox = servers
+        ? await client.connectImapMailbox({ email, password, servers, login: opts.login, displayName: opts.name })
+        : await client.connectGmailAppPassword({ email, password, login: opts.login, displayName: opts.name });
+      console.log(`Connected ${mailbox.email} (${mailbox.id}). Send a test with \`meerko mailboxes test ${mailbox.id} --to <you>\`.`);
+    },
+  );
 
 /** Google's consent page (Gmail API). Only where the server has it on (MEERKO_GMAIL_OAUTH=1). */
 async function connectWithGoogle(client: MeerkoClient, email?: string) {

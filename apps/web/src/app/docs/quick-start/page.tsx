@@ -15,7 +15,7 @@ export default function Page() {
       lead={<p>From sign-in to your first lead list, run from your agent. Meerko Cloud hosts the API, the database, the MCP server and the sending for you.</p>}
       toc={[
         ["sign-in", "Sign in"],
-        ["gmail", "Connect Gmail"],
+        ["gmail", "Connect your mailbox"],
         ["agent", "Connect your agent"],
         ["first-list", "Build your first list"],
       ]}
@@ -33,11 +33,11 @@ export default function Page() {
         </p>
       </Step>
 
-      <Step n={2} id="gmail" title="Connect Gmail">
+      <Step n={2} id="gmail" title="Connect your mailbox">
         <p>
-          In the dashboard, open <L href="/app/settings">Settings</L> and click <strong className="text-fg">Connect Gmail</strong>.
-          Create a Google app password for the inbox you send from and paste it in: the form links to each step, and{" "}
-          <L href="/docs/mailboxes#connect">Mailboxes</L> explains them. New mailboxes start at 10 emails a day and ramp up to their
+          In the dashboard, open <L href="/app/settings">Settings</L> and click <strong className="text-fg">Connect mailbox</strong>.
+          Pick your provider (Gmail, Zoho, Fastmail or any IMAP/SMTP server), create an app password for the inbox you send from and
+          paste it in: the form links to each step, and <L href="/docs/mailboxes#connect">Mailboxes</L> explains them. New mailboxes start at 10 emails a day and ramp up to their
           limit (50 by default) over 21 days; <L href="/docs/mailboxes#ramp">Mailboxes</L> explains how to change that.
         </p>
       </Step>

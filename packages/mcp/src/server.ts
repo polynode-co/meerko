@@ -197,7 +197,7 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
     "connect_gmail",
     {
       description:
-        "Start connecting a Gmail/Google Workspace inbox to send from. The user connects it themselves with a Google app password: give them the returned link (or CLI command) and its steps, then call list_mailboxes to confirm it's connected. Never ask for the app password or any password in chat.",
+        "Start connecting an inbox to send from: Gmail/Google Workspace, Zoho, Fastmail or any IMAP/SMTP provider (not Outlook/Microsoft 365 yet). The user connects it themselves with an app password: give them the returned link (or CLI command) and its steps, then call list_mailboxes to confirm it's connected. Never ask for the password or any password in chat.",
       inputSchema: { email: z.string().optional().describe("Google account to pre-select (only used by Google's consent page, where the server has it on)") },
     },
     ({ email }) =>
@@ -210,9 +210,11 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
           url: options.url,
           cli: "meerko mailboxes connect",
           steps: [
-            "Turn on 2-Step Verification for the Google account, if it isn't already.",
-            "Create an app password at https://myaccount.google.com/apppasswords.",
-            options.url ? "Open the link and paste the app password into the form." : "Run `meerko mailboxes connect` in a terminal and paste the app password when asked.",
+            "Gmail/Google Workspace: turn on 2-Step Verification, then create an app password at https://myaccount.google.com/apppasswords.",
+            "Zoho, Fastmail or another provider: turn on IMAP for the account and create an app password if the provider offers them.",
+            options.url
+              ? "Open the link, pick the provider and paste the app password into the form."
+              : "Run `meerko mailboxes connect` (with --provider for non-Gmail inboxes) in a terminal and paste the app password when asked.",
           ],
         };
       }),

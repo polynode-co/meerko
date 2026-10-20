@@ -1,5 +1,5 @@
 // Test helper: a fake Gmail account behind IMAP and SMTP.
-import type { ImapConnectors } from "./gmail-imap.ts";
+import type { ImapConnectors } from "./imap-common.ts";
 
 /** A Gmail account over IMAP: messages in All Mail with decimal X-GM ids, and an SMTP outbox. */
 export function fakeGmail(opts: { gmail?: boolean; authFails?: boolean; indexAfterLookups?: number; me?: string } = {}) {

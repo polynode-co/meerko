@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import type { ReplyIntent, Stage } from "./constants.ts";
+import type { MailServers, ReplyIntent, Stage } from "./constants.ts";
 
 export * from "./constants.ts";
 
@@ -69,11 +69,15 @@ export interface AgentHook {
 
 export interface Mailbox {
   id: string;
-  /** `gmail`: connected through Google's consent screen (Gmail API). `gmail_imap`: with an app password. */
-  provider: "gmail" | "gmail_imap";
+  /**
+   * `gmail`: connected through Google's consent screen (Gmail API). `gmail_imap`: Gmail with an app password.
+   * `imap`: any other provider over IMAP and SMTP, with its `servers`.
+   */
+  provider: "gmail" | "gmail_imap" | "imap";
   email: string;
-  /** The Google account it signs in as, when `email` is an alias of it. */
+  /** The account it signs in as, when that isn't `email` (an alias, or a provider's own user name). */
   login: string | null;
+  servers: MailServers | null;
   displayName: string | null;
   dailyLimit: number;
   /** Set while a new mailbox ramps up to its daily limit. */
@@ -442,6 +446,23 @@ export class MeerkoClient {
       password: input.password,
       login: input.login,
       display_name: input.displayName,
+    }).then((r) => r.mailbox);
+  }
+
+  /**
+   * Connects any provider's inbox over IMAP and SMTP (see MAIL_PROVIDERS for presets). The server signs in to
+   * both first and refuses with the reason. Only TLS ports (IMAP 993, SMTP 465 or 587) and public servers.
+   */
+  connectImapMailbox(input: { email: string; password: string; servers: MailServers; login?: string; displayName?: string }) {
+    return this.request<{ mailbox: Mailbox }>("POST", "/mailboxes/imap", {
+      email: input.email,
+      password: input.password,
+      login: input.login,
+      display_name: input.displayName,
+      imap_host: input.servers.imap.host,
+      imap_port: input.servers.imap.port,
+      smtp_host: input.servers.smtp.host,
+      smtp_port: input.servers.smtp.port,
     }).then((r) => r.mailbox);
   }
 

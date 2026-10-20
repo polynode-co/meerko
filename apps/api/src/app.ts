@@ -23,6 +23,7 @@ import {
   classifyReply,
   connectGmail,
   connectGmailAppPassword,
+  connectImapMailbox,
   listReplies,
   ReplyError,
   createSequence,
@@ -944,7 +945,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.get("/mailboxes/connect", async (c) =>
     c.json({
       oauth: !!(deps.gmailOAuthConnect && deps.googleOAuth),
-      // Where a person enters an app password themselves (agents must never handle it).
+      // Where a person enters a mailbox password themselves (agents must never handle it).
       url: deps.appUrl ? new URL("/app/settings?connect=gmail", deps.appUrl).toString() : null,
     }),
   );
@@ -969,6 +970,39 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       { enforcePlan: !!deps.billing, imap: deps.imap },
     );
     await analytics.capture({ distinctId: actor(c), event: EVENTS.mailboxConnected, workspaceId: c.var.workspaceId, properties: { provider: "gmail_imap" } });
+    return c.json({ mailbox }, 201);
+  });
+
+  // Any provider over IMAP and SMTP: Zoho, Fastmail, a host's own mail server.
+  v1.post("/mailboxes/imap", async (c) => {
+    const input = await parse(
+      z.object({
+        email: z.string().email(),
+        password: z.string().min(1).max(200),
+        login: z.string().min(1).max(200).optional().nullable(),
+        display_name: z.string().max(100).optional().nullable(),
+        imap_host: z.string().min(1).max(253),
+        imap_port: z.number().int().default(993),
+        smtp_host: z.string().min(1).max(253),
+        smtp_port: z.number().int().default(465),
+      }),
+      await c.req.json(),
+    );
+    if (!connectAttempts.allow(c.var.workspaceId)) throw new HTTPException(429, { message: "Too many attempts. Wait a few minutes and try again." });
+    const mailbox = await connectImapMailbox(
+      db,
+      box,
+      c.var.workspaceId,
+      {
+        email: input.email,
+        password: input.password,
+        login: input.login,
+        displayName: input.display_name,
+        servers: { imap: { host: input.imap_host, port: input.imap_port }, smtp: { host: input.smtp_host, port: input.smtp_port } },
+      },
+      { enforcePlan: !!deps.billing, imap: deps.imap },
+    );
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.mailboxConnected, workspaceId: c.var.workspaceId, properties: { provider: "imap", imap_host: mailbox.servers?.imap.host ?? null } });
     return c.json({ mailbox }, 201);
   });
 

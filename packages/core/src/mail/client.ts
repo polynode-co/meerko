@@ -1,7 +1,9 @@
 import type { mailboxes } from "@meerko/db";
 import type { SecretBox } from "../provider-keys.ts";
 import { GmailClient, GmailError, type GmailMessage, type GoogleOAuth } from "./gmail.ts";
-import { GmailImapClient, type ImapConnectors } from "./gmail-imap.ts";
+import { GmailImapClient } from "./gmail-imap.ts";
+import { ImapClient } from "./imap.ts";
+import type { ImapConnectors } from "./imap-common.ts";
 
 /** A built MIME message and what the SMTP envelope needs (the Gmail API reads them from the message). */
 export interface OutgoingRaw {
@@ -18,12 +20,23 @@ export interface SentIds {
   threadId: string | null;
 }
 
+/** A received message, before its body is fetched. */
+export interface InboundRef {
+  id: string;
+  threadId: string;
+  /**
+   * Message-IDs it answers (References, In-Reply-To, or the original a bounce quotes). Generic IMAP has no
+   * thread ids, so the reply tick matches these against the Message-IDs it sent.
+   */
+  refs?: string[];
+}
+
 /** What sending and reply detection need from a mailbox, whichever way it's connected. */
 export interface MailClient {
   /** Sends the message. Pass `threadId` to keep follow-ups in the sender's thread (the API needs it; IMAP threads by headers). */
   send(email: OutgoingRaw, threadId?: string): Promise<SentIds>;
-  /** Message ids matching a Gmail search query (e.g. `after:1759650000 -from:me`), up to `max`. */
-  listMessageIds(q: string, max?: number): Promise<{ id: string; threadId: string }[]>;
+  /** Mail received since `since` that this account didn't send, newest first. */
+  listInbound(since: Date): Promise<InboundRef[]>;
   /** `metadata` returns only the requested headers (cheap); `full` includes the body. */
   getMessage(id: string, format?: "full" | "metadata", metadataHeaders?: string[]): Promise<GmailMessage>;
   /** Looks up a sent message's Gmail ids by its Message-ID. Only IMAP needs it, after a send it couldn't resolve. */
@@ -40,10 +53,15 @@ export interface MailDeps {
   imap?: ImapConnectors;
 }
 
-type Mailbox = Pick<typeof mailboxes.$inferSelect, "provider" | "email" | "login" | "encryptedRefreshToken" | "encryptedPassword">;
+type Mailbox = Pick<typeof mailboxes.$inferSelect, "provider" | "email" | "login" | "encryptedRefreshToken" | "encryptedPassword" | "servers">;
 
 /** The client for a stored mailbox, decrypting its credential. Close it when done. */
 export function mailClient(mailbox: Mailbox, deps: MailDeps): MailClient {
+  if (mailbox.provider === "imap") {
+    if (!mailbox.encryptedPassword || !mailbox.servers) throw new GmailError("This mailbox has no password or servers; connect it again", undefined, true);
+    const password = deps.box.decrypt(mailbox.encryptedPassword);
+    return new ImapClient({ email: mailbox.email, login: mailbox.login ?? mailbox.email, password, servers: mailbox.servers }, deps.imap);
+  }
   if (mailbox.provider === "gmail_imap") {
     if (!mailbox.encryptedPassword) throw new GmailError("This mailbox has no app password; connect it again", undefined, true);
     return new GmailImapClient({ email: mailbox.email, login: mailbox.login ?? mailbox.email, password: deps.box.decrypt(mailbox.encryptedPassword) }, deps.imap);
