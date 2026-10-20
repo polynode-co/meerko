@@ -24,6 +24,8 @@ const app = createApp(createDb(), {
           redirectUri: new URL("/oauth/google/callback", publicUrl).toString(),
         })
       : undefined,
+  // Off by default: Google's consent screen for Gmail needs verification + CASA; app passwords don't.
+  gmailOAuthConnect: process.env.MEERKO_GMAIL_OAUTH === "1",
   tick: process.env.MEERKO_TICK_SECRET ? { secret: process.env.MEERKO_TICK_SECRET, publicUrl } : undefined,
   appUrl: process.env.MEERKO_APP_URL,
   allowPrivateHooks: process.env.MEERKO_ALLOW_PRIVATE_HOOKS === "1",

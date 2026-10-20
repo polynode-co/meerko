@@ -25,7 +25,7 @@ export default function Page() {
         ["install", "Install"],
         ["database", "Start the database"],
         ["run", "Run Meerko"],
-        ["google", "Connect Google"],
+        ["google", "Connect a mailbox"],
         ["search", "Turn on lead search"],
         ["env", "Environment variables"],
         ["agent", "Connect your agent"],
@@ -70,54 +70,46 @@ export default function Page() {
           <C>pnpm --filter @meerko/api dev</C>, <C>@meerko/worker</C> or <C>@meerko/web</C>.
         </p>
         <p>
-          Until you connect Google, the worker logs &quot;Sender idle&quot; and sends nothing. Tables, imports and AI columns already
+          Until <C>MEERKO_ENCRYPTION_KEY</C> is set (step 4), the worker logs &quot;Sender idle&quot; and sends nothing. Tables, imports and AI columns already
           work. Once Google sign-in is on (step 4), the login page offers it instead; the API-key form stays at{" "}
           <C>localhost:3000/login?method=key</C>.
         </p>
       </Step>
 
-      <Step n={4} id="google" title="Connect Google (to send email)">
-        <p>Meerko sends from Gmail through Google&apos;s API, so it needs an OAuth client of your own. The same client also gives the dashboard &quot;Sign in with Google&quot;.</p>
-        <ol className="flex list-decimal flex-col gap-2 pl-6">
-          <li>
-            In a Google Cloud project, enable the <strong className="text-fg">Gmail API</strong> (
-            <L href={docsSources.enableApis.url}>Google&apos;s guide</L>).
-          </li>
-          <li>
-            Configure the OAuth consent screen. If everyone who&apos;ll send works in one Google Workspace organisation, choose{" "}
-            <strong className="text-fg">Internal</strong>: Google then needs no verification and shows no warning to anyone in your
-            domain. Otherwise choose External and add the Google accounts you&apos;ll send from as test users.
-          </li>
-          <li>
-            Create an OAuth client of type <strong className="text-fg">Web application</strong> with these authorized redirect URIs:
-            <ul className="mt-1.5 flex flex-col gap-1">
-              <li>
-                <C>http://localhost:8787/oauth/google/callback</C> (connect Gmail)
-              </li>
-              <li>
-                <C>http://localhost:8787/auth/google/callback</C> (sign in to the dashboard)
-              </li>
-            </ul>
-          </li>
-          <li>
-            Put its ID and secret in <C>.env</C>, plus an encryption key for the stored Gmail tokens:
-          </li>
-        </ol>
-        {sh(["GOOGLE_CLIENT_ID=…apps.googleusercontent.com", "GOOGLE_CLIENT_SECRET=…", "# generate with: openssl rand -base64 32", "MEERKO_ENCRYPTION_KEY=…"], ".env")}
+      <Step n={4} id="google" title="Connect a mailbox (to send email)">
         <p>
-          Restart <C>pnpm dev</C>, then connect a mailbox from Settings in the dashboard (or <C>pnpm meerko mailboxes connect</C>).
+          Meerko sends from Gmail and Google Workspace over IMAP and SMTP with an app password, so sending needs no Google Cloud setup.
+          Set a key to encrypt the stored passwords:
+        </p>
+        {sh(["# generate with: openssl rand -base64 32", "MEERKO_ENCRYPTION_KEY=…"], ".env")}
+        <p>
+          Restart <C>pnpm dev</C>, then connect a mailbox from Settings in the dashboard, or with <C>pnpm meerko mailboxes connect</C>.
+          Both explain how to create the app password; <L href="/docs/mailboxes#connect">Mailboxes</L> has the details.
         </p>
         <Callout>
           <p>
-            While the consent screen is in &quot;Testing&quot;, Google expires the refresh token after 7 days (
-            <L href={docsSources.refreshExpiry.url}>Google&apos;s docs</L>). Meerko then marks the mailbox for reconnecting and pauses its
-            sends until you do. An Internal app, or a published External one, avoids it. Never change <C>MEERKO_ENCRYPTION_KEY</C> once mailboxes are
-            connected: the stored tokens can&apos;t be read without it.
+            Never change <C>MEERKO_ENCRYPTION_KEY</C> once mailboxes are connected: the stored passwords and tokens can&apos;t be read
+            without it.
           </p>
         </Callout>
         <p>
-          To sign in with Google instead of an API key, invite your address with <C>pnpm db:invite you@example.com</C>. With{" "}
-          <C>MEERKO_SIGNUP=open</C>, any Google account can create a workspace.
+          <strong className="text-fg">Optional: Sign in with Google.</strong> For the dashboard&apos;s &quot;Sign in with Google&quot;,
+          create an OAuth client of type <strong className="text-fg">Web application</strong> in a Google Cloud project, with the
+          authorized redirect URI <C>http://localhost:8787/auth/google/callback</C>, and put it in <C>.env</C>:
+        </p>
+        {sh(["GOOGLE_CLIENT_ID=…apps.googleusercontent.com", "GOOGLE_CLIENT_SECRET=…"], ".env")}
+        <p>
+          Then invite your address with <C>pnpm db:invite you@example.com</C>. With <C>MEERKO_SIGNUP=open</C>, any Google account can
+          create a workspace.
+        </p>
+        <p>
+          <strong className="text-fg">Optional: connect mailboxes through Google instead.</strong> The same client can connect Gmail
+          through Google&apos;s consent page (the Gmail API) instead of app passwords. Enable the{" "}
+          <L href={docsSources.enableApis.url}>Gmail API</L>, add <C>http://localhost:8787/oauth/google/callback</C> to the redirect URIs,
+          and set <C>MEERKO_GMAIL_OAUTH=1</C>. If everyone who&apos;ll send works in one Google Workspace organisation, make the consent
+          screen <strong className="text-fg">Internal</strong>: Google then needs no verification. An External app in &quot;Testing&quot;
+          expires its tokens after 7 days (<L href={docsSources.refreshExpiry.url}>Google&apos;s docs</L>), and Meerko then pauses that
+          mailbox until you reconnect it.
         </p>
       </Step>
 
@@ -143,8 +135,9 @@ export default function Page() {
           ["MEERKO_PUBLIC_URL", "The API's public URL: Google redirects, unsubscribe links, and the API and MCP addresses the dashboard shows. Default http://localhost:8787."],
           ["MEERKO_APP_URL", "The dashboard's URL. After connecting Gmail or signing in, the browser comes back here, and apps are approved on its consent page. Required for Google sign-in, agent sign-in and billing; .env.example sets http://localhost:3000."],
           ["MEERKO_API_URL", "Where the dashboard's server, the CLI and the MCP server reach the API. Default http://localhost:8787."],
-          ["MEERKO_ENCRYPTION_KEY", "32 bytes, base64. Encrypts Gmail tokens, provider keys and unsubscribe links. Required to send, to sign in with Google, for agent sign-in and to store provider keys."],
-          ["GOOGLE_CLIENT_ID · GOOGLE_CLIENT_SECRET", "Your OAuth client. Required to send email and to sign in with Google."],
+          ["MEERKO_ENCRYPTION_KEY", "32 bytes, base64. Encrypts mailbox app passwords and tokens, provider keys and unsubscribe links. Required to send, to sign in with Google, for agent sign-in and to store provider keys."],
+          ["GOOGLE_CLIENT_ID · GOOGLE_CLIENT_SECRET", "Your OAuth client, for Sign in with Google, and for mailboxes connected through Google's consent page. Not needed to send with app passwords."],
+          ["MEERKO_GMAIL_OAUTH", "1 offers Google's consent page (Gmail API) for connecting mailboxes, besides app passwords. Needs the OAuth client and the Gmail API. Off by default."],
           ["MEERKO_SIGNUP", "invite (default): only addresses added with pnpm db:invite can sign in with Google. open: anyone can."],
           ["ICYPEAS_API_KEY", "Lead search and email finding for every workspace on this server."],
           ["MEERKO_CREDITS", "off (default) when self-hosting. on meters search and enrichment in credits, as on Meerko Cloud. Setting up Stripe turns it on."],
@@ -170,7 +163,7 @@ export default function Page() {
       <H2 id="docker">Run it all with Docker</H2>
       <p>
         <C>docker-compose.selfhost.yml</C> runs everything in containers: Postgres, the migrations, the API, the worker and the
-        dashboard. You need Docker and the <C>.env</C> from step 1, with Google and the encryption key filled in (step 4).
+        dashboard. You need Docker and the <C>.env</C> from step 1, with the encryption key filled in (step 4).
       </p>
       {sh([
         "docker compose -f docker-compose.selfhost.yml up -d --build",

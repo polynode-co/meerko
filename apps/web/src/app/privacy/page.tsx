@@ -40,7 +40,7 @@ export default function PrivacyPage() {
       toc={toc}
       summary={[
         [MailCheck, "We only keep Gmail messages from your Meerko threads", "Replies to emails Meerko sent, and messages from people in your sequences. The rest of your inbox is never stored."],
-        [Lock, "Your Google tokens are encrypted", "Mailbox access tokens are stored encrypted, and we never see your Google password."],
+        [Lock, "Your mailbox credentials are encrypted", "Mailbox app passwords and tokens are stored encrypted. We never see your Google account password."],
         [Ban, "We don't sell data or train AI on it", "Meerko makes no AI calls. Your own agent does the thinking, on your side."],
         [Cookie, "Product analytics with PostHog, no ads", "We measure how Meerko is used (in the EU) to improve it. No ads or tracking pixels."],
       ]}
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
           head={["Data", "What it is"]}
           rows={[
             ["Account", "Your name, email address and Google account ID, from Sign in with Google."],
-            ["Mailboxes", "The Gmail address you connect, its access tokens (encrypted), your sender name and daily limit."],
+            ["Mailboxes", "The Gmail address you connect, the app password or Google token that lets Meerko use it (encrypted), the account it signs in as if the address is an alias, your sender name and daily limit."],
             ["Your workspace", "Tables and leads you import or find, sequences, drafts, and their pipeline stages."],
             ["Emails", "Emails Meerko sends for you, and the replies in those threads."],
             ["Billing", "Your plan, subscription status and renewal date, your credit balance and purchases, and the ID Stripe gives your account. Card details stay with Stripe."],
@@ -81,7 +81,7 @@ export default function PrivacyPage() {
         </Callout>
         <Bullets
           items={[
-            "Meerko asks Google for two permissions: to send email as you, and to read your inbox so it can spot replies.",
+            "You connect a mailbox with a Google app password you create for Meerko. Meerko uses it to send email as you (SMTP) and to read your inbox so it can spot replies (IMAP). You can revoke it at any time in your Google account.",
             "It only stores messages in threads Meerko started, or from people in your sequences. For other recent mail it checks the sender's address and nothing else, and never stores it.",
             "Gmail data is used only to send your emails and handle replies. It's never sold, used for ads, or used to train AI models.",
             "Nobody at Meerko reads your email, unless you ask us to for support, or the law or a security investigation requires it.",
@@ -148,11 +148,11 @@ export default function PrivacyPage() {
           rows={[
             [
               "Encryption in transit",
-              "meerko.ai and api.meerko.ai are only served over HTTPS (TLS), and plain HTTP is redirected to it. Meerko talks to Gmail and Google sign-in over HTTPS too.",
+              "meerko.ai and api.meerko.ai are only served over HTTPS (TLS), and plain HTTP is redirected to it. Meerko connects to Gmail (IMAP and SMTP) and Google sign-in over TLS too.",
             ],
             [
-              "Encrypted Google tokens",
-              "The token that lets Meerko use your mailbox, and any provider API key you add, are encrypted with AES-256-GCM before they're saved. The key is kept in Google Cloud Secret Manager, apart from the database, so a copy of the database alone can't unlock them.",
+              "Encrypted mailbox credentials",
+              "The app password or token that lets Meerko use your mailbox, and any provider API key you add, are encrypted with AES-256-GCM before they're saved. The key is kept in Google Cloud Secret Manager, apart from the database, so a copy of the database alone can't unlock them.",
             ],
             [
               "Encryption at rest",

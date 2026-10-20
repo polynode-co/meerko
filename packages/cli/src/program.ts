@@ -4,6 +4,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 import { hostname } from "node:os";
 import { readFileSync, rmSync } from "node:fs";
+import { createInterface } from "node:readline";
 import { setTimeout as sleep } from "node:timers/promises";
 import { Command } from "commander";
 import { parse as parseCsv } from "csv-parse/sync";
@@ -28,6 +29,25 @@ program.option("--json", "print raw JSON (handy for agents and scripts)");
 function openInBrowser(url: string) {
   const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open";
   spawn(opener, [url], { stdio: "ignore", detached: true }).on("error", () => {}).unref();
+}
+
+/** Reads one line from the terminal (or stdin). `hidden` keeps a password off the screen. */
+async function ask(question: string, hidden = false): Promise<string> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: process.stdin.isTTY });
+  if (hidden) {
+    // readline echoes what's typed through _writeToOutput; let only the question through.
+    const out = rl as unknown as { _writeToOutput: (s: string) => void };
+    out._writeToOutput = (s) => {
+      if (s.includes(question)) process.stdout.write(question);
+    };
+  }
+  try {
+    const answer = await new Promise<string>((resolve) => rl.question(question, resolve));
+    if (hidden) process.stdout.write("\n");
+    return answer.trim();
+  } finally {
+    rl.close();
+  }
 }
 
 /**
@@ -299,23 +319,43 @@ const mailboxes = program.command("mailboxes").description("connect the inboxes 
 
 mailboxes
   .command("connect")
-  .description("connect a Gmail or Google Workspace inbox (opens Google's consent page)")
-  .option("-e, --email <address>", "pre-select this Google account")
-  .action(async (opts: { email?: string }) => {
+  .description("connect a Gmail or Google Workspace inbox with an app password (reads it from MEERKO_APP_PASSWORD or asks)")
+  .option("-e, --email <address>", "the address to send from")
+  .option("--login <account>", "the Google account to sign in as, when the address is an alias of it")
+  .option("--name <name>", "sender name shown to recipients")
+  .option("--google", "use Google's consent page instead, where the server has it on")
+  .action(async (opts: { email?: string; login?: string; name?: string; google?: boolean }) => {
     const client = MeerkoClient.fromEnv();
-    const before = new Set((await client.listMailboxes()).map((m) => `${m.id}:${m.status}`));
-    const { url } = await client.connectGmail(opts.email);
-    console.log(`Approve access in your browser:\n\n  ${url}\n`);
-    openInBrowser(url);
+    if (opts.google) return connectWithGoogle(client, opts.email);
 
-    console.log("Waiting for you to approve (Ctrl+C to stop)...");
-    for (let i = 0; i < 150; i++) {
-      await sleep(2000);
-      const added = (await client.listMailboxes()).find((m) => m.status === "active" && !before.has(`${m.id}:${m.status}`));
-      if (added) return console.log(`Connected ${added.email} (${added.id}). Send a test with \`meerko mailboxes test ${added.id} --to <you>\`.`);
+    const email = opts.email ?? (await ask("Address to send from: "));
+    let password = process.env.MEERKO_APP_PASSWORD;
+    if (!password) {
+      console.log(
+        "Create an app password for this account at https://myaccount.google.com/apppasswords (it needs 2-Step Verification on).\n" +
+          "Google emails you a security alert when it's created and first used: that's expected.\n",
+      );
+      password = await ask("App password (16 letters, not shown): ", true);
     }
-    throw new Error("Timed out waiting for Google approval. Run `meerko mailboxes connect` again.");
+    const mailbox = await client.connectGmailAppPassword({ email, password, login: opts.login, displayName: opts.name });
+    console.log(`Connected ${mailbox.email} (${mailbox.id}). Send a test with \`meerko mailboxes test ${mailbox.id} --to <you>\`.`);
   });
+
+/** Google's consent page (Gmail API). Only where the server has it on (MEERKO_GMAIL_OAUTH=1). */
+async function connectWithGoogle(client: MeerkoClient, email?: string) {
+  const before = new Set((await client.listMailboxes()).map((m) => `${m.id}:${m.status}`));
+  const { url } = await client.connectGmail(email);
+  console.log(`Approve access in your browser:\n\n  ${url}\n`);
+  openInBrowser(url);
+
+  console.log("Waiting for you to approve (Ctrl+C to stop)...");
+  for (let i = 0; i < 150; i++) {
+    await sleep(2000);
+    const added = (await client.listMailboxes()).find((m) => m.status === "active" && !before.has(`${m.id}:${m.status}`));
+    if (added) return console.log(`Connected ${added.email} (${added.id}). Send a test with \`meerko mailboxes test ${added.id} --to <you>\`.`);
+  }
+  throw new Error("Timed out waiting for Google approval. Run `meerko mailboxes connect --google` again.");
+}
 
 mailboxes
   .command("ls")

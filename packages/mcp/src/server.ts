@@ -197,10 +197,25 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
     "connect_gmail",
     {
       description:
-        "Start connecting a Gmail/Google Workspace inbox to send from. Returns a Google consent URL: give it to the user to open and approve, then call list_mailboxes to confirm it's connected.",
-      inputSchema: { email: z.string().optional().describe("Google account to pre-select") },
+        "Start connecting a Gmail/Google Workspace inbox to send from. The user connects it themselves with a Google app password: give them the returned link (or CLI command) and its steps, then call list_mailboxes to confirm it's connected. Never ask for the app password or any password in chat.",
+      inputSchema: { email: z.string().optional().describe("Google account to pre-select (only used by Google's consent page, where the server has it on)") },
     },
-    ({ email }) => run(() => client().connectGmail(email)),
+    ({ email }) =>
+      run(async () => {
+        const c = client();
+        const options = await c.mailboxConnectOptions();
+        if (options.oauth) return { method: "google_consent", ...(await c.connectGmail(email)) };
+        return {
+          method: "app_password",
+          url: options.url,
+          cli: "meerko mailboxes connect",
+          steps: [
+            "Turn on 2-Step Verification for the Google account, if it isn't already.",
+            "Create an app password at https://myaccount.google.com/apppasswords.",
+            options.url ? "Open the link and paste the app password into the form." : "Run `meerko mailboxes connect` in a terminal and paste the app password when asked.",
+          ],
+        };
+      }),
   );
 
   tool(

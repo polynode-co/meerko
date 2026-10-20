@@ -28,13 +28,33 @@ export default function Page() {
     >
       <H2 id="connect">Connecting Gmail</H2>
       <p>
-        From the dashboard, <L href="/app/settings">Settings → Connect Gmail</L>. From your agent, <Tool name="connect_gmail" /> returns a
-        Google link to open. From the terminal, <C>pnpm meerko mailboxes connect</C> opens it in your browser and waits for you to
-        finish.
+        Meerko connects to Gmail and Google Workspace inboxes with an <strong className="text-fg">app password</strong>: it sends
+        through Gmail&apos;s SMTP server and reads replies over IMAP, as a mail app would. To make one:
+      </p>
+      <ol className="flex list-decimal flex-col gap-1.5 pl-6">
+        <li>
+          Turn on <L href="https://myaccount.google.com/signinoptions/twosv">2-Step Verification</L> for the Google account. App passwords
+          need it.
+        </li>
+        <li>
+          Open <L href="https://myaccount.google.com/apppasswords">App passwords</L>, name it &quot;Meerko&quot; and copy the 16 letters.
+        </li>
+        <li>
+          Paste it in <L href="/app/settings?connect=gmail">Settings → Connect Gmail</L>, or run <C>pnpm meerko mailboxes connect</C>.
+          Meerko checks it with Gmail before saving it, encrypted.
+        </li>
+      </ol>
+      <p>
+        Your agent&apos;s <Tool name="connect_gmail" /> gives you the same link: never paste the password into a chat. Google emails you a
+        security alert when the password is created and first used; that&apos;s expected.
       </p>
       <p>
-        Google asks for two permissions: sending email, and reading your inbox (to spot replies). Tick both. Meerko only fetches in full
-        the messages in threads it started or from people in your sequences; other mail is never stored.
+        If the address is an alias of another Google account (say <C>you@brand.com</C> on a <C>you@company.com</C> account), also enter
+        the account you sign in with: Gmail only accepts that one. Meerko still sends from the alias.
+      </p>
+      <p>
+        Meerko only fetches in full the messages in threads it started or from people in your sequences; other mail is never stored or
+        marked read. Accounts with Advanced Protection, or Workspaces that only allow security keys, can&apos;t create app passwords.
       </p>
       <p>
         On Meerko Cloud, the Free plan connects one mailbox and <L href="/pricing">Pro</L> connects as many as you like. Reconnecting a
@@ -90,9 +110,10 @@ export default function Page() {
       <H2 id="reconnect">When a mailbox needs reconnecting</H2>
       <Callout icon={AlertTriangle}>
         <p>
-          If Google stops accepting the mailbox&apos;s access, for example because the permission was removed from your Google account, it shows as{" "}
-          <C>error</C>. Its sequences wait instead of failing: reconnect it from Settings (or run <C>connect_gmail</C> again with the same
-          address) and they pick up where they stopped.
+          If Gmail stops accepting the mailbox&apos;s app password, for example because you removed it or changed your Google password
+          (which revokes app passwords), it shows as <C>error</C>. Its sequences wait instead of failing: create a new app password,
+          reconnect it from Settings with the same address, and they pick up where they stopped. Removing a mailbox from Meerko
+          doesn&apos;t revoke the password: remove it from <L href="https://myaccount.google.com/apppasswords">App passwords</L> too.
         </p>
       </Callout>
     </DocsShell>

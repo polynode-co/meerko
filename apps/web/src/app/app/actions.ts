@@ -158,6 +158,21 @@ export async function enrichEmails(tableId: string) {
   }, [`/app/leads/${tableId}`, "/app"]);
 }
 
+/** Connects a Gmail inbox with an app password. Gmail checks it first; a refusal comes back as the form's error. */
+export async function connectAppPassword(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const field = (name: string) => String(form.get(name) ?? "").trim();
+  return run(async (c) => {
+    const mailbox = await c.connectGmailAppPassword({
+      email: field("email"),
+      password: field("password"),
+      login: field("login") || undefined,
+      displayName: field("name") || undefined,
+    });
+    return `Connected ${mailbox.email}. Send yourself a test email to see how it lands.`;
+  }, ["/app/settings"]);
+}
+
+/** Google's consent page (Gmail API), where the server has it on. */
 export async function connectGmail() {
   const client = await meerko();
   // Google sends the browser to the API's callback, which redirects back here with the outcome.
