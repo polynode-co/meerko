@@ -4,7 +4,7 @@ import { Footer } from "@/components/sections/footer";
 import { Nav } from "@/components/sections/nav";
 import { Container } from "@/components/ui/primitives";
 
-export const LEGAL_UPDATED = "13 October 2026";
+export const LEGAL_UPDATED = "20 October 2026";
 
 /** Who runs Meerko Cloud: the same company as Antwork (its privacy and terms pages say the same). */
 export const LEGAL_ENTITY = {

@@ -17,6 +17,7 @@ const toc: [string, string][] = [
   ["use", "How we use it"],
   ["sharing", "Who we share it with"],
   ["storage", "Where it's stored"],
+  ["protection", "How we protect it"],
   ["retention", "How long we keep it"],
   ["rights", "Your rights"],
   ["recipients", "People you email"],
@@ -137,14 +138,66 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section n={7} id="retention" title="How long we keep it">
+      <Section n={7} id="protection" title="How we protect it">
+        <p>
+          Your Google tokens and the rest of your data are protected by encryption and limited access. Every item below describes how
+          Meerko Cloud runs today.
+        </p>
+        <Table
+          head={["Safeguard", "What we do"]}
+          rows={[
+            [
+              "Encryption in transit",
+              "meerko.ai and api.meerko.ai are only served over HTTPS (TLS), and plain HTTP is redirected to it. Meerko talks to Gmail and Google sign-in over HTTPS too.",
+            ],
+            [
+              "Encrypted Google tokens",
+              "The token that lets Meerko use your mailbox, and any provider API key you add, are encrypted with AES-256-GCM before they're saved. The key is kept in Google Cloud Secret Manager, apart from the database, so a copy of the database alone can't unlock them.",
+            ],
+            [
+              "Encryption at rest",
+              <>
+                Everything in the database is also encrypted on disk by{" "}
+                <a href="https://supabase.com/security" className="text-accent underline-offset-2 hover:underline">
+                  Supabase
+                </a>{" "}
+                (AES-256), and Google Cloud{" "}
+                <a
+                  href="https://docs.cloud.google.com/docs/security/encryption/default-encryption"
+                  className="text-accent underline-offset-2 hover:underline"
+                >
+                  encrypts what it stores
+                </a>{" "}
+                by default.
+              </>,
+            ],
+            [
+              "Hashed credentials",
+              "Sign-in sessions, API keys and the tokens of apps you connect are stored only as SHA-256 hashes, so they can't be read back from the database.",
+            ],
+            [
+              "Locked-down access",
+              "The app is only reachable through our load balancer, and the database isn't exposed through Supabase's public API. Only the people who run Meerko can reach production systems.",
+            ],
+            [
+              "Keeping less",
+              <>
+                From your inbox we store only messages in Meerko threads (see <a href="#gmail" className="text-accent underline-offset-2 hover:underline">Gmail data</a>).
+                Disconnecting a mailbox ends Meerko&apos;s access straight away.
+              </>,
+            ],
+          ]}
+        />
+      </Section>
+
+      <Section n={8} id="retention" title="How long we keep it">
         <p>
           For as long as your account is open. When you ask us to delete your account, we delete your workspace data within 30 days, except
           where the law requires us to keep it (invoices, for example). Disconnecting a mailbox or an app ends its access straight away.
         </p>
       </Section>
 
-      <Section n={8} id="rights" title="Your rights">
+      <Section n={9} id="rights" title="Your rights">
         <div className="grid gap-3 sm:grid-cols-2">
           {rights.map(([Icon, t, d]) => (
             <div key={t} className="flex items-center gap-3 rounded-xl border border-line px-4 py-3.5">
@@ -165,7 +218,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section n={9} id="recipients" title="People you email">
+      <Section n={10} id="recipients" title="People you email">
         <p>
           If you got an email sent through Meerko: it came from the sender&apos;s own Gmail account, and they decided to send it. Every
           sequence email has an unsubscribe link; using it stops all of that sender&apos;s Meerko emails to you. To ask what data a sender
@@ -173,7 +226,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section n={10} id="cookies" title="Cookies">
+      <Section n={11} id="cookies" title="Cookies">
         <p>The cookies needed to sign you in, and one analytics cookie from PostHog. No advertising cookies.</p>
         <Table
           head={["Cookie", "What it's for", "Lasts"]}
@@ -186,7 +239,7 @@ export default function PrivacyPage() {
         />
       </Section>
 
-      <Section n={11} id="contact" title="Contact">
+      <Section n={12} id="contact" title="Contact">
         <ContactCard title="Questions about your data?" email={site.contactEmail} />
         <p>We&apos;ll post changes here and update the date at the top. For significant changes, we&apos;ll email account owners first.</p>
       </Section>
