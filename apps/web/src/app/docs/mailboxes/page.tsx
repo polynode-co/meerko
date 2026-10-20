@@ -12,7 +12,7 @@ export default function Page() {
       h1="Mailboxes"
       lead={
         <p>
-          Meerko sends from your own Gmail or Google Workspace inbox, through Google&apos;s API, so every email sits in your Sent folder and
+          Meerko sends from your own Gmail or Google Workspace inbox, the way a mail app does, so every email sits in your Sent folder and
           every reply lands in your inbox, where Meerko picks it up.
         </p>
       }
