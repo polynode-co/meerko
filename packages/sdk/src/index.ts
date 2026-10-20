@@ -69,8 +69,11 @@ export interface AgentHook {
 
 export interface Mailbox {
   id: string;
-  provider: "gmail";
+  /** `gmail`: connected through Google's consent screen (Gmail API). `gmail_imap`: with an app password. */
+  provider: "gmail" | "gmail_imap";
   email: string;
+  /** The Google account it signs in as, when `email` is an alias of it. */
+  login: string | null;
   displayName: string | null;
   dailyLimit: number;
   /** Set while a new mailbox ramps up to its daily limit. */
@@ -418,6 +421,28 @@ export class MeerkoClient {
     input: { fields?: EnrichField[]; filter?: Record<string, unknown>; limit?: number; overwrite?: boolean } = {},
   ) {
     return this.request<EnrichResult>("POST", `/tables/${tableId}/enrich`, input);
+  }
+
+  /**
+   * How this server connects Gmail: `oauth` when Google's consent screen is on, and `url`, the dashboard page
+   * where a person enters an app password (null without MEERKO_APP_URL).
+   */
+  mailboxConnectOptions() {
+    return this.request<{ oauth: boolean; url: string | null }>("GET", "/mailboxes/connect");
+  }
+
+  /**
+   * Connects a Gmail or Google Workspace inbox with a 16-letter app password (IMAP and SMTP). Gmail checks
+   * the password first, so a wrong one is refused with the reason. `login` is the Google account to sign in
+   * as when `email` is an alias of it.
+   */
+  connectGmailAppPassword(input: { email: string; password: string; login?: string; displayName?: string }) {
+    return this.request<{ mailbox: Mailbox }>("POST", "/mailboxes/gmail/app-password", {
+      email: input.email,
+      password: input.password,
+      login: input.login,
+      display_name: input.displayName,
+    }).then((r) => r.mailbox);
   }
 
   /**

@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { and, eq, mailboxes, sequenceMailboxes, sequences, sql, type Db } from "@meerko/db";
 import { mailClient } from "./mail/client.ts";
-import { GmailClient, type GoogleOAuth } from "./mail/gmail.ts";
-import type { ImapConnectors } from "./mail/gmail-imap.ts";
+import { GmailClient, GmailError, type GoogleOAuth } from "./mail/gmail.ts";
+import { GmailImapClient, type ImapConnectors } from "./mail/gmail-imap.ts";
 import { buildMime } from "./mail/mime.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "./provider-keys.ts";
 import { domainHealthFor } from "./mail/domain-health.ts";
@@ -36,8 +36,8 @@ function decodeOAuthState(box: SecretBox, state: string): { w: string; exp: numb
 export function readOAuthState(box: SecretBox | null, state: string): string {
   if (!box) throw new EncryptionNotConfiguredError();
   const payload = decodeOAuthState(box, state);
-  if (!payload) throw new OAuthStateError("Invalid sign-in link. Start again with `meerko mailboxes connect`.");
-  if (payload.exp < Date.now()) throw new OAuthStateError("This sign-in link expired. Start again with `meerko mailboxes connect`.");
+  if (!payload) throw new OAuthStateError("Invalid sign-in link. Start again with `meerko mailboxes connect --google`.");
+  if (payload.exp < Date.now()) throw new OAuthStateError("This sign-in link expired. Start again with `meerko mailboxes connect --google`.");
   return payload.w;
 }
 
@@ -68,8 +68,8 @@ export async function connectGmail(
     .values({ workspaceId, provider: "gmail", email: emailAddress.toLowerCase(), encryptedRefreshToken, rampStartedAt: new Date() })
     .onConflictDoUpdate({
       target: [mailboxes.workspaceId, mailboxes.email],
-      // Reconnecting heals a mailbox that lost access.
-      set: { encryptedRefreshToken, status: "active", lastError: null },
+      // Reconnecting heals a mailbox that lost access (and moves an app-password mailbox to the API).
+      set: { provider: "gmail", login: null, encryptedRefreshToken, encryptedPassword: null, status: "active", lastError: null },
     })
     .returning({ id: mailboxes.id, email: mailboxes.email, workspaceId: mailboxes.workspaceId });
   return mailbox!;
@@ -79,6 +79,7 @@ const publicColumns = {
   id: mailboxes.id,
   provider: mailboxes.provider,
   email: mailboxes.email,
+  login: mailboxes.login,
   displayName: mailboxes.displayName,
   dailyLimit: mailboxes.dailyLimit,
   rampStartedAt: mailboxes.rampStartedAt,
@@ -89,6 +90,64 @@ const publicColumns = {
 
 /** Adds today's limit (lower while ramping) and the ramp day. */
 const withRamp = <T extends { dailyLimit: number; rampStartedAt: Date | null }>(m: T, now = new Date()) => ({ ...m, ...rampState(m, now) });
+
+/** The app password was rejected, or the account can't be used over IMAP and SMTP. The message says what to fix. */
+export class MailboxConnectError extends Error {}
+
+export const APP_PASSWORDS_URL = "https://myaccount.google.com/apppasswords";
+
+/**
+ * Connects a Gmail or Google Workspace inbox with an app password (IMAP and SMTP, no Gmail API scopes).
+ * Signs in to Gmail first, so nothing is stored unless the password works. Connecting an address that's
+ * already a mailbox replaces its credential, which also moves a Gmail API mailbox over.
+ */
+export async function connectGmailAppPassword(
+  db: Db,
+  box: SecretBox | null,
+  workspaceId: string,
+  input: { email: string; password: string; login?: string | null; displayName?: string | null },
+  opts: { enforcePlan?: boolean; imap?: ImapConnectors } = {},
+) {
+  if (!box) throw new EncryptionNotConfiguredError();
+  const email = input.email.trim().toLowerCase();
+  const login = input.login?.trim().toLowerCase() || email;
+  // Google shows it as four groups of four letters.
+  const password = input.password.replace(/\s+/g, "");
+  if (!/^[a-z]{16}$/i.test(password)) {
+    throw new MailboxConnectError(`An app password is 16 letters. Create one at ${APP_PASSWORDS_URL}: your normal Google password won't work here.`);
+  }
+  if (opts.enforcePlan) await assertMailboxAllowed(db, workspaceId, email);
+
+  const client = new GmailImapClient({ email, login, password }, opts.imap);
+  try {
+    await client.verify();
+  } catch (err) {
+    if (!(err instanceof GmailError)) throw err;
+    if (err.status === 534) throw new MailboxConnectError(`Google wants an app password, not your account password. Create one at ${APP_PASSWORDS_URL}.`);
+    if (err.status === 535) {
+      const alias = login === email ? ` If ${email} is an alias, also give the Google account you sign in with.` : "";
+      throw new MailboxConnectError(`Gmail didn't accept that app password for ${login}. Check you copied all 16 letters and that 2-Step Verification is on.${alias}`);
+    }
+    throw new MailboxConnectError(err.message);
+  } finally {
+    await client.close();
+  }
+
+  const encryptedPassword = box.encrypt(password);
+  const credential = { provider: "gmail_imap" as const, login: login === email ? null : login, encryptedPassword, encryptedRefreshToken: null };
+  const displayName = input.displayName?.trim() || undefined;
+  const [mailbox] = await db
+    .insert(mailboxes)
+    .values({ workspaceId, email, displayName, ...credential, rampStartedAt: new Date() })
+    .onConflictDoUpdate({
+      target: [mailboxes.workspaceId, mailboxes.email],
+      // Reconnecting heals a mailbox that lost access, and keeps its ramp.
+      set: { ...credential, ...(displayName ? { displayName } : {}), status: "active", lastError: null },
+    })
+    .returning(publicColumns);
+  return withRamp(mailbox!);
+}
+
 
 export async function listMailboxes(db: Db, workspaceId: string) {
   const rows = await db.select(publicColumns).from(mailboxes).where(eq(mailboxes.workspaceId, workspaceId)).orderBy(mailboxes.createdAt);

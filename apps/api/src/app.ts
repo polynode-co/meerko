@@ -22,6 +22,7 @@ import {
   listDrafts,
   classifyReply,
   connectGmail,
+  connectGmailAppPassword,
   listReplies,
   ReplyError,
   createSequence,
@@ -82,6 +83,7 @@ import {
   updateRows,
   verifyApiKey,
   mailboxDomainHealth,
+  MailboxConnectError,
   MailboxInUseError,
   sequencePool,
   approveAuthorization,
@@ -110,6 +112,7 @@ import {
   type BillingConfig,
   type CreditPolicy,
   type GoogleOAuth,
+  type ImapConnectors,
   type SecretBox,
   type IcypeasQuery,
 } from "@meerko/core";
@@ -244,6 +247,14 @@ export interface AppDeps {
   /** Overrides fetch for Gmail API calls (tests). */
   gmailFetch?: typeof fetch;
   /**
+   * Lets users connect Gmail through Google's consent screen (MEERKO_GMAIL_OAUTH=1, needs googleOAuth). Its
+   * scopes need Google verification and a CASA assessment for public use, so it's off by default and
+   * mailboxes connect with an app password instead. Mailboxes already connected that way keep working.
+   */
+  gmailOAuthConnect?: boolean;
+  /** Overrides the IMAP and SMTP connections of app-password mailboxes (tests). */
+  imap?: ImapConnectors;
+  /**
    * Enables POST /internal/tick for Cloud Scheduler (cloud runs no worker process). Unset when
    * MEERKO_TICK_SECRET isn't configured, and the route then answers 404.
    */
@@ -272,6 +283,20 @@ export interface AppDeps {
   billing?: BillingConfig;
 }
 
+/** Allows `max` calls per key in any `windowMs`. Per instance, which is enough to stop guessing. */
+function attemptLimiter(max: number, windowMs: number) {
+  const hits = new Map<string, number[]>();
+  return {
+    allow(key: string, now = Date.now()) {
+      const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
+      const ok = recent.length < max;
+      if (ok) recent.push(now);
+      hits.set(key, recent);
+      return ok;
+    },
+  };
+}
+
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 const resultPage = (title: string, message: string) =>
   `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escapeHtml(title)}</title>
@@ -281,6 +306,8 @@ const resultPage = (title: string, message: string) =>
 export function createApp(db: Db, deps: AppDeps = {}) {
   const credits = deps.credits ?? { enabled: false };
   const box = deps.secretBox ?? null;
+  // App-password connects sign in to Google: 10 tries per workspace per 10 minutes.
+  const connectAttempts = attemptLimiter(10, 10 * 60_000);
   const hookDeps = () => ({ appUrl: deps.appUrl, hookFetch: deps.hookFetch, allowPrivateHooks: deps.allowPrivateHooks });
   const icypeasForKey = deps.icypeasForKey ?? ((apiKey: string) => new IcypeasClient({ apiKey }));
 
@@ -326,7 +353,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.tick || given.length !== expected.length || !timingSafeEqual(given, expected)) return c.json({ error: "Not found" }, 404);
     const result = await runWorkerTick(
       db,
-      { box, oauth: deps.googleOAuth, publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, ...hookDeps() },
+      { box, oauth: deps.googleOAuth, publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, imap: deps.imap, ...hookDeps() },
       { replies: c.req.query("replies") !== "0" },
     );
     if (result.replyError) {
@@ -913,7 +940,42 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     });
   }
 
+  // How this server connects Gmail, for the dashboard, CLI and MCP to offer the right way.
+  v1.get("/mailboxes/connect", async (c) =>
+    c.json({
+      oauth: !!(deps.gmailOAuthConnect && deps.googleOAuth),
+      // Where a person enters an app password themselves (agents must never handle it).
+      url: deps.appUrl ? new URL("/app/settings?connect=gmail", deps.appUrl).toString() : null,
+    }),
+  );
+
+  v1.post("/mailboxes/gmail/app-password", async (c) => {
+    const input = await parse(
+      z.object({
+        email: z.string().email(),
+        password: z.string().min(1).max(100),
+        login: z.string().email().optional().nullable(),
+        display_name: z.string().max(100).optional().nullable(),
+      }),
+      await c.req.json(),
+    );
+    // Each attempt signs in to Google, so don't let a workspace use this to test passwords.
+    if (!connectAttempts.allow(c.var.workspaceId)) throw new HTTPException(429, { message: "Too many attempts. Wait a few minutes and try again." });
+    const mailbox = await connectGmailAppPassword(
+      db,
+      box,
+      c.var.workspaceId,
+      { email: input.email, password: input.password, login: input.login, displayName: input.display_name },
+      { enforcePlan: !!deps.billing, imap: deps.imap },
+    );
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.mailboxConnected, workspaceId: c.var.workspaceId, properties: { provider: "gmail_imap" } });
+    return c.json({ mailbox }, 201);
+  });
+
   v1.post("/mailboxes/gmail/connect", async (c) => {
+    if (!deps.gmailOAuthConnect) {
+      throw new HTTPException(400, { message: "This server connects Gmail with an app password: use `meerko mailboxes connect`, or Settings → Mailboxes in the dashboard" });
+    }
     const { login_hint, return_to } = await parse(
       z.object({ login_hint: z.string().email().optional(), return_to: z.string().url().optional() }),
       await c.req.json().catch(() => ({})),
@@ -949,7 +1011,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/mailboxes/:id/test", async (c) => {
     const { to } = await parse(z.object({ to: z.string().email() }), await c.req.json());
-    const sent = await sendTestEmail(db, c.var.workspaceId, c.req.param("id"), to, { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch });
+    const sent = await sendTestEmail(db, c.var.workspaceId, c.req.param("id"), to, { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch, imap: deps.imap });
     return c.json({ sent: true, messageId: sent.id });
   });
 
@@ -1034,7 +1096,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/drafts/:id/approve", async (c) => {
     const { body } = await parse(z.object({ body: z.string().min(1).max(20_000).optional() }), await c.req.json().catch(() => ({})));
-    return c.json(await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch }, body));
+    return c.json(await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch, imap: deps.imap }, body));
   });
 
   v1.post("/drafts/:id/discard", async (c) => {
@@ -1078,6 +1140,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
     if (err instanceof SequenceError || err instanceof ReplyError || err instanceof AgentHookError) return c.json({ error: err.message }, 400);
     if (err instanceof MailboxInUseError) return c.json({ error: err.message }, 409);
+    if (err instanceof MailboxConnectError) return c.json({ error: err.message }, 400);
     if (err instanceof PlanLimitError) return c.json({ error: err.message }, 402);
     if (err instanceof BillingError) return c.json({ error: err.message }, 409);
     if (isStripeError(err)) {

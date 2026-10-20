@@ -366,12 +366,12 @@
       },
       {
         "name": "connect_gmail",
-        "description": "Start connecting a Gmail/Google Workspace inbox to send from. Returns a Google consent URL: give it to the user to open and approve, then call list_mailboxes to confirm it's connected.",
+        "description": "Start connecting a Gmail/Google Workspace inbox to send from. The user connects it themselves with a Google app password: give them the returned link (or CLI command) and its steps, then call list_mailboxes to confirm it's connected. Never ask for the app password or any password in chat.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "email": {
-              "description": "Google account to pre-select",
+              "description": "Google account to pre-select (only used by Google's consent page, where the server has it on)",
               "type": "string"
             }
           },
@@ -1159,11 +1159,26 @@
       {
         "usage": "meerko mailboxes connect",
         "group": "mailboxes",
-        "description": "connect a Gmail or Google Workspace inbox (opens Google's consent page)",
+        "description": "connect a Gmail or Google Workspace inbox with an app password (reads it from MEERKO_APP_PASSWORD or asks)",
         "options": [
           {
             "flags": "-e, --email <address>",
-            "description": "pre-select this Google account",
+            "description": "the address to send from",
+            "required": false
+          },
+          {
+            "flags": "--login <account>",
+            "description": "the Google account to sign in as, when the address is an alias of it",
+            "required": false
+          },
+          {
+            "flags": "--name <name>",
+            "description": "sender name shown to recipients",
+            "required": false
+          },
+          {
+            "flags": "--google",
+            "description": "use Google's consent page instead, where the server has it on",
             "required": false
           }
         ]
