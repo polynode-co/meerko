@@ -1,0 +1,523 @@
+/**
+ * What Meerko can do, and where. Every surface is a client of /v1: the dashboard (server actions and pages through
+ * @meerko/sdk), the MCP server (packages/mcp, hosted in-process at /mcp), the CLI (packages/cli) and the public API
+ * itself. So a capability is a set of /v1 routes, and each surface either offers it, leaves it out on purpose, or
+ * hasn't caught up yet.
+ *
+ * capabilities.test.ts fails when an MCP tool, CLI command, web action or /v1 route isn't in a row, or a row points
+ * at one that doesn't exist. Adding a feature to one surface means adding (or updating) its row in the same PR, and
+ * saying here what the other surfaces do about it.
+ *
+ * Behaviour can't drift between surfaces, only coverage: they all run the same /v1 handlers. So unlike Antwork
+ * (where the MCP server reimplemented parts in Python) there's no need for a cross-surface fixture test.
+ */
+
+export type Cell =
+  /** Where it lives: MCP tool names, CLI command paths ("tables create"), or web files (see `web` below). */
+  | { supported: string[]; note?: string }
+  /** Left out on purpose. Say why, so nobody "fixes" it. */
+  | { deliberately_absent: string }
+  /** Should exist and doesn't yet. */
+  | { missing: string };
+
+export interface Capability {
+  id: string;
+  summary: string;
+  /** The /v1 operations that do it (operation ids from v1/spec.ts). Empty only for sign-in, which lives outside /v1. */
+  routes: string[];
+  /**
+   * Paths relative to apps/web/src: a page (`app/app/leads/page.tsx`) or a server action as `file#export`
+   * (`app/app/actions.ts#importCsv`).
+   */
+  web: Cell;
+  mcp: Cell;
+  cli: Cell;
+  /** The public API: supported when its routes accept an API key. */
+  api: { supported: true } | { deliberately_absent: string } | { missing: string };
+}
+
+const yes = (...where: string[]): Cell => ({ supported: where });
+const action = (name: string) => `app/app/actions.ts#${name}`;
+const page = (path: string) => `app/app/${path}`;
+const API = { supported: true } as const;
+const SETTINGS = { deliberately_absent: "Managed by a person in the dashboard's Settings" };
+const PERSON_ONLY = {
+  deliberately_absent: "Needs a person signed in to the dashboard, so a leaked key or a prompt-injected agent can't do it",
+};
+
+export const CAPABILITIES: Capability[] = [
+  // --- workspace ---
+  {
+    id: "sign-in",
+    summary: "Sign in",
+    routes: [],
+    web: yes(action("login"), action("logout"), "app/login/page.tsx"),
+    mcp: { deliberately_absent: "MCP clients sign in with OAuth when they connect" },
+    cli: yes("login", "logout"),
+    api: { deliberately_absent: "The API takes an API key; dashboard sign-in is /auth, outside /v1" },
+  },
+  {
+    id: "whoami",
+    summary: "See which workspace a credential acts as",
+    routes: ["getMe"],
+    web: yes(page("layout.tsx")),
+    mcp: { missing: "No tool says which workspace the agent is connected to" },
+    cli: yes("login"),
+    api: API,
+  },
+
+  // --- tables ---
+  {
+    id: "list-tables",
+    summary: "List tables and their columns",
+    routes: ["listTables", "getTable"],
+    web: yes(page("leads/page.tsx"), page("leads/[tableId]/page.tsx")),
+    mcp: yes("list_tables"),
+    cli: yes("tables ls"),
+    api: API,
+  },
+  {
+    id: "create-table",
+    summary: "Create a table",
+    routes: ["createTable"],
+    web: yes(action("importCsv"), action("addLead")),
+    mcp: yes("create_table"),
+    cli: yes("tables create"),
+    api: API,
+  },
+  {
+    id: "delete-table",
+    summary: "Delete a table with its rows and sequences",
+    routes: ["deleteTable"],
+    web: yes(action("deleteTable")),
+    mcp: yes("delete_table"),
+    cli: yes("tables delete"),
+    api: API,
+  },
+  {
+    id: "add-column",
+    summary: "Add a column, or an AI column with a prompt",
+    routes: ["addColumn"],
+    web: { missing: "No way to add a column or an AI column in the table view" },
+    mcp: yes("add_column"),
+    cli: yes("tables add-column"),
+    api: API,
+  },
+  {
+    id: "pending-cells",
+    summary: "See which AI column cells still need filling",
+    routes: ["getPendingCells"],
+    web: { missing: "The table view doesn't show AI columns waiting on the agent" },
+    mcp: yes("get_pending_cells"),
+    cli: yes("tables pending"),
+    api: API,
+  },
+  {
+    id: "query-rows",
+    summary: "Browse and filter rows",
+    routes: ["queryRows"],
+    web: yes(page("leads/[tableId]/page.tsx")),
+    mcp: yes("query_rows"),
+    cli: yes("tables rows"),
+    api: API,
+  },
+  {
+    id: "insert-rows",
+    summary: "Add rows (import a CSV, add a lead)",
+    routes: ["insertRows"],
+    web: yes(action("importCsv"), action("addLead")),
+    mcp: yes("import_rows"),
+    cli: yes("tables import"),
+    api: API,
+  },
+  {
+    id: "update-rows",
+    summary: "Edit cells",
+    routes: ["updateRows"],
+    web: { missing: "Cells can't be edited in the table view" },
+    mcp: yes("update_rows"),
+    cli: yes("tables update"),
+    api: API,
+  },
+  {
+    id: "delete-rows",
+    summary: "Delete rows",
+    routes: ["deleteRows"],
+    web: yes(action("deleteRows")),
+    mcp: yes("delete_rows"),
+    cli: yes("tables delete-rows"),
+    api: API,
+  },
+  {
+    id: "move-stage",
+    summary: "Move leads through the pipeline",
+    routes: ["moveStage"],
+    web: yes(action("moveStage")),
+    mcp: yes("move_stage"),
+    cli: yes("tables stage"),
+    api: API,
+  },
+  {
+    id: "pipeline",
+    summary: "Leads per pipeline stage",
+    routes: ["getPipeline"],
+    web: yes(page("page.tsx"), page("leads/[tableId]/page.tsx")),
+    mcp: yes("pipeline"),
+    cli: yes("pipeline"),
+    api: API,
+  },
+
+  // --- leads ---
+  {
+    id: "count-leads",
+    summary: "Count people or companies matching a search (free)",
+    routes: ["countPeople", "countCompanies"],
+    web: { missing: "No lead search in the dashboard" },
+    mcp: yes("find_people", "find_companies"),
+    cli: yes("find"),
+    api: API,
+  },
+  {
+    id: "search-leads",
+    summary: "Find people or companies and add them to a table",
+    routes: ["searchPeople", "searchCompanies"],
+    web: { missing: "No lead search in the dashboard" },
+    mcp: yes("find_people", "find_companies"),
+    cli: yes("find"),
+    api: API,
+  },
+  {
+    id: "enrich",
+    summary: "Find and verify emails",
+    routes: ["enrichRows"],
+    web: yes(action("enrichEmails")),
+    mcp: yes("enrich_rows"),
+    cli: yes("enrich"),
+    api: API,
+  },
+
+  // --- mailboxes ---
+  {
+    id: "list-mailboxes",
+    summary: "List mailboxes and their sending limits",
+    routes: ["listMailboxes"],
+    web: yes("app/app/settings/page.tsx"),
+    mcp: yes("list_mailboxes"),
+    cli: yes("mailboxes ls"),
+    api: API,
+  },
+  {
+    id: "connect-mailbox",
+    summary: "Connect Gmail, Outlook or any IMAP/SMTP mailbox",
+    routes: ["mailboxConnectOptions", "connectGmailAppPassword", "connectImapMailbox", "connectGmail", "connectOutlook"],
+    web: yes(action("connectMailbox"), action("connectOutlook"), action("connectGmail")),
+    mcp: yes("connect_gmail"),
+    cli: yes("mailboxes connect"),
+    api: API,
+  },
+  {
+    id: "domain-health",
+    summary: "Check SPF, DKIM and DMARC",
+    routes: ["mailboxHealth"],
+    web: yes(page("sequences/[id]/page.tsx")),
+    mcp: yes("check_domains"),
+    cli: yes("mailboxes health"),
+    api: API,
+  },
+  {
+    id: "update-mailbox",
+    summary: "Change a mailbox's daily limit, name or ramp-up",
+    routes: ["updateMailbox"],
+    web: { missing: "Settings → Mailboxes can't change a limit, name or ramp" },
+    mcp: yes("update_mailbox"),
+    cli: yes("mailboxes set"),
+    api: API,
+  },
+  {
+    id: "delete-mailbox",
+    summary: "Disconnect a mailbox",
+    routes: ["deleteMailbox"],
+    web: yes(action("disconnectMailbox")),
+    mcp: { missing: "No tool disconnects a mailbox" },
+    cli: yes("mailboxes rm"),
+    api: API,
+  },
+  {
+    id: "test-email",
+    summary: "Send a test email",
+    routes: ["sendTestEmail"],
+    web: yes(action("sendTestEmail")),
+    mcp: yes("send_test_email"),
+    cli: yes("mailboxes test"),
+    api: API,
+  },
+
+  // --- sequences ---
+  {
+    id: "list-sequences",
+    summary: "List sequences and see one",
+    routes: ["listSequences", "getSequence"],
+    web: yes(page("sequences/page.tsx"), page("sequences/[id]/page.tsx")),
+    mcp: yes("list_sequences"),
+    cli: yes("sequences ls"),
+    api: API,
+  },
+  {
+    id: "create-sequence",
+    summary: "Create a sequence",
+    routes: ["createSequence"],
+    web: yes(action("createSequence")),
+    mcp: yes("create_sequence"),
+    cli: yes("sequences create"),
+    api: API,
+  },
+  {
+    id: "update-sequence",
+    summary: "Change a sequence's steps, mailboxes or sending window",
+    routes: ["updateSequence"],
+    web: { supported: [action("updatePool")], note: "Only the mailbox pool; steps and window can't be edited yet" },
+    mcp: yes("update_sequence"),
+    cli: { missing: "No `meerko sequences update`" },
+    api: API,
+  },
+  {
+    id: "preview-sequence",
+    summary: "Preview each step for a lead",
+    routes: ["previewSequence"],
+    web: yes(page("sequences/[id]/page.tsx")),
+    mcp: yes("preview_sequence"),
+    cli: yes("sequences preview"),
+    api: API,
+  },
+  {
+    id: "enroll",
+    summary: "Enroll leads in a sequence",
+    routes: ["enrollRows"],
+    web: yes(action("enrollTable")),
+    mcp: yes("enroll_rows"),
+    cli: yes("sequences enroll"),
+    api: API,
+  },
+  {
+    id: "start-pause",
+    summary: "Start or pause sending",
+    routes: ["startSequence", "pauseSequence"],
+    web: yes(action("setSequenceRunning")),
+    mcp: yes("start_sequence", "pause_sequence"),
+    cli: yes("sequences start", "sequences pause"),
+    api: API,
+  },
+  {
+    id: "sequence-pool",
+    summary: "See a sequence's mailboxes and today's sending",
+    routes: ["sequencePool"],
+    web: yes(page("sequences/[id]/page.tsx")),
+    mcp: { missing: "No tool shows the mailbox pool" },
+    cli: yes("sequences pool"),
+    api: API,
+  },
+  {
+    id: "sequence-stats",
+    summary: "Sent, replied and per-step numbers",
+    routes: ["sequenceStats"],
+    web: yes(page("sequences/page.tsx"), page("sequences/[id]/page.tsx")),
+    mcp: yes("sequence_stats"),
+    cli: yes("sequences stats"),
+    api: API,
+  },
+  {
+    id: "sequence-recipients",
+    summary: "Everyone enrolled and where they are",
+    routes: ["sequenceRecipients"],
+    web: yes(page("sequences/[id]/page.tsx")),
+    mcp: { missing: "No tool lists a sequence's recipients" },
+    cli: { missing: "No `meerko sequences recipients`" },
+    api: API,
+  },
+
+  // --- replies ---
+  {
+    id: "list-replies",
+    summary: "Read replies and their threads",
+    routes: ["listReplies"],
+    web: yes(page("inbox/page.tsx")),
+    mcp: yes("list_replies"),
+    cli: yes("replies ls"),
+    api: API,
+  },
+  {
+    id: "classify-reply",
+    summary: "Set a reply's intent",
+    routes: ["classifyReply"],
+    web: yes(action("classifyReply")),
+    mcp: yes("classify_reply"),
+    cli: yes("replies classify"),
+    api: API,
+  },
+  {
+    id: "draft-reply",
+    summary: "Draft an answer",
+    routes: ["draftReply"],
+    web: yes(action("sendReply")),
+    mcp: yes("draft_reply"),
+    cli: yes("replies draft"),
+    api: API,
+  },
+  {
+    id: "list-drafts",
+    summary: "See drafts waiting for approval",
+    routes: ["listDrafts"],
+    web: yes(page("inbox/page.tsx")),
+    mcp: yes("list_drafts"),
+    cli: yes("drafts ls"),
+    api: API,
+  },
+  {
+    id: "approve-draft",
+    summary: "Send a draft",
+    routes: ["approveDraft"],
+    web: yes(action("approveDraft"), action("sendReply")),
+    mcp: yes("approve_draft"),
+    cli: yes("drafts approve"),
+    api: API,
+  },
+  {
+    id: "discard-draft",
+    summary: "Discard a draft",
+    routes: ["discardDraft"],
+    web: yes(action("discardDraft")),
+    mcp: yes("discard_draft"),
+    cli: yes("drafts discard"),
+    api: API,
+  },
+
+  // --- credits ---
+  {
+    id: "credits",
+    summary: "Credit balance and where to top up",
+    routes: ["getCredits"],
+    web: yes(page("layout.tsx"), "app/app/settings/page.tsx"),
+    mcp: yes("get_credits"),
+    cli: yes("credits"),
+    api: API,
+  },
+  {
+    id: "list-provider-keys",
+    summary: "See your own Icypeas/Firecrawl keys (last 4)",
+    routes: ["listProviderKeys"],
+    web: yes("app/app/settings/page.tsx"),
+    mcp: { deliberately_absent: "Provider keys are a person's setup, not an agent's" },
+    cli: yes("keys ls"),
+    api: API,
+  },
+  {
+    id: "manage-provider-keys",
+    summary: "Store or remove your own Icypeas/Firecrawl key",
+    routes: ["setProviderKey", "deleteProviderKey"],
+    web: { missing: "Settings shows provider keys but can't add or remove one" },
+    mcp: { deliberately_absent: "An agent should never be handed a provider secret" },
+    cli: yes("keys set", "keys rm"),
+    api: API,
+  },
+
+  // --- settings ---
+  {
+    id: "list-api-keys",
+    summary: "See API keys",
+    routes: ["listApiKeys"],
+    web: yes("app/app/settings/page.tsx"),
+    mcp: SETTINGS,
+    cli: SETTINGS,
+    api: API,
+  },
+  {
+    id: "manage-api-keys",
+    summary: "Create or revoke API keys",
+    routes: ["createApiKey", "revokeApiKey"],
+    web: yes(action("createApiKey"), action("revokeApiKey")),
+    mcp: PERSON_ONLY,
+    cli: PERSON_ONLY,
+    api: PERSON_ONLY,
+  },
+  {
+    id: "list-connected-apps",
+    summary: "See connected OAuth apps",
+    routes: ["listConnectedApps"],
+    web: yes("app/app/settings/page.tsx"),
+    mcp: SETTINGS,
+    cli: SETTINGS,
+    api: API,
+  },
+  {
+    id: "disconnect-app",
+    summary: "Disconnect an OAuth app",
+    routes: ["revokeConnectedApp"],
+    web: yes(action("disconnectApp")),
+    mcp: PERSON_ONLY,
+    cli: PERSON_ONLY,
+    api: PERSON_ONLY,
+  },
+  {
+    id: "oauth-consent",
+    summary: "Approve an app connecting to the workspace",
+    routes: ["describeOAuthRequest", "decideOAuthRequest"],
+    web: yes("app/oauth/consent/page.tsx", "app/oauth/consent/actions.ts#decide", "app/oauth/consent/actions.ts#switchAccount"),
+    mcp: PERSON_ONLY,
+    cli: PERSON_ONLY,
+    api: PERSON_ONLY,
+  },
+  {
+    id: "agent-hook",
+    summary: "See the agent hook",
+    routes: ["getAgentHook"],
+    web: yes("app/app/settings/page.tsx"),
+    mcp: SETTINGS,
+    cli: SETTINGS,
+    api: API,
+  },
+  {
+    id: "manage-agent-hook",
+    summary: "Set, test, re-enable or remove the agent hook",
+    routes: ["setAgentHook", "deleteAgentHook", "enableAgentHook", "testAgentHook"],
+    web: yes(action("saveAgentHook"), action("removeAgentHook"), action("enableAgentHook"), action("testAgentHook")),
+    mcp: PERSON_ONLY,
+    cli: PERSON_ONLY,
+    api: PERSON_ONLY,
+  },
+  {
+    id: "slack",
+    summary: "See the Slack connection",
+    routes: ["getSlack"],
+    web: yes("app/app/settings/page.tsx"),
+    mcp: SETTINGS,
+    cli: SETTINGS,
+    api: API,
+  },
+  {
+    id: "manage-slack",
+    summary: "Connect, test or disconnect Slack",
+    routes: ["slackInstallUrl", "setSlackWebhook", "testSlack", "deleteSlack"],
+    web: yes(action("installSlack"), action("saveSlackWebhook"), action("testSlack"), action("removeSlack")),
+    mcp: PERSON_ONLY,
+    cli: PERSON_ONLY,
+    api: PERSON_ONLY,
+  },
+  {
+    id: "billing",
+    summary: "See the plan and subscription",
+    routes: ["getBilling"],
+    web: yes("app/app/settings/page.tsx"),
+    mcp: { deliberately_absent: "Agents get the plan and the top-up link from get_credits" },
+    cli: { deliberately_absent: "`meerko credits` shows the plan and the top-up link" },
+    api: API,
+  },
+  {
+    id: "manage-billing",
+    summary: "Upgrade, buy credits or open the billing portal",
+    routes: ["startCheckout", "openBillingPortal"],
+    web: yes(action("upgradeToPro"), action("buyCredits"), action("manageBilling")),
+    mcp: { deliberately_absent: "Money moves only for a signed-in workspace owner" },
+    cli: { deliberately_absent: "Money moves only for a signed-in workspace owner" },
+    api: { deliberately_absent: "Money moves only for a signed-in workspace owner" },
+  },
+];
