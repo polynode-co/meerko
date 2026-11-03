@@ -77,11 +77,16 @@ export interface SlackConnectionView {
 
 type SlackJson = { ok: boolean; error?: string; [k: string]: unknown };
 
+// Slack's read methods (users.info and the like) ignore a JSON body and answer as if no arguments were sent, so
+// those go form-encoded; the write methods take JSON, which is what nested blocks need.
+const FORM_METHODS = new Set(["users.info"]);
+
 async function slackApi<T extends SlackJson>(fetchFn: typeof fetch, method: string, token: string, body: Record<string, unknown>): Promise<T> {
+  const form = FORM_METHODS.has(method);
   const res = await fetchFn(`https://slack.com/api/${method}`, {
     method: "POST",
-    headers: { authorization: `Bearer ${token}`, "content-type": "application/json; charset=utf-8" },
-    body: JSON.stringify(body),
+    headers: { authorization: `Bearer ${token}`, ...(form ? {} : { "content-type": "application/json; charset=utf-8" }) },
+    body: form ? new URLSearchParams(Object.entries(body).map(([k, v]) => [k, String(v)])) : JSON.stringify(body),
     signal: AbortSignal.timeout(10_000),
   });
   const json = (await res.json().catch(() => ({ ok: false, error: `http_${res.status}` }))) as T;
@@ -555,7 +560,15 @@ export async function handleSlackInteraction(db: Db, deps: SlackInteractionDeps,
     return { outcome: "unknown_draft" };
   }
   const token = deps.box.decrypt(conn.encryptedSecret);
-  const member = await memberFor(db, fetchFn, token, draft.workspaceId, payload.user.id);
+  let member: Awaited<ReturnType<typeof memberFor>>;
+  try {
+    member = await memberFor(db, fetchFn, token, draft.workspaceId, payload.user.id);
+  } catch (err) {
+    // Slack refused the lookup (a revoked token, a missing scope): say so in Slack instead of failing the click.
+    if (!(err instanceof SlackError)) throw err;
+    await note(`Couldn't check who you are in Slack (${err.code}). Approve or discard it in Meerko.`);
+    return { outcome: "lookup_failed" };
+  }
   if (!member) {
     await note("Only members of this Meerko workspace can approve or discard drafts. Your Slack email has to match your Meerko login.");
     return { outcome: "not_member" };

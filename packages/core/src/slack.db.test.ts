@@ -15,6 +15,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Slack (db)", () => {
   let calls: { url: string; body: any }[];
   let slackEmail: string;
   let postError: string | null;
+  let lookupError: string | null;
   // Each test is its own Slack workspace, so /meerko and clicks find this test's Meerko workspace.
   let team: string;
 
@@ -26,7 +27,11 @@ describe.skipIf(!process.env.DATABASE_URL)("Slack (db)", () => {
       return Response.json({ ok: true, access_token: "xoxb-test", team: { id: team, name: "Acme" }, incoming_webhook: { channel: "#sales", channel_id: "C1" } });
     }
     if (url.endsWith("/chat.postMessage")) return Response.json(postError ? { ok: false, error: postError } : { ok: true, channel: "C1", ts: `${calls.length}.0001` });
-    if (url.endsWith("/users.info")) return Response.json({ ok: true, user: { profile: { email: slackEmail } } });
+    // Like Slack: users.info reads form arguments only, and without a user it answers user_not_found.
+    if (url.endsWith("/users.info")) {
+      if (!(init.body instanceof URLSearchParams) || !init.body.get("user")) return Response.json({ ok: false, error: "user_not_found" });
+      return Response.json(lookupError ? { ok: false, error: lookupError } : { ok: true, user: { profile: { email: slackEmail } } });
+    }
     return new Response("ok");
   }) as typeof globalThis.fetch;
 
@@ -38,6 +43,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Slack (db)", () => {
   beforeEach(async () => {
     calls = [];
     postError = null;
+    lookupError = null;
     team = `T${randomBytes(4).toString("hex")}`;
     ws = (await db.insert(workspaces).values({ name: `slack-${run}` }).returning())[0]!.id;
     const [user] = await db.insert(users).values({ googleSub: `sub-${randomBytes(4).toString("hex")}`, email: `owner-${randomBytes(4).toString("hex")}@acme.example` }).returning();
@@ -111,7 +117,14 @@ describe.skipIf(!process.env.DATABASE_URL)("Slack (db)", () => {
     expect((await handleSlackInteraction(db, deps, click("meerko_discard"))).outcome).toBe("not_member");
     expect(calls.at(-1)!.body).toMatchObject({ response_type: "ephemeral", replace_original: false });
 
-    slackEmail = (await db.select({ email: users.email }).from(users).innerJoin(memberships, eq(memberships.userId, users.id)).where(eq(memberships.workspaceId, ws)))[0]!.email;
+    // Slack refusing the lookup is a private note, not a failed click.
+    lookupError = "missing_scope";
+    expect((await handleSlackInteraction(db, deps, click("meerko_discard"))).outcome).toBe("lookup_failed");
+    expect(calls.at(-1)!.body).toMatchObject({ response_type: "ephemeral" });
+    expect(calls.at(-1)!.body.text).toContain("missing_scope");
+    lookupError = null;
+
+    slackEmail =(await db.select({ email: users.email }).from(users).innerJoin(memberships, eq(memberships.userId, users.id)).where(eq(memberships.workspaceId, ws)))[0]!.email;
     // No mailbox received this reply, so approving fails with a note, and the draft stays pending.
     expect((await handleSlackInteraction(db, deps, click("meerko_approve"))).outcome).toBe("error");
     expect(calls.at(-1)!.body.text).toContain("mailbox");
