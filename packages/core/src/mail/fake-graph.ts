@@ -11,7 +11,7 @@ const header = (mime: string, name: string) =>
     .trim();
 const address = (v = "") => (v.match(/<([^>]+)>/)?.[1] ?? v).trim().toLowerCase();
 
-export function fakeGraph(opts: { me?: string; rewriteMessageId?: boolean; revoked?: boolean; noMailbox?: boolean; rotate?: boolean } = {}) {
+export function fakeGraph(opts: { me?: string; rewriteMessageId?: boolean; revoked?: boolean; noMailbox?: boolean; unlicensed?: boolean; rotate?: boolean } = {}) {
   const me = opts.me ?? "ana@acme.com";
   const store: Stored[] = [];
   const calls: { method: string; url: string }[] = [];
@@ -47,7 +47,10 @@ export function fakeGraph(opts: { me?: string; rewriteMessageId?: boolean; revok
     }
     const path = url.pathname.replace("/v1.0/me", "");
     if (opts.noMailbox && path !== "") return Response.json({ error: { code: "MailboxNotEnabledForRESTAPI", message: "REST API is not yet supported for this mailbox." } }, { status: 404 });
-    if (path === "") return Response.json({ mail: null, userPrincipalName: me.toUpperCase() });
+    if (path === "") return Response.json({ id: "u1", mail: null, userPrincipalName: me.toUpperCase() });
+    // An account without an Exchange Online license: Graph answers mail calls with a bare 401.
+    if (opts.unlicensed) return new Response(null, { status: 401 });
+    if (path === "/mailFolders/inbox") return Response.json({ id: "inbox" });
     if (path === "/sendMail") {
       let mime = Buffer.from(String(init!.body), "base64").toString();
       if (opts.rewriteMessageId) mime = mime.replace(/^Message-ID: .*$/m, `Message-ID: <exch-${store.length}@outlook.com>`);

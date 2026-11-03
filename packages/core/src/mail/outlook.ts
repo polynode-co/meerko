@@ -88,6 +88,9 @@ interface GraphMessage {
   internetMessageHeaders?: { name: string; value: string }[];
 }
 
+const NO_MAILBOX =
+  "This Microsoft account has no Outlook mailbox Meerko can use. Work accounts need a Microsoft 365 license with Exchange Online (Outlook); ask your admin, or connect an account that has one.";
+
 /** Waits before looking for a just-sent message in Sent Items. */
 const LOOKUP_RETRY_MS = [1000, 2000, 4000];
 
@@ -183,7 +186,17 @@ export class OutlookClient implements MailClient {
     return { ...base, ...(await toPayload(Buffer.from(source))) };
   }
 
+  /** Checks the account has a mailbox Meerko can use, so a connection can be refused up front. */
+  async assertMailbox() {
+    await this.call("GET", "/mailFolders/inbox?$select=id");
+  }
+
   async close() {}
+
+  private async profileLoads() {
+    const res = await this.fetch(`${GRAPH_URL}?$select=id`, { headers: { authorization: `Bearer ${await this.token()}` } }).catch(() => null);
+    return !!res?.ok;
+  }
 
   /** Finds a message this client didn't list, by its Message-ID. */
   private async lookup(id: string) {
@@ -242,10 +255,15 @@ export class OutlookClient implements MailClient {
     }
     const json = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
     const code = json.error?.code ?? "";
-    if (res.status === 401) throw new GmailError(`Microsoft rejected the sign-in (${code || 401}). Connect the mailbox again.`, 401, true);
+    if (res.status === 401) {
+      // Graph answers a mail call for an account with no Exchange Online mailbox (no license) with a bare 401,
+      // while the profile still loads: say that, since connecting again wouldn't help.
+      if (path !== "" && !path.startsWith("?") && !code && (await this.profileLoads())) throw new GmailError(NO_MAILBOX, 401, true);
+      throw new GmailError(`Microsoft rejected the sign-in (${code || 401}). Connect the mailbox again.`, 401, true);
+    }
     // A Microsoft account without an Exchange Online mailbox (no license, or a consumer account without Outlook).
     if (code === "MailboxNotEnabledForRESTAPI" || code === "MailboxNotSupportedForRESTAPI") {
-      throw new GmailError("This Microsoft account has no Outlook mailbox Meerko can use", res.status, true);
+      throw new GmailError(NO_MAILBOX, res.status, true);
     }
     throw new GmailError(`Microsoft Graph ${res.status}: ${json.error?.message ?? res.statusText}`, res.status);
   }

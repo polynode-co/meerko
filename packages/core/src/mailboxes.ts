@@ -93,7 +93,10 @@ export async function connectOutlook(
 ) {
   const workspaceId = readOAuthState(box, state);
   const { refreshToken } = await oauth.exchangeCode(code);
-  const { emailAddress } = await new OutlookClient(oauth, refreshToken, { fetch: fetchImpl }).profile();
+  const client = new OutlookClient(oauth, refreshToken, { fetch: fetchImpl });
+  const { emailAddress } = await client.profile();
+  // Signing in works for any Microsoft account, but sending needs a mailbox: refuse now rather than fail later.
+  await client.assertMailbox();
   if (opts.enforcePlan) await assertMailboxAllowed(db, workspaceId, emailAddress);
   const credential = { provider: "outlook" as const, login: null, servers: null, encryptedRefreshToken: box!.encrypt(refreshToken), encryptedPassword: null };
   const [mailbox] = await db
