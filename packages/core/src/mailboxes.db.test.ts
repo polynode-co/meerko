@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
-import { createDb, eq, mailboxes, workspaces, type Db } from "@meerko/db";
+import { createDb, dataTables, eq, mailboxes, sequenceMailboxes, sequences, workspaces, type Db } from "@meerko/db";
 import { GMAIL_SCOPES, GoogleOAuth } from "./mail/gmail.ts";
-import { connectGmail, createOAuthState, listMailboxes, OAuthStateError, readOAuthReturnTo, readOAuthState, sendTestEmail } from "./mailboxes.ts";
+import { connectGmail, createOAuthState, deleteMailbox, listMailboxes, MailboxInUseError, OAuthStateError, readOAuthReturnTo, readOAuthState, sendTestEmail } from "./mailboxes.ts";
 import { SecretBox } from "./provider-keys.ts";
 
 describe.skipIf(!process.env.DATABASE_URL)("mailboxes (db)", () => {
@@ -47,6 +47,30 @@ describe.skipIf(!process.env.DATABASE_URL)("mailboxes (db)", () => {
     const again = await connectGmail(db, box, oauth, createOAuthState(box, ws!.id), "code2", fetch);
     expect(again.id).toBe(mb.id);
     expect((await listMailboxes(db, ws!.id))[0]).toMatchObject({ status: "active", lastError: null });
+  });
+
+  it("disconnects a mailbox only from its own workspace, and never a sequence's last sender", async () => {
+    const [a, b] = await db.insert(workspaces).values([{ name: "mailbox-test" }, { name: "mailbox-test" }]).returning();
+    const [m1, m2] = await db
+      .insert(mailboxes)
+      .values([
+        { workspaceId: a!.id, provider: "gmail_imap", email: "one@a.test", encryptedPassword: "x" },
+        { workspaceId: a!.id, provider: "gmail_imap", email: "two@a.test", encryptedPassword: "x" },
+      ])
+      .returning();
+    const [table] = await db.insert(dataTables).values({ workspaceId: a!.id, name: "t" }).returning();
+    const [seq] = await db.insert(sequences).values({ workspaceId: a!.id, tableId: table!.id, name: "Pool" }).returning();
+    await db.insert(sequenceMailboxes).values([{ sequenceId: seq!.id, mailboxId: m1!.id }, { sequenceId: seq!.id, mailboxId: m2!.id }]);
+    const pool = () => db.select().from(sequenceMailboxes).where(eq(sequenceMailboxes.sequenceId, seq!.id));
+
+    // Another workspace can't remove it, nor take it out of this workspace's pools.
+    expect(await deleteMailbox(db, b!.id, m1!.id)).toBe(false);
+    expect(await pool()).toHaveLength(2);
+
+    expect(await deleteMailbox(db, a!.id, m1!.id)).toBe(true);
+    expect((await pool()).map((p) => p.mailboxId)).toEqual([m2!.id]);
+    await expect(deleteMailbox(db, a!.id, m2!.id)).rejects.toBeInstanceOf(MailboxInUseError);
+    expect(await pool()).toHaveLength(1);
   });
 
   it("rejects forged and other-key states", async () => {

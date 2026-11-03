@@ -3,6 +3,7 @@ import Link from "next/link";
 import { buttonClass, Card, PageHeader, Pill } from "@/components/app/ui";
 import { ApiKeysCard } from "@/components/app/api-keys-card";
 import { BillingCard } from "@/components/app/billing-card";
+import { DisconnectMailbox } from "@/components/app/disconnect-mailbox";
 import { TestEmail } from "@/components/app/test-email";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
 import { AgentHookCard } from "@/components/app/agent-hook-card";
@@ -66,6 +67,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 Reconnect
               </Link>
             )}
+            <DisconnectMailbox mailboxId={m.id} email={m.email} />
           </div>
         ))}
       </Card>
