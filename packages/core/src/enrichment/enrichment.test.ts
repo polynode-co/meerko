@@ -61,6 +61,14 @@ describe("IcypeasClient", () => {
     await expect(client(broke.fn).verifyEmail("a@b.com")).rejects.toBeInstanceOf(IcypeasError);
   });
 
+  it("reports an empty account on a lead search as out of credits, not as a bad search", async () => {
+    // What Icypeas answers on /find-people when the account has no credits left (seen on dev, 2026-11-03).
+    const { fn } = fakeFetch({ "/find-people": [{ success: false, validationErrors: [{ field: "user", message: "insufficient_credits" }] }] });
+    const err = await client(fn).findPeople({ currentJobTitle: { include: ["CTO"] } }, 3).catch((e) => e);
+    expect(err).toBeInstanceOf(IcypeasError);
+    expect(err).toMatchObject({ code: "insufficient_funds", validation: false });
+  });
+
   it("times out a search that never finishes", async () => {
     const { fn } = fakeFetch({ "/email-search": [queued], "/bulk-single-searchs/read": [readItem("IN_PROGRESS")] });
     const c = new IcypeasClient({ apiKey: "k", fetch: fn, sleep: async () => {}, pollTimeoutMs: -1 });

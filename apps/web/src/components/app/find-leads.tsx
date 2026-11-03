@@ -24,6 +24,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 export function FindLeads({ tables, credits }: { tables: { id: string; name: string }[]; credits: number | null }) {
   const [kind, setKind] = useState<"people" | "companies">("people");
   const [tableId, setTableId] = useState("");
+  const [intent, setIntent] = useState<"count" | "add">("count");
   const [state, dispatch, pending] = useActionState(findLeads, null);
   const people = kind === "people";
 
@@ -32,6 +33,7 @@ export function FindLeads({ tables, credits }: { tables: { id: string; name: str
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
+    setIntent(data.get("intent") === "add" ? "add" : "count");
     startTransition(() => dispatch(data));
   };
 
@@ -89,7 +91,7 @@ export function FindLeads({ tables, credits }: { tables: { id: string; name: str
       <div className="flex flex-wrap items-center gap-3">
         <button name="intent" value="count" disabled={pending} className={buttonClass("secondary")}>
           <Search className="size-[15px]" />
-          {pending ? "Searching…" : "Count matches"}
+          {pending && intent === "count" ? "Counting…" : "Count matches"}
         </button>
         <span className="text-xs text-muted">Counting is free.</span>
         {state?.ok && state.total !== undefined && (
@@ -123,7 +125,7 @@ export function FindLeads({ tables, credits }: { tables: { id: string; name: str
         </div>
         <div className="flex items-center gap-3">
           <button name="intent" value="add" disabled={pending} className={buttonClass("primary")}>
-            {pending ? "Adding…" : "Find and add"}
+            {pending && intent === "add" ? "Adding…" : "Find and add"}
           </button>
           <span className="text-xs text-muted">Then use Find &amp; verify emails on the table.</span>
         </div>
