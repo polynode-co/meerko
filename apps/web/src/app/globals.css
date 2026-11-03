@@ -29,6 +29,24 @@
   body {
     @apply bg-ink text-fg font-sans antialiased;
   }
+  /* Tailwind v4's preflight leaves buttons on the default arrow (v3 used a pointer), so links show a hand and
+     buttons don't. Every clickable control gets the hand; disabled ones say so instead. */
+  button,
+  [role="button"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  summary,
+  label[for],
+  select,
+  input[type="checkbox"],
+  input[type="radio"] {
+    cursor: pointer;
+  }
+  :disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 /* Hero mascot: a slow lookout sway from the feet, and every few seconds the left paw
