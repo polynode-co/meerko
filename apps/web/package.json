@@ -7,7 +7,7 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start --port 3000",
-    "typecheck": "tsc --noEmit -p . && pnpm -w docs:reference --check"
+    "typecheck": "tsc --noEmit -p . && pnpm -w docs:reference --check && pnpm -w api:spec --check"
   },
   "dependencies": {
     "@meerko/sdk": "workspace:*",

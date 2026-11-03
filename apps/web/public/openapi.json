@@ -1,0 +1,4556 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Meerko API",
+    "version": "1",
+    "description": "Everything the Meerko dashboard, CLI and MCP server do, over HTTP: they are clients of this same API. Authenticate with an API key from Settings → API keys (`Authorization: Bearer mk_…`)."
+  },
+  "servers": [
+    {
+      "url": "https://api.meerko.ai"
+    }
+  ],
+  "security": [
+    {
+      "bearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "workspace",
+      "description": "Who the credential acts as"
+    },
+    {
+      "name": "tables",
+      "description": "Tables of leads and their rows"
+    },
+    {
+      "name": "leads",
+      "description": "Finding people and companies, and enriching rows with emails"
+    },
+    {
+      "name": "mailboxes",
+      "description": "Mailboxes that send sequences and receive replies"
+    },
+    {
+      "name": "sequences",
+      "description": "Multi-step email sequences"
+    },
+    {
+      "name": "replies",
+      "description": "Replies to sequences, and the drafts answering them"
+    },
+    {
+      "name": "credits",
+      "description": "Credits and the BYOK provider keys that bypass them"
+    },
+    {
+      "name": "settings",
+      "description": "API keys, connected apps, agent hook, Slack and billing"
+    }
+  ],
+  "paths": {
+    "/v1/me": {
+      "get": {
+        "operationId": "getMe",
+        "tags": [
+          "workspace"
+        ],
+        "summary": "The workspace (and person, for a session) this credential acts as",
+        "x-meerko-replies-scope": true,
+        "responses": {
+          "200": {
+            "description": "The workspace (and person, for a session) this credential acts as",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tables": {
+      "get": {
+        "operationId": "listTables",
+        "tags": [
+          "tables"
+        ],
+        "summary": "List tables",
+        "responses": {
+          "200": {
+            "description": "List tables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tables": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Table"
+                      }
+                    }
+                  },
+                  "required": [
+                    "tables"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTable",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Create a table",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "columns": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "type": {
+                          "default": "text",
+                          "type": "string",
+                          "enum": [
+                            "text",
+                            "number",
+                            "email",
+                            "url",
+                            "boolean",
+                            "json"
+                          ]
+                        },
+                        "prompt": {
+                          "description": "Makes it an AI column: an instruction filled in for each row by your agent",
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Create a table",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "table": {
+                      "$ref": "#/components/schemas/Table"
+                    }
+                  },
+                  "required": [
+                    "table"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tables/{id}": {
+      "get": {
+        "operationId": "getTable",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Get a table and its columns",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get a table and its columns",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "table": {
+                      "$ref": "#/components/schemas/Table"
+                    }
+                  },
+                  "required": [
+                    "table"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTable",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Delete a table, its rows and its sequences",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Delete a table, its rows and its sequences",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    },
+                    "rows": {
+                      "type": "number"
+                    },
+                    "sequences": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "deleted",
+                    "rows",
+                    "sequences"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tables/{id}/columns": {
+      "post": {
+        "operationId": "addColumn",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Add a column (with `prompt`, an AI column)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "type": {
+                    "default": "text",
+                    "type": "string",
+                    "enum": [
+                      "text",
+                      "number",
+                      "email",
+                      "url",
+                      "boolean",
+                      "json"
+                    ]
+                  },
+                  "prompt": {
+                    "description": "Makes it an AI column: an instruction filled in for each row by your agent",
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Add a column (with `prompt`, an AI column)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "table": {
+                      "$ref": "#/components/schemas/Table"
+                    }
+                  },
+                  "required": [
+                    "table"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tables/{id}/columns/{column}/pending": {
+      "get": {
+        "operationId": "getPendingCells",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Rows whose AI column is still empty, with the instruction for each",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "column",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A JSON object matched against row data, e.g. {\"country\":\"Spain\"}"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "stage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "new",
+                "contacted",
+                "replied",
+                "meeting",
+                "won",
+                "lost"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rows whose AI column is still empty, with the instruction for each",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingCells"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tables/{id}/rows": {
+      "get": {
+        "operationId": "queryRows",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Query rows",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A JSON object matched against row data, e.g. {\"country\":\"Spain\"}"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "stage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "new",
+                "contacted",
+                "replied",
+                "meeting",
+                "won",
+                "lost"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Query rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Row"
+                      }
+                    }
+                  },
+                  "required": [
+                    "rows"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "insertRows",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Insert rows; unknown keys become new columns",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rows": {
+                    "maxItems": 10000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  }
+                },
+                "required": [
+                  "rows"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Insert rows; unknown keys become new columns",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "inserted": {
+                      "type": "number"
+                    },
+                    "addedColumns": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Column"
+                      }
+                    }
+                  },
+                  "required": [
+                    "inserted",
+                    "addedColumns"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateRows",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Update row data",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "updates": {
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "data": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "data"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "updates"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update row data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "updated": {
+                      "type": "number"
+                    },
+                    "addedColumns": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Column"
+                      }
+                    }
+                  },
+                  "required": [
+                    "updated",
+                    "addedColumns"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tables/{id}/rows/delete": {
+      "post": {
+        "operationId": "deleteRows",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Delete rows",
+        "description": "POST rather than DELETE with a body, which some HTTP clients drop.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "row_ids": {
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "row_ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Delete rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tables/{id}/rows/stage": {
+      "post": {
+        "operationId": "moveStage",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Move rows to a pipeline stage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "row_ids": {
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "stage": {
+                    "type": "string",
+                    "enum": [
+                      "new",
+                      "contacted",
+                      "replied",
+                      "meeting",
+                      "won",
+                      "lost"
+                    ]
+                  }
+                },
+                "required": [
+                  "row_ids",
+                  "stage"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Move rows to a pipeline stage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "moved": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "moved"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pipeline": {
+      "get": {
+        "operationId": "getPipeline",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Rows per pipeline stage, for one table or all",
+        "parameters": [
+          {
+            "name": "table_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rows per pipeline stage, for one table or all",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pipeline"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search/people/count": {
+      "post": {
+        "operationId": "countPeople",
+        "tags": [
+          "leads"
+        ],
+        "summary": "Count people matching a search (free)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "description": "Icypeas filters, e.g. {\"currentJobTitle\":{\"include\":[\"CTO\"]},\"currentCompany.headcount\":{\">=\":20}}"
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Count people matching a search (free)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "total"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search/people": {
+      "post": {
+        "operationId": "searchPeople",
+        "tags": [
+          "leads"
+        ],
+        "summary": "Find people and add them to a table (spends credits)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "description": "Icypeas filters, e.g. {\"currentJobTitle\":{\"include\":[\"CTO\"]},\"currentCompany.headcount\":{\">=\":20}}"
+                  },
+                  "limit": {
+                    "default": 25,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "table_id": {
+                    "description": "Add the leads to this table",
+                    "type": "string"
+                  },
+                  "table_name": {
+                    "description": "Or create a table with this name",
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Find people and add them to a table (spends credits)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search/companies/count": {
+      "post": {
+        "operationId": "countCompanies",
+        "tags": [
+          "leads"
+        ],
+        "summary": "Count companies matching a search (free)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "description": "Icypeas filters, e.g. {\"currentJobTitle\":{\"include\":[\"CTO\"]},\"currentCompany.headcount\":{\">=\":20}}"
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Count companies matching a search (free)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "total"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search/companies": {
+      "post": {
+        "operationId": "searchCompanies",
+        "tags": [
+          "leads"
+        ],
+        "summary": "Find companies and add them to a table (spends credits)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "description": "Icypeas filters, e.g. {\"currentJobTitle\":{\"include\":[\"CTO\"]},\"currentCompany.headcount\":{\">=\":20}}"
+                  },
+                  "limit": {
+                    "default": 25,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "table_id": {
+                    "description": "Add the leads to this table",
+                    "type": "string"
+                  },
+                  "table_name": {
+                    "description": "Or create a table with this name",
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Find companies and add them to a table (spends credits)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tables/{id}/enrich": {
+      "post": {
+        "operationId": "enrichRows",
+        "tags": [
+          "leads"
+        ],
+        "summary": "Find and verify emails for rows (spends credits)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fields": {
+                    "default": [
+                      "email",
+                      "email_verification"
+                    ],
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "email",
+                        "email_verification"
+                      ]
+                    }
+                  },
+                  "filter": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  },
+                  "limit": {
+                    "default": 25,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50
+                  },
+                  "overwrite": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Find and verify emails for rows (spends credits)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrichResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mailboxes": {
+      "get": {
+        "operationId": "listMailboxes",
+        "tags": [
+          "mailboxes"
+        ],
+        "summary": "List mailboxes",
+        "responses": {
+          "200": {
+            "description": "List mailboxes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mailboxes": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Mailbox"
+                      }
+                    }
+                  },
+                  "required": [
+                    "mailboxes"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mailboxes/connect": {
+      "get": {
+        "operationId": "mailboxConnectOptions",
+        "tags": [
+          "mailboxes"
+        ],
+        "summary": "How this server connects mailboxes, and where a person enters a password",
+        "responses": {
+          "200": {
+            "description": "How this server connects mailboxes, and where a person enters a password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "oauth": {
+                      "type": "boolean"
+                    },
+                    "outlook": {
+                      "type": "boolean"
+                    },
+                    "url": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "oauth",
+                    "outlook",
+                    "url"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mailboxes/gmail/app-password": {
+      "post": {
+        "operationId": "connectGmailAppPassword",
+        "tags": [
+          "mailboxes"
+        ],
+        "summary": "Connect Gmail with an app password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "A Google app password, entered by a person: agents must never handle it"
+                  },
+                  "login": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "display_name": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Connect Gmail with an app password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mailbox": {
+                      "$ref": "#/components/schemas/Mailbox"
+                    }
+                  },
+                  "required": [
+                    "mailbox"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mailboxes/imap": {
+      "post": {
+        "operationId": "connectImapMailbox",
+        "tags": [
+          "mailboxes"
+        ],
+        "summary": "Connect any IMAP/SMTP mailbox",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "login": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "display_name": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "imap_host": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 253
+                  },
+                  "imap_port": {
+                    "default": 993,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "smtp_host": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 253
+                  },
+                  "smtp_port": {
+                    "default": 465,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "email",
+                  "password",
+                  "imap_host",
+                  "smtp_host"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Connect any IMAP/SMTP mailbox",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mailbox": {
+                      "$ref": "#/components/schemas/Mailbox"
+                    }
+                  },
+                  "required": [
+                    "mailbox"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mailboxes/gmail/connect": {
+      "post": {
+        "operationId": "connectGmail",
+        "tags": [
+          "mailboxes"
+        ],
+        "summary": "Start connecting Gmail through Google's consent screen (when the server enables it)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "login_hint": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "return_to": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Start connecting Gmail through Google's consent screen (when the server enables it)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Url"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mailboxes/outlook/connect": {
+      "post": {
+        "operationId": "connectOutlook",
+        "tags": [
+          "mailboxes"
+        ],
+        "summary": "Start connecting Outlook / Microsoft 365",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "login_hint": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "return_to": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Start connecting Outlook / Microsoft 365",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Url"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mailboxes/health": {
+      "get": {
+        "operationId": "mailboxHealth",
+        "tags": [
+          "mailboxes"
+        ],
+        "summary": "SPF, DKIM and DMARC for each sending domain",
+        "responses": {
+          "200": {
+            "description": "SPF, DKIM and DMARC for each sending domain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "domains": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DomainHealth"
+                      }
+                    }
+                  },
+                  "required": [
+                    "domains"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mailboxes/{id}": {
+      "patch": {
+        "operationId": "updateMailbox",
+        "tags": [
+          "mailboxes"
+        ],
+        "summary": "Change a mailbox's daily limit, name or ramp-up",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "daily_limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 500
+                  },
+                  "display_name": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ramp": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Change a mailbox's daily limit, name or ramp-up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mailbox": {
+                      "$ref": "#/components/schemas/Mailbox"
+                    }
+                  },
+                  "required": [
+                    "mailbox"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMailbox",
+        "tags": [
+          "mailboxes"
+        ],
+        "summary": "Disconnect a mailbox",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disconnect a mailbox",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mailboxes/{id}/test": {
+      "post": {
+        "operationId": "sendTestEmail",
+        "tags": [
+          "mailboxes"
+        ],
+        "summary": "Send a test email from a mailbox",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  }
+                },
+                "required": [
+                  "to"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Send a test email from a mailbox",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sent": {
+                      "type": "boolean"
+                    },
+                    "messageId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "sent",
+                    "messageId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sequences": {
+      "get": {
+        "operationId": "listSequences",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "List sequences",
+        "responses": {
+          "200": {
+            "description": "List sequences",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sequences": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SequenceSummary"
+                      }
+                    }
+                  },
+                  "required": [
+                    "sequences"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSequence",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Create a sequence (as a draft)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "table_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "mailbox_ids": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "mailbox_id": {
+                    "description": "Deprecated: use mailbox_ids",
+                    "type": "string"
+                  },
+                  "assignment": {
+                    "type": "string",
+                    "enum": [
+                      "capacity",
+                      "even"
+                    ]
+                  },
+                  "steps": {
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "subject": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 300
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 20000
+                        },
+                        "delay_days": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 60
+                        }
+                      },
+                      "required": [
+                        "body"
+                      ]
+                    }
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "window_start_hour": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 23
+                  },
+                  "window_end_hour": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 24
+                  }
+                },
+                "required": [
+                  "table_id",
+                  "name",
+                  "steps"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Create a sequence (as a draft)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sequence": {
+                      "$ref": "#/components/schemas/Sequence"
+                    }
+                  },
+                  "required": [
+                    "sequence"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sequences/{id}": {
+      "get": {
+        "operationId": "getSequence",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Get a sequence and its steps",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get a sequence and its steps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sequence": {
+                      "$ref": "#/components/schemas/Sequence"
+                    }
+                  },
+                  "required": [
+                    "sequence"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateSequence",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Change a sequence's steps, mailboxes or sending window",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "mailbox_ids": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "mailbox_id": {
+                    "description": "Deprecated: use mailbox_ids",
+                    "type": "string"
+                  },
+                  "assignment": {
+                    "type": "string",
+                    "enum": [
+                      "capacity",
+                      "even"
+                    ]
+                  },
+                  "steps": {
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "subject": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 300
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 20000
+                        },
+                        "delay_days": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 60
+                        }
+                      },
+                      "required": [
+                        "body"
+                      ]
+                    }
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "window_start_hour": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 23
+                  },
+                  "window_end_hour": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 24
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Change a sequence's steps, mailboxes or sending window",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sequence": {
+                      "$ref": "#/components/schemas/Sequence"
+                    }
+                  },
+                  "required": [
+                    "sequence"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sequences/{id}/preview": {
+      "get": {
+        "operationId": "previewSequence",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Render each step for one row, with any missing variables",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "row_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Render each step for one row, with any missing variables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SequencePreview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sequences/{id}/enroll": {
+      "post": {
+        "operationId": "enrollRows",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Enroll rows, by id or filter",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "row_ids": {
+                    "maxItems": 5000,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "filter": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Enroll rows, by id or filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sequences/{id}/start": {
+      "post": {
+        "operationId": "startSequence",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Start sending",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Start sending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sequence": {
+                      "$ref": "#/components/schemas/Sequence"
+                    }
+                  },
+                  "required": [
+                    "sequence"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sequences/{id}/pause": {
+      "post": {
+        "operationId": "pauseSequence",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Pause sending",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pause sending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sequence": {
+                      "$ref": "#/components/schemas/Sequence"
+                    }
+                  },
+                  "required": [
+                    "sequence"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sequences/{id}/pool": {
+      "get": {
+        "operationId": "sequencePool",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "The sequence's mailboxes and today's sending",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sequence's mailboxes and today's sending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SequencePool"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sequences/{id}/stats": {
+      "get": {
+        "operationId": "sequenceStats",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Sent, replied and per-step numbers",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sent, replied and per-step numbers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SequenceStats"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sequences/{id}/recipients": {
+      "get": {
+        "operationId": "sequenceRecipients",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Everyone enrolled and where they are",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Everyone enrolled and where they are",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "recipients": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Recipient"
+                      }
+                    }
+                  },
+                  "required": [
+                    "recipients"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/replies": {
+      "get": {
+        "operationId": "listReplies",
+        "tags": [
+          "replies"
+        ],
+        "summary": "List replies, with their threads",
+        "x-meerko-replies-scope": true,
+        "parameters": [
+          {
+            "name": "sequence_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "intent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "unclassified",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "include_automatic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List replies, with their threads",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "replies": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Reply"
+                      }
+                    }
+                  },
+                  "required": [
+                    "replies"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/replies/{id}/classify": {
+      "post": {
+        "operationId": "classifyReply",
+        "tags": [
+          "replies"
+        ],
+        "summary": "Set a reply's intent",
+        "x-meerko-replies-scope": true,
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "type": "string",
+                    "enum": [
+                      "interested",
+                      "not_interested",
+                      "not_now",
+                      "question",
+                      "referral",
+                      "wrong_person",
+                      "other"
+                    ]
+                  },
+                  "handled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "intent"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Set a reply's intent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reply": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "intent": {
+                          "type": "string"
+                        },
+                        "handledAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "intent",
+                        "handledAt"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "reply"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/replies/{id}/draft": {
+      "post": {
+        "operationId": "draftReply",
+        "tags": [
+          "replies"
+        ],
+        "summary": "Save a draft answer for a person to approve",
+        "x-meerko-replies-scope": true,
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20000
+                  }
+                },
+                "required": [
+                  "body"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Save a draft answer for a person to approve",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "draft": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "body": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "body"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "draft"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drafts": {
+      "get": {
+        "operationId": "listDrafts",
+        "tags": [
+          "replies"
+        ],
+        "summary": "List drafts",
+        "x-meerko-replies-scope": true,
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "sent",
+                "discarded"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List drafts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "drafts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Draft"
+                      }
+                    }
+                  },
+                  "required": [
+                    "drafts"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drafts/{id}/approve": {
+      "post": {
+        "operationId": "approveDraft",
+        "tags": [
+          "replies"
+        ],
+        "summary": "Send a draft",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "description": "Send this instead of the saved draft",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Send a draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sent": {
+                      "type": "boolean"
+                    },
+                    "to": {
+                      "type": "string"
+                    },
+                    "subject": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "sent",
+                    "to",
+                    "subject"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drafts/{id}/discard": {
+      "post": {
+        "operationId": "discardDraft",
+        "tags": [
+          "replies"
+        ],
+        "summary": "Discard a draft",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Discard a draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "discarded": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "discarded"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/credits": {
+      "get": {
+        "operationId": "getCredits",
+        "tags": [
+          "credits"
+        ],
+        "summary": "Credit balance, and where a person tops up",
+        "responses": {
+          "200": {
+            "description": "Credit balance, and where a person tops up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Credits"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/provider-keys": {
+      "get": {
+        "operationId": "listProviderKeys",
+        "tags": [
+          "credits"
+        ],
+        "summary": "Your own provider keys (last 4 only)",
+        "responses": {
+          "200": {
+            "description": "Your own provider keys (last 4 only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keys": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProviderKey"
+                      }
+                    }
+                  },
+                  "required": [
+                    "keys"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/provider-keys/{provider}": {
+      "put": {
+        "operationId": "setProviderKey",
+        "tags": [
+          "credits"
+        ],
+        "summary": "Store your own Icypeas or Firecrawl key; lookups through it spend no credits",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 8
+                  }
+                },
+                "required": [
+                  "key"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Store your own Icypeas or Firecrawl key; lookups through it spend no credits",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "provider": {
+                      "type": "string"
+                    },
+                    "last4": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "provider",
+                    "last4"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteProviderKey",
+        "tags": [
+          "credits"
+        ],
+        "summary": "Remove a provider key",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Remove a provider key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api-keys": {
+      "get": {
+        "operationId": "listApiKeys",
+        "tags": [
+          "settings"
+        ],
+        "summary": "List API keys",
+        "responses": {
+          "200": {
+            "description": "List API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "api_keys": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiKey"
+                      }
+                    }
+                  },
+                  "required": [
+                    "api_keys"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/connected-apps": {
+      "get": {
+        "operationId": "listConnectedApps",
+        "tags": [
+          "settings"
+        ],
+        "summary": "List OAuth apps connected to the workspace",
+        "responses": {
+          "200": {
+            "description": "List OAuth apps connected to the workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "apps": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ConnectedApp"
+                      }
+                    }
+                  },
+                  "required": [
+                    "apps"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agent-hook": {
+      "get": {
+        "operationId": "getAgentHook",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Where Meerko rings your agent when replies arrive",
+        "responses": {
+          "200": {
+            "description": "Where Meerko rings your agent when replies arrive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hook": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/AgentHook"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "hook"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/slack": {
+      "get": {
+        "operationId": "getSlack",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Where replies and drafts are posted in Slack",
+        "responses": {
+          "200": {
+            "description": "Where replies and drafts are posted in Slack",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connection": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/SlackConnection"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "app_available": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "connection",
+                    "app_available"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing": {
+      "get": {
+        "operationId": "getBilling",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Plan, subscription and balance (Meerko Cloud)",
+        "responses": {
+          "200": {
+            "description": "Plan, subscription and balance (Meerko Cloud)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Billing"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "An API key (mk_…) or an OAuth access token (mo_…)"
+      }
+    },
+    "schemas": {
+      "AgentHook": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "claude_routine",
+              "webhook"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "secretLast4": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "lastFiredAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastStatus": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          }
+        },
+        "required": [
+          "kind",
+          "url",
+          "secretLast4",
+          "enabled",
+          "lastFiredAt",
+          "lastStatus",
+          "lastError",
+          "createdAt"
+        ]
+      },
+      "ApiError": {
+        "$ref": "#/components/schemas/ApiError"
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "full",
+              "replies"
+            ]
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "scope",
+          "lastUsedAt",
+          "createdAt"
+        ]
+      },
+      "Billing": {
+        "$ref": "#/components/schemas/Billing"
+      },
+      "Column": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "number",
+              "email",
+              "url",
+              "boolean",
+              "json"
+            ]
+          },
+          "prompt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "type"
+        ]
+      },
+      "ConnectedApp": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "userEmail": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "userEmail",
+          "createdAt",
+          "lastUsedAt"
+        ]
+      },
+      "Credits": {
+        "$ref": "#/components/schemas/Credits"
+      },
+      "DomainHealth": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "spf": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "missing",
+              "managed"
+            ]
+          },
+          "dkim": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "missing",
+              "managed"
+            ]
+          },
+          "dmarc": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "missing",
+              "managed"
+            ]
+          }
+        },
+        "required": [
+          "domain",
+          "spf",
+          "dkim",
+          "dmarc"
+        ]
+      },
+      "Draft": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "sent",
+              "discarded"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          },
+          "replyId": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "replySubject": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "replyBody": {
+            "type": "string"
+          },
+          "intent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "row": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "thread": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "in",
+                    "out"
+                  ]
+                },
+                "step": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "subject": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "body": {
+                  "type": "string"
+                },
+                "sentAt": {
+                  "type": "string",
+                  "description": "ISO 8601 timestamp"
+                }
+              },
+              "required": [
+                "id",
+                "direction",
+                "step",
+                "subject",
+                "body",
+                "sentAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "body",
+          "status",
+          "updatedAt",
+          "replyId",
+          "to",
+          "replySubject",
+          "replyBody",
+          "intent",
+          "row",
+          "thread"
+        ]
+      },
+      "EnrichResult": {
+        "$ref": "#/components/schemas/EnrichResult"
+      },
+      "EnrollResult": {
+        "$ref": "#/components/schemas/EnrollResult"
+      },
+      "Mailbox": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "gmail",
+              "gmail_imap",
+              "imap",
+              "outlook"
+            ]
+          },
+          "email": {
+            "type": "string"
+          },
+          "login": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "servers": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "imap": {
+                    "type": "object",
+                    "properties": {
+                      "host": {
+                        "type": "string"
+                      },
+                      "port": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "host",
+                      "port"
+                    ]
+                  },
+                  "smtp": {
+                    "type": "object",
+                    "properties": {
+                      "host": {
+                        "type": "string"
+                      },
+                      "port": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "host",
+                      "port"
+                    ]
+                  }
+                },
+                "required": [
+                  "imap",
+                  "smtp"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dailyLimit": {
+            "type": "number"
+          },
+          "rampStartedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effectiveLimit": {
+            "type": "number",
+            "description": "What it may send in the next 24 hours: lower than dailyLimit while ramping"
+          },
+          "rampDay": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "error"
+            ]
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "email",
+          "login",
+          "servers",
+          "displayName",
+          "dailyLimit",
+          "rampStartedAt",
+          "effectiveLimit",
+          "rampDay",
+          "status",
+          "lastError",
+          "createdAt"
+        ]
+      },
+      "Me": {
+        "$ref": "#/components/schemas/Me"
+      },
+      "PendingCells": {
+        "$ref": "#/components/schemas/PendingCells"
+      },
+      "Pipeline": {
+        "$ref": "#/components/schemas/Pipeline"
+      },
+      "ProviderKey": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "last4": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          }
+        },
+        "required": [
+          "provider",
+          "last4",
+          "createdAt"
+        ]
+      },
+      "Recipient": {
+        "type": "object",
+        "properties": {
+          "enrollmentId": {
+            "type": "string"
+          },
+          "rowId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "company": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mailboxEmail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed",
+              "replied",
+              "unsubscribed",
+              "bounced",
+              "stopped",
+              "failed"
+            ]
+          },
+          "stepsSent": {
+            "type": "number"
+          },
+          "nextSendAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastSentAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "enrollmentId",
+          "rowId",
+          "email",
+          "firstName",
+          "lastName",
+          "company",
+          "mailboxEmail",
+          "state",
+          "stepsSent",
+          "nextSendAt",
+          "lastError",
+          "lastSentAt"
+        ]
+      },
+      "Reply": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "subject": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "body": {
+            "type": "string"
+          },
+          "intent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "receivedAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          },
+          "handledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sequenceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sequenceName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "row": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "thread": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "in",
+                    "out"
+                  ]
+                },
+                "step": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "subject": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "body": {
+                  "type": "string"
+                },
+                "sentAt": {
+                  "type": "string",
+                  "description": "ISO 8601 timestamp"
+                }
+              },
+              "required": [
+                "id",
+                "direction",
+                "step",
+                "subject",
+                "body",
+                "sentAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "from",
+          "subject",
+          "body",
+          "intent",
+          "receivedAt",
+          "handledAt",
+          "sequenceId",
+          "sequenceName",
+          "row",
+          "thread"
+        ]
+      },
+      "Row": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "new",
+              "contacted",
+              "replied",
+              "meeting",
+              "won",
+              "lost"
+            ]
+          },
+          "stageChangedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "data",
+          "stage",
+          "stageChangedAt",
+          "createdAt"
+        ]
+      },
+      "SearchResult": {
+        "$ref": "#/components/schemas/SearchResult"
+      },
+      "Sequence": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "active",
+              "paused"
+            ]
+          },
+          "tableId": {
+            "type": "string"
+          },
+          "mailboxIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assignment": {
+            "type": "string",
+            "enum": [
+              "capacity",
+              "even"
+            ]
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "windowStartHour": {
+            "type": "number"
+          },
+          "windowEndHour": {
+            "type": "number"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "position": {
+                  "type": "number"
+                },
+                "delayDays": {
+                  "type": "number"
+                },
+                "subject": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "body": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "position",
+                "delayDays",
+                "subject",
+                "body"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "tableId",
+          "mailboxIds",
+          "assignment",
+          "timezone",
+          "windowStartHour",
+          "windowEndHour",
+          "steps"
+        ]
+      },
+      "SequencePool": {
+        "$ref": "#/components/schemas/SequencePool"
+      },
+      "SequencePreview": {
+        "$ref": "#/components/schemas/SequencePreview"
+      },
+      "SequenceStats": {
+        "$ref": "#/components/schemas/SequenceStats"
+      },
+      "SequenceSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "active",
+              "paused"
+            ]
+          },
+          "tableId": {
+            "type": "string"
+          },
+          "mailboxIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assignment": {
+            "type": "string",
+            "enum": [
+              "capacity",
+              "even"
+            ]
+          },
+          "enrolled": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "tableId",
+          "mailboxIds",
+          "assignment",
+          "enrolled"
+        ]
+      },
+      "SlackConnection": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "app",
+              "webhook"
+            ]
+          },
+          "teamName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "channelName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "lastPostedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          }
+        },
+        "required": [
+          "kind",
+          "teamName",
+          "channelName",
+          "enabled",
+          "lastPostedAt",
+          "lastError",
+          "createdAt"
+        ]
+      },
+      "Table": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Column"
+            }
+          },
+          "rowCount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "columns",
+          "rowCount",
+          "createdAt"
+        ]
+      },
+      "Url": {
+        "$ref": "#/components/schemas/Url"
+      }
+    }
+  }
+}

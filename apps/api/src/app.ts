@@ -13,7 +13,6 @@ import {
   countLeads,
   createTable,
   enrichRows,
-  AGENT_INTENTS,
   moveStage,
   pipelineSummary,
   approveDraft,
@@ -75,7 +74,6 @@ import {
   InsufficientCreditsError,
   listProviderKeys,
   setProviderKey,
-  BYOK_PROVIDERS,
   getPendingCells,
   getTable,
   IcypeasError,
@@ -113,7 +111,6 @@ import {
   PlanLimitError,
   PRO_MONTHLY_CREDITS,
   CREDIT_PACK_CREDITS,
-  MAX_CREDIT_PACKS,
   startCheckout,
   verifyStripeEvent,
   type BillingConfig,
@@ -138,8 +135,45 @@ import {
   type SecretBox,
   type IcypeasQuery,
 } from "@meerko/core";
-import { AGENT_HOOK_KINDS, API_KEY_SCOPES, STAGES, type ApiKeyScope, type Db } from "@meerko/db";
+import type { ApiKeyScope, Db } from "@meerko/db";
 import { createAnalytics, EVENTS, type Analytics } from "./analytics.ts";
+import {
+  agentHookInput,
+  approveDraftInput,
+  byokProvider,
+  checkoutInput,
+  classifyInput,
+  columnInput,
+  countInput,
+  createApiKeyInput,
+  createSequenceInput,
+  createTableInput,
+  deleteRowsInput,
+  draftInput,
+  enrichInput,
+  enrollInput,
+  gmailAppPasswordInput,
+  imapMailboxInput,
+  insertRowsInput,
+  listDraftsQuery,
+  listRepliesQuery,
+  moveStageInput,
+  oauthConnectInput,
+  oauthDecideInput,
+  oauthRequestInput,
+  pipelineQuery,
+  previewQuery,
+  providerKeyInput,
+  queryInput,
+  searchInput,
+  slackWebhookInput,
+  testEmailInput,
+  toSequenceInput,
+  updateMailboxInput,
+  updateRowsInput,
+  updateSequenceInput,
+} from "./v1/schemas.ts";
+import { REPLIES_SCOPE_ROUTES } from "./v1/spec.ts";
 
 type Env = {
   Variables: {
@@ -154,98 +188,6 @@ type Env = {
   };
 };
 
-const columnType = z.enum(["text", "number", "email", "url", "boolean", "json"]);
-const columnInput = z.object({
-  name: z.string().min(1),
-  type: columnType.default("text"),
-  prompt: z.string().min(1).optional(),
-});
-const updateRowsInput = z.object({
-  updates: z.array(z.object({ id: z.string(), data: z.record(z.string(), z.unknown()) })).max(1000),
-});
-const createTableInput = z.object({ name: z.string().min(1), columns: z.array(columnInput).optional() });
-const insertRowsInput = z.object({ rows: z.array(z.record(z.string(), z.unknown())).max(10_000) });
-const queryInput = z.object({
-  filter: z
-    .string()
-    .optional()
-    .transform((s, ctx) => {
-      if (!s) return undefined;
-      try {
-        const parsed = JSON.parse(s);
-        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
-      } catch {}
-      ctx.addIssue({ code: "custom", message: "filter must be a JSON object, e.g. {\"country\":\"Spain\"}" });
-      return z.NEVER;
-    }),
-  limit: z.coerce.number().int().min(1).max(1000).optional(),
-  offset: z.coerce.number().int().min(0).optional(),
-  stage: z.enum(STAGES).optional(),
-});
-// Filters are passed through to Icypeas, which validates field names and shapes itself.
-const leadQuery = z.record(z.string(), z.record(z.string(), z.unknown())).refine((q) => Object.keys(q).length > 0, {
-  message: "query needs at least one filter",
-});
-const searchInput = z.object({
-  query: leadQuery,
-  // Hard cap per call to bound credit spend until the credit ledger lands.
-  limit: z.number().int().min(1).max(1000).default(25),
-  table_id: z.string().optional(),
-  table_name: z.string().min(1).optional(),
-});
-const countInput = z.object({ query: leadQuery });
-const stepInput = z.object({
-  subject: z.string().max(300).nullable().optional(),
-  body: z.string().min(1).max(20_000),
-  delay_days: z.number().int().min(0).max(60).optional(),
-});
-const sequenceFields = {
-  name: z.string().min(1).max(200),
-  // The mailbox pool. `mailbox_id` (one mailbox) is still accepted from older clients.
-  mailbox_ids: z.array(z.string()).min(1).max(50).optional(),
-  mailbox_id: z.string().optional(),
-  assignment: z.enum(["capacity", "even"]).optional(),
-  steps: z.array(stepInput).min(1).max(10),
-  timezone: z.string().optional(),
-  window_start_hour: z.number().int().min(0).max(23).optional(),
-  window_end_hour: z.number().int().min(1).max(24).optional(),
-};
-const createSequenceInput = z
-  .object({ table_id: z.string(), ...sequenceFields })
-  .refine((i) => i.mailbox_ids?.length || i.mailbox_id, { message: "mailbox_ids is required" });
-const updateSequenceInput = z.object(sequenceFields).partial();
-const toSequenceInput = (i: z.infer<typeof updateSequenceInput>) => ({
-  name: i.name,
-  mailboxIds: i.mailbox_ids ?? (i.mailbox_id ? [i.mailbox_id] : undefined),
-  assignment: i.assignment,
-  steps: i.steps?.map((s) => ({ subject: s.subject, body: s.body, delayDays: s.delay_days })),
-  timezone: i.timezone,
-  windowStartHour: i.window_start_hour,
-  windowEndHour: i.window_end_hour,
-});
-const enrollInput = z.object({
-  row_ids: z.array(z.string()).max(5000).optional(),
-  filter: z.record(z.string(), z.unknown()).optional(),
-  limit: z.number().int().min(1).max(5000).optional(),
-});
-const enrichInput = z.object({
-  fields: z.array(z.enum(["email", "email_verification"])).min(1).default(["email", "email_verification"]),
-  filter: z.record(z.string(), z.unknown()).optional(),
-  // Rows are enriched synchronously, one at a time (~3s each), so keep calls small.
-  limit: z.number().int().min(1).max(50).default(25),
-  overwrite: z.boolean().default(false),
-});
-
-/**
- * What a `replies`-scoped credential may call: read replies and save drafts. An agent woken by an agent hook reads
- * email from strangers, so it must not be able to approve drafts, send, enroll or spend credits.
- */
-const REPLIES_SCOPE_ROUTES: [method: string, path: RegExp][] = [
-  ["GET", /^\/v1\/me$/],
-  ["GET", /^\/v1\/replies$/],
-  ["POST", /^\/v1\/replies\/[^/]+\/(classify|draft)$/],
-  ["GET", /^\/v1\/drafts$/],
-];
 /** Sent by the in-process client behind /mcp/drafter. It can only narrow a credential, so sending it yourself gains nothing. */
 const SCOPE_HEADER = "x-meerko-scope";
 
@@ -850,7 +792,6 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   };
 
   // The dashboard's consent page (a signed-in person) approves or declines an app's request.
-  const oauthRequestInput = z.object({ request: z.string().min(1) });
   v1.post("/oauth/requests/describe", async (c) => {
     requireUser(c, "Sign in to the dashboard to connect apps");
     if (!oauthEnabled()) throw new HTTPException(404, { message: "OAuth isn't configured on this server" });
@@ -867,7 +808,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.post("/oauth/requests/decide", async (c) => {
     requireUser(c, "Sign in to the dashboard to connect apps");
     if (!oauthEnabled()) throw new HTTPException(404, { message: "OAuth isn't configured on this server" });
-    const { request, approve } = await parse(oauthRequestInput.extend({ approve: z.boolean() }), await c.req.json().catch(() => ({})));
+    const { request, approve } = await parse(oauthDecideInput, await c.req.json().catch(() => ({})));
     try {
       // Named before approving, while the request is certainly still readable.
       const clientName = approve ? (await describeAuthorization(db, box!, request).catch(() => null))?.clientName : null;
@@ -897,10 +838,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/api-keys", async (c) => {
     requireUser(c);
-    const { name, scope } = await parse(
-      z.object({ name: z.string().trim().min(1).max(100), scope: z.enum(API_KEY_SCOPES).default("full") }),
-      await c.req.json().catch(() => ({})),
-    );
+    const { name, scope } = await parse(createApiKeyInput, await c.req.json().catch(() => ({})));
     const { id, key } = await createApiKey(db, c.var.workspaceId, name, scope);
     await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.apiKeyCreated, workspaceId: c.var.workspaceId, properties: { scope } });
     return c.json({ id, name, scope, key }, 201);
@@ -917,10 +855,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.put("/agent-hook", async (c) => {
     requireUser(c, "Sign in to the dashboard to set up your agent");
-    const input = await parse(
-      z.object({ kind: z.enum(AGENT_HOOK_KINDS), url: z.string().trim().min(1).max(2000), token: z.string().trim().max(2000).optional() }),
-      await c.req.json().catch(() => ({})),
-    );
+    const input = await parse(agentHookInput, await c.req.json().catch(() => ({})));
     const { hook, secret } = await setAgentHook(db, box, c.var.workspaceId, input, { allowPrivate: deps.allowPrivateHooks });
     await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.agentHookConfigured, workspaceId: c.var.workspaceId, properties: { kind: input.kind } });
     return c.json(secret ? { hook, secret } : { hook });
@@ -956,7 +891,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.put("/slack/webhook", async (c) => {
     requireUser(c, "Sign in to the dashboard to connect Slack");
-    const { url } = await parse(z.object({ url: z.string().trim().min(1).max(2000) }), await c.req.json().catch(() => ({})));
+    const { url } = await parse(slackWebhookInput, await c.req.json().catch(() => ({})));
     const connection = await setSlackWebhook(db, box, c.var.workspaceId, url, { fetch: deps.slackFetch });
     await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.slackConnected, workspaceId: c.var.workspaceId, properties: { kind: "webhook" } });
     return c.json({ connection });
@@ -1046,13 +981,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.post("/billing/checkout", async (c) => {
     const cfg = billing();
     requireOwner(c);
-    const input = await parse(
-      z.discriminatedUnion("kind", [
-        z.object({ kind: z.literal("pro") }),
-        z.object({ kind: z.literal("credits"), packs: z.number().int().min(1).max(MAX_CREDIT_PACKS).default(1) }),
-      ]),
-      await c.req.json().catch(() => ({})),
-    );
+    const input = await parse(checkoutInput, await c.req.json().catch(() => ({})));
     const url = await startCheckout(db, cfg, c.var.workspaceId, c.var.user!.email, input);
     await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.checkoutStarted, workspaceId: c.var.workspaceId, properties: { kind: input.kind } });
     return c.json({ url });
@@ -1105,15 +1034,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   );
 
   v1.post("/mailboxes/gmail/app-password", async (c) => {
-    const input = await parse(
-      z.object({
-        email: z.string().email(),
-        password: z.string().min(1).max(100),
-        login: z.string().email().optional().nullable(),
-        display_name: z.string().max(100).optional().nullable(),
-      }),
-      await c.req.json(),
-    );
+    const input = await parse(gmailAppPasswordInput, await c.req.json());
     // Each attempt signs in to Google, so don't let a workspace use this to test passwords.
     if (!connectAttempts.allow(c.var.workspaceId)) throw new HTTPException(429, { message: "Too many attempts. Wait a few minutes and try again." });
     const mailbox = await connectGmailAppPassword(
@@ -1129,19 +1050,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   // Any provider over IMAP and SMTP: Zoho, Fastmail, a host's own mail server.
   v1.post("/mailboxes/imap", async (c) => {
-    const input = await parse(
-      z.object({
-        email: z.string().email(),
-        password: z.string().min(1).max(200),
-        login: z.string().min(1).max(200).optional().nullable(),
-        display_name: z.string().max(100).optional().nullable(),
-        imap_host: z.string().min(1).max(253),
-        imap_port: z.number().int().default(993),
-        smtp_host: z.string().min(1).max(253),
-        smtp_port: z.number().int().default(465),
-      }),
-      await c.req.json(),
-    );
+    const input = await parse(imapMailboxInput, await c.req.json());
     if (!connectAttempts.allow(c.var.workspaceId)) throw new HTTPException(429, { message: "Too many attempts. Wait a few minutes and try again." });
     const mailbox = await connectImapMailbox(
       db,
@@ -1162,10 +1071,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/mailboxes/outlook/connect", async (c) => {
     if (!deps.microsoftOAuth) throw new HTTPException(503, { message: "Outlook isn't configured on this server (set MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET)" });
-    const { login_hint, return_to } = await parse(
-      z.object({ login_hint: z.string().email().optional(), return_to: z.string().url().optional() }),
-      await c.req.json().catch(() => ({})),
-    );
+    const { login_hint, return_to } = await parse(oauthConnectInput, await c.req.json().catch(() => ({})));
     const returnTo = appReturnUrl(return_to);
     if (return_to && deps.appUrl && !returnTo) throw new HTTPException(400, { message: "return_to must be on the dashboard's URL (MEERKO_APP_URL)" });
     return c.json({ url: deps.microsoftOAuth.authUrl(createOAuthState(box, c.var.workspaceId, returnTo), login_hint) });
@@ -1175,10 +1081,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.gmailOAuthConnect) {
       throw new HTTPException(400, { message: "This server connects Gmail with an app password: use `meerko mailboxes connect`, or Settings → Mailboxes in the dashboard" });
     }
-    const { login_hint, return_to } = await parse(
-      z.object({ login_hint: z.string().email().optional(), return_to: z.string().url().optional() }),
-      await c.req.json().catch(() => ({})),
-    );
+    const { login_hint, return_to } = await parse(oauthConnectInput, await c.req.json().catch(() => ({})));
     // Without MEERKO_APP_URL the server can't vouch for any return URL, so the callback shows its own page instead.
     const returnTo = appReturnUrl(return_to);
     if (return_to && deps.appUrl && !returnTo) throw new HTTPException(400, { message: "return_to must be on the dashboard's URL (MEERKO_APP_URL)" });
@@ -1188,14 +1091,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.get("/mailboxes", async (c) => c.json({ mailboxes: await listMailboxes(db, c.var.workspaceId) }));
 
   v1.patch("/mailboxes/:id", async (c) => {
-    const input = await parse(
-      z.object({
-        daily_limit: z.number().int().min(1).max(500).optional(),
-        display_name: z.string().max(100).nullable().optional(),
-        ramp: z.boolean().optional(),
-      }),
-      await c.req.json(),
-    );
+    const input = await parse(updateMailboxInput, await c.req.json());
     const mailbox = await updateMailbox(db, c.var.workspaceId, c.req.param("id"), {
       dailyLimit: input.daily_limit,
       displayName: input.display_name,
@@ -1209,7 +1105,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.delete("/mailboxes/:id", async (c) => c.json({ deleted: await deleteMailbox(db, c.var.workspaceId, c.req.param("id")) }));
 
   v1.post("/mailboxes/:id/test", async (c) => {
-    const { to } = await parse(z.object({ to: z.string().email() }), await c.req.json());
+    const { to } = await parse(testEmailInput, await c.req.json());
     const sent = await sendTestEmail(db, c.var.workspaceId, c.req.param("id"), to, { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, fetch: deps.gmailFetch, imap: deps.imap });
     return c.json({ sent: true, messageId: sent.id });
   });
@@ -1237,7 +1133,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   });
 
   v1.get("/sequences/:id/preview", async (c) =>
-    c.json(await previewSequence(db, c.var.workspaceId, c.req.param("id"), c.req.query("row_id") || undefined)),
+    c.json(await previewSequence(db, c.var.workspaceId, c.req.param("id"), (await parse(previewQuery, c.req.query())).row_id || undefined)),
   );
 
   v1.post("/sequences/:id/enroll", async (c) => {
@@ -1258,16 +1154,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   );
 
   v1.get("/replies", async (c) => {
-    const q = await parse(
-      z.object({
-        sequence_id: z.string().optional(),
-        intent: z.string().optional(),
-        unclassified: z.enum(["true", "false"]).optional(),
-        include_automatic: z.enum(["true", "false"]).optional(),
-        limit: z.coerce.number().int().min(1).max(100).optional(),
-      }),
-      c.req.query(),
-    );
+    const q = await parse(listRepliesQuery, c.req.query());
     const replies = await listReplies(db, c.var.workspaceId, {
       sequenceId: q.sequence_id,
       intent: q.intent,
@@ -1279,22 +1166,22 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   });
 
   v1.post("/replies/:id/classify", async (c) => {
-    const { intent, handled } = await parse(z.object({ intent: z.enum(AGENT_INTENTS), handled: z.boolean().optional() }), await c.req.json());
+    const { intent, handled } = await parse(classifyInput, await c.req.json());
     return c.json({ reply: await classifyReply(db, c.var.workspaceId, c.req.param("id"), intent, handled) });
   });
 
   v1.post("/replies/:id/draft", async (c) => {
-    const { body } = await parse(z.object({ body: z.string().min(1).max(20_000) }), await c.req.json());
+    const { body } = await parse(draftInput, await c.req.json());
     return c.json({ draft: await draftReply(db, c.var.workspaceId, c.req.param("id"), body) }, 201);
   });
 
   v1.get("/drafts", async (c) => {
-    const { status } = await parse(z.object({ status: z.enum(["pending", "sent", "discarded"]).optional() }), c.req.query());
+    const { status } = await parse(listDraftsQuery, c.req.query());
     return c.json({ drafts: await listDrafts(db, c.var.workspaceId, status) });
   });
 
   v1.post("/drafts/:id/approve", async (c) => {
-    const { body } = await parse(z.object({ body: z.string().min(1).max(20_000).optional() }), await c.req.json().catch(() => ({})));
+    const { body } = await parse(approveDraftInput, await c.req.json().catch(() => ({})));
     const sent = await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, fetch: deps.gmailFetch, imap: deps.imap }, body);
     await syncSlackDraft(db, slackDeps(), c.req.param("id"), "sent", c.var.user ? (c.var.user.name ?? c.var.user.email) : undefined);
     return c.json(sent);
@@ -1308,24 +1195,24 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   // POST rather than DELETE-with-a-body, which some HTTP clients drop.
   v1.post("/tables/:id/rows/delete", async (c) => {
-    const { row_ids } = await parse(z.object({ row_ids: z.array(z.string()).min(1).max(1000) }), await c.req.json());
+    const { row_ids } = await parse(deleteRowsInput, await c.req.json());
     return c.json(await deleteRows(db, c.var.workspaceId, c.req.param("id"), row_ids));
   });
 
   v1.delete("/tables/:id", async (c) => c.json(await deleteTable(db, c.var.workspaceId, c.req.param("id"))));
 
   v1.post("/tables/:id/rows/stage", async (c) => {
-    const { row_ids, stage } = await parse(z.object({ row_ids: z.array(z.string()).min(1).max(1000), stage: z.enum(STAGES) }), await c.req.json());
+    const { row_ids, stage } = await parse(moveStageInput, await c.req.json());
     return c.json(await moveStage(db, c.var.workspaceId, c.req.param("id"), row_ids, stage));
   });
 
-  v1.get("/pipeline", async (c) => c.json(await pipelineSummary(db, c.var.workspaceId, c.req.query("table_id") || undefined)));
+  v1.get("/pipeline", async (c) => c.json(await pipelineSummary(db, c.var.workspaceId, (await parse(pipelineQuery, c.req.query())).table_id || undefined)));
 
   v1.get("/provider-keys", async (c) => c.json({ keys: await listProviderKeys(db, c.var.workspaceId) }));
 
   v1.put("/provider-keys/:provider", async (c) => {
-    const provider = await parse(z.enum(BYOK_PROVIDERS), c.req.param("provider"));
-    const { key } = await parse(z.object({ key: z.string().min(8) }), await c.req.json());
+    const provider = await parse(byokProvider, c.req.param("provider"));
+    const { key } = await parse(providerKeyInput, await c.req.json());
     if (!box) throw new EncryptionNotConfiguredError();
     // A free call proves the key works before it's stored: an Icypeas count, or a Firecrawl catalog search.
     try {
@@ -1339,7 +1226,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   });
 
   v1.delete("/provider-keys/:provider", async (c) => {
-    const provider = await parse(z.enum(BYOK_PROVIDERS), c.req.param("provider"));
+    const provider = await parse(byokProvider, c.req.param("provider"));
     return c.json({ deleted: await deleteProviderKey(db, c.var.workspaceId, provider) });
   });
 
