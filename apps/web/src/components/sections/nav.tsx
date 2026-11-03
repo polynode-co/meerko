@@ -6,6 +6,7 @@ import { Container } from "../ui/primitives";
 
 const links = [
   ["Product", "/#product"],
+  ["Integrations", "/integrations"],
   ["Docs", site.docsUrl],
   ["Pricing", site.pricingUrl],
   ["Guides", "/guides"],

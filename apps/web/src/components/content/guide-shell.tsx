@@ -79,7 +79,7 @@ export function Timeline({ steps, highlight }: { steps: [label: string, text: st
 const ctas = {
   start: {
     title: "Run this from your coding agent",
-    body: "Meerko finds the leads, sends the sequence from your own Gmail and stops it when someone replies. Self-host it for free or start on Meerko Cloud with 200 free credits.",
+    body: "Meerko finds the leads, sends the sequence from your own Gmail or Outlook and stops it when someone replies. Self-host it for free or start on Meerko Cloud with 200 free credits.",
     primary: ["Get started free", site.pricingUrl],
     secondary: ["Connect it to Claude Code", "/docs/claude-code"],
   },
@@ -224,7 +224,7 @@ export function GuideShell({ slug, eyebrow, h1, lead, toc, sources, faq, cta = "
                 <span className="flex items-center gap-2.5 font-display text-lg font-bold">
                   <LogoMark size={26} /> Meerko
                 </span>
-                <p className="text-[13px] leading-normal text-muted">The open-source AI sales agent, run from Claude Code. Sends from your own Gmail.</p>
+                <p className="text-[13px] leading-normal text-muted">The open-source AI sales agent, run from Claude Code. Sends from your own Gmail or Outlook.</p>
                 <a href={site.pricingUrl} className="rounded-[9px] bg-accent px-3.5 py-2.5 text-center text-sm font-semibold text-dark hover:brightness-110">
                   Get started free
                 </a>

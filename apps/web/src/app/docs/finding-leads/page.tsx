@@ -17,6 +17,7 @@ export default function Page() {
       }
       toc={[
         ["people-companies", "People and companies"],
+        ["dashboard", "In the dashboard"],
         ["filters", "Filters"],
         ["saved", "What gets saved"],
         ["limits", "Limits and cost"],
@@ -31,6 +32,15 @@ export default function Page() {
         <C>company_urn</C> values to <Tool name="find_people" /> to get the people who work there.
       </p>
       <AskAgent>Find heads of growth at fintechs in Spain with 50 to 200 employees. Count them first.</AskAgent>
+
+      <H2 id="dashboard">In the dashboard</H2>
+      <p>
+        The same search is on <L href="/app/leads/find">Leads → Find leads</L>. Pick People or Companies, fill in the filters (job titles
+        and titles to exclude, location, industry, keywords and headcount), then press <strong className="text-fg">Count matches</strong> to
+        see how many there are, for free. When the count looks right, set how many to save (up to 1,000), choose a table or name a new
+        one, and press <strong className="text-fg">Find and add</strong>. The rows land in the table, ready for{" "}
+        <strong className="text-fg">Find &amp; verify emails</strong>.
+      </p>
 
       <H2 id="filters">Filters</H2>
       <p>

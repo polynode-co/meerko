@@ -29,7 +29,7 @@ export function Hero() {
             AI sales agent.
           </h1>
           <p className="max-w-[620px] text-lg leading-normal text-muted lg:text-xl">
-            An AI SDR that finds your leads, enriches them, sends cold email from your own Gmail and catches every reply —
+            An AI SDR that finds your leads, enriches them, sends cold email from your own Gmail or Outlook and catches every reply —
             driven from Claude Code, Codex or Cursor.
           </p>
           <div className="flex flex-wrap items-center gap-3">

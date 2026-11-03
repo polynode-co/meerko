@@ -61,3 +61,9 @@ export const docsSources = {
   icypeas: { label: "Icypeas", url: "https://www.icypeas.com" },
   firecrawl: { label: "Firecrawl Alexandria", url: "https://docs.firecrawl.dev/features/alexandria" },
 };
+
+/** For /integrations/gmail and /integrations/outlook: what each mail product's own help pages say about mail merge. */
+export const mailMergeSources = {
+  gmail: { label: "Gmail Help: Send personalized emails with mail merge", url: "https://support.google.com/mail/answer/12921167" },
+  word: { label: "Microsoft Support: Use mail merge to send bulk email messages", url: "https://support.microsoft.com/en-us/office/use-mail-merge-to-send-bulk-email-messages-0f123521-20ce-4aa8-8b62-ac211dedefa4" },
+};

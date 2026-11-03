@@ -12,11 +12,11 @@ export const metadata: Metadata = {
   // Targets "ai sales agent" (1.3k/mo US, KD 15, +140% YoY) and "ai sdr" (DataForSEO, Oct 2026).
   title: "Meerko — the open-source AI sales agent",
   description:
-    "Meerko is an open-source AI sales agent (AI SDR): find leads, send cold email from your own Gmail and catch every reply, from Claude Code or Cursor.",
+    "Meerko is an open-source AI sales agent (AI SDR): find leads, send cold email from your own Gmail or Outlook and catch every reply, from Claude Code or Cursor.",
   icons: { icon: "/meerko-icon.svg" },
   openGraph: {
     title: "Meerko — the open-source AI sales agent",
-    description: "An AI SDR you run from Claude Code: find leads, send from your own Gmail, catch every reply. Open source.",
+    description: "An AI SDR you run from Claude Code: find leads, send from your own Gmail or Outlook, catch every reply. Open source.",
     images: ["/meerko-mascot.svg"],
   },
 };
