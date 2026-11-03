@@ -85,6 +85,7 @@ export default function PrivacyPage() {
             "It only stores messages in threads Meerko started, or from people in your sequences. For other recent mail it checks the sender's address and nothing else, and never stores it.",
             "Gmail data is used only to send your emails and handle replies. It's never sold, used for ads, or used to train AI models.",
             "Mailboxes on other providers, connected over IMAP and SMTP, are handled the same way.",
+            "Outlook and Microsoft 365 mailboxes connect with Sign in with Microsoft: Meerko asks Microsoft to send email as you and to read your mail to spot replies, and keeps only what's described above. Its token is encrypted, and you can remove Meerko's access in your Microsoft account at any time.",
             "Nobody at Meerko reads your email, unless you ask us to for support, or the law or a security investigation requires it.",
           ]}
         />

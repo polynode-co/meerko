@@ -57,8 +57,15 @@ export default function Page() {
         the form, or run <C>pnpm meerko mailboxes connect --provider zoho</C> (<C>zoho-eu</C>, <C>fastmail</C> or <C>other</C>). Turn on IMAP
         for the account and use an app password if the provider offers them. For a provider that isn&apos;t listed, choose Other and enter
         its IMAP server (port 993) and SMTP server (465 or 587): Meerko only connects over TLS, and only to public servers. When the
-        provider doesn&apos;t file sent emails in Sent itself, Meerko saves a copy there. Outlook and Microsoft 365 don&apos;t allow password
-        sign-in, so they can&apos;t connect yet.
+        provider doesn&apos;t file sent emails in Sent itself, Meerko saves a copy there.
+      </p>
+      <p>
+        <strong className="text-fg">Outlook and Microsoft 365</strong> don&apos;t allow passwords, so they connect with Sign in with
+        Microsoft instead: pick Outlook in the form (or run <C>pnpm meerko mailboxes connect --provider outlook</C>) and approve Meerko. It
+        asks Microsoft to send email as you and to read your mail, to spot replies. Some companies only let their IT admin approve
+        apps; if Microsoft says you need an admin, ask them to approve Meerko once for everyone. Remove its access any time at{" "}
+        <L href="https://myapps.microsoft.com">myapps.microsoft.com</L> (work accounts) or{" "}
+        <L href="https://account.live.com/consent/Manage">account.live.com</L> (personal accounts).
       </p>
       <p>
         Meerko only fetches in full the messages in threads it started or from people in your sequences; other mail is never stored or

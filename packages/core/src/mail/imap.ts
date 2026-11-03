@@ -218,11 +218,11 @@ export class ImapClient implements MailClient {
 }
 
 /** The Message-ID headers quoted in a bounce (the original email's, among others). */
-function quotedMessageIds(source: string): string[] {
+export function quotedMessageIds(source: string): string[] {
   return [...source.matchAll(/^Message-ID:\s*(<[^<>\s]+>)/gim)].map((m) => m[1]!);
 }
 
 /** Every `<…>` Message-ID in a References or In-Reply-To value, in order. */
-function messageIds(text: string): string[] {
+export function messageIds(text: string): string[] {
   return [...new Set([...text.matchAll(/<[^<>\s@]+@[^<>\s]+>/g)].map((m) => m[0]))];
 }

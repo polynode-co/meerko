@@ -24,6 +24,7 @@ import {
   connectGmail,
   connectGmailAppPassword,
   connectImapMailbox,
+  connectOutlook,
   listReplies,
   ReplyError,
   createSequence,
@@ -133,6 +134,7 @@ import {
   type SlackInteraction,
   type GoogleOAuth,
   type ImapConnectors,
+  type MicrosoftOAuth,
   type SecretBox,
   type IcypeasQuery,
 } from "@meerko/core";
@@ -281,6 +283,11 @@ export interface AppDeps {
   /** Overrides the IMAP and SMTP connections of app-password mailboxes (tests). */
   imap?: ImapConnectors;
   /**
+   * The Meerko app registered with Microsoft (MICROSOFT_CLIENT_ID/SECRET): connects Outlook / Microsoft 365
+   * mailboxes. Unset means Outlook isn't offered. Its Graph calls use gmailFetch in tests.
+   */
+  microsoftOAuth?: MicrosoftOAuth;
+  /**
    * Enables POST /internal/tick for Cloud Scheduler (cloud runs no worker process). Unset when
    * MEERKO_TICK_SECRET isn't configured, and the route then answers 404.
    */
@@ -397,7 +404,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.tick || given.length !== expected.length || !timingSafeEqual(given, expected)) return c.json({ error: "Not found" }, 404);
     const result = await runWorkerTick(
       db,
-      { box, oauth: deps.googleOAuth, publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, imap: deps.imap, ...hookDeps() },
+      { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, imap: deps.imap, ...hookDeps() },
       { replies: c.req.query("replies") !== "0" },
     );
     if (result.replyError) {
@@ -455,7 +462,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       return c.json({ error: "No payload" }, 400);
     }
     // Answered after the work (sending can take a few seconds); the message is updated through response_url.
-    await handleSlackInteraction(db, { ...slackDeps(), approve: { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch, imap: deps.imap } }, payload);
+    await handleSlackInteraction(db, { ...slackDeps(), approve: { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, fetch: deps.gmailFetch, imap: deps.imap } }, payload);
     return c.body(null, 200);
   });
 
@@ -525,6 +532,26 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       await analytics.capture({ distinctId: mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "gmail" } });
       if (returnTo) return c.redirect(backToApp(returnTo, { gmail_connected: mailbox.email }));
       return c.html(resultPage("Gmail connected", `Meerko can now send from ${mailbox.email}. You can close this tab.`));
+    } catch (err) {
+      if (!(err instanceof GmailError) && !(err instanceof OAuthStateError) && !(err instanceof PlanLimitError)) console.error(err);
+      return fail((err as Error).message);
+    }
+  });
+
+  // Public: Microsoft redirects the user's browser here; authenticated by the encrypted `state`, like Google's.
+  app.get("/oauth/microsoft/callback", async (c) => {
+    const { code, state, error, error_description } = c.req.query();
+    const returnTo = appReturnUrl(state ? readOAuthReturnTo(box, state) : undefined);
+    const fail = (message: string) =>
+      returnTo ? c.redirect(backToApp(returnTo, { gmail_error: message })) : c.html(resultPage("Outlook not connected", message), 400);
+    if (error) return fail(`Microsoft said: ${(error_description ?? error).split("\r\n")[0]}. Try connecting again.`);
+    if (!code || !state) return fail("This link is missing its sign-in code.");
+    if (!deps.microsoftOAuth) return fail("Outlook isn't configured on this server.");
+    try {
+      const mailbox = await connectOutlook(db, box, deps.microsoftOAuth, state, code, deps.gmailFetch, { enforcePlan: !!deps.billing });
+      await analytics.capture({ distinctId: mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "outlook" } });
+      if (returnTo) return c.redirect(backToApp(returnTo, { gmail_connected: mailbox.email }));
+      return c.html(resultPage("Outlook connected", `Meerko can now send from ${mailbox.email}. You can close this tab.`));
     } catch (err) {
       if (!(err instanceof GmailError) && !(err instanceof OAuthStateError) && !(err instanceof PlanLimitError)) console.error(err);
       return fail((err as Error).message);
@@ -1071,6 +1098,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.get("/mailboxes/connect", async (c) =>
     c.json({
       oauth: !!(deps.gmailOAuthConnect && deps.googleOAuth),
+      outlook: !!deps.microsoftOAuth,
       // Where a person enters a mailbox password themselves (agents must never handle it).
       url: deps.appUrl ? new URL("/app/settings?connect=gmail", deps.appUrl).toString() : null,
     }),
@@ -1132,6 +1160,17 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.json({ mailbox }, 201);
   });
 
+  v1.post("/mailboxes/outlook/connect", async (c) => {
+    if (!deps.microsoftOAuth) throw new HTTPException(503, { message: "Outlook isn't configured on this server (set MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET)" });
+    const { login_hint, return_to } = await parse(
+      z.object({ login_hint: z.string().email().optional(), return_to: z.string().url().optional() }),
+      await c.req.json().catch(() => ({})),
+    );
+    const returnTo = appReturnUrl(return_to);
+    if (return_to && deps.appUrl && !returnTo) throw new HTTPException(400, { message: "return_to must be on the dashboard's URL (MEERKO_APP_URL)" });
+    return c.json({ url: deps.microsoftOAuth.authUrl(createOAuthState(box, c.var.workspaceId, returnTo), login_hint) });
+  });
+
   v1.post("/mailboxes/gmail/connect", async (c) => {
     if (!deps.gmailOAuthConnect) {
       throw new HTTPException(400, { message: "This server connects Gmail with an app password: use `meerko mailboxes connect`, or Settings → Mailboxes in the dashboard" });
@@ -1171,7 +1210,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/mailboxes/:id/test", async (c) => {
     const { to } = await parse(z.object({ to: z.string().email() }), await c.req.json());
-    const sent = await sendTestEmail(db, c.var.workspaceId, c.req.param("id"), to, { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch, imap: deps.imap });
+    const sent = await sendTestEmail(db, c.var.workspaceId, c.req.param("id"), to, { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, fetch: deps.gmailFetch, imap: deps.imap });
     return c.json({ sent: true, messageId: sent.id });
   });
 
@@ -1256,7 +1295,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/drafts/:id/approve", async (c) => {
     const { body } = await parse(z.object({ body: z.string().min(1).max(20_000).optional() }), await c.req.json().catch(() => ({})));
-    const sent = await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch, imap: deps.imap }, body);
+    const sent = await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, fetch: deps.gmailFetch, imap: deps.imap }, body);
     await syncSlackDraft(db, slackDeps(), c.req.param("id"), "sent", c.var.user ? (c.var.user.name ?? c.var.user.email) : undefined);
     return c.json(sent);
   });

@@ -345,7 +345,7 @@ const mailboxes = program.command("mailboxes").description("connect the inboxes 
 
 mailboxes
   .command("connect")
-  .description("connect an inbox with its app password: Gmail by default, or --provider zoho, zoho-eu, fastmail or other (reads it from MEERKO_APP_PASSWORD or asks)")
+  .description("connect an inbox: Gmail by default (app password, from MEERKO_APP_PASSWORD or asked), --provider outlook (signs in with Microsoft in your browser), or zoho, zoho-eu, fastmail, other")
   .option("-e, --email <address>", "the address to send from")
   .option("-p, --provider <provider>", `gmail (default), ${Object.keys(MAIL_PROVIDERS).filter((p) => p !== "gmail").join(", ")}`, "gmail")
   .option("--login <account>", "the account to sign in as, when it isn't the address (a Gmail alias's account, or a provider's user name)")
@@ -358,6 +358,7 @@ mailboxes
     async (opts: { email?: string; provider: string; login?: string; imapHost?: string; smtpHost?: string; smtpPort: string; name?: string; google?: boolean }) => {
       const client = MeerkoClient.fromEnv();
       if (opts.google) return connectWithGoogle(client, opts.email);
+      if (opts.provider === "outlook") return connectWithBrowser(client, () => client.connectOutlook(opts.email), "Microsoft");
       if (!(opts.provider in MAIL_PROVIDERS)) throw new Error(`Unknown provider "${opts.provider}". Use one of: ${Object.keys(MAIL_PROVIDERS).join(", ")}`);
       const provider = opts.provider as MailProviderId;
       let servers = MAIL_PROVIDERS[provider].servers;
@@ -385,9 +386,14 @@ mailboxes
   );
 
 /** Google's consent page (Gmail API). Only where the server has it on (MEERKO_GMAIL_OAUTH=1). */
-async function connectWithGoogle(client: MeerkoClient, email?: string) {
+function connectWithGoogle(client: MeerkoClient, email?: string) {
+  return connectWithBrowser(client, () => client.connectGmail(email), "Google");
+}
+
+/** Opens a sign-in page (Google's or Microsoft's) and waits until the new mailbox shows up. */
+async function connectWithBrowser(client: MeerkoClient, start: () => Promise<{ url: string }>, provider: string) {
   const before = new Set((await client.listMailboxes()).map((m) => `${m.id}:${m.status}`));
-  const { url } = await client.connectGmail(email);
+  const { url } = await start();
   console.log(`Approve access in your browser:\n\n  ${url}\n`);
   openInBrowser(url);
 
@@ -397,7 +403,7 @@ async function connectWithGoogle(client: MeerkoClient, email?: string) {
     const added = (await client.listMailboxes()).find((m) => m.status === "active" && !before.has(`${m.id}:${m.status}`));
     if (added) return console.log(`Connected ${added.email} (${added.id}). Send a test with \`meerko mailboxes test ${added.id} --to <you>\`.`);
   }
-  throw new Error("Timed out waiting for Google approval. Run `meerko mailboxes connect --google` again.");
+  throw new Error(`Timed out waiting for ${provider} approval. Run \`meerko mailboxes connect\` again.`);
 }
 
 mailboxes

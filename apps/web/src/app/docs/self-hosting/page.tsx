@@ -138,6 +138,7 @@ export default function Page() {
           ["MEERKO_ENCRYPTION_KEY", "32 bytes, base64. Encrypts mailbox app passwords and tokens, provider keys and unsubscribe links. Required to send, to sign in with Google, for agent sign-in and to store provider keys."],
           ["GOOGLE_CLIENT_ID · GOOGLE_CLIENT_SECRET", "Your OAuth client, for Sign in with Google, and for mailboxes connected through Google's consent page. Not needed to send with app passwords."],
           ["MEERKO_GMAIL_OAUTH", "1 offers Google's consent page (Gmail API) for connecting mailboxes, besides app passwords. Needs the OAuth client and the Gmail API. Off by default."],
+          ["MICROSOFT_CLIENT_ID · MICROSOFT_CLIENT_SECRET", "Your app in Microsoft Entra, for connecting Outlook and Microsoft 365 mailboxes (.env.example lists its setup). Without them, Outlook isn't offered."],
           ["MEERKO_SIGNUP", "invite (default): only addresses added with pnpm db:invite can sign in with Google. open: anyone can."],
           ["ICYPEAS_API_KEY", "Lead search and email finding for every workspace on this server."],
           ["MEERKO_CREDITS", "off (default) when self-hosting. on meters search and enrichment in credits, as on Meerko Cloud. Setting up Stripe turns it on."],

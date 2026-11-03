@@ -27,7 +27,7 @@ export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string
   const result: Partial<WorkerTickResult> = {};
   if (opts.replies) {
     try {
-      result.replies = await runReplyTick(db, { box: deps.box, oauth: deps.oauth, now: deps.now, fetch: deps.fetch });
+      result.replies = await runReplyTick(db, { box: deps.box, oauth: deps.oauth, microsoft: deps.microsoft, imap: deps.imap, now: deps.now, fetch: deps.fetch });
     } catch (err) {
       result.replyError = err instanceof Error ? err.message : String(err);
     }

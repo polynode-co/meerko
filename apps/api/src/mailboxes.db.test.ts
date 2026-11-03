@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createApiKey, GoogleOAuth, SecretBox, type ImapConnectors } from "@meerko/core";
+import { createApiKey, GoogleOAuth, MicrosoftOAuth, SecretBox, type ImapConnectors } from "@meerko/core";
 import { createDb, eq, mailboxes, workspaces, type Db } from "@meerko/db";
 import { createApp } from "./app.ts";
 
@@ -52,14 +52,45 @@ describe.skipIf(!process.env.DATABASE_URL)("connecting mailboxes (db)", () => {
     v1(`/mailboxes/${"imap_host" in body ? "imap" : "gmail/app-password"}`, { method: "POST", body: JSON.stringify(body) }, a);
 
   it("offers app passwords, and Google's consent page only when it's turned on", async () => {
-    expect(await (await v1("/mailboxes/connect")).json()).toEqual({ oauth: false, url: "https://app.example/app/settings?connect=gmail" });
+    expect(await (await v1("/mailboxes/connect")).json()).toEqual({ oauth: false, outlook: false, url: "https://app.example/app/settings?connect=gmail" });
     const res = await v1("/mailboxes/gmail/connect", { method: "POST", body: "{}" });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/app password/);
 
     const withOAuth = createApp(db, { secretBox: box, googleOAuth: oauth, gmailOAuthConnect: true });
-    expect(await (await v1("/mailboxes/connect", {}, withOAuth)).json()).toEqual({ oauth: true, url: null });
+    expect(await (await v1("/mailboxes/connect", {}, withOAuth)).json()).toEqual({ oauth: true, outlook: false, url: null });
     expect((await (await v1("/mailboxes/gmail/connect", { method: "POST", body: "{}" }, withOAuth)).json()).url).toMatch(/^https:\/\/accounts\.google\.com/);
+  });
+
+  it("connects Outlook through Microsoft's sign-in and its callback, back to the dashboard", async () => {
+    // Microsoft, faked: any code signs in ana@acme.com.
+    const msFetch = (async (input: string) => {
+      const url = new URL(input);
+      if (url.host === "login.microsoftonline.com") return Response.json({ access_token: "at", refresh_token: "rt", expires_in: 3600, scope: "Mail.Send Mail.Read User.Read" });
+      if (url.pathname === "/v1.0/me") return Response.json({ mail: "Ana@Acme.com" });
+      throw new Error(input);
+    }) as typeof globalThis.fetch;
+    const microsoftOAuth = new MicrosoftOAuth({ clientId: "ms-client", clientSecret: "s", redirectUri: "https://api.example/oauth/microsoft/callback", fetch: msFetch });
+    const withMs = createApp(db, { secretBox: box, microsoftOAuth, gmailFetch: msFetch, appUrl: "https://app.example" });
+    expect((await (await v1("/mailboxes/connect", {}, withMs)).json()).outlook).toBe(true);
+    expect((await v1("/mailboxes/outlook/connect", { method: "POST", body: "{}" })).status).toBe(503);
+
+    const res = await v1("/mailboxes/outlook/connect", { method: "POST", body: JSON.stringify({ return_to: "https://app.example/app/settings" }) }, withMs);
+    const signIn = new URL((await res.json()).url);
+    expect(signIn.host).toBe("login.microsoftonline.com");
+    expect(signIn.searchParams.get("client_id")).toBe("ms-client");
+    expect(signIn.searchParams.get("scope")).toContain("Mail.Send");
+
+    const back = await withMs.request(`/oauth/microsoft/callback?code=c&state=${signIn.searchParams.get("state")}`);
+    expect(back.status).toBe(302);
+    expect(back.headers.get("location")).toBe("https://app.example/app/settings?gmail_connected=ana%40acme.com");
+    const [row] = await db.select().from(mailboxes).where(eq(mailboxes.email, "ana@acme.com"));
+    expect(row).toMatchObject({ workspaceId: ws, provider: "outlook" });
+    expect(box.decrypt(row!.encryptedRefreshToken!)).toBe("rt");
+
+    // A refusal on Microsoft's side goes back with the reason.
+    const refused = await withMs.request(`/oauth/microsoft/callback?error=access_denied&error_description=The%20user%20declined&state=${signIn.searchParams.get("state")}`);
+    expect(new URL(refused.headers.get("location")!).searchParams.get("gmail_error")).toMatch(/declined/);
   });
 
   it("checks the app password with Gmail, then stores it encrypted, signing in as the alias's account", async () => {

@@ -1,3 +1,4 @@
+import type { MicrosoftOAuth } from "../mail/outlook.ts";
 import { and, asc, enrollments, eq, mailboxes, messages, replyDrafts, sql, suppressions, tableRows, type Db } from "@meerko/db";
 import { mailClient, type MailClient, type SentIds } from "../mail/client.ts";
 import type { GoogleOAuth } from "../mail/gmail.ts";
@@ -92,6 +93,7 @@ export interface ApproveDeps {
   oauth?: GoogleOAuth;
   fetch?: typeof fetch;
   imap?: ImapConnectors;
+  microsoft?: MicrosoftOAuth;
 }
 
 /**
@@ -143,7 +145,7 @@ export async function approveDraft(db: Db, workspaceId: string, draftId: string,
   let sent: SentIds;
   let client: MailClient | undefined;
   try {
-    client = mailClient(mailbox, { box: deps.box, oauth: deps.oauth, fetch: deps.fetch, imap: deps.imap });
+    client = mailClient(mailbox, { box: deps.box, oauth: deps.oauth, microsoft: deps.microsoft, fetch: deps.fetch, imap: deps.imap, db });
     sent = await client.send({ raw, messageId, from: mailbox.email, to: reply.fromEmail }, reply.gmailThreadId ?? undefined);
   } catch (err) {
     await db.update(replyDrafts).set({ status: "pending" }).where(eq(replyDrafts.id, draftId));
@@ -163,7 +165,7 @@ export async function approveDraft(db: Db, workspaceId: string, draftId: string,
         direction: "out",
         gmailId: sent.id,
         gmailThreadId: sent.threadId ?? reply.gmailThreadId,
-        rfcMessageId: messageId,
+        rfcMessageId: sent.rfcMessageId ?? messageId,
         fromEmail: mailbox.email,
         toEmail: reply.fromEmail,
         subject,
@@ -176,7 +178,7 @@ export async function approveDraft(db: Db, workspaceId: string, draftId: string,
       // Keep the thread's history complete so a later answer threads correctly too.
       await tx
         .update(enrollments)
-        .set({ messageIds: [...references, messageId] })
+        .set({ messageIds: [...references, sent.rfcMessageId ?? messageId] })
         .where(eq(enrollments.id, enrollment.id));
     }
     return { sent: true, to: reply.fromEmail, subject, messageId: out!.id };

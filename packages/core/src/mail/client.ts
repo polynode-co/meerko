@@ -1,8 +1,9 @@
-import type { mailboxes } from "@meerko/db";
+import { eq, mailboxes, type Db } from "@meerko/db";
 import type { SecretBox } from "../provider-keys.ts";
 import { GmailClient, GmailError, type GmailMessage, type GoogleOAuth } from "./gmail.ts";
 import { GmailImapClient } from "./gmail-imap.ts";
 import { ImapClient } from "./imap.ts";
+import { OutlookClient, type MicrosoftOAuth } from "./outlook.ts";
 import type { ImapConnectors } from "./imap-common.ts";
 
 /** A built MIME message and what the SMTP envelope needs (the Gmail API reads them from the message). */
@@ -18,6 +19,8 @@ export interface OutgoingRaw {
 export interface SentIds {
   id: string | null;
   threadId: string | null;
+  /** The Message-ID the provider actually sent with, when it replaced Meerko's (Outlook may). Store this one. */
+  rfcMessageId?: string;
 }
 
 /** A received message, before its body is fetched. */
@@ -48,15 +51,34 @@ export interface MailDeps {
   box: SecretBox;
   /** Needed only for mailboxes connected through the Gmail API. */
   oauth?: GoogleOAuth;
+  /** Needed only for Outlook / Microsoft 365 mailboxes. */
+  microsoft?: MicrosoftOAuth;
+  /** Lets an Outlook mailbox store the new refresh token Microsoft issues on each refresh. */
+  db?: Db;
   fetch?: typeof fetch;
   /** Overrides the IMAP and SMTP connections (tests). */
   imap?: ImapConnectors;
 }
 
-type Mailbox = Pick<typeof mailboxes.$inferSelect, "provider" | "email" | "login" | "encryptedRefreshToken" | "encryptedPassword" | "servers">;
+type Mailbox = Pick<typeof mailboxes.$inferSelect, "id" | "provider" | "email" | "login" | "encryptedRefreshToken" | "encryptedPassword" | "servers">;
 
 /** The client for a stored mailbox, decrypting its credential. Close it when done. */
 export function mailClient(mailbox: Mailbox, deps: MailDeps): MailClient {
+  if (mailbox.provider === "outlook") {
+    if (!deps.microsoft) throw new GmailError("Microsoft sign-in isn't configured on this server", undefined, true);
+    if (!mailbox.encryptedRefreshToken) throw new GmailError("This mailbox has no Microsoft token; connect it again", undefined, true);
+    const { db, box } = deps;
+    return new OutlookClient(deps.microsoft, box.decrypt(mailbox.encryptedRefreshToken), {
+      email: mailbox.email,
+      fetch: deps.fetch,
+      // Microsoft rotates refresh tokens; keeping the newest stops the mailbox expiring after 90 days.
+      onRefreshToken: db
+        ? async (token) => {
+            await db.update(mailboxes).set({ encryptedRefreshToken: box.encrypt(token) }).where(eq(mailboxes.id, mailbox.id));
+          }
+        : undefined,
+    });
+  }
   if (mailbox.provider === "imap") {
     if (!mailbox.encryptedPassword || !mailbox.servers) throw new GmailError("This mailbox has no password or servers; connect it again", undefined, true);
     const password = deps.box.decrypt(mailbox.encryptedPassword);
