@@ -65,10 +65,14 @@ const stepInput = z.object({
 const sequenceFields = {
   name: z.string().min(1).max(200),
   // The mailbox pool. `mailbox_id` (one mailbox) is still accepted from older clients.
-  mailbox_ids: z.array(z.string()).min(1).max(50).optional(),
+  mailbox_ids: z.array(z.string()).min(1).max(50).optional().describe("The mailbox pool: each lead gets one and keeps it for every step"),
   mailbox_id: z.string().optional().describe("Deprecated: use mailbox_ids"),
-  assignment: z.enum(["capacity", "even"]).optional(),
-  steps: z.array(stepInput).min(1).max(10),
+  assignment: z.enum(["capacity", "even"]).optional().describe("How new leads are spread over the pool. Default \"capacity\""),
+  steps: z
+    .array(stepInput)
+    .min(1)
+    .max(10)
+    .describe("1–10 emails: { subject?, body, delay_days? }. The first needs a subject; follow-ups reply in the same thread. {{var}} fills in row data, and rows missing a used variable are skipped at enrollment"),
   timezone: z.string().optional(),
   window_start_hour: z.number().int().min(0).max(23).optional(),
   window_end_hour: z.number().int().min(1).max(24).optional(),

@@ -1,6 +1,7 @@
 // The docs registry: the sidebar, the pager, search and the sitemap all read from it.
 // The MCP and CLI reference comes from the code (generated/reference.json, `pnpm docs:reference`).
 import referenceJson from "@/generated/reference.json";
+import { apiOperations } from "./api-reference";
 
 export type DocsGroup = "Get started" | "Connect your agent" | "Concepts" | "Reference";
 
@@ -35,6 +36,7 @@ export const docPages: DocPage[] = [
   { slug: "credits", group: "Concepts", title: "Credits", description: "What costs credits on Meerko Cloud, and how to use your own provider keys." },
   { slug: "mcp-tools", group: "Reference", title: "MCP tools", description: "Every tool and command the Meerko MCP server gives your agent." },
   { slug: "cli", group: "Reference", title: "CLI", description: "Every meerko command, from your terminal or scripts." },
+  { slug: "api", group: "Reference", title: "REST API", description: "Every endpoint of the Meerko HTTP API, from the OpenAPI document." },
   { slug: "api-keys", group: "Reference", title: "API keys", description: "Keys for scripts and self-hosted servers without Google sign-in." },
 ];
 
@@ -137,6 +139,7 @@ export function searchEntries(): SearchEntry[] {
     ...mcp.tools.map((t) => ({ title: t.name, href: `/docs/mcp-tools#${t.name}`, kind: "Tool", text: t.description.split("\n")[0]! })),
     ...mcp.prompts.map((p) => ({ title: `/mcp__meerko__${p.name}`, href: "/docs/mcp-tools#commands", kind: "Command", text: p.description })),
     ...cli.commands.map((c) => ({ title: c.usage, href: `/docs/cli#${cliAnchor(c.usage)}`, kind: "CLI", text: c.description })),
+    ...apiOperations.map((o) => ({ title: `${o.method} ${o.path}`, href: `/docs/api#${o.id}`, kind: "API", text: o.summary })),
   ];
 }
 

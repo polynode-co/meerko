@@ -42,6 +42,21 @@ using it.
 3. Push, open a PR into `dev` (`gh pr create --base dev`), and merge it once it's green.
 4. `git worktree remove .claude/worktrees/<slug>` after the merge.
 
+## Surface parity
+
+The dashboard, the MCP server, the CLI and the public REST API do the same things. They're all clients of `/v1`:
+logic goes in `packages/core` behind a `/v1` route, and each surface calls it through `@meerko/sdk` (the hosted MCP
+in-process). No surface talks to the database or core directly, so there's no second engine to keep in sync.
+
+- Every `/v1` route has an entry in `apps/api/src/v1/spec.ts` (request and response schemas, who may call it). The
+  route validates with that schema, and `pnpm api:spec` builds `apps/web/public/openapi.json` and `/docs/api` from it.
+- `apps/api/src/surfaces/capabilities.ts` says, for each capability, where each surface offers it, or why it doesn't
+  (`deliberately_absent`), or that it hasn't caught up yet (`missing`). Adding a route, MCP tool, CLI command or web
+  server action means updating its row in the same PR. A `missing` cell is a gap to close, not a place to park
+  something.
+- The gate: `pnpm typecheck` (includes `docs:reference --check` and `api:spec --check`) and
+  `pnpm --filter @meerko/api test` (`spec.test.ts`, `capabilities.test.ts`). The api deploy runs both.
+
 ## This tree is shared
 
 Several sessions share this checkout, one `.git` and one HEAD. If any session runs `git checkout`,
