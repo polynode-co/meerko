@@ -67,6 +67,17 @@ export interface AgentHook {
   createdAt: string;
 }
 
+/** Where Meerko posts new replies and drafts in Slack: the Meerko Slack app (with buttons) or a pasted webhook. */
+export interface SlackConnection {
+  kind: "app" | "webhook";
+  teamName: string | null;
+  channelName: string | null;
+  enabled: boolean;
+  lastPostedAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+}
+
 export interface Mailbox {
   id: string;
   /**
@@ -378,6 +389,29 @@ export class MeerkoClient {
   /** Sends a test call now and reports how the hook answered. */
   testAgentHook() {
     return this.request<{ ok: boolean; status: number | null; error: string | null }>("POST", "/agent-hook/test");
+  }
+
+  /** The Slack connection, and whether this server has the Meerko Slack app (with Approve buttons) set up. */
+  getSlack() {
+    return this.request<{ connection: SlackConnection | null; app_available: boolean }>("GET", "/slack");
+  }
+
+  /** The Slack page that installs the Meerko app into a channel (signed-in person only). */
+  slackInstallUrl() {
+    return this.request<{ url: string }>("GET", "/slack/install").then((r) => r.url);
+  }
+
+  /** Connects a Slack incoming webhook: posts only, no buttons. Meerko posts a hello first to check it. */
+  setSlackWebhook(url: string) {
+    return this.request<{ connection: SlackConnection }>("PUT", "/slack/webhook", { url }).then((r) => r.connection);
+  }
+
+  testSlack() {
+    return this.request<{ ok: boolean; error: string | null }>("POST", "/slack/test");
+  }
+
+  deleteSlack() {
+    return this.request<void>("DELETE", "/slack");
   }
 
   revokeApiKey(id: string) {

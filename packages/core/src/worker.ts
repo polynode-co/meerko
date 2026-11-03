@@ -2,6 +2,7 @@ import type { Db } from "@meerko/db";
 import { runAgentNotifyTick, type AgentNotifyResult } from "./agent-hooks.ts";
 import { runReplyTick, type ReplyTickResult } from "./replies/replies.ts";
 import { runSendTick, type SenderDeps, type TickResult } from "./sending/sender.ts";
+import { runSlackNotifyTick, type SlackNotifyResult } from "./slack.ts";
 
 export interface WorkerTickResult {
   replies?: ReplyTickResult;
@@ -10,6 +11,9 @@ export interface WorkerTickResult {
   /** Agent hooks rung for replies still waiting for the user's agent. */
   hooks?: AgentNotifyResult;
   hookError?: string;
+  /** Replies and drafts posted to Slack. */
+  slack?: SlackNotifyResult;
+  slackError?: string;
   send: TickResult;
 }
 
@@ -19,7 +23,7 @@ export interface WorkerTickResult {
  * `POST /internal/tick` (cloud, so nothing has to stay running). Overlapping passes are safe: sends are
  * claimed with SKIP LOCKED and each inbound Gmail message is stored once.
  */
-export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string; hookFetch?: typeof fetch; allowPrivateHooks?: boolean }, opts: { replies: boolean }): Promise<WorkerTickResult> {
+export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string; hookFetch?: typeof fetch; allowPrivateHooks?: boolean; slackFetch?: typeof fetch }, opts: { replies: boolean }): Promise<WorkerTickResult> {
   const result: Partial<WorkerTickResult> = {};
   if (opts.replies) {
     try {
@@ -32,6 +36,12 @@ export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string
       result.hooks = await runAgentNotifyTick(db, { box: deps.box, appUrl: deps.appUrl, now: deps.now, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
     } catch (err) {
       result.hookError = err instanceof Error ? err.message : String(err);
+    }
+    // And post new replies and the drafts written so far to Slack.
+    try {
+      result.slack = await runSlackNotifyTick(db, { box: deps.box, appUrl: deps.appUrl, now: deps.now, fetch: deps.slackFetch });
+    } catch (err) {
+      result.slackError = err instanceof Error ? err.message : String(err);
     }
   }
   return { ...result, send: await runSendTick(db, deps) };

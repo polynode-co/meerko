@@ -31,13 +31,15 @@ if (!box) {
   const tick = async () => {
     busy = true;
     try {
-      const { replies: r, replyError, hooks, hookError, send: res } = await runWorkerTick(
+      const { replies: r, replyError, hooks, hookError, slack, slackError, send: res } = await runWorkerTick(
         db,
         { box, oauth, publicUrl, appUrl: MEERKO_APP_URL, allowPrivateHooks: MEERKO_ALLOW_PRIVATE_HOOKS === "1" },
         { replies: ticks++ % REPLY_EVERY_TICKS === 0 },
       );
       if (replyError) console.error("reply scan failed:", replyError);
       if (hookError) console.error("agent hooks failed:", hookError);
+      if (slackError) console.error("slack notify failed:", slackError);
+      if (slack && (slack.drafts || slack.replies || slack.failed)) console.log(`slack: ${slack.drafts} drafts and ${slack.replies} replies posted, ${slack.failed} failed`);
       if (hooks && (hooks.rung || hooks.failed)) console.log(`agent hooks: ${hooks.rung} rung for ${hooks.replies} replies, ${hooks.failed} failed`);
       if (r && (r.replies || r.bounces || r.unsubscribes || r.outOfOffice)) {
         console.log(`replies: ${r.replies} replies, ${r.bounces} bounces, ${r.unsubscribes} unsubscribes, ${r.outOfOffice} out of office`);

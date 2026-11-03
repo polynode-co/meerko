@@ -96,6 +96,44 @@ export async function removeAgentHook() {
   return run((c) => c.deleteAgentHook().then(() => "Removed"), ["/app/settings"]);
 }
 
+export async function saveSlackWebhook(_: unknown, form: FormData): Promise<ActionResult> {
+  const url = String(form.get("url") ?? "").trim();
+  if (!url) return { ok: false, error: "Paste the incoming webhook URL from Slack" };
+  try {
+    await (await meerko()).setSlackWebhook(url);
+    revalidatePath("/app/settings");
+    return { ok: true, message: "Connected. Meerko posted a hello to the channel." };
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+/** Starts the Meerko Slack app's install: the browser goes to Slack, then back to Settings. */
+export async function installSlack(): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  try {
+    return { ok: true, url: await (await meerko()).slackInstallUrl() };
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+export async function testSlack(): Promise<ActionResult> {
+  try {
+    const res = await (await meerko()).testSlack();
+    revalidatePath("/app/settings");
+    return res.ok ? { ok: true, message: "Test posted to Slack" } : { ok: false, error: res.error ?? "The test failed" };
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+export async function removeSlack() {
+  return run((c) => c.deleteSlack().then(() => "Disconnected"), ["/app/settings"]);
+}
+
 export async function revokeApiKey(id: string) {
   return run((c) => c.revokeApiKey(id).then(() => "Key revoked"), ["/app/settings"]);
 }

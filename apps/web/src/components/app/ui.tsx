@@ -55,8 +55,8 @@ export function buttonClass(variant: keyof typeof buttonStyles = "secondary") {
   return `inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${buttonStyles[variant]}`;
 }
 
-export function Card({ children, className = "", raised = false }: { children: ReactNode; className?: string; raised?: boolean }) {
-  return <section className={`rounded-xl border border-line ${raised ? "bg-raised" : ""} ${className}`}>{children}</section>;
+export function Card({ children, className = "", raised = false, id }: { children: ReactNode; className?: string; raised?: boolean; id?: string }) {
+  return <section id={id} className={`rounded-xl border border-line ${raised ? "bg-raised" : ""} ${className}`}>{children}</section>;
 }
 
 /** Shown wherever a list can be empty, so the screen explains itself and says what to do next. */

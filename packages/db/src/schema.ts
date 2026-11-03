@@ -326,6 +326,8 @@ export const messages = pgTable(
     handledAt: timestamp("handled_at", { withTimezone: true }),
     /** When the workspace's agent hook was told about this reply, so it is announced once. */
     agentNotifiedAt: timestamp("agent_notified_at", { withTimezone: true }),
+    /** When the reply was posted to the workspace's Slack channel, so it is posted once. */
+    slackNotifiedAt: timestamp("slack_notified_at", { withTimezone: true }),
     sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -380,6 +382,37 @@ export const agentHooks = pgTable("agent_hooks", {
   createdAt: createdAt(),
 });
 
+export const SLACK_CONNECTION_KINDS = ["app", "webhook"] as const;
+export type SlackConnectionKind = (typeof SLACK_CONNECTION_KINDS)[number];
+
+/**
+ * Where a workspace's replies and drafts are posted in Slack: the Meerko Slack app (a bot token, with Approve and
+ * Discard buttons) or a pasted incoming webhook (posts only). One per workspace.
+ */
+export const slackConnections = pgTable(
+  "slack_connections",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .unique()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<SlackConnectionKind>().notNull(),
+    /** The bot token (app) or the webhook URL (webhook), encrypted: both let anyone post to the channel. */
+    encryptedSecret: text("encrypted_secret").notNull(),
+    teamId: text("team_id"),
+    teamName: text("team_name"),
+    channelId: text("channel_id"),
+    channelName: text("channel_name"),
+    enabled: boolean("enabled").notNull().default(true),
+    lastPostedAt: timestamp("last_posted_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    failingSince: timestamp("failing_since", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("slack_connections_team_idx").on(t.teamId)],
+);
+
 /** An answer the user's agent drafted for an inbound reply. Sent only when a human approves it. */
 export const replyDrafts = pgTable(
   "reply_drafts",
@@ -390,6 +423,10 @@ export const replyDrafts = pgTable(
     body: text("body").notNull(),
     status: text("status").$type<"pending" | "sent" | "discarded">().notNull().default("pending"),
     sentMessageId: uuid("sent_message_id").references(() => messages.id, { onDelete: "set null" }),
+    /** The Slack message that shows this draft (channel + ts), so approving from anywhere can update it. */
+    slackChannel: text("slack_channel"),
+    slackTs: text("slack_ts"),
+    slackNotifiedAt: timestamp("slack_notified_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
