@@ -1,3 +1,4 @@
+import { OutlookClient, type MicrosoftOAuth } from "./mail/outlook.ts";
 import { randomBytes } from "node:crypto";
 import { and, eq, mailboxes, sequenceMailboxes, sequences, sql, type Db, type MailboxServers } from "@meerko/db";
 import { mailClient } from "./mail/client.ts";
@@ -73,6 +74,32 @@ export async function connectGmail(
       // Reconnecting heals a mailbox that lost access (and moves an app-password mailbox to the API).
       set: { provider: "gmail", login: null, servers: null, encryptedRefreshToken, encryptedPassword: null, status: "active", lastError: null },
     })
+    .returning({ id: mailboxes.id, email: mailboxes.email, workspaceId: mailboxes.workspaceId });
+  return mailbox!;
+}
+
+/**
+ * Completes Microsoft's sign-in callback: exchanges the code, reads the address and stores (or reconnects)
+ * an Outlook / Microsoft 365 mailbox. Reconnecting an address that's already a mailbox moves it to Outlook.
+ */
+export async function connectOutlook(
+  db: Db,
+  box: SecretBox | null,
+  oauth: MicrosoftOAuth,
+  state: string,
+  code: string,
+  fetchImpl?: typeof fetch,
+  opts: { enforcePlan?: boolean } = {},
+) {
+  const workspaceId = readOAuthState(box, state);
+  const { refreshToken } = await oauth.exchangeCode(code);
+  const { emailAddress } = await new OutlookClient(oauth, refreshToken, { fetch: fetchImpl }).profile();
+  if (opts.enforcePlan) await assertMailboxAllowed(db, workspaceId, emailAddress);
+  const credential = { provider: "outlook" as const, login: null, servers: null, encryptedRefreshToken: box!.encrypt(refreshToken), encryptedPassword: null };
+  const [mailbox] = await db
+    .insert(mailboxes)
+    .values({ workspaceId, email: emailAddress, ...credential, rampStartedAt: new Date() })
+    .onConflictDoUpdate({ target: [mailboxes.workspaceId, mailboxes.email], set: { ...credential, status: "active", lastError: null } })
     .returning({ id: mailboxes.id, email: mailboxes.email, workspaceId: mailboxes.workspaceId });
   return mailbox!;
 }
@@ -269,7 +296,7 @@ export async function sendTestEmail(
   workspaceId: string,
   id: string,
   to: string,
-  deps: { box: SecretBox | null; oauth?: GoogleOAuth; fetch?: typeof fetch; imap?: ImapConnectors },
+  deps: { box: SecretBox | null; oauth?: GoogleOAuth; microsoft?: MicrosoftOAuth; fetch?: typeof fetch; imap?: ImapConnectors },
 ) {
   const [mailbox] = await db
     .select()
@@ -284,7 +311,7 @@ export async function sendTestEmail(
     text: `This test email was sent through Meerko from ${mailbox.email}.\n\nIf you can read it, the mailbox is connected.`,
   });
   try {
-    const client = mailClient(mailbox, { box: deps.box, oauth: deps.oauth, fetch: deps.fetch, imap: deps.imap });
+    const client = mailClient(mailbox, { box: deps.box, oauth: deps.oauth, microsoft: deps.microsoft, fetch: deps.fetch, imap: deps.imap, db });
     try {
       return await client.send({ raw, messageId, from: mailbox.email, to });
     } finally {

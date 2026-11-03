@@ -7,12 +7,13 @@ export const REPLY_INTENTS = ["interested", "not_interested", "not_now", "questi
 export type ReplyIntent = (typeof REPLY_INTENTS)[number];
 
 /**
- * Mail providers Meerko connects to with a password, and their servers. `gmail` uses connectGmailAppPassword;
- * `other` takes the servers the user gives.
+ * Mail providers Meerko connects to, and their servers. `gmail` uses connectGmailAppPassword, `outlook` signs in
+ * with Microsoft (connectOutlook, no password), `other` takes the servers the user gives.
  */
-export type MailProviderId = "gmail" | "zoho" | "zoho-eu" | "fastmail" | "other";
+export type MailProviderId = "gmail" | "outlook" | "zoho" | "zoho-eu" | "fastmail" | "other";
 export const MAIL_PROVIDERS: Record<MailProviderId, { name: string; servers?: MailServers }> = {
   gmail: { name: "Gmail / Google Workspace" },
+  outlook: { name: "Outlook / Microsoft 365" },
   zoho: { name: "Zoho Mail", servers: { imap: { host: "imappro.zoho.com", port: 993 }, smtp: { host: "smtppro.zoho.com", port: 465 } } },
   "zoho-eu": { name: "Zoho Mail (EU)", servers: { imap: { host: "imappro.zoho.eu", port: 993 }, smtp: { host: "smtppro.zoho.eu", port: 465 } } },
   fastmail: { name: "Fastmail", servers: { imap: { host: "imap.fastmail.com", port: 993 }, smtp: { host: "smtp.fastmail.com", port: 465 } } },

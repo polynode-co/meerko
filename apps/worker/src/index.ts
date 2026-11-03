@@ -1,11 +1,11 @@
 // Background jobs for self-hosting: the email sender every 30s and the reply scan every 2 minutes.
 // Meerko Cloud doesn't run this process; Cloud Scheduler calls POST /internal/tick on the API instead.
-import { GoogleOAuth, runWorkerTick, SecretBox } from "@meerko/core";
+import { GoogleOAuth, MicrosoftOAuth, runWorkerTick, SecretBox } from "@meerko/core";
 import { createDb } from "@meerko/db";
 
 const TICK_MS = 30_000;
 const REPLY_EVERY_TICKS = 4;
-const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MEERKO_PUBLIC_URL, MEERKO_APP_URL, MEERKO_ALLOW_PRIVATE_HOOKS } = process.env;
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MEERKO_PUBLIC_URL, MEERKO_APP_URL, MEERKO_ALLOW_PRIVATE_HOOKS } = process.env;
 const publicUrl = MEERKO_PUBLIC_URL ?? "http://localhost:8787";
 const box = SecretBox.fromEnv();
 
@@ -24,6 +24,15 @@ if (!box) {
           redirectUri: new URL("/oauth/google/callback", publicUrl).toString(),
         })
       : undefined;
+  // Outlook / Microsoft 365 mailboxes.
+  const microsoft =
+    MICROSOFT_CLIENT_ID && MICROSOFT_CLIENT_SECRET
+      ? new MicrosoftOAuth({
+          clientId: MICROSOFT_CLIENT_ID,
+          clientSecret: MICROSOFT_CLIENT_SECRET,
+          redirectUri: new URL("/oauth/microsoft/callback", publicUrl).toString(),
+        })
+      : undefined;
   let busy = false;
   let stopping = false;
   let ticks = 0;
@@ -33,7 +42,7 @@ if (!box) {
     try {
       const { replies: r, replyError, hooks, hookError, slack, slackError, send: res } = await runWorkerTick(
         db,
-        { box, oauth, publicUrl, appUrl: MEERKO_APP_URL, allowPrivateHooks: MEERKO_ALLOW_PRIVATE_HOOKS === "1" },
+        { box, oauth, microsoft, publicUrl, appUrl: MEERKO_APP_URL, allowPrivateHooks: MEERKO_ALLOW_PRIVATE_HOOKS === "1" },
         { replies: ticks++ % REPLY_EVERY_TICKS === 0 },
       );
       if (replyError) console.error("reply scan failed:", replyError);

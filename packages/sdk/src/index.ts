@@ -82,9 +82,9 @@ export interface Mailbox {
   id: string;
   /**
    * `gmail`: connected through Google's consent screen (Gmail API). `gmail_imap`: Gmail with an app password.
-   * `imap`: any other provider over IMAP and SMTP, with its `servers`.
+   * `imap`: any other provider over IMAP and SMTP, with its `servers`. `outlook`: Microsoft Graph, signed in with Microsoft.
    */
-  provider: "gmail" | "gmail_imap" | "imap";
+  provider: "gmail" | "gmail_imap" | "imap" | "outlook";
   email: string;
   /** The account it signs in as, when that isn't `email` (an alias, or a provider's own user name). */
   login: string | null;
@@ -466,7 +466,7 @@ export class MeerkoClient {
    * where a person enters an app password (null without MEERKO_APP_URL).
    */
   mailboxConnectOptions() {
-    return this.request<{ oauth: boolean; url: string | null }>("GET", "/mailboxes/connect");
+    return this.request<{ oauth: boolean; outlook: boolean; url: string | null }>("GET", "/mailboxes/connect");
   }
 
   /**
@@ -498,6 +498,14 @@ export class MeerkoClient {
       smtp_host: input.servers.smtp.host,
       smtp_port: input.servers.smtp.port,
     }).then((r) => r.mailbox);
+  }
+
+  /**
+   * Returns a Microsoft sign-in URL for an Outlook / Microsoft 365 mailbox; it appears in listMailboxes once the
+   * user approves. With `returnTo` (on the server's MEERKO_APP_URL), the browser is sent back there afterwards.
+   */
+  connectOutlook(loginHint?: string, returnTo?: string) {
+    return this.request<{ url: string }>("POST", "/mailboxes/outlook/connect", { login_hint: loginHint, return_to: returnTo });
   }
 
   /**

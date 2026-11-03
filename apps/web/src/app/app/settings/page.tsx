@@ -36,16 +36,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {gmail_connected && (
         <p className="rounded-lg border border-signal/40 bg-signal/10 px-4 py-3 text-[13px]">
-          Gmail connected. Meerko can now send from <span className="font-mono">{gmail_connected}</span>.
+          Mailbox connected. Meerko can now send from <span className="font-mono">{gmail_connected}</span>.
         </p>
       )}
       {gmail_error && (
-        <p className="rounded-lg border border-[#e5795b]/40 bg-[#e5795b]/10 px-4 py-3 text-[13px]">Gmail not connected: {gmail_error}</p>
+        <p className="rounded-lg border border-[#e5795b]/40 bg-[#e5795b]/10 px-4 py-3 text-[13px]">Mailbox not connected: {gmail_error}</p>
       )}
 
       <Card className="overflow-hidden">
         {/* Keyed so Reconnect (a new ?email=) opens a fresh form. */}
-        <MailboxConnect key={`${connect}:${email}`} oauth={connectOptions.oauth} initialOpen={connect === "gmail"} initialEmail={email} />
+        <MailboxConnect key={`${connect}:${email}`} oauth={connectOptions.oauth} outlook={connectOptions.outlook} initialOpen={connect === "gmail"} initialEmail={email} />
         {mailboxes.length === 0 && <p className="px-5 py-6 text-[13px] text-muted">Connect the inbox you send from: Gmail, Google Workspace, Zoho, Fastmail or any IMAP/SMTP provider.</p>}
         {mailboxes.map((m) => (
           <div key={m.id} className="flex flex-wrap items-center gap-4 border-b border-line px-5 py-4 last:border-0">

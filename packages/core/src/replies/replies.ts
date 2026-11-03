@@ -1,3 +1,4 @@
+import type { MicrosoftOAuth } from "../mail/outlook.ts";
 import {
   and,
   asc,
@@ -38,6 +39,7 @@ export interface ReplyDeps {
   now?: () => Date;
   fetch?: typeof fetch;
   imap?: ImapConnectors;
+  microsoft?: MicrosoftOAuth;
 }
 
 export interface ReplyTickResult {
@@ -71,7 +73,7 @@ export async function runReplyTick(db: Db, deps: ReplyDeps): Promise<ReplyTickRe
   for (const mb of boxes) {
     let client: MailClient | undefined;
     // Opened only when the mailbox has something to check.
-    const open = () => (client ??= mailClient(mb, { box: deps.box!, oauth: deps.oauth, fetch: deps.fetch, imap: deps.imap }));
+    const open = () => (client ??= mailClient(mb, { box: deps.box!, oauth: deps.oauth, microsoft: deps.microsoft, fetch: deps.fetch, imap: deps.imap, db }));
     try {
       await scanMailbox(db, mb, open, now, watchFrom, result);
     } catch (err) {

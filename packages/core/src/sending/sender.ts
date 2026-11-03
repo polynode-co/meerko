@@ -1,3 +1,4 @@
+import type { MicrosoftOAuth } from "../mail/outlook.ts";
 import {
   and,
   asc,
@@ -43,6 +44,7 @@ export interface SenderDeps {
   random?: () => number;
   fetch?: typeof fetch;
   imap?: ImapConnectors;
+  microsoft?: MicrosoftOAuth;
 }
 
 // ---------- Unsubscribe tokens ----------
@@ -212,7 +214,7 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
     let sent: SentIds;
     let client: MailClient | undefined;
     try {
-      client = mailClient(mailbox, { box: deps.box!, oauth: deps.oauth, fetch: deps.fetch, imap: deps.imap });
+      client = mailClient(mailbox, { box: deps.box!, oauth: deps.oauth, microsoft: deps.microsoft, fetch: deps.fetch, imap: deps.imap, db });
       sent = await client.send({ raw, messageId, from: mailbox.email, to: en.email }, en.gmailThreadId ?? undefined);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -235,7 +237,7 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
       step: en.nextStep,
       gmailId: sent.id,
       gmailThreadId: sent.threadId,
-      rfcMessageId: messageId,
+      rfcMessageId: sent.rfcMessageId ?? messageId,
       fromEmail: mailbox.email,
       toEmail: en.email,
       subject,
@@ -250,7 +252,7 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
         nextStep: en.nextStep + 1,
         // Over IMAP the ids can be missing until the reply tick finds the sent copy.
         gmailThreadId: sent.threadId ?? en.gmailThreadId,
-        messageIds: [...en.messageIds, messageId],
+        messageIds: [...en.messageIds, sent.rfcMessageId ?? messageId],
         state: next ? "active" : "completed",
         nextSendAt: next ? new Date(now.getTime() + next.delayDays * DAY_MS + random() * FOLLOWUP_JITTER_MS) : null,
         lastError: null,

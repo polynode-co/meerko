@@ -1,5 +1,5 @@
 import { serve } from "@hono/node-server";
-import { GoogleOAuth, IcypeasClient, SecretBox, stripeFromEnv, type SignupMode } from "@meerko/core";
+import { GoogleOAuth, IcypeasClient, MicrosoftOAuth, SecretBox, stripeFromEnv, type SignupMode } from "@meerko/core";
 import { createDb } from "@meerko/db";
 import { createAnalytics } from "./analytics.ts";
 import { createApp } from "./app.ts";
@@ -7,7 +7,7 @@ import { createApp } from "./app.ts";
 const port = Number(process.env.PORT ?? 8787);
 const icypeasKey = process.env.ICYPEAS_API_KEY;
 const publicUrl = process.env.MEERKO_PUBLIC_URL ?? `http://localhost:${port}`;
-const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_SIGNING_SECRET } = process.env;
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_SIGNING_SECRET } = process.env;
 const analytics = createAnalytics();
 // On when STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and both price ids are set (Meerko Cloud).
 const billing = stripeFromEnv();
@@ -22,6 +22,15 @@ const app = createApp(createDb(), {
           clientId: GOOGLE_CLIENT_ID,
           clientSecret: GOOGLE_CLIENT_SECRET,
           redirectUri: new URL("/oauth/google/callback", publicUrl).toString(),
+        })
+      : undefined,
+  // Outlook / Microsoft 365 mailboxes, through the Meerko app registered with Microsoft.
+  microsoftOAuth:
+    MICROSOFT_CLIENT_ID && MICROSOFT_CLIENT_SECRET
+      ? new MicrosoftOAuth({
+          clientId: MICROSOFT_CLIENT_ID,
+          clientSecret: MICROSOFT_CLIENT_SECRET,
+          redirectUri: new URL("/oauth/microsoft/callback", publicUrl).toString(),
         })
       : undefined,
   // Off by default: Google's consent screen for Gmail needs verification + CASA; app passwords don't.

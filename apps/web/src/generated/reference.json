@@ -366,12 +366,21 @@
       },
       {
         "name": "connect_gmail",
-        "description": "Start connecting an inbox to send from: Gmail/Google Workspace, Zoho, Fastmail or any IMAP/SMTP provider (not Outlook/Microsoft 365 yet). The user connects it themselves with an app password: give them the returned link (or CLI command) and its steps, then call list_mailboxes to confirm it's connected. Never ask for the password or any password in chat.",
+        "description": "Start connecting an inbox to send from: Gmail/Google Workspace, Outlook/Microsoft 365, Zoho, Fastmail or any IMAP/SMTP provider. For Outlook pass provider \"outlook\": it returns a Microsoft sign-in link for the user to open and approve. For the others the user connects it themselves with an app password: give them the returned link (or CLI command) and its steps. Then call list_mailboxes to confirm it's connected. Never ask for a password in chat.",
         "inputSchema": {
           "type": "object",
           "properties": {
+            "provider": {
+              "description": "outlook for Outlook / Microsoft 365; gmail (default) or other for the rest",
+              "type": "string",
+              "enum": [
+                "gmail",
+                "outlook",
+                "other"
+              ]
+            },
             "email": {
-              "description": "Google account to pre-select (only used by Google's consent page, where the server has it on)",
+              "description": "Account to pre-select on Microsoft's or Google's sign-in page",
               "type": "string"
             }
           },
@@ -1218,7 +1227,7 @@
       {
         "usage": "meerko mailboxes connect",
         "group": "mailboxes",
-        "description": "connect an inbox with its app password: Gmail by default, or --provider zoho, zoho-eu, fastmail or other (reads it from MEERKO_APP_PASSWORD or asks)",
+        "description": "connect an inbox: Gmail by default (app password, from MEERKO_APP_PASSWORD or asked), --provider outlook (signs in with Microsoft in your browser), or zoho, zoho-eu, fastmail, other",
         "options": [
           {
             "flags": "-e, --email <address>",
@@ -1227,7 +1236,7 @@
           },
           {
             "flags": "-p, --provider <provider>",
-            "description": "gmail (default), zoho, zoho-eu, fastmail, other",
+            "description": "gmail (default), outlook, zoho, zoho-eu, fastmail, other",
             "default": "gmail",
             "required": false
           },

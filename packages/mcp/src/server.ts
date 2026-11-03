@@ -197,14 +197,21 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
     "connect_gmail",
     {
       description:
-        "Start connecting an inbox to send from: Gmail/Google Workspace, Zoho, Fastmail or any IMAP/SMTP provider (not Outlook/Microsoft 365 yet). The user connects it themselves with an app password: give them the returned link (or CLI command) and its steps, then call list_mailboxes to confirm it's connected. Never ask for the password or any password in chat.",
-      inputSchema: { email: z.string().optional().describe("Google account to pre-select (only used by Google's consent page, where the server has it on)") },
+        "Start connecting an inbox to send from: Gmail/Google Workspace, Outlook/Microsoft 365, Zoho, Fastmail or any IMAP/SMTP provider. For Outlook pass provider \"outlook\": it returns a Microsoft sign-in link for the user to open and approve. For the others the user connects it themselves with an app password: give them the returned link (or CLI command) and its steps. Then call list_mailboxes to confirm it's connected. Never ask for a password in chat.",
+      inputSchema: {
+        provider: z.enum(["gmail", "outlook", "other"]).optional().describe("outlook for Outlook / Microsoft 365; gmail (default) or other for the rest"),
+        email: z.string().optional().describe("Account to pre-select on Microsoft's or Google's sign-in page"),
+      },
     },
-    ({ email }) =>
+    ({ provider, email }) =>
       run(async () => {
         const c = client();
         const options = await c.mailboxConnectOptions();
-        if (options.oauth) return { method: "google_consent", ...(await c.connectGmail(email)) };
+        if (provider === "outlook") {
+          if (!options.outlook) throw new Error("Outlook isn't set up on this Meerko server");
+          return { method: "microsoft_sign_in", ...(await c.connectOutlook(email)) };
+        }
+        if (options.oauth && provider !== "other") return { method: "google_consent", ...(await c.connectGmail(email)) };
         return {
           method: "app_password",
           url: options.url,
@@ -216,6 +223,7 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
               ? "Open the link, pick the provider and paste the app password into the form."
               : "Run `meerko mailboxes connect` (with --provider for non-Gmail inboxes) in a terminal and paste the app password when asked.",
           ],
+          ...(options.outlook ? { outlook: "For Outlook / Microsoft 365, call connect_gmail with provider \"outlook\" instead." } : {}),
         };
       }),
   );

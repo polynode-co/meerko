@@ -215,6 +215,7 @@ export async function connectMailbox(_: ActionResult | null, form: FormData): Pr
   const field = (name: string) => String(form.get(name) ?? "").trim();
   const provider = (field("provider") || "gmail") as MailProviderId;
   if (!(provider in MAIL_PROVIDERS)) return { ok: false, error: "Pick an email provider" };
+  if (provider === "outlook") return { ok: false, error: "Outlook connects with Sign in with Microsoft, not a password" };
   const account = { email: field("email"), password: field("password"), login: field("login") || undefined, displayName: field("name") || undefined };
   const servers: MailServers | undefined =
     provider === "other"
@@ -227,6 +228,18 @@ export async function connectMailbox(_: ActionResult | null, form: FormData): Pr
 }
 
 /** Google's consent page (Gmail API), where the server has it on. */
+/** Sends the browser to Microsoft's sign-in for an Outlook mailbox; the API's callback brings it back to Settings. */
+export async function connectOutlook(): Promise<ActionResult | void> {
+  let url: string;
+  try {
+    url = (await (await meerko()).connectOutlook(undefined, `${site.url}/app/settings`)).url;
+  } catch (err) {
+    if (!(err instanceof MeerkoApiError)) throw err;
+    return { ok: false, error: err.message };
+  }
+  redirect(url);
+}
+
 export async function connectGmail() {
   const client = await meerko();
   // Google sends the browser to the API's callback, which redirects back here with the outcome.

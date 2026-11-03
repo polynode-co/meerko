@@ -192,7 +192,8 @@ export const providerKeys = pgTable(
 
 /**
  * Connected sending mailboxes: `gmail` through the Gmail API (OAuth refresh token), `gmail_imap` through
- * Gmail's IMAP and SMTP with an app password, `imap` through any provider's IMAP and SMTP with a password.
+ * Gmail's IMAP and SMTP with an app password, `imap` through any provider's IMAP and SMTP with a password,
+ * `outlook` through Microsoft Graph (OAuth refresh token).
  * The credential is encrypted with MEERKO_ENCRYPTION_KEY.
  */
 export const mailboxes = pgTable(
@@ -228,7 +229,7 @@ export const mailboxes = pgTable(
   ],
 );
 
-export type MailboxProvider = "gmail" | "gmail_imap" | "imap";
+export type MailboxProvider = "gmail" | "gmail_imap" | "imap" | "outlook";
 /** Where an `imap` mailbox connects (TLS: IMAP 993, SMTP 465 or 587). */
 export type MailboxServers = { imap: { host: string; port: number }; smtp: { host: string; port: number } };
 export type SequenceStatus = "draft" | "active" | "paused";
