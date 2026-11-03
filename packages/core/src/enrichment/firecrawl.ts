@@ -5,7 +5,8 @@ import { MissingInputError, type EnrichField, type EnrichmentProvider, type Enri
 const DEFAULT_BASE_URL = "https://api.firecrawl.dev/v2";
 
 /**
- * The Alexandria tool Meerko asks for a work email: FullEnrich, which itself tries 20+ sources in turn.
+ * The Alexandria tool Meerko asks for a work email: FullEnrich, which itself tries 20+ sources in turn. 30 Firecrawl
+ * credits per email found; a miss is free.
  * Check it against `firecrawl find-tools --categories people --expand options` when Firecrawl changes its catalog.
  */
 export const FIRECRAWL_WORK_EMAIL = { provider: "fullenrich", capability: "contacts/work-email" } as const;
@@ -116,13 +117,16 @@ const asCandidate = (v: unknown): Candidate | null => {
 };
 
 /**
- * The best work email in a FullEnrich result: `contact_info.most_probable_work_email`, then the first usable entry of
+ * The best work email in a FullEnrich result (`results[0].contact_info`): `most_probable_work_email`, then the first usable entry of
  * `work_emails`. Emails marked invalid are skipped.
  */
 export function pickWorkEmail(data: unknown): Candidate | null {
   if (!data || typeof data !== "object") return null;
-  const root = data as Record<string, unknown>;
-  const info = (root.contact_info ?? root.contact ?? root) as Record<string, unknown>;
+  // The tool answers `{ results: [record] }` on a find and `{ results: [] }` on a miss.
+  const results = (data as Record<string, unknown>).results;
+  const root = (Array.isArray(results) ? results[0] : data) as Record<string, unknown> | undefined;
+  if (!root || typeof root !== "object") return null;
+  const info = (root.contact_info ?? root) as Record<string, unknown>;
   const candidates = [info.most_probable_work_email, ...(Array.isArray(info.work_emails) ? info.work_emails : []), info.email, info.work_email]
     .map(asCandidate)
     .filter((c): c is Candidate => c !== null);
@@ -153,10 +157,13 @@ export function firecrawlProvider(client: FirecrawlClient): EnrichmentProvider {
       const domain = toDomain(pick(row, "domain", "website", "company_domain"));
       const company = pick(row, "company");
       const linkedin = pick(row, "linkedin_url");
-      if (!(firstName && lastName) || !(domain || company)) {
-        throw new MissingInputError("email search needs a first and last name plus a domain or company");
+      // A LinkedIn URL is enough on its own; otherwise the tool needs a full name and the employer.
+      if (!linkedin && (!(firstName && lastName) || !(domain || company))) {
+        throw new MissingInputError("email search needs a LinkedIn URL, or a first and last name plus a domain or company");
       }
-      const options: Record<string, unknown> = { first_name: firstName, last_name: lastName };
+      const options: Record<string, unknown> = {};
+      if (firstName) options.first_name = firstName;
+      if (lastName) options.last_name = lastName;
       if (domain) options.domain = domain;
       if (company) options.company_name = company;
       if (linkedin) options.linkedin_url = linkedin;

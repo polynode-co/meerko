@@ -14,7 +14,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Firecrawl as an own-key enrichment s
     sent.push({ path: new URL(url).pathname, auth });
     if (auth === "Bearer bad-key-0000") return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
     if (url.endsWith("/search")) return Response.json({ success: true, data: { tools: [] } });
-    return Response.json({ success: true, data: { alexandria: [{ data: { contact_info: { most_probable_work_email: { email: "ana@acme.es", status: "DELIVERABLE" } } } }], creditsCost: 20 } });
+    return Response.json({ success: true, data: { alexandria: [{ data: { results: [{ contact_info: { most_probable_work_email: { email: "ana@acme.es", status: "DELIVERABLE" } } }] } }], creditsCost: 30 } });
   }) as typeof fetch;
   // No server Icypeas key: Firecrawl alone has to be enough. Credits on, as on Meerko Cloud.
   const app = createApp(db, {

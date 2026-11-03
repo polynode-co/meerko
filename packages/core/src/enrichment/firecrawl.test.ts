@@ -12,7 +12,7 @@ function fakeFetch(body: unknown, status = 200) {
   return { fn, calls };
 }
 
-const found = (contact_info: unknown, creditsCost = 20) => ({ success: true, data: { alexandria: [{ data: { contact_info } }], creditsCost } });
+const found = (contact_info: unknown, creditsCost = 30) => ({ success: true, data: { alexandria: [{ data: { results: [{ input: {}, contact_info }] } }], creditsCost } });
 const ana = { first_name: "Ana", last_name: "Ruiz", domain: "https://www.acme.es/about", company: "Acme" };
 
 describe("firecrawlProvider", () => {
@@ -20,7 +20,7 @@ describe("firecrawlProvider", () => {
     const { fn, calls } = fakeFetch(found({ most_probable_work_email: { email: "ana@acme.es", status: "DELIVERABLE" } }));
     const res = await firecrawlProvider(new FirecrawlClient({ apiKey: "fc-key", fetch: fn })).enrich("email", ana);
 
-    expect(res).toMatchObject({ value: "ana@acme.es", confidence: "very_sure", providerCost: 20 });
+    expect(res).toMatchObject({ value: "ana@acme.es", confidence: "very_sure", providerCost: 30 });
     expect(calls[0]!.url).toBe("https://api.firecrawl.dev/v2/scrape");
     expect(calls[0]!.auth).toBe("Bearer fc-key");
     expect(calls[0]!.body).toEqual({
@@ -30,13 +30,16 @@ describe("firecrawlProvider", () => {
   });
 
   it("returns a miss when nothing usable comes back, skipping invalid emails", async () => {
+    const empty = fakeFetch({ success: true, data: { alexandria: [{ data: { results: [] } }], creditsCost: 0 } });
+    expect(await firecrawlProvider(new FirecrawlClient({ apiKey: "k", fetch: empty.fn })).enrich("email", ana)).toMatchObject({ value: null, providerCost: 0 });
     const { fn } = fakeFetch(found({ most_probable_work_email: { email: "ana@acme.es", status: "INVALID" }, work_emails: [] }, 0));
     expect(await firecrawlProvider(new FirecrawlClient({ apiKey: "k", fetch: fn })).enrich("email", ana)).toMatchObject({ value: null, providerCost: 0 });
   });
 
-  it("needs a full name and a domain or company, and only finds emails", async () => {
-    const provider = firecrawlProvider(new FirecrawlClient({ apiKey: "k", fetch: fakeFetch({}).fn }));
+  it("needs a LinkedIn URL or a full name and employer, and only finds emails", async () => {
+    const provider = firecrawlProvider(new FirecrawlClient({ apiKey: "k", fetch: fakeFetch(found({})).fn }));
     await expect(provider.enrich("email", { first_name: "Ana", domain: "acme.es" })).rejects.toBeInstanceOf(MissingInputError);
+    await expect(provider.enrich("email", { linkedin_url: "https://www.linkedin.com/in/ana" })).resolves.toBeDefined();
     await expect(provider.enrich("email_verification", { email: "a@b.c" })).rejects.toBeInstanceOf(MissingInputError);
     expect(provider).toMatchObject({ supports: ["email"], ownKey: true });
   });

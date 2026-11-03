@@ -73,8 +73,8 @@ export default function Page() {
       <p>
         Add a <L href={docsSources.firecrawl.url}>Firecrawl</L> key and email finding gets a second step: when Icypeas doesn&apos;t find
         someone&apos;s email, Meerko asks FullEnrich through Firecrawl Alexandria, which checks more sources. It runs on your Firecrawl
-        credits, so what it finds costs no Meerko credits, and it keeps working when your Meerko credits run out. Rows need a first and
-        last name plus a domain or company.
+        credits (30 per email found; a miss is free), so what it finds costs no Meerko credits, and it keeps working when your Meerko
+        credits run out. Rows need a LinkedIn URL, or a first and last name plus a domain or company.
       </p>
       <CodeBlock title="bash" code="pnpm meerko keys set firecrawl <key>" lines={[{ text: "$ pnpm meerko keys set firecrawl <key>" }]} />
       <p>
