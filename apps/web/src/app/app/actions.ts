@@ -188,6 +188,14 @@ export async function deleteRows(tableId: string, rowIds: string[]) {
   );
 }
 
+/** Disconnects a mailbox: Meerko forgets its credentials and stops sending from it. */
+export async function disconnectMailbox(mailboxId: string): Promise<ActionResult> {
+  return run(async (c) => {
+    const { deleted } = await c.deleteMailbox(mailboxId);
+    return deleted ? "Mailbox disconnected." : "That mailbox was already gone.";
+  }, ["/app/settings"]);
+}
+
 /** Deletes a table, then leaves its (now missing) page for the list of tables. */
 export async function deleteTable(tableId: string): Promise<ActionResult> {
   const res = await run((c) => c.deleteTable(tableId).then(() => undefined), ["/app/leads", "/app"]);

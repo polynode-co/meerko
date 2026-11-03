@@ -265,6 +265,12 @@ export async function updateMailbox(
 export class MailboxInUseError extends Error {}
 
 export async function deleteMailbox(db: Db, workspaceId: string, id: string) {
+  // Only this workspace's mailbox: the pool clean-up below must never touch another workspace's sequences.
+  const [own] = await db
+    .select({ id: mailboxes.id })
+    .from(mailboxes)
+    .where(and(eq(mailboxes.workspaceId, workspaceId), eq(mailboxes.id, id)));
+  if (!own) return false;
   const onlySender = await db
     .select({ name: sequences.name })
     .from(sequenceMailboxes)
