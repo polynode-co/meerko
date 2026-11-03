@@ -3,7 +3,7 @@ import { CodeBlock } from "@/components/docs/code-block";
 import { DocsShell, docsMetadata } from "@/components/docs/shell";
 import { AskAgent, C, Callout, Cards, Facts, Fields, H2, IconList, L, Tool } from "@/components/docs/ui";
 
-export const metadata = docsMetadata("sequences", "Cold email sequences from Gmail, run by your agent | Meerko docs");
+export const metadata = docsMetadata("sequences", "Cold email sequences from Gmail or Outlook, run by your agent | Meerko docs");
 
 const lifecycle: [string, string][] = [
   ["Draft", "create_sequence"],
@@ -28,7 +28,7 @@ export default function Page() {
       slug="sequences"
       lead={
         <p>
-          A sequence is a series of emails sent from one of your connected Gmail mailboxes to the rows of a table. Step 1 starts the
+          A sequence is a series of emails sent from one of your connected mailboxes (Gmail, Outlook or IMAP) to the rows of a table. Step 1 starts the
           thread; each follow-up replies in that same thread, a few days later.
         </p>
       }

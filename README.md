@@ -5,7 +5,7 @@ Meerko is an agent-native outbound engine for GTM engineers. You drive it from y
 
 > *"Create a table of Series A fintech CTOs in Spain, enrich their emails, write a 3-step sequence and start it."*
 
-**Status:** early. Tables and AI columns, lead search and email finding, sequences from Gmail, the reply inbox, the `meerko` CLI and the MCP server work today. See [docs/PLAN.md](docs/PLAN.md).
+**Status:** early. Tables and AI columns, lead search and email finding, sequences from Gmail, Outlook and IMAP mailboxes, the reply inbox, Slack and agent notifications, the `meerko` CLI and the MCP server work today. See [docs/PLAN.md](docs/PLAN.md).
 
 **Docs:** setup, self-hosting, concepts and the full MCP and CLI reference live on the site under `/docs` (source: `apps/web/src/app/docs`).
 

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 const paths = [
-  { icon: Cloud, title: "Meerko Cloud", body: "Sign in, connect Gmail and add Meerko to your agent with one command. New workspaces start with 200 free credits.", cta: "Quick start", href: "/docs/quick-start", main: true },
+  { icon: Cloud, title: "Meerko Cloud", body: "Sign in, connect your mailbox and add Meerko to your agent with one command. New workspaces start with 200 free credits.", cta: "Quick start", href: "/docs/quick-start", main: true },
   { icon: Server, title: "Self-host", body: "Run the API, the worker, the web app and Postgres yourself, with your own provider keys. AGPL-3.0.", cta: "Self-hosting guide", href: "/docs/self-hosting" },
   { icon: Plug, title: "Connect your agent", body: "Add the hosted MCP server to Claude Code, Codex, Cursor or any MCP client, and sign in with your browser.", cta: "Connect Claude Code", href: "/docs/claude-code" },
 ];
@@ -25,7 +25,7 @@ const concepts = [
   { icon: Table2, title: "Tables", body: "Leads live in rows. AI columns are answered by your agent, row by row.", href: "/docs/tables" },
   { icon: Search, title: "Find leads", body: "Search people and companies straight into a table.", href: "/docs/finding-leads" },
   { icon: MailCheck, title: "Emails", body: "Find work emails and verify them before you send.", href: "/docs/emails" },
-  { icon: Send, title: "Sequences", body: "Send from your own Gmail, in the same thread, inside a send window.", href: "/docs/sequences" },
+  { icon: Send, title: "Sequences", body: "Send from your own Gmail or Outlook, in the same thread, inside a send window.", href: "/docs/sequences" },
   { icon: Reply, title: "Replies", body: "Sort replies by intent and approve the answers your agent drafts.", href: "/docs/replies" },
   { icon: Trophy, title: "Pipeline", body: "Leads move to contacted and replied on their own; you mark meetings and wins.", href: "/docs/pipeline" },
 ];

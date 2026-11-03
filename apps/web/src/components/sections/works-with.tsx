@@ -1,15 +1,18 @@
-import { CodeXml, Database, Mail, MousePointer2, Sparkle, Terminal, Wind } from "lucide-react";
+import { CodeXml, Database, Mail, MessageSquare, MousePointer2, Sparkle, Terminal, Wind } from "lucide-react";
 import { agentDocs } from "@/lib/sources";
 import { Container } from "../ui/primitives";
 
-// Only what Meerko integrates with today. Agents link to their own MCP docs (lib/sources.ts).
+// Only what Meerko integrates with today. Agents link to their own MCP docs (lib/sources.ts); the rest to our pages.
+// The full list is /integrations (lib/integrations.ts).
 const tools = [
   [Terminal, "Claude Code", agentDocs["Claude Code"]],
   [MousePointer2, "Cursor", agentDocs.Cursor],
   [CodeXml, "Codex", agentDocs.Codex],
   [Sparkle, "Gemini CLI", agentDocs["Gemini CLI"]],
   [Wind, "Windsurf", agentDocs.Windsurf],
-  [Mail, "Gmail", null],
+  [Mail, "Gmail", "/integrations/gmail"],
+  [Mail, "Outlook", "/integrations/outlook"],
+  [MessageSquare, "Slack", "/docs/slack"],
   [Database, "Icypeas", "https://www.icypeas.com"],
 ] as const;
 
@@ -29,7 +32,7 @@ export function WorksWith() {
             return (
               <li key={name} className="text-[15px] font-medium text-muted">
                 {href ? (
-                  <a href={href} target="_blank" rel="noopener" className="flex items-center gap-2 hover:text-fg">
+                  <a href={href} {...(href.startsWith("http") ? { target: "_blank", rel: "noopener" } : {})} className="flex items-center gap-2 hover:text-fg">
                     {label}
                   </a>
                 ) : (
@@ -38,6 +41,9 @@ export function WorksWith() {
               </li>
             );
           })}
+          <li className="text-[15px] font-semibold">
+            <a href="/integrations" className="text-accent hover:underline">All integrations →</a>
+          </li>
         </ul>
       </Container>
     </section>

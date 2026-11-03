@@ -3,7 +3,7 @@ import { DocsShell, docsMetadata } from "@/components/docs/shell";
 import { googleSources } from "@/lib/sources";
 import { AskAgent, C, Callout, Facts, H2, L, Tool } from "@/components/docs/ui";
 
-export const metadata = docsMetadata("mailboxes", "Send cold email from your own Gmail | Meerko docs");
+export const metadata = docsMetadata("mailboxes", "Send cold email from your own Gmail or Outlook | Meerko docs");
 
 export default function Page() {
   return (
@@ -12,7 +12,7 @@ export default function Page() {
       h1="Mailboxes"
       lead={
         <p>
-          Meerko sends from your own Gmail or Google Workspace inbox, the way a mail app does, so every email sits in your Sent folder and
+          Meerko sends from your own inbox (Gmail, Google Workspace, Outlook, Microsoft 365 or any IMAP provider), the way a mail app does, so every email sits in your Sent folder and
           every reply lands in your inbox, where Meerko picks it up.
         </p>
       }

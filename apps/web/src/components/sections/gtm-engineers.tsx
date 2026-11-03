@@ -8,7 +8,7 @@ export const faqs = [
   ],
   [
     "Is Meerko an open-source Clay alternative?",
-    "For outbound, yes: tables, enrichment and AI columns, plus sending from your own Gmail and a reply inbox. The difference is that Meerko is open source, so you can self-host it and keep every row in your own Postgres.",
+    "For outbound, yes: tables, enrichment and AI columns, plus sending from your own Gmail or Outlook and a reply inbox. The difference is that Meerko is open source, so you can self-host it and keep every row in your own Postgres.",
   ],
   [
     "How do you protect deliverability?",

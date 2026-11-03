@@ -14,10 +14,10 @@ const instantly: Comparison = {
   slug: "instantly",
   name: "Instantly",
   pitch:
-    "Instantly is built for sending cold email at volume. Meerko is an open-source AI sales agent that finds the leads, sends from your own Gmail and handles the replies, driven from Claude Code. Self-host it for free or use Meerko Cloud from $49/mo.",
+    "Instantly is built for sending cold email at volume. Meerko is an open-source AI sales agent that finds the leads, sends from your own Gmail or Outlook and handles the replies, driven from Claude Code. Self-host it for free or use Meerko Cloud from $49/mo.",
   rows: [
     { label: "Paid plans from", meerko: "$49/mo (Cloud Pro)", them: "$47/mo (Outreach Growth)", source: instantlySources.pricing },
-    { label: "Sending accounts", meerko: "Your own Gmail mailboxes", them: "Unlimited email accounts and warmup", source: instantlySources.pricing },
+    { label: "Sending accounts", meerko: "Your own Gmail, Outlook or IMAP mailboxes", them: "Unlimited email accounts and warmup", source: instantlySources.pricing },
     { label: "Lead data", meerko: "Icypeas, or your own key", them: "Database of 450M+ B2B leads", source: instantlySources.pricing },
     { label: "Reply inbox", meerko: "Built in, with agent-drafted replies", them: "Unibox and AI Reply Agent (Scale bundle)", source: instantlySources.pricing },
   ],
@@ -42,7 +42,7 @@ const instantly: Comparison = {
     ],
     [
       "Is there an open-source alternative to Instantly?",
-      "Meerko is open source under AGPL-3.0. It sends sequences from your own Gmail, stops them when someone replies and keeps every lead in your own Postgres when self-hosted.",
+      "Meerko is open source under AGPL-3.0. It sends sequences from your own Gmail or Outlook, stops them when someone replies and keeps every lead in your own Postgres when self-hosted.",
     ],
   ],
   theyWin: [

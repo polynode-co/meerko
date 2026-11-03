@@ -20,7 +20,7 @@ const clay: Comparison = {
     { label: "Paid plans from", meerko: "$49/mo (Cloud Pro)", them: "$167/mo (Launch)", source: claySources.pricing },
     { label: "Free plan", meerko: "200 credits on Cloud", them: "500 actions/mo", source: claySources.pricing },
     { label: "Data providers", meerko: "Icypeas, or your own key", them: "150+ providers", source: claySources.pricing },
-    { label: "Email sequences", meerko: "From your own Gmail", them: "Native sequencer", source: claySources.pricing },
+    { label: "Email sequences", meerko: "From your own Gmail or Outlook", them: "Native sequencer", source: claySources.pricing },
     { label: "Reply inbox", meerko: "Built in, with agent-drafted replies", them: "Global Inbox", source: claySources.globalInbox },
     { label: "Coding agents", meerko: "MCP server (31 tools) and CLI", them: "Clay MCP, CLI and API", source: claySources.pricing },
   ],

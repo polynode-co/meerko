@@ -144,7 +144,7 @@ export default function GuidesHub() {
             <div className="flex flex-1 flex-col gap-1.5">
               <p className="font-display text-[26px] font-bold">Put the guides to work</p>
               <p className="leading-normal text-muted">
-                Meerko finds the leads, sends the sequence from your own Gmail and stops it when someone replies, driven from Claude
+                Meerko finds the leads, sends the sequence from your own Gmail or Outlook and stops it when someone replies, driven from Claude
                 Code.
               </p>
             </div>

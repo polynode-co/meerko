@@ -12,7 +12,7 @@ const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 
 const included = [
   "Tables, enrichment & verification",
-  "Sequences from your own Gmail",
+  "Sequences from your own Gmail or Outlook",
   "Reply detection & AI drafts",
   "Pipeline to booked meeting",
   "CLI + MCP for your agent",

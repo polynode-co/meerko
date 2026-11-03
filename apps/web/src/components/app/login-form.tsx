@@ -23,7 +23,7 @@ function BrandPanel() {
       <Mascot className="h-[240px] w-auto" />
       <div className="flex max-w-[440px] flex-col items-center gap-3.5 text-center">
         <p className="font-display text-[32px] leading-[1.1] font-bold tracking-[-0.02em]">Always on the lookout for your next reply.</p>
-        <p className="leading-[1.5] text-dark-muted">Find leads, send from your own Gmail and catch every reply — from the dashboard or your agent.</p>
+        <p className="leading-[1.5] text-dark-muted">Find leads, send from your own Gmail or Outlook and catch every reply — from the dashboard or your agent.</p>
       </div>
       <ul className="flex flex-wrap justify-center gap-2.5">
         {["Open source", "Your own inbox", "Works in Claude Code"].map((t) => (

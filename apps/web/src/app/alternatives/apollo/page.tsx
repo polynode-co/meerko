@@ -18,7 +18,7 @@ const apollo: Comparison = {
   rows: [
     { label: "Paid plans from", meerko: "$49/mo (Cloud Pro)", them: "$49/mo (Basic), as listed", source: apolloSources.pricing },
     { label: "Free plan", meerko: "200 credits on Cloud", them: "Free plan with no time limit", source: apolloSources.pricing },
-    { label: "Email sequences", meerko: "From your own Gmail", them: "Included from Basic", source: apolloSources.pricing },
+    { label: "Email sequences", meerko: "From your own Gmail or Outlook", them: "Included from Basic", source: apolloSources.pricing },
     { label: "What credits pay for", meerko: "Found and verified emails, lead search", them: "Emails, phone numbers, warmup, mailboxes and more", source: apolloSources.pricing },
   ],
   pricing: {
