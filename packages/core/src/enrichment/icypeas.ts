@@ -140,6 +140,11 @@ export class IcypeasClient {
     // Validation failures come back as HTTP 200 with success: false.
     if (json.success === false) {
       const first = (json.validationErrors as { field?: string; message?: string; type?: string }[] | undefined)?.[0];
+      // Searches report an empty account here too (`user: insufficient_credits`), not as a polled INSUFFICIENT_FUNDS.
+      // That's the server's provider account, not the caller's search, so it mustn't read as "Invalid search".
+      if (first?.message === "insufficient_credits" || first?.type === "insufficient_credits") {
+        throw new IcypeasError("Icypeas account is out of credits", "insufficient_funds", res.status);
+      }
       throw new IcypeasError(
         first ? `${first.field ?? "request"}: ${first.message ?? first.type}` : "Icypeas request failed",
         first?.type ?? "validation_error",
