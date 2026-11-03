@@ -45,7 +45,7 @@ export default function Page() {
       <Fields
         head={["Where", "How"]}
         rows={[
-          ["HTTP", <>Send it as a bearer token: <C>Authorization: Bearer mk_…</C>.</>],
+          ["HTTP", <>Send it as a bearer token: <C>Authorization: Bearer mk_…</C>. Every endpoint: <L href="/docs/api">REST API</L>.</>],
           ["MCP", <>The same header on <C>{mcpUrl()}</C>. <L href="/docs/claude-code#other-ways">Example</L>.</>],
           ["CLI", <><C>pnpm meerko login --key mk_… --url {publicApiUrl()}</C>, or set <C>MEERKO_API_KEY</C>.</>],
           ["Dashboard", <>Paste it at <C>/login?method=key</C>. Signed in with a key, you can&apos;t buy credits or manage keys.</>],

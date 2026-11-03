@@ -2038,6 +2038,7 @@
                     "maxLength": 200
                   },
                   "mailbox_ids": {
+                    "description": "The mailbox pool: each lead gets one and keeps it for every step",
                     "minItems": 1,
                     "maxItems": 50,
                     "type": "array",
@@ -2050,6 +2051,7 @@
                     "type": "string"
                   },
                   "assignment": {
+                    "description": "How new leads are spread over the pool. Default \"capacity\"",
                     "type": "string",
                     "enum": [
                       "capacity",
@@ -2088,7 +2090,8 @@
                       "required": [
                         "body"
                       ]
-                    }
+                    },
+                    "description": "1–10 emails: { subject?, body, delay_days? }. The first needs a subject; follow-ups reply in the same thread. {{var}} fills in row data, and rows missing a used variable are skipped at enrollment"
                   },
                   "timezone": {
                     "type": "string"
@@ -2222,6 +2225,7 @@
                     "maxLength": 200
                   },
                   "mailbox_ids": {
+                    "description": "The mailbox pool: each lead gets one and keeps it for every step",
                     "minItems": 1,
                     "maxItems": 50,
                     "type": "array",
@@ -2234,6 +2238,7 @@
                     "type": "string"
                   },
                   "assignment": {
+                    "description": "How new leads are spread over the pool. Default \"capacity\"",
                     "type": "string",
                     "enum": [
                       "capacity",
@@ -2272,7 +2277,8 @@
                       "required": [
                         "body"
                       ]
-                    }
+                    },
+                    "description": "1–10 emails: { subject?, body, delay_days? }. The first needs a subject; follow-ups reply in the same thread. {{var}} fills in row data, and rows missing a used variable are skipped at enrollment"
                   },
                   "timezone": {
                     "type": "string"
