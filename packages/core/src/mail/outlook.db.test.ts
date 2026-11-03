@@ -26,6 +26,13 @@ describe.skipIf(!process.env.DATABASE_URL)("Outlook mailboxes (db)", () => {
     await db.delete(workspaces).where(eq(workspaces.id, ws));
   });
 
+  it("refuses to connect a Microsoft account with no mailbox, and stores nothing", async () => {
+    const g = fakeGraph({ unlicensed: true });
+    const microsoft = new MicrosoftOAuth({ clientId: "c", clientSecret: "s", redirectUri: "https://api.x/oauth/microsoft/callback", fetch: g.fetch });
+    await expect(connectOutlook(db, box, microsoft, createOAuthState(box, ws), "code", g.fetch)).rejects.toThrow(/no Outlook mailbox/);
+    expect(await db.select().from(mailboxes).where(eq(mailboxes.workspaceId, ws))).toHaveLength(0);
+  });
+
   for (const rewrite of [false, true]) {
     it(`connects with Microsoft, sends, keeps the newest token and stops on a reply${rewrite ? " (Exchange rewrote the Message-ID)" : ""}`, async () => {
       const g = fakeGraph({ rotate: true, rewriteMessageId: rewrite });

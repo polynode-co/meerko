@@ -84,6 +84,13 @@ describe("OutlookClient", () => {
     expect(inbound.find((m) => m.id === "<ndr1@outlook.com>")).toEqual({ id: "<ndr1@outlook.com>", threadId: "<m1@acme.com>", refs: ["<m1@acme.com>"] });
   });
 
+  it("says an account has no mailbox when Graph refuses mail calls but the profile loads", async () => {
+    const g = fakeGraph({ unlicensed: true });
+    const client = new OutlookClient(oauthFor(g.fetch), "rt-1", { fetch: g.fetch });
+    await expect(client.send(email(1))).rejects.toMatchObject({ needsReconnect: true, message: expect.stringContaining("no Outlook mailbox") });
+    await expect(client.assertMailbox()).rejects.toThrow(/Microsoft 365 license/);
+  });
+
   it("asks for a reconnect when access is revoked or the account has no mailbox", async () => {
     const revoked = fakeGraph({ revoked: true });
     await expect(new OutlookClient(oauthFor(revoked.fetch), "rt-1", { fetch: revoked.fetch }).listInbound(since)).rejects.toMatchObject({ needsReconnect: true });

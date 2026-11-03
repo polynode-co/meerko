@@ -68,6 +68,7 @@ describe.skipIf(!process.env.DATABASE_URL)("connecting mailboxes (db)", () => {
       const url = new URL(input);
       if (url.host === "login.microsoftonline.com") return Response.json({ access_token: "at", refresh_token: "rt", expires_in: 3600, scope: "Mail.Send Mail.Read User.Read" });
       if (url.pathname === "/v1.0/me") return Response.json({ mail: "Ana@Acme.com" });
+      if (url.pathname === "/v1.0/me/mailFolders/inbox") return Response.json({ id: "inbox" });
       throw new Error(input);
     }) as typeof globalThis.fetch;
     const microsoftOAuth = new MicrosoftOAuth({ clientId: "ms-client", clientSecret: "s", redirectUri: "https://api.example/oauth/microsoft/callback", fetch: msFetch });
