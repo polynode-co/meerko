@@ -97,18 +97,24 @@ export async function enrichRows(
       }
 
       const price = CREDIT_PRICES[field];
+      // Out of credits, only providers on the workspace's own keys still run.
+      let usable = providers;
       if (policy.enabled && (await getBalance(db, workspaceId)) < price) {
-        result.stoppedReason = "insufficient_credits";
-        break rowLoop;
+        usable = providers.filter((p) => p.ownKey && p.supports.includes(field));
+        if (usable.length === 0) {
+          result.stoppedReason = "insufficient_credits";
+          break rowLoop;
+        }
       }
 
-      const run = await runWaterfall(providers, field, data);
+      const run = await runWaterfall(usable, field, data);
       if (run.value !== null && run.value !== undefined) {
         const patch =
           field === "email"
             ? { email: run.value, email_certainty: run.confidence ?? null }
             : { email_verification: run.value };
-        const cost = policy.enabled ? price : 0;
+        const ownKey = providers.find((p) => p.name === run.provider)?.ownKey ?? false;
+        const cost = policy.enabled && !ownKey ? price : 0;
         await db.transaction(async (tx) => {
           await writeResult(tx, row.id, field, patch, "found", run.provider, run.providerCost, cost);
           await chargeCredits(tx, workspaceId, cost, `enrich:${field}`, row.id);

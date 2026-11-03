@@ -1465,7 +1465,7 @@
       {
         "usage": "meerko keys set <provider> <key>",
         "group": "keys",
-        "description": "store a provider key (supported: icypeas). It's checked with the provider first",
+        "description": "store a provider key (supported: icypeas, firecrawl). It's checked with the provider first",
         "options": []
       },
       {

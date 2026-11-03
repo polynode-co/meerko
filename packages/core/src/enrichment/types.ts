@@ -15,6 +15,8 @@ export interface EnrichResult {
 export interface EnrichmentProvider {
   name: string;
   supports: readonly EnrichField[];
+  /** Runs on the workspace's own key, so what it finds costs no Meerko credits. */
+  ownKey?: boolean;
   enrich(field: EnrichField, row: Record<string, unknown>): Promise<EnrichResult>;
 }
 

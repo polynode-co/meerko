@@ -644,10 +644,14 @@ keys
 
 keys
   .command("set <provider> <key>")
-  .description("store a provider key (supported: icypeas). It's checked with the provider first")
+  .description("store a provider key (supported: icypeas, firecrawl). It's checked with the provider first")
   .action(async (provider: string, key: string) => {
     const res = await MeerkoClient.fromEnv().setProviderKey(provider, key);
-    console.log(json() ? JSON.stringify(res) : `Saved ${res.provider} key …${res.last4}. Searches and enrichment now use it, with no credits charged.`);
+    const done =
+      res.provider === "firecrawl"
+        ? "Email finding now tries Firecrawl when Icypeas misses; what it finds costs no credits."
+        : "Searches and enrichment now use it, with no credits charged.";
+    console.log(json() ? JSON.stringify(res) : `Saved ${res.provider} key …${res.last4}. ${done}`);
   });
 
 keys

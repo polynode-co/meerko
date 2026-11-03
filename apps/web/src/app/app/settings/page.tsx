@@ -83,7 +83,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <div className="flex flex-col gap-3 px-5 py-4 text-[13px]">
           <p>
             {billing.enabled ? (
-              "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged."
+              "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged. Add a Firecrawl key and email finding tries it when Icypeas misses, also free."
             ) : credits.enabled ? (
               <>Balance: <span className="font-mono">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 8, verifications 1, search results 1. Misses are free.</>
             ) : (
@@ -91,7 +91,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             )}
           </p>
           {keys.length === 0 ? (
-            <p className="text-muted">No provider keys. Add your own Icypeas key to skip credits: <span className="font-mono text-fg">pnpm meerko keys set icypeas &lt;key&gt;</span></p>
+            <p className="text-muted">
+              No provider keys. Add your own Icypeas key to skip credits, or a Firecrawl key to find more emails:{" "}
+              <span className="font-mono text-fg">pnpm meerko keys set icypeas|firecrawl &lt;key&gt;</span>
+            </p>
           ) : (
             keys.map((k) => (
               <p key={k.provider} className="font-mono text-xs">

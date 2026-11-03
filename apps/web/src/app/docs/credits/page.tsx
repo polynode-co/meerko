@@ -21,6 +21,7 @@ export default function Page() {
         ["running-out", "Running out"],
         ["buying", "Buying credits"],
         ["own-key", "Use your own provider key"],
+        ["firecrawl", "Find more emails with Firecrawl"],
         ["self-hosted", "Self-hosted"],
       ]}
       tools={["get_credits"]}
@@ -67,6 +68,20 @@ export default function Page() {
         </p>
       </Callout>
       <CodeBlock title="bash" code="pnpm meerko keys set icypeas <key>" lines={[{ text: "$ pnpm meerko keys set icypeas <key>" }]} />
+
+      <H2 id="firecrawl">Find more emails with Firecrawl</H2>
+      <p>
+        Add a <L href={docsSources.firecrawl.url}>Firecrawl</L> key and email finding gets a second step: when Icypeas doesn&apos;t find
+        someone&apos;s email, Meerko asks FullEnrich through Firecrawl Alexandria, which checks more sources. It runs on your Firecrawl
+        credits (30 per email found; a miss is free), so what it finds costs no Meerko credits, and it keeps working when your Meerko
+        credits run out. Rows need a LinkedIn URL, or a first and last name plus a domain or company.
+      </p>
+      <CodeBlock title="bash" code="pnpm meerko keys set firecrawl <key>" lines={[{ text: "$ pnpm meerko keys set firecrawl <key>" }]} />
+      <p>
+        Meerko checks the key with a free Firecrawl catalog search before saving it. FullEnrich asks you to accept its data terms in
+        Firecrawl once; until you do, the step fails with a link to accept them. Its terms only allow marketing to work emails, which is
+        all Meerko asks it for. Email verification still runs on Icypeas.
+      </p>
 
       <H2 id="self-hosted">Self-hosted</H2>
       <p>

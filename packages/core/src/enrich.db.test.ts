@@ -73,6 +73,28 @@ describe.skipIf(!process.env.DATABASE_URL)("enrichRows (db)", () => {
     expect(res).toMatchObject({ processed: 1, creditsSpent: 8, balance: 2, stoppedReason: "insufficient_credits", remaining: 2 });
   });
 
+  it("doesn't charge for what a provider on the workspace's own key finds, even with no credits left", async () => {
+    // The metered provider misses everyone; the own-key one (Firecrawl) finds them.
+    const metered: EnrichmentProvider = { name: "metered", supports: ["email"], enrich: async () => ({ value: null, providerCost: 0 }) };
+    const own: EnrichmentProvider = {
+      name: "own",
+      supports: ["email"],
+      ownKey: true,
+      enrich: async (_field, row) => ({ value: row.first_name === "Nobody" ? null : `${row.first_name}@own.test`, confidence: "probable", providerCost: 5 }),
+    };
+    await grantCredits(db, workspaceId, 8, "test");
+    const res = await enrichRows(db, workspaceId, tableId, [metered, own], { fields: ["email"], limit: 25 }, { enabled: true });
+    expect(res).toMatchObject({ processed: 3, found: { email: 2 }, creditsSpent: 0, balance: 8 });
+
+    // With 0 credits, only the own-key provider runs instead of stopping.
+    const [ws] = await db.insert(workspaces).values({ name: "enrich-test" }).returning();
+    const t = (await createTable(db, ws!.id, { name: "leads" })).id;
+    await insertRows(db, ws!.id, t, [{ first_name: "Ana", last_name: "Ruiz", domain: "acme.es" }]);
+    const broke = await enrichRows(db, ws!.id, t, [metered, own], { fields: ["email"], limit: 25 }, { enabled: true });
+    expect(broke).toMatchObject({ processed: 1, found: { email: 1 }, creditsSpent: 0 });
+    expect(broke.stoppedReason).toBeUndefined();
+  });
+
   it("doesn't meter when credits are off, but still logs provider runs", async () => {
     const res = await enrichRows(db, workspaceId, tableId, [provider], { fields: ["email"], limit: 25 }, { enabled: false });
     expect(res).toMatchObject({ processed: 3, creditsSpent: 0 });
