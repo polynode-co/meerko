@@ -32,3 +32,4 @@ export * from "./sending/ramp.ts";
 export * from "./mail/domain-health.ts";
 export * from "./billing.ts";
 export * from "./agent-hooks.ts";
+export * from "./slack.ts";

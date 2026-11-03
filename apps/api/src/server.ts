@@ -7,7 +7,7 @@ import { createApp } from "./app.ts";
 const port = Number(process.env.PORT ?? 8787);
 const icypeasKey = process.env.ICYPEAS_API_KEY;
 const publicUrl = process.env.MEERKO_PUBLIC_URL ?? `http://localhost:${port}`;
-const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_SIGNING_SECRET } = process.env;
 const analytics = createAnalytics();
 // On when STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and both price ids are set (Meerko Cloud).
 const billing = stripeFromEnv();
@@ -29,6 +29,11 @@ const app = createApp(createDb(), {
   tick: process.env.MEERKO_TICK_SECRET ? { secret: process.env.MEERKO_TICK_SECRET, publicUrl } : undefined,
   appUrl: process.env.MEERKO_APP_URL,
   allowPrivateHooks: process.env.MEERKO_ALLOW_PRIVATE_HOOKS === "1",
+  // The Meerko Slack app (docs/slack-app-manifest.yml). Without it, Slack can still connect with a pasted webhook.
+  slack:
+    SLACK_CLIENT_ID && SLACK_CLIENT_SECRET && SLACK_SIGNING_SECRET
+      ? { clientId: SLACK_CLIENT_ID, clientSecret: SLACK_CLIENT_SECRET, signingSecret: SLACK_SIGNING_SECRET, redirectUri: new URL("/slack/oauth/callback", publicUrl).toString() }
+      : undefined,
   // Same OAuth client as Gmail, its own redirect URI and identity-only scopes.
   googleSignIn:
     GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET

@@ -6,16 +6,17 @@ import { BillingCard } from "@/components/app/billing-card";
 import { TestEmail } from "@/components/app/test-email";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
 import { AgentHookCard } from "@/components/app/agent-hook-card";
+import { SlackCard } from "@/components/app/slack-card";
 import { MailboxConnect } from "@/components/app/mailbox-connect";
 import { load, publicApiUrl } from "@/lib/meerko";
 
-type Search = { gmail_connected?: string; gmail_error?: string; billing?: string; billing_error?: string; connect?: string; email?: string };
+type Search = { gmail_connected?: string; gmail_error?: string; billing?: string; billing_error?: string; connect?: string; email?: string; slack?: string };
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Search> }) {
   // The API's Gmail OAuth callback, and Stripe Checkout, redirect back here with the outcome.
   // `?connect=gmail` (from an agent's connect_gmail, or Reconnect) opens the mailbox form.
-  const { gmail_connected, gmail_error, billing: paid, billing_error, connect, email } = await searchParams;
-  const [mailboxes, credits, keys, apiKeys, apps, me, billing, hook, connectOptions] = await load((c) =>
+  const { gmail_connected, gmail_error, billing: paid, billing_error, connect, email, slack } = await searchParams;
+  const [mailboxes, credits, keys, apiKeys, apps, me, billing, hook, connectOptions, slackState] = await load((c) =>
     Promise.all([
       c.listMailboxes(),
       c.getCredits(),
@@ -26,6 +27,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       c.getBilling(),
       c.getAgentHook(),
       c.mailboxConnectOptions(),
+      c.getSlack(),
     ]),
   );
   return (
@@ -73,6 +75,21 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <ConnectedAppsCard apps={apps} canManage={!!me.user} />
 
       <AgentHookCard hook={hook} drafterUrl={new URL("/mcp/drafter", publicApiUrl()).toString()} canManage={!!me.user} />
+
+      <SlackCard
+        connection={slackState.connection}
+        appAvailable={slackState.app_available}
+        canManage={!!me.user}
+        notice={
+          slack === "connected"
+            ? "Slack is connected. New replies and drafts will be posted to the channel you picked."
+            : slack === "error"
+              ? "Slack wasn't connected. Try Add to Slack again."
+              : slack === "cancelled"
+                ? "The Slack install was cancelled."
+                : undefined
+        }
+      />
 
       <ApiKeysCard keys={apiKeys} apiUrl={publicApiUrl()} canManage={!!me.user} />
 

@@ -120,6 +120,13 @@
       "when": 1792506573065,
       "tag": "0016_mailbox_imap_servers",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793709695613,
+      "tag": "0017_slack",
+      "breakpoints": true
     }
   ]
 }

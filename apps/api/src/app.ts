@@ -118,6 +118,19 @@ import {
   type BillingConfig,
   type CreditPolicy,
   type EnrichmentProvider,
+  completeSlackInstall,
+  deleteSlackConnection,
+  getSlackConnection,
+  handleSlackCommand,
+  handleSlackInteraction,
+  setSlackWebhook,
+  SlackError,
+  slackInstallUrl,
+  syncSlackDraft,
+  testSlack,
+  verifySlackSignature,
+  type SlackAppConfig,
+  type SlackInteraction,
   type GoogleOAuth,
   type ImapConnectors,
   type SecretBox,
@@ -249,6 +262,10 @@ export interface AppDeps {
   secretBox?: SecretBox | null;
   /** Builds a client for a workspace's own key (overridable in tests). */
   icypeasForKey?: (apiKey: string) => IcypeasClient;
+  /** The Meerko Slack app (SLACK_CLIENT_ID/SECRET/SIGNING_SECRET); unset means only pasted webhooks can connect Slack. */
+  slack?: SlackAppConfig;
+  /** Overrides fetch for Slack calls (tests). */
+  slackFetch?: typeof fetch;
   /** Builds a Firecrawl client for a workspace's own key (overridable in tests). */
   firecrawlForKey?: (apiKey: string) => FirecrawlClient;
   /** Unset when GOOGLE_CLIENT_ID/SECRET aren't configured; Gmail routes then return 503. */
@@ -317,7 +334,8 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   const box = deps.secretBox ?? null;
   // App-password connects sign in to Google: 10 tries per workspace per 10 minutes.
   const connectAttempts = attemptLimiter(10, 10 * 60_000);
-  const hookDeps = () => ({ appUrl: deps.appUrl, hookFetch: deps.hookFetch, allowPrivateHooks: deps.allowPrivateHooks });
+  const hookDeps = () => ({ appUrl: deps.appUrl, hookFetch: deps.hookFetch, allowPrivateHooks: deps.allowPrivateHooks, slackFetch: deps.slackFetch });
+  const slackDeps = () => ({ box, appUrl: deps.appUrl, fetch: deps.slackFetch });
   const icypeasForKey = deps.icypeasForKey ?? ((apiKey: string) => new IcypeasClient({ apiKey }));
 
   /** A workspace's own Icypeas key wins and is never metered; otherwise the server's key and credit policy apply. */
@@ -390,7 +408,61 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       console.error("agent hooks failed:", result.hookError);
       await analytics.captureException(result.hookError, undefined, { $exception_fingerprint: "api.tick.agent_hooks" });
     }
+    if (result.slackError) {
+      console.error("slack notify failed:", result.slackError);
+      await analytics.captureException(result.slackError, undefined, { $exception_fingerprint: "api.tick.slack" });
+    }
     return c.json(result);
+  });
+
+  // --- Slack: the app's install callback, button clicks and /meerko. Clicks and commands are signed by Slack. ---
+
+  const slackSettings = (outcome: string) => (deps.appUrl ? `${deps.appUrl.replace(/\/$/, "")}/app/settings?slack=${outcome}#slack` : undefined);
+
+  app.get("/slack/oauth/callback", async (c) => {
+    if (!deps.slack) return c.html(resultPage("Slack isn't set up", "This Meerko server has no Slack app configured."), 404);
+    const { code, state, error } = c.req.query();
+    const done = (outcome: string, title: string, message: string, status: 200 | 400 = 200) => {
+      const to = slackSettings(outcome);
+      return to ? c.redirect(to) : c.html(resultPage(title, message), status);
+    };
+    if (error || !code || !state) return done("cancelled", "Slack wasn't connected", "The install was cancelled.", 400);
+    try {
+      const { workspaceId, userId } = await completeSlackInstall(db, box, deps.slack, { code, state }, { fetch: deps.slackFetch });
+      await analytics.capture({ distinctId: userId, event: EVENTS.slackConnected, workspaceId, properties: { kind: "app" } });
+      return done("connected", "Slack is connected", "New replies and drafts will be posted to the channel you picked.");
+    } catch (err) {
+      if (err instanceof SlackError) return done("error", "Slack wasn't connected", err.message, 400);
+      throw err;
+    }
+  });
+
+  /** Reads a Slack request's form body after checking its signature; null means it isn't from Slack. */
+  const slackForm = async (c: { req: { text: () => Promise<string>; header: (name: string) => string | undefined } }) => {
+    if (!deps.slack) return null;
+    const body = await c.req.text();
+    const ok = verifySlackSignature(deps.slack.signingSecret, { timestamp: c.req.header("x-slack-request-timestamp"), signature: c.req.header("x-slack-signature"), body });
+    return ok ? new URLSearchParams(body) : null;
+  };
+
+  app.post("/slack/interactions", async (c) => {
+    const form = await slackForm(c);
+    if (!form) return c.json({ error: "Bad signature" }, 401);
+    let payload: SlackInteraction;
+    try {
+      payload = JSON.parse(form.get("payload") ?? "");
+    } catch {
+      return c.json({ error: "No payload" }, 400);
+    }
+    // Answered after the work (sending can take a few seconds); the message is updated through response_url.
+    await handleSlackInteraction(db, { ...slackDeps(), approve: { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch, imap: deps.imap } }, payload);
+    return c.body(null, 200);
+  });
+
+  app.post("/slack/commands", async (c) => {
+    const form = await slackForm(c);
+    if (!form) return c.json({ error: "Bad signature" }, 401);
+    return c.json(await handleSlackCommand(db, slackDeps(), Object.fromEntries(form)));
   });
 
   // Public unsubscribe link from every email. GET shows a confirm button (link scanners only GET, so they
@@ -845,6 +917,35 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.json(result);
   });
 
+  // Slack: where replies and drafts are posted. Managed by a signed-in person, like the agent hook.
+  v1.get("/slack", async (c) => c.json({ connection: await getSlackConnection(db, c.var.workspaceId), app_available: !!deps.slack }));
+
+  v1.get("/slack/install", async (c) => {
+    requireUser(c, "Sign in to the dashboard to connect Slack");
+    if (!deps.slack) throw new HTTPException(404, { message: "This server has no Slack app; paste an incoming webhook URL instead" });
+    if (!box) throw new EncryptionNotConfiguredError();
+    return c.json({ url: slackInstallUrl(deps.slack, box, { workspaceId: c.var.workspaceId, userId: c.var.user!.id }) });
+  });
+
+  v1.put("/slack/webhook", async (c) => {
+    requireUser(c, "Sign in to the dashboard to connect Slack");
+    const { url } = await parse(z.object({ url: z.string().trim().min(1).max(2000) }), await c.req.json().catch(() => ({})));
+    const connection = await setSlackWebhook(db, box, c.var.workspaceId, url, { fetch: deps.slackFetch });
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.slackConnected, workspaceId: c.var.workspaceId, properties: { kind: "webhook" } });
+    return c.json({ connection });
+  });
+
+  v1.post("/slack/test", async (c) => {
+    requireUser(c, "Sign in to the dashboard to connect Slack");
+    return c.json(await testSlack(db, c.var.workspaceId, slackDeps()));
+  });
+
+  v1.delete("/slack", async (c) => {
+    requireUser(c, "Sign in to the dashboard to connect Slack");
+    await deleteSlackConnection(db, c.var.workspaceId);
+    return c.body(null, 204);
+  });
+
   v1.get("/tables", async (c) => c.json({ tables: await listTables(db, c.var.workspaceId) }));
 
   v1.post("/tables", async (c) => {
@@ -1155,11 +1256,14 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/drafts/:id/approve", async (c) => {
     const { body } = await parse(z.object({ body: z.string().min(1).max(20_000).optional() }), await c.req.json().catch(() => ({})));
-    return c.json(await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch, imap: deps.imap }, body));
+    const sent = await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: deps.googleOAuth, fetch: deps.gmailFetch, imap: deps.imap }, body);
+    await syncSlackDraft(db, slackDeps(), c.req.param("id"), "sent", c.var.user ? (c.var.user.name ?? c.var.user.email) : undefined);
+    return c.json(sent);
   });
 
   v1.post("/drafts/:id/discard", async (c) => {
     await discardDraft(db, c.var.workspaceId, c.req.param("id"));
+    await syncSlackDraft(db, slackDeps(), c.req.param("id"), "discarded", c.var.user ? (c.var.user.name ?? c.var.user.email) : undefined);
     return c.json({ discarded: true });
   });
 
@@ -1206,7 +1310,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
-    if (err instanceof SequenceError || err instanceof ReplyError || err instanceof AgentHookError) return c.json({ error: err.message }, 400);
+    if (err instanceof SequenceError || err instanceof ReplyError || err instanceof AgentHookError || err instanceof SlackError) return c.json({ error: err.message }, 400);
     if (err instanceof MailboxInUseError || err instanceof TableInUseError) return c.json({ error: err.message }, 409);
     if (err instanceof MailboxConnectError) return c.json({ error: err.message }, 400);
     if (err instanceof PlanLimitError) return c.json({ error: err.message }, 402);
