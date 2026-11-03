@@ -59,4 +59,5 @@ export const docsSources = {
   enableApis: { label: "Google Workspace: Enable Google Workspace APIs", url: "https://developers.google.com/workspace/guides/enable-apis" },
   refreshExpiry: { label: "Google: Using OAuth 2.0, refresh token expiration", url: "https://developers.google.com/identity/protocols/oauth2#expiration" },
   icypeas: { label: "Icypeas", url: "https://www.icypeas.com" },
+  firecrawl: { label: "Firecrawl Alexandria", url: "https://docs.firecrawl.dev/features/alexandria" },
 };

@@ -67,6 +67,8 @@ import {
   EncryptionNotConfiguredError,
   getBalance,
   getProviderKey,
+  FirecrawlClient,
+  firecrawlProvider,
   IcypeasClient,
   icypeasProvider,
   InsufficientCreditsError,
@@ -115,6 +117,7 @@ import {
   verifyStripeEvent,
   type BillingConfig,
   type CreditPolicy,
+  type EnrichmentProvider,
   type GoogleOAuth,
   type ImapConnectors,
   type SecretBox,
@@ -246,6 +249,8 @@ export interface AppDeps {
   secretBox?: SecretBox | null;
   /** Builds a client for a workspace's own key (overridable in tests). */
   icypeasForKey?: (apiKey: string) => IcypeasClient;
+  /** Builds a Firecrawl client for a workspace's own key (overridable in tests). */
+  firecrawlForKey?: (apiKey: string) => FirecrawlClient;
   /** Unset when GOOGLE_CLIENT_ID/SECRET aren't configured; Gmail routes then return 503. */
   googleOAuth?: GoogleOAuth;
   /** Overrides fetch for Gmail API calls (tests). */
@@ -323,6 +328,23 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       throw new HTTPException(503, { message: "No Icypeas key: add yours with `meerko keys set icypeas <key>`, or set ICYPEAS_API_KEY on the server" });
     }
     return { client: deps.icypeas, credits };
+  };
+  const firecrawlForKey = deps.firecrawlForKey ?? ((apiKey: string) => new FirecrawlClient({ apiKey }));
+
+  /**
+   * The email-finding waterfall: Icypeas first (the workspace's key, else the server's), then Firecrawl when the
+   * workspace stored a Firecrawl key. Firecrawl alone is enough to enrich.
+   */
+  const enrichmentFor = async (workspaceId: string): Promise<{ providers: EnrichmentProvider[]; credits: CreditPolicy }> => {
+    const firecrawlKey = await getProviderKey(db, box, workspaceId, "firecrawl");
+    const firecrawl = firecrawlKey ? [firecrawlProvider(firecrawlForKey(firecrawlKey))] : [];
+    try {
+      const icy = await icypeasFor(workspaceId);
+      return { providers: [icypeasProvider(icy.client), ...firecrawl], credits: icy.credits };
+    } catch (err) {
+      if (firecrawl.length === 0) throw err;
+      return { providers: firecrawl, credits };
+    }
   };
   const analytics = deps.analytics ?? createAnalytics({});
   const app = new Hono<Env>();
@@ -916,8 +938,8 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/tables/:id/enrich", async (c) => {
     const input = await parse(enrichInput, await c.req.json());
-    const icy = await icypeasFor(c.var.workspaceId);
-    const result = await enrichRows(db, c.var.workspaceId, c.req.param("id"), [icypeasProvider(icy.client)], input, icy.credits);
+    const enrichment = await enrichmentFor(c.var.workspaceId);
+    const result = await enrichRows(db, c.var.workspaceId, c.req.param("id"), enrichment.providers, input, enrichment.credits);
     await analytics.capture({ distinctId: actor(c), event: EVENTS.rowsEnriched, workspaceId: c.var.workspaceId, properties: { fields: input.fields, limit: input.limit } });
     return c.json(result);
   });
@@ -1162,11 +1184,12 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const provider = await parse(z.enum(BYOK_PROVIDERS), c.req.param("provider"));
     const { key } = await parse(z.object({ key: z.string().min(8) }), await c.req.json());
     if (!box) throw new EncryptionNotConfiguredError();
-    // A free count call proves the key works before it's stored.
+    // A free call proves the key works before it's stored: an Icypeas count, or a Firecrawl catalog search.
     try {
-      await icypeasForKey(key).countCompanies({ location: { include: ["US"] } });
+      if (provider === "firecrawl") await firecrawlForKey(key).checkKey();
+      else await icypeasForKey(key).countCompanies({ location: { include: ["US"] } });
     } catch (err) {
-      throw new HTTPException(400, { message: `Icypeas rejected this key: ${(err as Error).message}` });
+      throw new HTTPException(400, { message: `${provider === "firecrawl" ? "Firecrawl" : "Icypeas"} rejected this key: ${(err as Error).message}` });
     }
     await setProviderKey(db, box, c.var.workspaceId, provider, key);
     return c.json({ provider, last4: key.slice(-4) });
