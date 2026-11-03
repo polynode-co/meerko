@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { parse as parseCsv } from "csv-parse/sync";
 import { MAIL_PROVIDERS, MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type MailProviderId, type MailServers, type ReplyIntent, type SequenceStep, type Stage } from "@meerko/sdk";
 import { apiUrl, meerko, safeNext, SESSION_COOKIE, setSessionCookie } from "@/lib/meerko";
+import { buildLeadQuery } from "@/lib/lead-query";
 import { site } from "@/lib/site";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
@@ -415,4 +416,44 @@ export async function addLead(_: ActionResult | null, form: FormData): Promise<A
   revalidatePath("/app/leads");
   if (created) redirect(`/app/leads/${tableId}`);
   return { ok: true, message: `Added ${[row.first_name, row.last_name].filter(Boolean).join(" ") || row.email}` };
+}
+
+export type FindLeadsResult = ActionResult & { total?: number };
+
+/**
+ * The "Find leads" form. `intent=count` asks how many match (free); `intent=add` saves up to `limit` of them into a
+ * new or existing table (1 credit each, none with your own Icypeas key) and opens it. The same /v1/search routes as
+ * the find_people and find_companies tools.
+ */
+export async function findLeads(_: FindLeadsResult | null, form: FormData): Promise<FindLeadsResult> {
+  const kind = form.get("kind") === "companies" ? "companies" : "people";
+  const built = buildLeadQuery(kind, Object.fromEntries(form.entries()));
+  if ("error" in built) return { ok: false, error: built.error };
+
+  if (form.get("intent") === "count") {
+    try {
+      const total = await (await meerko()).countLeads(kind, built.query);
+      return { ok: true, total };
+    } catch (err) {
+      if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+      throw err;
+    }
+  }
+
+  const limit = Number(form.get("limit"));
+  if (!Number.isInteger(limit) || limit < 1 || limit > 1000) return { ok: false, error: "Add between 1 and 1,000 at a time" };
+  const tableId = String(form.get("tableId") ?? "") || undefined;
+  const tableName = String(form.get("tableName") ?? "").trim() || undefined;
+  if (!tableId && !tableName) return { ok: false, error: "Name the new table, or pick one to add to" };
+
+  let result;
+  try {
+    result = await (await meerko()).searchLeads(kind, { query: built.query, limit, tableId, tableName });
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+  revalidatePath("/app/leads");
+  revalidatePath("/app", "layout");
+  redirect(`/app/leads/${result.tableId}`);
 }
