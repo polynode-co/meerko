@@ -1,4 +1,3 @@
-import { KeyRound } from "lucide-react";
 import Link from "next/link";
 import { buttonClass, Card, PageHeader, Pill } from "@/components/app/ui";
 import { ApiKeysCard } from "@/components/app/api-keys-card";
@@ -8,6 +7,7 @@ import { TestEmail } from "@/components/app/test-email";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
 import { AgentHookCard } from "@/components/app/agent-hook-card";
 import { SlackCard } from "@/components/app/slack-card";
+import { ProviderKeysCard } from "@/components/app/provider-keys-card";
 import { MailboxConnect } from "@/components/app/mailbox-connect";
 import { load, publicApiUrl } from "@/lib/meerko";
 
@@ -95,34 +95,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       <ApiKeysCard keys={apiKeys} apiUrl={publicApiUrl()} canManage={!!me.user} />
 
-      <Card className="overflow-hidden">
-        <div className="border-b border-line px-5 py-4">
-          <h2 className="flex items-center gap-2 text-[15px] font-semibold"><KeyRound className="size-4 text-accent" />{billing.enabled ? "Provider keys" : "Credits & provider keys"}</h2>
-        </div>
-        <div className="flex flex-col gap-3 px-5 py-4 text-[13px]">
-          <p>
-            {billing.enabled ? (
-              "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged. Add a Firecrawl key and email finding tries it when Icypeas misses, also free."
-            ) : credits.enabled ? (
-              <>Balance: <span className="font-mono">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 8, verifications 1, search results 1. Misses are free.</>
-            ) : (
-              "Credits are off on this install: searches and enrichment use your own provider keys."
-            )}
-          </p>
-          {keys.length === 0 ? (
-            <p className="text-muted">
-              No provider keys. Add your own Icypeas key to skip credits, or a Firecrawl key to find more emails:{" "}
-              <span className="font-mono text-fg">pnpm meerko keys set icypeas|firecrawl &lt;key&gt;</span>
-            </p>
-          ) : (
-            keys.map((k) => (
-              <p key={k.provider} className="font-mono text-xs">
-                {k.provider} · …{k.last4} <span className="text-muted">(no credits charged)</span>
-              </p>
-            ))
-          )}
-        </div>
-      </Card>
+      <ProviderKeysCard keys={keys} title={billing.enabled ? "Provider keys" : "Credits & provider keys"}>
+        {billing.enabled ? (
+          "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged. Add a Firecrawl key and email finding tries it when Icypeas misses, also free."
+        ) : credits.enabled ? (
+          <>Balance: <span className="font-mono text-fg">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 8, verifications 1, search results 1. Misses are free. Add your own Icypeas key to skip credits, or a Firecrawl key to find more emails.</>
+        ) : (
+          "Credits are off on this install: searches and enrichment use your own provider keys."
+        )}
+      </ProviderKeysCard>
     </div>
   );
 }

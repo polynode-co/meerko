@@ -135,6 +135,25 @@ export async function removeSlack() {
   return run((c) => c.deleteSlack().then(() => "Disconnected"), ["/app/settings"]);
 }
 
+const PROVIDER_KEYS = ["icypeas", "firecrawl"] as const;
+type ProviderKeyId = (typeof PROVIDER_KEYS)[number];
+const isProvider = (p: unknown): p is ProviderKeyId => PROVIDER_KEYS.includes(p as ProviderKeyId);
+
+/** Stores your own Icypeas or Firecrawl key. The API checks it with the provider before saving. */
+export async function saveProviderKey(_: unknown, form: FormData): Promise<ActionResult> {
+  const provider = form.get("provider");
+  const key = String(form.get("key") ?? "").trim();
+  if (!isProvider(provider)) return { ok: false, error: "Pick Icypeas or Firecrawl" };
+  if (key.length < 8) return { ok: false, error: "Paste the full API key" };
+  const name = provider === "icypeas" ? "Icypeas" : "Firecrawl";
+  return run((c) => c.setProviderKey(provider, key).then((r) => `${name} key …${r.last4} saved. Lookups through it cost no credits.`), ["/app/settings"]);
+}
+
+export async function removeProviderKey(provider: string) {
+  if (!isProvider(provider)) return { ok: false, error: "Unknown provider" } as ActionResult;
+  return run((c) => c.deleteProviderKey(provider).then(() => "Key removed"), ["/app/settings"]);
+}
+
 export async function revokeApiKey(id: string) {
   return run((c) => c.revokeApiKey(id).then(() => "Key revoked"), ["/app/settings"]);
 }
