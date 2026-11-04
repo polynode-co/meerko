@@ -82,7 +82,7 @@ const leads = [
 function LeadsPanel({ u }: { u: number }) {
   return (
     <Panel title="LEADS — fintech-ctos-es">
-      <div className="flex flex-col font-plex text-[11px] text-lk-ink">
+      <div className="flex flex-col font-plex text-[12.5px] text-lk-ink">
         {leads.map(([name, company, found], i) => {
           const shown = u > 3.0 + i * 0.25;
           const enriched = u > 4.0 + i * 0.35;
@@ -112,9 +112,9 @@ function SequencePanel({ u }: { u: number }) {
       <div className="flex flex-col">
         {steps.map(([day, subject], i) => (
           <div key={day} className={`flex items-center gap-2.5 border-t border-lk-ink/20 py-2.5 transition-opacity duration-300 first:border-0 ${u > 2.7 + i * 0.3 ? "opacity-100" : "opacity-0"}`}>
-            <span className="shrink-0 bg-lk-ink px-1.5 py-0.5 font-plex text-[10px] text-lk-lime">{day}</span>
-            <span className="flex-1 truncate text-[12px] text-lk-ink">{subject}</span>
-            <span className="shrink-0 font-plex text-[10px] text-lk-gray">{i === 0 ? `sent ${sent}` : "queued"}</span>
+            <span className="shrink-0 bg-lk-ink px-1.5 py-0.5 font-plex text-[12px] text-lk-lime">{day}</span>
+            <span className="flex-1 truncate text-[15px] text-lk-ink">{subject}</span>
+            <span className="shrink-0 font-plex text-[12px] text-lk-gray">{i === 0 ? `sent ${sent}` : "queued"}</span>
           </div>
         ))}
       </div>
@@ -136,7 +136,7 @@ function InboxPanel({ u }: { u: number }) {
         {replies.map(([who, text, intent], i) => (
           <div key={who} className={`flex flex-col gap-1 border-t border-lk-ink/20 py-2 transition-all duration-300 first:border-0 ${u > 1.2 + i * 0.8 ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"}`}>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[12px] font-semibold text-lk-ink">{who}</span>
+              <span className="text-[15px] font-semibold text-lk-ink">{who}</span>
               <span className={`px-1.5 py-0.5 font-plex text-[9.5px] ${intent === "interested" ? "bg-lk-ink text-lk-lime" : "text-lk-gray outline outline-1 -outline-offset-1 outline-lk-gray/50"}`}>{intent}</span>
             </div>
             <span className="truncate text-[11.5px] text-lk-gray">“{text}”</span>
@@ -155,7 +155,7 @@ function DraftPanel({ u }: { u: number }) {
   return (
     <Panel title={sent ? "DRAFT · SENT" : "DRAFT · NEEDS YOU"}>
       <div className="flex flex-col gap-3">
-        <p className="min-h-[60px] text-[13px] leading-5 text-lk-ink">
+        <p className="min-h-[60px] text-[15px] leading-5 text-lk-ink">
           {typed(DRAFT, u, 1.6, 1.8)}
           {u > 1.6 && u < 3.4 && <span className="ml-px inline-block h-[13px] w-[6px] translate-y-[2px] animate-pulse bg-lk-ink" />}
         </p>
@@ -165,7 +165,7 @@ function DraftPanel({ u }: { u: number }) {
           >
             {sent ? "SENT ✓" : "APPROVE"}
           </span>
-          <span className="flex-1 px-2.5 py-2 text-center font-plex text-[11px] text-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">
+          <span className="flex-1 px-2.5 py-2 text-center font-plex text-[12.5px] text-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">
             DISCARD
           </span>
         </div>
@@ -218,9 +218,9 @@ export function DemoPlayer() {
     <div ref={root} className="mx-auto w-full max-w-[1140px] bg-lk-frame px-3 pt-3 shadow-[12px_12px_0_#000] sm:px-[22px] sm:pt-[22px]">
       <div className="flex flex-col bg-lk-paper lg:h-[540px]" aria-label={`Meerko demo: ${chapter.label}`} role="img">
         <div className="flex items-center gap-6 border-b border-lk-ink px-3.5 py-2 text-lk-ink">
-          <span className="font-pixel text-[13px]">MEERKO OS</span>
+          <span className="font-pixel text-[13.5px]">MEERKO OS</span>
           {["File", "Leads", "Sequences", "Agent"].map((m) => (
-            <span key={m} className="hidden font-plex text-[12px] sm:inline">
+            <span key={m} className="hidden font-plex text-[13px] sm:inline">
               {m}
             </span>
           ))}
@@ -236,17 +236,17 @@ export function DemoPlayer() {
                   >
                     <Icon className="size-5" strokeWidth={1.75} />
                   </span>
-                  <span className="font-pixel text-[10px] text-lk-ink">{name === "Inbox" && repliesIn ? `Inbox (${repliesIn})` : name}</span>
+                  <span className="font-pixel text-[13px] text-lk-ink">{name === "Inbox" && repliesIn ? `Inbox (${repliesIn})` : name}</span>
                 </div>
               );
             })}
           </div>
           <div className="flex min-h-[300px] min-w-0 flex-1 flex-col self-stretch bg-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">
-            <div className="flex justify-between border-b-[1.5px] border-lk-ink bg-lk-paper px-3 py-[7px] font-plex text-[11px] text-lk-ink">
+            <div className="flex justify-between border-b-[1.5px] border-lk-ink bg-lk-paper px-3 py-[7px] font-plex text-[12.5px] text-lk-ink">
               <span>claude — ~/outbound</span>
               <span>[x]</span>
             </div>
-            <div className="flex flex-col gap-[11px] overflow-hidden p-4 font-plex text-[12px] sm:p-[22px] sm:text-[13.5px]">
+            <div className="flex flex-col gap-[11px] overflow-hidden p-4 font-plex text-[13px] sm:p-[22px] sm:text-[14px]">
               {lines.map((l) => (
                 <div key={l.text} className={`whitespace-pre-wrap ${lineColor[l.kind]}`}>
                   {typed(l.text, u, l.at, l.type)}
@@ -263,7 +263,7 @@ export function DemoPlayer() {
           </div>
         </div>
       </div>
-      <div className="flex h-[52px] items-center gap-3 px-1.5 font-plex text-[11px] tracking-[1px] text-lk-dim">
+      <div className="flex h-[52px] items-center gap-3 px-1.5 font-plex text-[12.5px] tracking-[0.6px] text-lk-dim">
         <button
           type="button"
           onClick={() => setPlaying((p) => !p)}

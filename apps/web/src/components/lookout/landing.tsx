@@ -8,8 +8,8 @@ import { DemoPlayer } from "./demo-player";
 
 // The landing page from the .pen design "Meerko — Lookout OS (mockup 1)" (node VhHk8).
 
-const label = "font-plex text-[12px] tracking-[1.5px] uppercase";
-const kicker = "inline-flex items-center gap-2.5 font-plex text-[14px] tracking-[1.5px] uppercase text-lk-fg/80 before:size-2 before:bg-lk-lime before:content-['']";
+const label = "font-plex text-[13px] tracking-[0.8px] uppercase";
+const kicker = "inline-flex items-center gap-2.5 font-plex text-[14px] tracking-[0.8px] uppercase text-lk-fg/80 before:size-2 before:bg-lk-lime before:content-['']";
 const sectionTitle = "font-sans text-[32px] font-semibold tracking-[-1.2px] text-lk-fg sm:text-[44px] sm:tracking-[-1.5px]";
 
 /** Paper "OS" window: pixel title bar with a [x], dark hard shadow. */
@@ -48,17 +48,17 @@ async function Nav() {
     <header className="relative z-10 flex items-center justify-between px-6 py-[22px] lg:px-12">
       <a href="/" aria-label="Meerko home" className="flex items-center gap-2.5">
         <LogoMark size={26} />
-        <span className="font-pixel text-[16px] tracking-[1px] text-lk-fg">MEERKO</span>
+        <span className="font-pixel text-[16px] tracking-[0.6px] text-lk-fg">MEERKO</span>
       </a>
       <nav className="flex items-center gap-8">
         {links.map(([name, href]) => (
-          <a key={name} href={href} className="hidden font-plex text-[12px] tracking-[1px] text-lk-muted uppercase transition hover:text-lk-fg md:inline">
+          <a key={name} href={href} className="hidden font-plex text-[13px] tracking-[0.6px] text-lk-muted uppercase transition hover:text-lk-fg md:inline">
             {name}
           </a>
         ))}
         <a
           href={signedIn ? "/app" : site.signupUrl}
-          className="bg-lk-lime px-3.5 py-[9px] font-plex text-[12px] font-semibold tracking-[1px] text-lk-bg transition hover:brightness-110"
+          className="bg-lk-lime px-3.5 py-[9px] font-plex text-[13px] font-semibold tracking-[0.6px] text-lk-bg transition hover:brightness-110"
         >
           {signedIn ? "OPEN APP →" : "START FREE →"}
         </a>
@@ -93,7 +93,7 @@ function Hero() {
               Connect your agent →
             </a>
           </div>
-          <p className="font-plex text-[12px] tracking-[0.5px] text-lk-muted [text-shadow:0_1px_8px_#000]">
+          <p className="font-plex text-[13px] tracking-[0.5px] text-lk-muted [text-shadow:0_1px_8px_#000]">
             Free forever when self-hosted ·{" "}
             <a href="/docs/self-hosting" className="underline-offset-4 hover:text-lk-fg hover:underline">
               AGPL-3.0
@@ -155,9 +155,9 @@ function SequenceWindow() {
     <Window title="SEQUENCE — 3 steps">
       {sequence.map(([day, subject, status], i) => (
         <div key={day} className={`flex items-center gap-4 px-1 py-[18px] ${i ? "border-t border-lk-ink" : ""}`}>
-          <span className="shrink-0 bg-lk-ink px-2 py-1 font-plex text-[11px] text-lk-lime">{day}</span>
-          <span className="flex-1 text-[14px] text-lk-ink">{subject}</span>
-          <span className="shrink-0 font-plex text-[11px] text-lk-gray">{status}</span>
+          <span className="shrink-0 bg-lk-ink px-2 py-1 font-plex text-[12.5px] text-lk-lime">{day}</span>
+          <span className="flex-1 text-[15.5px] text-lk-ink">{subject}</span>
+          <span className="shrink-0 font-plex text-[12.5px] text-lk-gray">{status}</span>
         </div>
       ))}
     </Window>
@@ -172,15 +172,15 @@ function SlackWindow() {
           <LogoMark size={24} />
         </span>
         <div className="flex flex-1 flex-col gap-2">
-          <span className="font-plex text-[11px] text-lk-gray">Meerko APP 14:22</span>
-          <p className="text-[14px] leading-[21px] text-lk-ink">
+          <span className="font-plex text-[12.5px] text-lk-gray">Meerko APP 14:22</span>
+          <p className="text-[15.5px] leading-[21px] text-lk-ink">
             Lucía M. (Ledgr) replied: “Good timing — can we talk Thursday?”
             <br />
             Draft: “Thursday works. 10:00 or 15:00 your time?”
           </p>
           <div className="flex gap-2 pt-1.5">
-            <span className="bg-lk-ink px-3.5 py-2 font-plex text-[11.5px] text-lk-lime">Approve &amp; send</span>
-            <span className="px-3.5 py-2 font-plex text-[11.5px] text-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">Discard</span>
+            <span className="bg-lk-ink px-3.5 py-2 font-plex text-[12.5px] text-lk-lime">Approve &amp; send</span>
+            <span className="px-3.5 py-2 font-plex text-[12.5px] text-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">Discard</span>
           </div>
         </div>
       </div>
@@ -231,7 +231,7 @@ function Steps() {
             {i + 1}
           </span>
           <div className="flex flex-col items-start gap-[18px] lg:w-[380px] lg:shrink-0">
-            <span className="flex items-center gap-3 font-plex text-[14px] tracking-[1.5px] uppercase">
+            <span className="flex items-center gap-3 font-plex text-[14px] tracking-[0.8px] uppercase">
               <span className="text-lk-muted">Step {i + 1} of {steps.length}</span>
               <span className="h-px w-6 bg-lk-line" />
               <span className="bg-lk-lime/10 px-2 py-1 font-semibold text-lk-lime outline outline-1 -outline-offset-1 outline-lk-lime/40">{s.tag}</span>
@@ -278,17 +278,17 @@ function Pricing() {
             <span className="font-pixel text-[14px] text-lk-lime">CLOUD PRO</span>
             <div className="flex items-end gap-2.5">
               <span className="text-[72px] leading-[72px] font-semibold tracking-[-3px] text-lk-fg">$49</span>
-              <span className="pb-1 font-plex text-[12px] text-lk-dim">/ MONTH</span>
+              <span className="pb-1 font-plex text-[13px] text-lk-dim">/ MONTH</span>
             </div>
             {["4,900 credits every month", "Unlimited mailboxes", "Reply drafting and triage", "Email support"].map((f) => (
-              <span key={f} className="font-plex text-[13px] text-lk-muted">
+              <span key={f} className="font-plex text-[13.5px] text-lk-muted">
                 + {f}
               </span>
             ))}
             <LimeButton href={`${site.signupUrl}?next=${encodeURIComponent("/app/settings#billing")}`} className="text-center">
               Get Pro →
             </LimeButton>
-            <span className="text-[14px] text-lk-dim">
+            <span className="text-[15.5px] text-lk-dim">
               Or{" "}
               <a href={site.signupUrl} className="underline-offset-4 hover:text-lk-fg hover:underline">
                 start free with 200 credits
@@ -297,17 +297,17 @@ function Pricing() {
             </span>
           </div>
           <div className="flex flex-1 flex-col px-6 py-9 sm:px-10">
-            <span className="font-plex text-[11px] tracking-[1.5px] text-lk-dim">WHAT 4,900 CREDITS BUY</span>
+            <span className="font-plex text-[12.5px] tracking-[0.8px] text-lk-dim">WHAT 4,900 CREDITS BUY</span>
             {credits.map(([n, what, cost, free], i) => (
               <div key={what} className={`flex items-center gap-6 py-5 ${i ? "border-t border-lk-line" : ""}`}>
                 <span className={`w-[110px] shrink-0 text-[32px] font-semibold tracking-[-1.2px] sm:w-[150px] sm:text-[40px] ${free ? "text-lk-lime" : "text-lk-fg"}`}>{n}</span>
                 <span className="flex-1 text-[16px] text-lk-fg">{what}</span>
-                <span className="hidden font-plex text-[11px] tracking-[1px] text-lk-dim uppercase sm:inline">{cost}</span>
+                <span className="hidden font-plex text-[12.5px] tracking-[0.6px] text-lk-dim uppercase sm:inline">{cost}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="flex flex-col gap-3 font-plex text-[12px] tracking-[1.2px] text-lk-muted sm:flex-row sm:justify-between">
+        <div className="flex flex-col gap-3 font-plex text-[13px] tracking-[0.8px] text-lk-muted sm:flex-row sm:justify-between">
           <a href="/docs/self-hosting" className="hover:text-lk-fg">
             OR SELF-HOST IT FOR FREE · AGPL-3.0 →
           </a>
@@ -329,9 +329,9 @@ function Start() {
       <h2 className={sectionTitle}>Put a meerkat on watch.</h2>
       <p className="text-[17px] text-lk-muted">Connect it to your coding agent in one command.</p>
       <div className="flex w-full max-w-[820px] flex-col gap-5 bg-[radial-gradient(ellipse_50%_50%_at_50%_50%,var(--color-lk-frame)_0%,var(--color-lk-ink)_100%)] p-5 text-left outline outline-1 -outline-offset-1 outline-lk-gray sm:p-8">
-        <span className="font-plex text-[11px] tracking-[1.5px] text-lk-dim">IN YOUR TERMINAL</span>
+        <span className="font-plex text-[12.5px] tracking-[0.8px] text-lk-dim">IN YOUR TERMINAL</span>
         <LookoutCommand command={`claude mcp add --transport http --scope user meerko ${mcpUrl()}`} />
-        <span className="font-plex text-[11px] tracking-[1.5px] text-lk-dim">OR IN THE BROWSER</span>
+        <span className="font-plex text-[12.5px] tracking-[0.8px] text-lk-dim">OR IN THE BROWSER</span>
         <LimeButton href={site.signupUrl} className="px-[18px] py-4 text-right">
           Start free with 200 credits →
         </LimeButton>
@@ -348,7 +348,7 @@ function Footer() {
     ["Terms", "/terms"],
   ];
   return (
-    <footer className="flex flex-col gap-4 border-t border-lk-line px-6 py-[18px] font-plex text-[11px] tracking-[1.2px] text-lk-dim sm:flex-row sm:items-center sm:justify-between lg:px-12">
+    <footer className="flex flex-col gap-4 border-t border-lk-line px-6 py-[18px] font-plex text-[12.5px] tracking-[0.8px] text-lk-dim sm:flex-row sm:items-center sm:justify-between lg:px-12">
       <span>MEERKO · A POLYNODE PROJECT · AGPL-3.0</span>
       <span className="flex items-center gap-7">
         {links.map(([name, href]) => (
