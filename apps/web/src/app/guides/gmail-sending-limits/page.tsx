@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { citer, GuideShell, H2 } from "@/components/content/guide-shell";
+import { citer, GuideShell, H2 } from "@/components/lookout/docs/guide";
 import { googleSources as G } from "@/lib/sources";
 
 // Targets "gmail sending limits" (720/mo, KD 14) and "google workspace sending limits" (DataForSEO, US, Oct 2026).

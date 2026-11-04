@@ -1,8 +1,8 @@
 import { ChevronDown } from "lucide-react";
-import { CodeBlock } from "@/components/docs/code-block";
-import { OpenOnHash } from "@/components/docs/search";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { C, Callout, H2, L } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { OpenOnHash } from "@/components/lookout/docs/search";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { C, Callout, H2, L } from "@/components/lookout/docs/ui";
 import { type ApiOperation, type Field, apiGroups, apiObjects, apiOperations } from "@/lib/api-reference";
 import { publicApiUrl } from "@/lib/meerko";
 
@@ -20,7 +20,7 @@ function FieldTable({ title, fields }: { title: string; fields: Field[] }) {
   if (fields.length === 0) return null;
   return (
     <div className="flex flex-col gap-2">
-      <p className="font-mono text-[11px] tracking-[0.14em] uppercase">{title}</p>
+      <p className="font-mono text-[12px] tracking-[0.14em] uppercase">{title}</p>
       <div className="overflow-x-auto rounded-[10px] border border-line">
         <table className="w-full text-left text-[13.5px]">
           <tbody>
@@ -29,7 +29,7 @@ function FieldTable({ title, fields }: { title: string; fields: Field[] }) {
                 <td className="px-3.5 py-2.5 font-mono whitespace-nowrap text-fg">{f.name}</td>
                 <td className="px-3.5 py-2.5 font-mono text-xs">{f.type}</td>
                 <td className="px-3.5 py-2.5">
-                  <span className={`rounded-full px-2 py-0.5 font-mono text-[10.5px] ${f.required ? "bg-accent-soft text-accent" : "bg-ink"}`}>
+                  <span className={`rounded-full px-2 py-0.5 font-mono text-[12px] ${f.required ? "bg-accent-soft text-accent" : "bg-ink"}`}>
                     {f.required ? "required" : "optional"}
                   </span>
                 </td>
@@ -50,21 +50,21 @@ function OperationEntry({ op }: { op: ApiOperation }) {
         <span className={`w-[58px] shrink-0 pt-px font-mono text-[12px] font-semibold ${METHOD_COLOR[op.method] ?? ""}`}>{op.method}</span>
         <span className="min-w-0 flex-1">
           <span className="block font-mono text-[13.5px] break-all text-fg">{op.path}</span>
-          <span className="block text-[14px] leading-normal">{op.summary}</span>
+          <span className="block text-[15px] leading-normal">{op.summary}</span>
         </span>
         <ChevronDown className="mt-1 size-3.5 shrink-0 transition group-open:rotate-180" />
       </summary>
       <div className="flex flex-col gap-4 px-[18px] pb-5">
-        {op.description && <p className="text-[14.5px] leading-[1.55]">{op.description}</p>}
+        {op.description && <p className="text-[15px] leading-[1.55]">{op.description}</p>}
         {op.repliesScope && (
-          <p className="text-[14px]">
+          <p className="text-[15px]">
             Also callable with a <C>replies</C> key, the kind an agent woken by an <L href="/docs/wake-your-agent">agent hook</L> gets.
           </p>
         )}
         <FieldTable title="Parameters" fields={op.params} />
         <FieldTable title="Body (JSON)" fields={op.body} />
         <div className="flex flex-col gap-2">
-          <p className="font-mono text-[11px] tracking-[0.14em] uppercase">Returns {op.status}</p>
+          <p className="font-mono text-[12px] tracking-[0.14em] uppercase">Returns {op.status}</p>
           <p className="font-mono text-[13px] break-words">{op.returns}</p>
         </div>
       </div>
@@ -107,7 +107,7 @@ export default function Page() {
       <nav aria-label="Endpoint groups" className="flex flex-wrap gap-2">
         {apiGroups.map((g) => (
           <a key={g.id} href={`#${g.id}`} className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-[13px] font-semibold text-fg hover:border-accent/35 hover:text-accent">
-            {g.label} <span className="font-mono text-[11px] font-normal text-muted">{g.ops.length}</span>
+            {g.label} <span className="font-mono text-[12px] font-normal text-muted">{g.ops.length}</span>
           </a>
         ))}
       </nav>

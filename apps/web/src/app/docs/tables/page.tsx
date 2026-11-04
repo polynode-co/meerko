@@ -1,6 +1,6 @@
-import { CodeBlock } from "@/components/docs/code-block";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { AskAgent, C, Facts, Fields, H2, L, Tool } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { AskAgent, C, Facts, Fields, H2, L, Tool } from "@/components/lookout/docs/ui";
 
 export const metadata = docsMetadata("tables");
 

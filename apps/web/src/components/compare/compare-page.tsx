@@ -1,14 +1,13 @@
-import { ArrowRight, BookOpen, Check, ExternalLink, FileUp } from "lucide-react";
+import { BookOpen, Check } from "lucide-react";
 import Image from "next/image";
+import { GhostButton, Kicker, LimeButton, LkPage, PaperButton, crumb, sectionTitle } from "@/components/lookout/kit";
+import { FaqGrid, LkBreadcrumbs, SourceList, SourceRef, wrap } from "@/components/lookout/marketing/ui";
 import { LogoMark } from "@/components/ui/brand";
-import { Footer } from "@/components/sections/footer";
-import { Nav } from "@/components/sections/nav";
-import { Container, Eyebrow, SectionTitle, TerminalWindow } from "@/components/ui/primitives";
-import { JsonLd, faqJsonLd } from "@/components/json-ld";
-import { Breadcrumbs } from "@/components/content/breadcrumbs";
 import { alternativeBySlug, alternatives } from "@/lib/content";
 import { CHECKED_ON } from "@/lib/sources";
 import { site } from "@/lib/site";
+
+// /alternatives/<vendor>, from the .pen design "LK · Alternative detail" (c1Z9tc).
 
 export interface Source {
   label: string;
@@ -45,6 +44,8 @@ const onlyMeerko = [
   { title: "Your Postgres", body: "Self-hosted, every lead, email and reply stays in your database.", href: "/docs/self-hosting#what-runs" },
 ];
 
+const box = "bg-lk-box outline outline-1 -outline-offset-1 outline-lk-line";
+
 export function ComparePage({ c }: { c: Comparison }) {
   const { logo } = alternativeBySlug(c.slug);
   // Number each distinct source once, in order of first use.
@@ -58,238 +59,219 @@ export function ComparePage({ c }: { c: Comparison }) {
   for (const r of c.rows) cite(r.source);
   for (const w of c.theyWin) cite(w.source);
   if (c.pricing) cite(c.pricing.source);
-  const Ref = ({ s }: { s: Source }) => (
-    <sup>
-      <a href={`#source-${cite(s)}`} className="ml-0.5 font-mono text-[11px] text-accent hover:underline">
-        [{cite(s)}]
-      </a>
-    </sup>
-  );
+  const Ref = ({ s }: { s: Source }) => <SourceRef n={cite(s)} />;
 
   return (
-    <>
-      <Nav />
-      <main>
-        <section>
-          <Container className="pt-8">
-            <Breadcrumbs items={[["Home", "/"], ["Alternatives", "/alternatives"], [`${c.name} alternative`, `/alternatives/${c.slug}`]]} />
-          </Container>
-          <Container className="flex flex-col items-center gap-6 pt-16 pb-16 text-center lg:pt-20 lg:pb-[72px]">
-            {/* Logo lockup: Meerko vs the vendor (its own site icon). */}
-            <div className="flex items-center gap-5 pb-2">
-              <span className="grid size-[88px] place-items-center rounded-[22px] border-[1.5px] border-accent/35 bg-raised shadow-[0_12px_40px_rgba(242,169,59,0.15)] sm:size-[112px] sm:rounded-[26px]">
-                <LogoMark size={64} />
-              </span>
-              <span className="grid size-11 place-items-center rounded-full border border-line font-mono text-sm text-muted">vs</span>
-              <span className="grid size-[88px] place-items-center rounded-[22px] border-[1.5px] border-line bg-raised sm:size-[112px] sm:rounded-[26px]">
-                <Image src={logo} alt={`${c.name} logo`} width={64} height={64} priority className="size-12 rounded-[12px] sm:size-16 sm:rounded-[14px]" />
-              </span>
-            </div>
-            <span className="rounded-full bg-accent-soft px-3.5 py-1.5 font-mono text-[13px] tracking-[0.1em] text-accent uppercase">
-              Meerko vs {c.name}
-            </span>
-            <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em] sm:text-6xl lg:text-[72px]">
-              The open-source
-              <br />
-              {c.name} alternative.
-            </h1>
-            <p className="max-w-[720px] text-lg leading-[1.55] text-muted lg:text-[19px]">{c.pitch}</p>
-            <div className="flex flex-wrap justify-center gap-3 pt-2">
-              <a href={site.pricingUrl} className="inline-flex items-center gap-2 rounded-[10px] bg-accent px-[22px] py-[15px] font-semibold text-dark hover:brightness-110">
-                Start free <ArrowRight className="size-[17px]" />
-              </a>
-              <a href="#switch" className="inline-flex items-center gap-2 rounded-[10px] border border-line bg-raised px-[22px] py-[15px] font-semibold hover:border-muted">
-                <FileUp className="size-[17px]" /> Import a {c.name} CSV
-              </a>
-            </div>
-          </Container>
-        </section>
+    <LkPage>
+      <section className={`${wrap} flex flex-col gap-5 pt-10 pb-12 lg:pt-14`}>
+        <LkBreadcrumbs items={[["Home", "/"], ["Alternatives", "/alternatives"], [`${c.name} alternative`, `/alternatives/${c.slug}`]]} />
+        <div className="flex items-center gap-3 pt-6 lg:pt-10">
+          <span className="grid size-11 place-items-center bg-lk-paper">
+            <LogoMark size={28} />
+          </span>
+          <span className="font-plex text-[13px] text-lk-dim">VS</span>
+          <span className="grid size-11 place-items-center bg-lk-paper">
+            <Image src={logo} alt={`${c.name} logo`} width={28} height={28} priority className="size-7" />
+          </span>
+          <span className="pl-2 font-plex text-[13px] tracking-[0.8px] text-lk-lime uppercase">Meerko vs {c.name}</span>
+        </div>
+        <h1 className="text-[40px] leading-[1.05] font-semibold tracking-[-1.4px] text-lk-fg sm:text-[52px] sm:tracking-[-1.9px]">
+          The open-source {c.name} alternative.
+        </h1>
+        <p className="max-w-[820px] text-[17px] leading-[1.6] text-lk-muted sm:text-[18px]">{c.pitch}</p>
+        <div className="flex flex-wrap gap-4 pt-2">
+          <LimeButton href={site.pricingUrl}>Start free →</LimeButton>
+          <GhostButton href="#switch">Import a {c.name} CSV</GhostButton>
+        </div>
+      </section>
 
-        <section>
-          <Container className="flex flex-col gap-3 pb-20 lg:px-[180px]">
-            <div className="overflow-x-auto rounded-[18px] border border-line">
-              <table className="w-full min-w-[720px] text-left">
-                <thead className="bg-raised font-mono text-[13px] tracking-[0.08em] uppercase">
-                  <tr>
-                    <th className="px-7 py-[18px] font-normal">
-                      <span className="sr-only">Feature</span>
-                    </th>
-                    <th className="w-[270px] px-7 py-[18px] font-sans text-[15px] font-bold tracking-normal normal-case text-accent">
-                      <span className="flex items-center gap-2.5">
-                        <LogoMark size={24} /> Meerko
-                      </span>
-                    </th>
-                    <th className="w-[270px] px-7 py-[18px] font-sans text-[15px] font-bold tracking-normal normal-case text-muted">
-                      <span className="flex items-center gap-2.5">
-                        <Image src={logo} alt="" width={24} height={24} className="size-6 rounded-md" /> {c.name}
-                      </span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {c.rows.map((r) => (
-                    <tr key={r.label} className="border-t border-line">
-                      <th scope="row" className="px-7 py-[18px] text-[15px] font-medium">{r.label}</th>
-                      <td className="px-7 py-[18px] text-[15px] text-fg">{r.meerko}</td>
-                      <td className="px-7 py-[18px] text-[15px] text-muted">
-                        {r.them}
-                        <Ref s={r.source} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="px-2 text-xs text-muted">{c.name} facts from {c.name}&apos;s own pages, checked {CHECKED_ON}. Prices are billed monthly.</p>
-          </Container>
-        </section>
-
-        <section>
-          <Container className="grid gap-6 pb-24 md:grid-cols-2 lg:px-[180px] lg:pb-28">
-            <div className="flex flex-col gap-3 rounded-2xl border border-line bg-raised px-[30px] py-7">
-              <h2 className="flex items-center gap-2.5 font-display text-[22px] font-bold">
-                <Image src={logo} alt="" width={30} height={30} className="size-[30px] rounded-lg" /> Where {c.name} is stronger
-              </h2>
-              <ul className="flex flex-col gap-2 leading-[1.55] text-muted">
-                {c.theyWin.map((w) => (
-                  <li key={w.text}>
-                    {w.text}
-                    <Ref s={w.source} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="flex flex-col gap-3 rounded-2xl border border-line bg-raised px-[30px] py-7">
-              <h2 className="flex items-center gap-2.5 font-display text-[22px] font-bold">
-                <LogoMark size={30} /> Only with Meerko
-              </h2>
-              <ul className="flex flex-col gap-2.5">
-                {onlyMeerko.map((m) => (
-                  <li key={m.title} className="flex gap-2.5">
-                    <Check className="mt-1 size-4 shrink-0 text-signal" />
-                    <span className="leading-[1.5] text-muted">
-                      <a href={m.href} target="_blank" rel="noopener" className="font-semibold text-fg hover:text-accent">
-                        {m.title}
-                      </a>
-                      . {m.body}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Container>
-        </section>
-
-        {c.pricing && (
-          <section>
-            <Container className="flex flex-col gap-6 pb-24 lg:px-[180px] lg:pb-28">
-              <h2 className="flex items-center gap-3.5 font-display text-[32px] font-bold tracking-[-0.02em]">
-                <Image src={logo} alt="" width={36} height={36} className="size-9 rounded-[9px]" />
-                How much does {c.name} cost?
-                <Ref s={c.pricing.source} />
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {c.pricing.plans.map((p) => (
-                  <div key={p.name} className="flex flex-col gap-2 rounded-xl border border-line px-5 py-5">
-                    <p className="font-semibold">{p.name}</p>
-                    <p className="font-display text-[32px] leading-none font-bold">{p.price}</p>
-                    <p className="text-sm leading-normal text-muted">{p.detail}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-muted">{c.pricing.note}</p>
-            </Container>
-          </section>
-        )}
-
-        <section id="switch" className="scroll-mt-20 bg-sand text-dark">
-          <Container className="flex flex-col items-center gap-14 py-24 lg:flex-row lg:gap-[72px] lg:py-28">
-            <div className="flex w-full flex-1 flex-col gap-7">
-              <Eyebrow tone="deep">Switch in an afternoon</Eyebrow>
-              <SectionTitle className="text-dark">Bring your {c.name} tables with you.</SectionTitle>
-              <ol className="flex flex-col gap-3.5">
-                {[`Export your ${c.name} table as CSV.`, "Import it: unknown columns become Meerko columns.", "Ask your agent to enrich, write a sequence and start it."].map((t, i) => (
-                  <li key={t} className="flex items-center gap-3.5 text-[17px]">
-                    <span className="grid size-[30px] shrink-0 place-items-center rounded-full bg-dark font-mono text-[13px] font-bold text-sand">{i + 1}</span>
-                    {t}
-                  </li>
-                ))}
-              </ol>
-            </div>
-            {/* The CLI's real commands and output format (packages/cli). */}
-            <TerminalWindow title="zsh — import" className="w-full lg:w-[560px] lg:shrink-0">
-              <pre className="overflow-x-auto px-6 py-[22px] font-mono text-[13.5px] leading-[1.65]">
-                <div className="text-fg">$ meerko tables create &quot;Fintech CTOs&quot;</div>
-                <div className="text-signal">Created table &quot;Fintech CTOs&quot; (8f2c…)</div>
-                <div className="text-fg">$ meerko tables import 8f2c… {c.name.toLowerCase()}-export.csv</div>
-                <div className="text-signal">Imported 1240 rows. New columns: linkedin, title, funding</div>
-                <div className="text-accent">› enrich them and draft a 3-step sequence</div>
-              </pre>
-            </TerminalWindow>
-          </Container>
-        </section>
-
-        {c.faq && (
-          <section>
-            <Container className="flex flex-col gap-2 py-24 lg:px-[180px]">
-              <h2 className="mb-4 font-display text-[32px] font-bold tracking-[-0.02em]">Questions</h2>
-              {c.faq.map(([q, a]) => (
-                <div key={q} className="flex flex-col gap-2 border-t border-line py-5">
-                  <h3 className="text-lg font-semibold">{q}</h3>
-                  <p className="leading-[1.55] text-muted">{a}</p>
-                </div>
+      <section className={`${wrap} flex flex-col gap-4 pb-20`}>
+        <div className="overflow-x-auto outline outline-1 -outline-offset-1 outline-lk-line">
+          <table className="w-full min-w-[640px] text-left text-[16px] leading-[1.5]">
+            <thead className="bg-lk-box">
+              <tr>
+                <th className="w-[28%] px-5 py-4">
+                  <span className="sr-only">Feature</span>
+                </th>
+                <th className="border-l border-lk-line px-5 py-4 font-pixel text-[13px] font-normal text-lk-lime">MEERKO</th>
+                <th className="border-l border-lk-line px-5 py-4 font-pixel text-[13px] font-normal text-lk-fg uppercase">{c.name}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {c.rows.map((r) => (
+                <tr key={r.label} className="border-t border-lk-line align-top">
+                  <th scope="row" className="px-5 py-4 font-normal text-lk-muted">{r.label}</th>
+                  <td className="border-l border-lk-line bg-lk-lime/[0.05] px-5 py-4 text-lk-fg">{r.meerko}</td>
+                  <td className="border-l border-lk-line px-5 py-4 text-lk-fg">
+                    {r.them}
+                    <Ref s={r.source} />
+                  </td>
+                </tr>
               ))}
-            </Container>
-            <JsonLd data={faqJsonLd(c.faq)} />
-          </section>
-        )}
+            </tbody>
+          </table>
+        </div>
+        <p className={crumb}>
+          {c.name} facts from {c.name}&apos;s own pages, checked {CHECKED_ON}. Prices are billed monthly.
+        </p>
+      </section>
 
-        <section className="border-t border-line">
-          <Container className="flex flex-col gap-3 pt-12">
-            <h2 className="font-mono text-xs tracking-[0.15em] text-muted uppercase">Other comparisons</h2>
-            <ul className="grid gap-3 sm:grid-cols-3">
-              {alternatives
-                .filter((a) => a.slug !== c.slug)
-                .map((a) => (
-                  <li key={a.slug}>
-                    <a href={`/alternatives/${a.slug}`} className="flex h-full items-center gap-3.5 rounded-xl border border-line px-[18px] py-4 hover:border-muted">
-                      <Image src={a.logo} alt="" width={40} height={40} className="size-10 shrink-0 rounded-[10px]" />
-                      <span className="flex flex-col gap-0.5">
-                        <span className="font-semibold">Meerko vs {a.name}</span>
-                        <span className="text-[13px] leading-snug text-muted">{a.summary}</span>
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              <li>
-                <a href="/guides" className="flex h-full items-center gap-3.5 rounded-xl border border-line px-[18px] py-4 hover:border-muted">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-[10px] bg-accent-soft">
-                    <BookOpen className="size-5 text-accent" />
-                  </span>
-                  <span className="flex flex-col gap-0.5">
-                    <span className="font-semibold">Outbound guides</span>
-                    <span className="text-[13px] leading-snug text-muted">Cold email, follow-ups, deliverability and Gmail limits.</span>
-                  </span>
-                </a>
+      <section className={`${wrap} grid gap-6 pb-20 md:grid-cols-2`}>
+        <div className={`${box} flex flex-col gap-4 p-7`}>
+          <h2 className="flex items-center gap-3 text-[22px] font-semibold tracking-[-0.4px] text-lk-fg">
+            <span className="grid size-8 place-items-center bg-lk-paper">
+              <Image src={logo} alt="" width={20} height={20} className="size-5" />
+            </span>
+            Where {c.name} is stronger
+          </h2>
+          <ul className="flex flex-col gap-2.5 text-[16px] leading-[1.6] text-lk-muted">
+            {c.theyWin.map((w) => (
+              <li key={w.text} className="flex gap-3">
+                <span aria-hidden className="mt-[11px] size-1.5 shrink-0 bg-lk-dim" />
+                <span>
+                  {w.text}
+                  <Ref s={w.source} />
+                </span>
               </li>
-            </ul>
-          </Container>
-          <Container className="py-12">
-            <h2 className="mb-3 font-mono text-xs tracking-[0.15em] text-muted uppercase">Sources</h2>
-            <ol className="flex flex-col gap-1.5 text-sm">
-              {sources.map((s, i) => (
-                <li key={s.url} id={`source-${i + 1}`} className="scroll-mt-24 text-muted">
-                  [{i + 1}]{" "}
-                  <a href={s.url} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-fg hover:text-accent">
-                    {s.label} <ExternalLink className="size-3" />
+            ))}
+          </ul>
+        </div>
+        <div className={`${box} flex flex-col gap-4 p-7`}>
+          <h2 className="flex items-center gap-3 text-[22px] font-semibold tracking-[-0.4px] text-lk-fg">
+            <span className="grid size-8 place-items-center bg-lk-paper">
+              <LogoMark size={20} />
+            </span>
+            Only with Meerko
+          </h2>
+          <ul className="flex flex-col gap-2.5">
+            {onlyMeerko.map((m) => (
+              <li key={m.title} className="flex gap-3 text-[16px] leading-[1.6] text-lk-muted">
+                <Check aria-hidden className="mt-1 size-4 shrink-0 text-lk-lime" />
+                <span>
+                  <a href={m.href} target="_blank" rel="noopener" className="font-semibold text-lk-fg underline-offset-4 hover:text-lk-lime hover:underline">
+                    {m.title}
                   </a>
+                  . {m.body}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {c.pricing && (
+        <section className={`${wrap} flex flex-col gap-7 pb-24`}>
+          <div className="flex flex-col gap-[18px]">
+            <Kicker>{c.name} pricing</Kicker>
+            <h2 className={`${sectionTitle} leading-[1.1]`}>
+              How much does {c.name} cost?
+              <Ref s={c.pricing.source} />
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4">
+            {c.pricing.plans.map((p) => (
+              <div key={p.name} className="flex flex-col gap-3 p-6 outline outline-1 -outline-offset-1 outline-lk-line">
+                <p className="font-pixel text-[14px] text-lk-fg uppercase">{p.name}</p>
+                <p className="text-[36px] leading-none font-semibold tracking-[-1.2px] text-lk-fg">{p.price}</p>
+                <p className="text-[15px] leading-[1.6] text-lk-muted">{p.detail}</p>
+              </div>
+            ))}
+          </div>
+          <p className="max-w-[900px] text-[15px] leading-[1.6] text-lk-dim">{c.pricing.note}</p>
+        </section>
+      )}
+
+      <section id="switch" className="scroll-mt-20 border-y border-lk-line bg-lk-box">
+        <div className={`${wrap} flex flex-col gap-12 py-20 lg:flex-row lg:items-center lg:gap-[72px] lg:py-24`}>
+          <div className="flex min-w-0 flex-1 flex-col gap-6">
+            <Kicker>Switch in an afternoon</Kicker>
+            <h2 className={`${sectionTitle} leading-[1.1]`}>Bring your {c.name} tables with you.</h2>
+            <ol className="flex flex-col gap-3.5">
+              {[`Export your ${c.name} table as CSV.`, "Import it: unknown columns become Meerko columns.", "Ask your agent to enrich, write a sequence and start it."].map((t, i) => (
+                <li key={t} className="flex items-center gap-3.5 text-[17px] leading-[1.5] text-lk-fg">
+                  <span className="grid size-8 shrink-0 place-items-center bg-lk-lime font-pixel text-[14px] text-lk-ink">{i + 1}</span>
+                  {t}
                 </li>
               ))}
             </ol>
-          </Container>
+          </div>
+          {/* The CLI's real commands and output format (packages/cli). */}
+          <div className="w-full min-w-0 bg-lk-ink outline outline-1 -outline-offset-1 outline-lk-gray lg:w-[560px] lg:shrink-0">
+            <div className="flex justify-between border-b border-lk-gray px-3 py-[7px] text-[13px] text-lk-muted">
+              <span className="font-pixel">ZSH — IMPORT</span>
+              <span className="font-plex">[x]</span>
+            </div>
+            <pre className="overflow-x-auto px-5 py-5 font-plex text-[13.5px] leading-[1.7]">
+              <div className="text-lk-fg">$ meerko tables create &quot;Fintech CTOs&quot;</div>
+              <div className="text-lk-dim">Created table &quot;Fintech CTOs&quot; (8f2c…)</div>
+              <div className="text-lk-fg">$ meerko tables import 8f2c… {c.name.toLowerCase()}-export.csv</div>
+              <div className="text-lk-dim">Imported 1240 rows. New columns: linkedin, title, funding</div>
+              <div className="text-lk-lime">› enrich them and draft a 3-step sequence</div>
+            </pre>
+          </div>
+        </div>
+      </section>
+
+      {c.faq && (
+        <section className={`${wrap} flex flex-col gap-8 pt-24`}>
+          <div className="flex flex-col gap-[18px]">
+            <Kicker>FAQ</Kicker>
+            <h2 className={`${sectionTitle} leading-[1.1]`}>Questions</h2>
+          </div>
+          <FaqGrid items={c.faq} />
         </section>
-      </main>
-      <Footer />
-    </>
+      )}
+
+      <section className={`${wrap} flex flex-col gap-4 pt-20`}>
+        <h2 className="font-plex text-[12.5px] tracking-[0.8px] text-lk-dim uppercase">Other comparisons</h2>
+        <ul className="grid gap-4 sm:grid-cols-3">
+          {alternatives
+            .filter((a) => a.slug !== c.slug)
+            .map((a) => (
+              <li key={a.slug}>
+                <a href={`/alternatives/${a.slug}`} className={`${box} flex h-full items-center gap-3.5 px-[18px] py-4 transition hover:outline-lk-gray`}>
+                  <span className="grid size-10 shrink-0 place-items-center bg-lk-paper">
+                    <Image src={a.logo} alt="" width={24} height={24} className="size-6" />
+                  </span>
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-[16px] font-semibold text-lk-fg">Meerko vs {a.name}</span>
+                    <span className="text-[15px] leading-snug text-lk-muted">{a.summary}</span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          <li>
+            <a href="/guides" className={`${box} flex h-full items-center gap-3.5 px-[18px] py-4 transition hover:outline-lk-gray`}>
+              <span className="grid size-10 shrink-0 place-items-center bg-lk-paper">
+                <BookOpen className="size-5 text-lk-ink" />
+              </span>
+              <span className="flex flex-col gap-0.5">
+                <span className="text-[16px] font-semibold text-lk-fg">Outbound guides</span>
+                <span className="text-[15px] leading-snug text-lk-muted">Cold email, follow-ups, deliverability and Gmail limits.</span>
+              </span>
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <div className={`${wrap} py-14`}>
+        <SourceList sources={sources} />
+      </div>
+
+      <div className={`${wrap} pb-24`}>
+        <div className="flex flex-col items-start justify-between gap-6 bg-lk-box p-8 outline outline-1 -outline-offset-1 outline-lk-gray sm:p-10 lg:flex-row lg:items-center">
+          <div className="flex max-w-[720px] flex-col gap-2.5">
+            <h2 className="text-[26px] font-semibold tracking-[-0.6px] text-lk-fg">Try the open-source alternative</h2>
+            <p className="text-[15.5px] leading-[1.6] text-lk-muted">
+              Self-host it for free with your own provider keys, or use Meerko Cloud, which starts free with 200 credits.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <LimeButton href={site.pricingUrl}>Start free →</LimeButton>
+            <PaperButton href="/docs/self-hosting">Self-host it →</PaperButton>
+          </div>
+        </div>
+      </div>
+    </LkPage>
   );
 }

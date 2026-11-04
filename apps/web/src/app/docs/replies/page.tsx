@@ -1,6 +1,6 @@
 import { Inbox, PenLine, ShieldCheck } from "lucide-react";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { AskAgent, C, Callout, Cards, Fields, H2, L, Tool } from "@/components/docs/ui";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { AskAgent, C, Callout, Cards, Fields, H2, L, Tool } from "@/components/lookout/docs/ui";
 
 export const metadata = docsMetadata("replies", "Triage cold email replies with your agent | Meerko docs");
 

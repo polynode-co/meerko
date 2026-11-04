@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { citer, GuideShell, H2 } from "@/components/content/guide-shell";
+import { citer, GuideShell, H2 } from "@/components/lookout/docs/guide";
 import { ftcCanSpam, googleSources as G } from "@/lib/sources";
 
 // Targets "spf dkim dmarc" (1.6k/mo, KD 25), "email warmup" (880, KD 29) and "email deliverability" (1k, KD 44)

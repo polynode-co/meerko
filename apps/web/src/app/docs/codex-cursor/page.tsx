@@ -1,6 +1,6 @@
-import { CodeBlock } from "@/components/docs/code-block";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { C, H2, L } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { C, H2, L } from "@/components/lookout/docs/ui";
 import { mcpUrl } from "@/lib/meerko";
 import { docsSources } from "@/lib/sources";
 

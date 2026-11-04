@@ -1,12 +1,11 @@
 "use client";
 
-import { MessageSquare } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import type { SlackConnection } from "@meerko/sdk";
 import { installSlack, removeSlack, saveSlackWebhook, testSlack } from "@/app/app/actions";
-import { buttonClass, Card, formatWhen, Pill } from "@/components/app/ui";
+import { buttonClass, Card, formatWhen, Pill, cardTitle } from "@/components/app/ui";
 
-const inputClass = "min-w-0 flex-1 rounded-lg border border-line bg-ink px-3 py-2 text-[13px] outline-none focus:border-accent";
+const inputClass = "min-w-0 flex-1 bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime text-[15px]";
 
 /**
  * Posts new replies and the agent's drafts to a Slack channel. With the Meerko Slack app, drafts carry Approve and
@@ -43,26 +42,26 @@ export function SlackCard({
   const where = connection?.kind === "app" ? `#${connection.channelName ?? "channel"} in ${connection.teamName ?? "Slack"}` : "an incoming webhook";
 
   return (
-    <Card className="overflow-hidden" id="slack">
-      <div className="border-b border-line px-5 py-4">
-        <h2 className="flex items-center gap-2 text-[15px] font-semibold"><MessageSquare className="size-4 text-accent" />Slack</h2>
-        <p className="mt-1 text-[13px] text-muted">
+    <Card id="slack">
+      <div className="border-b border-lk-line px-[18px] py-4">
+        <h2 className={cardTitle}>Slack</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-lk-muted">
           Meerko posts new replies and your agent&apos;s drafts to a channel.
           {appAvailable ? " With the Meerko app you approve or discard each draft right there, and /meerko shows what's waiting." : ""}{" "}
-          <a href="/docs/slack" className="text-accent hover:underline">How it works</a>.
+          <a href="/docs/slack" className="text-lk-lime hover:underline">How it works</a>.
         </p>
       </div>
 
-      {notice && <p className="border-b border-line px-5 py-3 text-[13px] text-muted">{notice}</p>}
+      {notice && <p className="border-b border-lk-line px-[18px] py-3 text-[15px] text-lk-dim">{notice}</p>}
 
       {connection ? (
-        <div className="flex flex-wrap items-center gap-4 border-b border-line px-5 py-4">
+        <div className="flex flex-wrap items-center gap-4 border-b border-lk-line px-[18px] py-4">
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="text-[13px] font-medium">{connection.kind === "app" ? "Meerko Slack app" : "Incoming webhook"}</span>
-            <span className="truncate text-xs text-muted">Posting to {where}</span>
-            {connection.lastError && <span className="text-xs text-[#e5795b]">{connection.lastError}</span>}
+            <span className="text-[15px] font-medium">{connection.kind === "app" ? "Meerko Slack app" : "Incoming webhook"}</span>
+            <span className="truncate text-sm text-lk-dim">Posting to {where}</span>
+            {connection.lastError && <span className="text-sm text-[#e5795b]">{connection.lastError}</span>}
           </span>
-          <span className="font-mono text-xs text-muted">{connection.lastPostedAt ? `posted ${formatWhen(connection.lastPostedAt)}` : "nothing posted yet"}</span>
+          <span className="font-plex text-sm text-lk-dim">{connection.lastPostedAt ? `posted ${formatWhen(connection.lastPostedAt)}` : "nothing posted yet"}</span>
           <Pill tone={!connection.enabled ? "neutral" : connection.lastError ? "amber" : "signal"}>{!connection.enabled ? "off" : connection.lastError ? "failing" : "on"}</Pill>
           {canManage && (
             <span className="flex flex-wrap gap-2">
@@ -86,21 +85,21 @@ export function SlackCard({
         </div>
       ) : (
         canManage && (
-          <div className="flex flex-col gap-3 border-b border-line px-5 py-4 text-[13px]">
+          <div className="flex flex-col gap-3 border-b border-lk-line px-[18px] py-4 text-[15px]">
             {appAvailable && (
               <div className="flex flex-wrap items-center gap-3">
                 <button type="button" disabled={pending} onClick={install} className={buttonClass("primary")}>Add to Slack</button>
-                <span className="text-muted">Pick the channel on Slack&apos;s page. Approving works for people whose Slack email matches their Meerko login.</span>
+                <span className="text-lk-dim">Pick the channel on Slack&apos;s page. Approving works for people whose Slack email matches their Meerko login.</span>
               </div>
             )}
             {appAvailable && !webhookOpen && (
-              <button type="button" onClick={() => setWebhookOpen(true)} className="self-start text-xs text-muted hover:text-fg">
+              <button type="button" onClick={() => setWebhookOpen(true)} className="self-start text-sm text-lk-dim hover:text-lk-fg">
                 Or paste an incoming webhook (posts only, no buttons)
               </button>
             )}
             {webhookOpen && (
               <form action={save} className="flex flex-col gap-2">
-                <p className="text-muted">
+                <p className="text-lk-dim">
                   Create an incoming webhook in Slack and paste its URL. Meerko posts there, with links to the inbox; approving happens in
                   Meerko.
                 </p>
@@ -114,12 +113,12 @@ export function SlackCard({
         )
       )}
 
-      {saved && !saved.ok && <p role="alert" className="border-b border-line px-5 py-3 text-[13px] text-[#e5795b]">{saved.error}</p>}
-      {saved?.ok && <p role="status" className="border-b border-line px-5 py-3 text-[13px] text-signal">{saved.message}</p>}
+      {saved && !saved.ok && <p role="alert" className="border-b border-lk-line px-[18px] py-3 text-[15px] text-[#e5795b]">{saved.error}</p>}
+      {saved?.ok && <p role="status" className="border-b border-lk-line px-[18px] py-3 text-[15px] text-lk-lime">{saved.message}</p>}
       {result && (
-        <p role="status" className={`border-b border-line px-5 py-3 text-[13px] ${result.ok ? "text-signal" : "text-[#e5795b]"}`}>{result.text}</p>
+        <p role="status" className={`border-b border-lk-line px-[18px] py-3 text-[15px] ${result.ok ? "text-lk-lime" : "text-[#e5795b]"}`}>{result.text}</p>
       )}
-      {!canManage && <p className="px-5 py-3 text-xs text-muted">Sign in with Google to set this up.</p>}
+      {!canManage && <p className="px-[18px] py-3 text-sm text-lk-dim">Sign in with Google to set this up.</p>}
     </Card>
   );
 }

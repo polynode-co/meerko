@@ -1,14 +1,7 @@
 import type { Metadata } from "next";
 import { JsonLd, faqJsonLd } from "@/components/json-ld";
-import { AgentSuperpowers } from "@/components/sections/agent-superpowers";
-import { FinalCta } from "@/components/sections/final-cta";
-import { Footer } from "@/components/sections/footer";
-import { faqs, GtmEngineers } from "@/components/sections/gtm-engineers";
-import { Hero } from "@/components/sections/hero";
-import { Nav } from "@/components/sections/nav";
-import { OpenSource } from "@/components/sections/open-source";
-import { Problem } from "@/components/sections/problem";
-import { WorksWith } from "@/components/sections/works-with";
+import { LookoutLanding } from "@/components/lookout/landing";
+import { faqs } from "@/components/lookout/landing-more";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
@@ -33,17 +26,7 @@ const app = {
 export default function Home() {
   return (
     <>
-      <Nav />
-      <main>
-        <Hero />
-        <WorksWith />
-        <Problem />
-        <AgentSuperpowers />
-        <OpenSource />
-        <GtmEngineers />
-        <FinalCta />
-      </main>
-      <Footer />
+      <LookoutLanding />
       <JsonLd data={app} />
       <JsonLd data={faqJsonLd(faqs)} />
     </>

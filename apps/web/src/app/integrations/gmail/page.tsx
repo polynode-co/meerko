@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { H2, Timeline, citer } from "@/components/content/guide-shell";
+import { H2, RampChart, Timeline, citer } from "@/components/lookout/marketing/ui";
 import { IntegrationShell } from "@/components/integrations/integration-shell";
 import { mailMergeSources } from "@/lib/sources";
 
@@ -73,7 +73,7 @@ export default function GmailIntegration() {
       <H2 id="how">How it works</H2>
       <p>
         Your leads live in a table, one row each. A sequence is a list of steps: step 1 has a subject, and any{" "}
-        <code className="font-mono text-[15px] text-fg">{"{{column}}"}</code> in a subject or body is filled in from the lead&apos;s row.
+        <code className="font-plex text-[15px] text-lk-fg">{"{{column}}"}</code> in a subject or body is filled in from the lead&apos;s row.
         Meerko sends during a window you choose (9:00 to 17:00, Monday to Friday by default, in the recipient&apos;s timezone) and adds an
         unsubscribe link and Gmail&apos;s one-click unsubscribe header to every email.
       </p>
@@ -90,9 +90,10 @@ export default function GmailIntegration() {
         Each mailbox has a daily limit (50 by default, from 1 to 500) and waits 3 to 7 minutes between sends, so nothing goes out in a
         burst. A newly connected mailbox ramps up from 10 a day to its limit over 21 days, and Meerko checks SPF, DKIM and DMARC for your
         domain. Several mailboxes can share one sequence. More in the{" "}
-        <a href="/guides/gmail-sending-limits" className="text-accent hover:underline">Gmail sending limits</a> and{" "}
-        <a href="/guides/email-deliverability" className="text-accent hover:underline">deliverability</a> guides.
+        <a href="/guides/gmail-sending-limits" className="text-lk-lime hover:underline">Gmail sending limits</a> and{" "}
+        <a href="/guides/email-deliverability" className="text-lk-lime hover:underline">deliverability</a> guides.
       </p>
+      <RampChart />
       <p>
         Meerko only reads the threads it started and mail from people in your sequences. The rest of your inbox is never stored or marked
         read.
@@ -101,7 +102,7 @@ export default function GmailIntegration() {
       <H2 id="agent">Or let your agent run it</H2>
       <p>
         Everything above also works from Claude Code, Cursor or Codex: ask for a lead list, have your agent write the sequence, and approve
-        it before anything is sent. See <a href="/docs/claude-code" className="text-accent hover:underline">Claude Code setup</a>.
+        it before anything is sent. See <a href="/docs/claude-code" className="text-lk-lime hover:underline">Claude Code setup</a>.
       </p>
     </IntegrationShell>
   );

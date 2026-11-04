@@ -14,12 +14,28 @@
   --color-accent-soft: #f2a93b1f;
   --color-accent-deep: #b36f12;
   --color-signal: #3dd6b5;
+
+  /* Landing page, "Lookout OS" (.pen mockup 1, VhHk8): night sky, paper windows, lime signal. */
+  --color-lk-bg: #0a0a0b;
+  --color-lk-ink: #0b0b0c;
+  --color-lk-frame: #1a1a1d;
+  --color-lk-box: #111113;
+  --color-lk-line: #34343a;
+  --color-lk-gray: #5a5a63;
+  --color-lk-dim: #adadb7;
+  --color-lk-muted: #c8c8ce;
+  --color-lk-fg: #f4f4f5;
+  --color-lk-paper: #e9e9e6;
+  --color-lk-paper-hi: #f6f6f3;
+  --color-lk-lime: #a8f326;
 }
 
 @theme inline {
   --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-plex: var(--font-plex-mono), ui-monospace, monospace;
+  --font-pixel: var(--font-silkscreen), ui-monospace, monospace;
 }
 
 @layer base {
@@ -49,59 +65,3 @@
   }
 }
 
-/* Hero mascot: a slow lookout sway from the feet, and every few seconds the left paw
-   reaches down and taps the terminal. Both share a 9s cycle so they stay in sync. */
-@keyframes meerko-idle {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  25% {
-    transform: translateY(-3px) rotate(1.2deg);
-  }
-  50% {
-    transform: translateY(-5px) rotate(0deg);
-  }
-  75% {
-    transform: translateY(-3px) rotate(-1.2deg);
-  }
-}
-
-@keyframes meerko-paw {
-  0%,
-  50%,
-  100% {
-    transform: none;
-  }
-  60%,
-  68%,
-  76% {
-    transform: translate(-14px, 2px) rotate(-10deg);
-  }
-  64%,
-  72% {
-    transform: translate(-14px, 7px) rotate(-3deg);
-  }
-  88% {
-    transform: none;
-  }
-}
-
-.meerko-idle {
-  transform-origin: 50% 100%;
-  animation: meerko-idle 9s ease-in-out infinite;
-  will-change: transform;
-}
-
-.meerko-idle .meerko-paw {
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-  animation: meerko-paw 9s cubic-bezier(0.45, 0, 0.25, 1) infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .meerko-idle,
-  .meerko-idle .meerko-paw {
-    animation: none;
-  }
-}

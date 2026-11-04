@@ -1,7 +1,7 @@
 import { KeyRound } from "lucide-react";
-import { CodeBlock } from "@/components/docs/code-block";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { C, Callout, Fields, H2, L, Tool } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { C, Callout, Fields, H2, L, Tool } from "@/components/lookout/docs/ui";
 import { docsSources } from "@/lib/sources";
 
 export const metadata = docsMetadata("credits");

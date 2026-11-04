@@ -10,7 +10,7 @@ export function Thread({ messages, prospect, highlightId }: { messages: ThreadMe
   const subject = messages.find((m) => m.subject)?.subject?.replace(/^re:\s*/i, "");
   return (
     <div className="flex flex-col gap-3">
-      {subject && <h3 className="text-[15px] font-semibold">{subject}</h3>}
+      {subject && <h3 className="text-[15.5px] font-semibold text-lk-fg">{subject}</h3>}
       <ol className="flex flex-col gap-3">
         {messages.map((m) => {
           const mine = m.direction === "out";
@@ -18,17 +18,15 @@ export function Thread({ messages, prospect, highlightId }: { messages: ThreadMe
           return (
             <li
               key={m.id}
-              className={`flex flex-col gap-2 rounded-lg border px-4 py-3.5 ${
-                on ? "border-signal/60 bg-signal/5" : mine ? "border-line bg-raised" : "border-line"
-              } ${mine ? "ml-10" : "mr-10"}`}
+              className={`flex flex-col gap-2 p-4 outline outline-1 -outline-offset-1 ${on ? "bg-lk-lime/[0.05] outline-lk-lime/60" : mine ? "outline-lk-line" : "bg-lk-bg outline-lk-line"}`}
             >
-              <div className="flex flex-wrap items-center gap-2 text-[12px]">
-                <span className={`font-semibold ${mine ? "text-fg" : "text-signal"}`}>{mine ? "You" : prospect}</span>
-                {mine && m.step !== null && <span className="rounded border border-line px-1.5 font-mono text-[10px] text-muted">step {m.step + 1}</span>}
-                {on && <span className="rounded bg-signal px-1.5 font-mono text-[10px] font-bold text-dark">needs reply</span>}
-                <span className="ml-auto font-mono text-[11px] text-muted">{when(m.sentAt)}</span>
+              <div className="flex flex-wrap items-center gap-2 font-plex text-[12.5px] tracking-[0.4px] uppercase">
+                <span className={mine ? "text-lk-dim" : "text-lk-lime"}>{mine ? "You" : prospect}</span>
+                {mine && m.step !== null && <span className="text-lk-dim">· step {m.step + 1}</span>}
+                {on && <span className="bg-lk-lime px-1.5 text-[12px] font-semibold text-lk-ink">needs reply</span>}
+                <span className="ml-auto text-[12px] text-lk-dim normal-case">{when(m.sentAt)}</span>
               </div>
-              <p className="text-[14px] leading-relaxed whitespace-pre-line">{m.body}</p>
+              <p className={`text-[15.5px] leading-[24px] break-words whitespace-pre-line ${mine ? "text-lk-muted" : "text-lk-fg"}`}>{m.body}</p>
             </li>
           );
         })}

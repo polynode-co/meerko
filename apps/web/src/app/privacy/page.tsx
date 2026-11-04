@@ -74,7 +74,7 @@ export default function PrivacyPage() {
       <Section n={3} id="gmail" title="Gmail data">
         <Callout icon={BadgeCheck}>
           Meerko&apos;s use and transfer of information received from Google APIs adheres to the{" "}
-          <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-accent underline-offset-2 hover:underline">
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-lk-lime underline-offset-4 hover:underline">
             Google API Services User Data Policy
           </a>
           , including the Limited Use requirements.
@@ -114,14 +114,14 @@ export default function PrivacyPage() {
             ["Google Cloud", "Hosting, scheduling and secret storage", "Belgium (EU)"],
             ["Supabase", "Database", "Germany (EU)"],
             [
-              <a key="n" href="https://posthog.com/privacy" className="text-accent underline-offset-2 hover:underline">
+              <a key="n" href="https://posthog.com/privacy" className="text-lk-lime underline-offset-4 hover:underline">
                 PostHog
               </a>,
               "Product analytics, session recording, error tracking and agent tool-call analytics",
               "Germany (EU)",
             ],
             [
-              <a key="s" href="https://stripe.com/privacy" className="text-accent underline-offset-2 hover:underline">
+              <a key="s" href="https://stripe.com/privacy" className="text-lk-lime underline-offset-4 hover:underline">
                 Stripe
               </a>,
               "Payments: your billing name, email, address and tax ID, and your card, which Meerko never sees",
@@ -160,13 +160,13 @@ export default function PrivacyPage() {
               "Encryption at rest",
               <>
                 Everything in the database is also encrypted on disk by{" "}
-                <a href="https://supabase.com/security" className="text-accent underline-offset-2 hover:underline">
+                <a href="https://supabase.com/security" className="text-lk-lime underline-offset-4 hover:underline">
                   Supabase
                 </a>{" "}
                 (AES-256), and Google Cloud{" "}
                 <a
                   href="https://docs.cloud.google.com/docs/security/encryption/default-encryption"
-                  className="text-accent underline-offset-2 hover:underline"
+                  className="text-lk-lime underline-offset-4 hover:underline"
                 >
                   encrypts what it stores
                 </a>{" "}
@@ -184,7 +184,7 @@ export default function PrivacyPage() {
             [
               "Keeping less",
               <>
-                From your inbox we store only messages in Meerko threads (see <a href="#gmail" className="text-accent underline-offset-2 hover:underline">Gmail data</a>).
+                From your inbox we store only messages in Meerko threads (see <a href="#gmail" className="text-lk-lime underline-offset-4 hover:underline">Gmail data</a>).
                 Disconnecting a mailbox ends Meerko&apos;s access straight away.
               </>,
             ],
@@ -202,18 +202,18 @@ export default function PrivacyPage() {
       <Section n={9} id="rights" title="Your rights">
         <div className="grid gap-3 sm:grid-cols-2">
           {rights.map(([Icon, t, d]) => (
-            <div key={t} className="flex items-center gap-3 rounded-xl border border-line px-4 py-3.5">
-              <Icon className="size-4 shrink-0 text-accent" />
+            <div key={t} className="flex items-center gap-3 bg-lk-box px-4 py-3.5 outline outline-1 -outline-offset-1 outline-lk-line">
+              <Icon className="size-4 shrink-0 text-lk-lime" />
               <span className="flex flex-col">
-                <span className="text-[15px] font-semibold text-fg">{t}</span>
-                <span className="text-[13px]">{d}</span>
+                <span className="text-[15.5px] font-semibold text-lk-fg">{t}</span>
+                <span className="text-[15px]">{d}</span>
               </span>
             </div>
           ))}
         </div>
         <p>
           Email{" "}
-          <a href={`mailto:${site.contactEmail}`} className="font-medium text-accent underline-offset-2 hover:underline">
+          <a href={`mailto:${site.contactEmail}`} className="font-medium text-lk-lime underline-offset-4 hover:underline">
             {site.contactEmail}
           </a>{" "}
           and we&apos;ll answer within 30 days. You can also complain to your data protection authority.

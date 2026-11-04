@@ -1,6 +1,6 @@
-import { CodeBlock } from "@/components/docs/code-block";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { C, Callout, Fields, H2, L, Step } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { C, Callout, Fields, H2, L, Step } from "@/components/lookout/docs/ui";
 import { docsSources } from "@/lib/sources";
 import { site } from "@/lib/site";
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { GuideShell, H2, Sample } from "@/components/content/guide-shell";
+import { GuideShell, H2, Sample } from "@/components/lookout/docs/guide";
 
 // Targets "cold email templates" (1.6k/mo, KD 9, +60% YoY) (DataForSEO, US, Oct 2026).
 export const metadata: Metadata = {

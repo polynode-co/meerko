@@ -1,7 +1,7 @@
 import { ChevronDown, ShieldCheck } from "lucide-react";
-import { OpenOnHash } from "@/components/docs/search";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { C, Callout, H2, L } from "@/components/docs/ui";
+import { OpenOnHash } from "@/components/lookout/docs/search";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { C, Callout, H2, L } from "@/components/lookout/docs/ui";
 import { type McpTool, docHref, mcp, needsApproval, toolByName, toolGroups, toolParams } from "@/lib/docs";
 
 export const metadata = docsMetadata("mcp-tools", "Meerko MCP tools reference | Meerko docs");
@@ -24,19 +24,19 @@ function ToolEntry({ tool }: { tool: McpTool }) {
     <details id={tool.name} className="group scroll-mt-24 border-t border-line first:border-t-0 open:bg-raised">
       <summary className="flex cursor-pointer list-none items-start gap-4 px-[18px] py-3.5 [&::-webkit-details-marker]:hidden">
         <span className="w-[170px] shrink-0 pt-px font-mono text-[13.5px] text-accent">{tool.name}</span>
-        <span className="min-w-0 flex-1 text-[14.5px] leading-normal">{first}</span>
+        <span className="min-w-0 flex-1 text-[15px] leading-normal">{first}</span>
         {needsApproval(tool) && (
-          <span className="hidden shrink-0 items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[11px] text-accent sm:inline-flex">
+          <span className="hidden shrink-0 items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[12px] text-accent sm:inline-flex">
             <ShieldCheck className="size-3" /> needs your OK
           </span>
         )}
         <ChevronDown className="mt-1 size-3.5 shrink-0 transition group-open:rotate-180" />
       </summary>
       <div className="flex flex-col gap-4 px-[18px] pb-5">
-        {rest.length > 0 && <p className="text-[14.5px] leading-[1.55] whitespace-pre-line">{rest.join("\n")}</p>}
+        {rest.length > 0 && <p className="text-[15px] leading-[1.55] whitespace-pre-line">{rest.join("\n")}</p>}
         {[{ of: "", params }, ...nested].map(({ of, params: ps }) => (
           <div key={of} className="flex flex-col gap-2">
-            <p className="font-mono text-[11px] tracking-[0.14em] uppercase">{of ? `Each item in ${of}` : "Parameters"}</p>
+            <p className="font-mono text-[12px] tracking-[0.14em] uppercase">{of ? `Each item in ${of}` : "Parameters"}</p>
             {ps.length === 0 ? (
               <p className="text-sm">None.</p>
             ) : (
@@ -48,7 +48,7 @@ function ToolEntry({ tool }: { tool: McpTool }) {
                         <td className="px-3.5 py-2.5 font-mono whitespace-nowrap text-fg">{p.name}</td>
                         <td className="px-3.5 py-2.5 font-mono text-xs whitespace-nowrap">{p.type}</td>
                         <td className="px-3.5 py-2.5">
-                          <span className={`rounded-full px-2 py-0.5 font-mono text-[10.5px] ${p.required ? "bg-accent-soft text-accent" : "bg-ink"}`}>
+                          <span className={`rounded-full px-2 py-0.5 font-mono text-[12px] ${p.required ? "bg-accent-soft text-accent" : "bg-ink"}`}>
                             {p.required ? "required" : "optional"}
                           </span>
                         </td>
@@ -95,11 +95,11 @@ export default function Page() {
       <nav aria-label="Tool groups" className="flex flex-wrap gap-2">
         {toolGroups.map((g) => (
           <a key={g.id} href={`#${g.id}`} className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-[13px] font-semibold text-fg hover:border-accent/35 hover:text-accent">
-            {g.label} <span className="font-mono text-[11px] font-normal text-muted">{g.tools.length}</span>
+            {g.label} <span className="font-mono text-[12px] font-normal text-muted">{g.tools.length}</span>
           </a>
         ))}
         <a href="#commands" className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-[13px] font-semibold text-fg hover:border-accent/35 hover:text-accent">
-          Commands <span className="font-mono text-[11px] font-normal text-muted">{mcp.prompts.length}</span>
+          Commands <span className="font-mono text-[12px] font-normal text-muted">{mcp.prompts.length}</span>
         </a>
       </nav>
 
@@ -128,7 +128,7 @@ export default function Page() {
           <div key={p.name} className="flex flex-col gap-2 rounded-xl border border-line bg-raised px-[18px] py-4">
             <p className="font-mono text-[13px] text-accent">/mcp__meerko__{p.name}</p>
             <p className="font-semibold text-fg">{p.title}</p>
-            <p className="text-sm leading-normal">{p.description}</p>
+            <p className="text-[15px] leading-[1.55]">{p.description}</p>
             {p.arguments.length > 0 && (
               <p className="font-mono text-xs">
                 {p.arguments.map((a) => `${a.name}${a.required ? "" : "?"}`).join(" · ")}

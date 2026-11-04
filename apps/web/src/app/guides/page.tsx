@@ -1,13 +1,12 @@
-import { ArrowRight, Scale, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Breadcrumbs } from "@/components/content/breadcrumbs";
-import { Footer } from "@/components/sections/footer";
-import { Nav } from "@/components/sections/nav";
-import { LogoMark } from "@/components/ui/brand";
-import { Container } from "@/components/ui/primitives";
+import { LimeButton, LkLandscapeFooter, LkNav, kicker, lead, pageTitle } from "@/components/lookout/kit";
+import { LkBreadcrumbs } from "@/components/lookout/docs/breadcrumbs";
 import { alternatives, FEATURED_GUIDE, guideBySlug, guides, TOPICS, topicMeta } from "@/lib/content";
 import { site } from "@/lib/site";
+
+// The guides hub from the .pen design "LK · Guides" (i7uyO): a numbered list of every guide, comparisons, a closing panel.
 
 export const metadata: Metadata = {
   title: "Outbound Guides: Cold Email, Deliverability & GTM | Meerko",
@@ -23,138 +22,117 @@ const cadence: [string, string][] = [
   ["Day 14", "Follow-up 3 · the polite close"],
 ];
 
-function TopicIcon({ icon: Icon, size = "md" }: { icon: (typeof topicMeta)[keyof typeof topicMeta]["icon"]; size?: "md" | "sm" }) {
-  return (
-    <span className={`grid shrink-0 place-items-center rounded-[10px] bg-accent-soft ${size === "md" ? "size-10" : "size-8 rounded-lg"}`}>
-      <Icon className={`text-accent ${size === "md" ? "size-5" : "size-4"}`} />
-    </span>
-  );
-}
+const section = "mx-auto max-w-[1440px] px-6 lg:px-36";
+const mono = "font-plex text-[12.5px] tracking-[0.6px] uppercase";
 
 export default function GuidesHub() {
   const featured = guideBySlug(FEATURED_GUIDE);
+  const ordered = TOPICS.flatMap((t) => guides.filter((g) => g.topic === t));
   return (
-    <>
-      <Nav />
+    <div className="min-h-dvh bg-lk-bg text-lk-fg">
+      <LkNav />
       <main>
-        <Container className="flex flex-col gap-[18px] pt-7 pb-14">
-          <Breadcrumbs items={[["Home", "/"], ["Guides", "/guides"]]} />
-          <p className="pt-4 font-mono text-[13px] tracking-[0.15em] text-accent uppercase">Guides</p>
-          <h1 className="font-display text-5xl leading-[1.02] font-bold tracking-[-0.03em] lg:text-[64px]">Outbound guides</h1>
-          <p className="max-w-[720px] text-lg leading-[1.55] text-muted lg:text-[19px]">
-            How to write cold email that gets replies, send it without landing in spam, and build the systems around it. Every fact
-            links to its source.
+        <section className={`${section} flex flex-col gap-5 pt-14 pb-12 lg:pt-24 lg:pb-14`}>
+          <LkBreadcrumbs items={[["Home", "/"], ["Guides", "/guides"]]} />
+          <span className={`${kicker} pt-4`}>Guides</span>
+          <h1 className={`${pageTitle} max-w-[900px]`}>Outbound guides</h1>
+          <p className={`${lead} max-w-[680px]`}>
+            How to write cold email that gets replies, send it without landing in spam, and build the systems around it. Every fact links to
+            its source.
           </p>
-        </Container>
+        </section>
 
-        <Container className="pb-[72px]">
+        <section className={`${section} pb-16`}>
           <a
             href={`/guides/${featured.slug}`}
-            className="group flex flex-col gap-10 rounded-[20px] border border-accent/25 bg-raised px-7 py-8 shadow-[0_20px_60px_rgba(242,169,59,0.08)] lg:flex-row lg:items-center lg:gap-12 lg:px-11 lg:py-10"
+            className="group flex flex-col gap-8 bg-lk-box p-7 outline outline-1 -outline-offset-1 outline-lk-gray transition hover:outline-lk-muted lg:flex-row lg:items-center lg:gap-12 lg:p-10"
           >
             <div className="flex flex-1 flex-col gap-3.5">
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-accent-soft px-3 py-[5px] font-mono text-xs tracking-[0.1em] text-accent uppercase">
-                <Sparkles className="size-3.5" /> Start here · {featured.topic}
-              </span>
-              <h2 className="font-display text-3xl font-bold tracking-[-0.02em] lg:text-[40px]">{featured.title}</h2>
-              <p className="text-[17px] leading-[1.55] text-muted">
-                {featured.summary} With the CAN-SPAM rules you have to follow.
-              </p>
-              <span className="inline-flex items-center gap-2 pt-1.5 font-semibold text-accent">
-                Read the guide <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+              <span className="font-pixel text-[13px] text-lk-lime">Start here · {featured.topic}</span>
+              <h2 className="text-[28px] leading-tight font-semibold tracking-[-1px] text-lk-fg lg:text-[36px] lg:tracking-[-1.4px]">{featured.title}</h2>
+              <p className="text-[17px] leading-[1.6] text-lk-muted">{featured.summary} With the CAN-SPAM rules you have to follow.</p>
+              <span className={`${mono} pt-1.5 font-semibold text-lk-fg`}>
+                Read the guide <span className="inline-block transition group-hover:translate-x-0.5">→</span>
               </span>
             </div>
-            <ol className="flex flex-col gap-2.5 lg:w-[480px] lg:shrink-0">
+            <ol className="flex flex-col lg:w-[480px] lg:shrink-0">
               {cadence.map(([day, text], i) => (
                 <li
                   key={day}
-                  className={`flex items-center gap-3.5 rounded-[10px] border px-4 py-3 text-sm ${i === 1 ? "border-accent/35 bg-accent-soft" : "border-line bg-ink"}`}
+                  className={`-mt-px flex items-center gap-4 px-4 py-3 text-[15px] outline outline-1 -outline-offset-1 ${i === 1 ? "bg-lk-lime/[0.07] text-lk-fg outline-lk-lime/45" : "bg-lk-ink text-lk-muted outline-lk-line"}`}
                 >
-                  <span className={`w-12 shrink-0 font-mono text-xs ${i === 1 ? "text-accent" : "text-muted"}`}>{day}</span>
+                  <span className={`w-14 shrink-0 font-plex text-[12.5px] uppercase ${i === 1 ? "text-lk-lime" : "text-lk-dim"}`}>{day}</span>
                   {text}
                 </li>
               ))}
             </ol>
           </a>
-        </Container>
+        </section>
 
-        {TOPICS.map((topic) => (
-          <Container key={topic} className="flex flex-col gap-5 pb-14">
-            <div className="flex items-center gap-3.5">
-              <TopicIcon icon={topicMeta[topic].icon} />
-              <div>
-                <h2 className="font-display text-[26px] font-bold">{topic}</h2>
-                <p className="text-sm text-muted">{topicMeta[topic].tagline}</p>
+        <section className={`${section} flex flex-col gap-12`}>
+          {TOPICS.map((topic) => (
+            <div key={topic} className="flex flex-col">
+              <div className="flex flex-col gap-1 pb-4 sm:flex-row sm:items-baseline sm:gap-4">
+                <h2 className={kicker}>{topic}</h2>
+                <p className="text-[15px] text-lk-muted">{topicMeta[topic].tagline}</p>
               </div>
+              <ul className="border-b border-lk-line">
+                {guides
+                  .filter((g) => g.topic === topic)
+                  .map((g) => (
+                    <li key={g.slug} className="border-t border-lk-line">
+                      <a href={`/guides/${g.slug}`} className="group flex items-start gap-4 py-6 sm:gap-8 sm:py-[26px]">
+                        <span className="pt-1.5 font-plex text-[13.5px] tracking-[0.6px] text-lk-lime">{String(ordered.indexOf(g) + 1).padStart(2, "0")}</span>
+                        <span className={`${mono} hidden w-[150px] shrink-0 pt-1.5 text-lk-dim md:block`}>{g.topic}</span>
+                        <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                          <span className="text-[20px] leading-snug font-semibold tracking-[-0.6px] text-lk-fg group-hover:text-lk-lime sm:text-[24px] sm:tracking-[-0.8px]">
+                            {g.title}
+                          </span>
+                          <span className="text-[15.5px] leading-[1.55] text-lk-muted">{g.summary}</span>
+                        </span>
+                        <ArrowRight className="mt-2 hidden size-4 shrink-0 text-lk-dim transition group-hover:translate-x-0.5 group-hover:text-lk-lime sm:block" />
+                      </a>
+                    </li>
+                  ))}
+              </ul>
             </div>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {guides
-                .filter((g) => g.topic === topic)
-                .map((g) => (
-                  <li key={g.slug}>
-                    <a href={`/guides/${g.slug}`} className="group flex h-full flex-col gap-2.5 rounded-[14px] border border-line bg-raised p-[22px] hover:border-muted">
-                      <span className="text-lg leading-snug font-semibold">{g.title}</span>
-                      <span className="flex-1 text-sm leading-normal text-muted">{g.summary}</span>
-                      <span className="inline-flex items-center gap-1.5 pt-1 text-sm font-semibold text-accent">
-                        Read <ArrowRight className="size-[15px] transition group-hover:translate-x-0.5" />
-                      </span>
-                    </a>
-                  </li>
-                ))}
-            </ul>
-          </Container>
-        ))}
+          ))}
+        </section>
 
-        <Container className="flex flex-col gap-5 pb-16">
-          <div className="flex items-center gap-3.5">
-            <span className="grid size-10 place-items-center rounded-[10px] bg-accent-soft">
-              <Scale className="size-5 text-accent" />
-            </span>
-            <div>
-              <h2 className="font-display text-[26px] font-bold">Comparisons</h2>
-              <p className="text-sm text-muted">Meerko next to the tools it replaces, from each vendor&apos;s own pages.</p>
-            </div>
-          </div>
-          <ul className="grid gap-4 sm:grid-cols-3">
+        <section className={`${section} flex flex-col gap-6 pt-20 pb-16`}>
+          <h2 className={kicker}>Comparisons</h2>
+          <p className="max-w-[640px] text-[17px] leading-[28px] text-lk-muted">Meerko next to the tools it replaces, from each vendor&apos;s own pages.</p>
+          <ul className="grid gap-6 md:grid-cols-3">
             {alternatives.map((a) => (
               <li key={a.slug}>
-                <a href={`/alternatives/${a.slug}`} className="flex items-center gap-4 rounded-[14px] border border-line bg-raised px-5 py-[18px] hover:border-muted">
-                  <span className="flex shrink-0 items-center">
-                    <span className="grid size-10 place-items-center rounded-[10px] border border-line bg-ink">
-                      <LogoMark size={26} />
-                    </span>
-                    <Image src={a.logo} alt="" width={40} height={40} className="-ml-2 size-10 rounded-[10px] border-2 border-raised" />
+                <a href={`/alternatives/${a.slug}`} className="group flex h-full items-center gap-4 bg-lk-box p-6 outline outline-1 -outline-offset-1 outline-lk-line transition hover:outline-lk-gray">
+                  <Image src={a.logo} alt="" width={32} height={32} className="size-8 shrink-0" />
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="text-[18px] font-semibold text-lk-fg">Meerko vs {a.name}</span>
+                    <span className="text-[15px] text-lk-muted">{a.name} pricing and features</span>
                   </span>
-                  <span className="flex flex-1 flex-col">
-                    <span className="font-semibold">Meerko vs {a.name}</span>
-                    <span className="text-[13px] text-muted">{a.name} pricing and features</span>
-                  </span>
-                  <ArrowRight className="size-4 text-muted" />
+                  <span className={`${mono} shrink-0 text-lk-muted group-hover:text-lk-lime`}>Compare →</span>
                 </a>
               </li>
             ))}
           </ul>
-        </Container>
+        </section>
 
-        <Container className="pt-2 pb-24">
-          <div className="flex flex-col gap-6 rounded-[20px] border border-accent/25 bg-accent-soft px-7 py-8 sm:flex-row sm:items-center sm:gap-8 lg:px-10">
-            <span className="grid size-[72px] shrink-0 place-items-center rounded-[18px] bg-ink">
-              <LogoMark size={48} />
-            </span>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <p className="font-display text-[26px] font-bold">Put the guides to work</p>
-              <p className="leading-normal text-muted">
-                Meerko finds the leads, sends the sequence from your own Gmail or Outlook and stops it when someone replies, driven from Claude
-                Code.
+        <section className={`${section} pb-24`}>
+          <div className="flex flex-col items-start gap-6 bg-lk-box p-8 outline outline-1 -outline-offset-1 outline-lk-gray sm:p-10 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex max-w-[720px] flex-col gap-2.5">
+              <p className="text-[26px] leading-[33px] font-semibold tracking-[-0.6px] text-lk-fg">Put the guides to work</p>
+              <p className="text-[16px] leading-[26px] text-lk-muted">
+                Meerko finds the leads, sends the sequence from your own Gmail or Outlook and stops it when someone replies, driven from Claude Code.
               </p>
             </div>
-            <a href={site.pricingUrl} className="inline-flex shrink-0 items-center gap-2 self-start rounded-[10px] bg-accent px-[22px] py-[15px] font-semibold text-dark hover:brightness-110 sm:self-auto">
-              Get started free <ArrowRight className="size-4" />
-            </a>
+            <LimeButton href={site.pricingUrl} className="shrink-0">
+              Get started free →
+            </LimeButton>
           </div>
-        </Container>
+        </section>
       </main>
-      <Footer />
-    </>
+      <LkLandscapeFooter />
+    </div>
   );
 }

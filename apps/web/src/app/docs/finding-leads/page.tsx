@@ -1,5 +1,5 @@
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { AskAgent, C, Facts, Fields, H2, L, Tool } from "@/components/docs/ui";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { AskAgent, C, Facts, Fields, H2, L, Tool } from "@/components/lookout/docs/ui";
 import { docsSources } from "@/lib/sources";
 
 export const metadata = docsMetadata("finding-leads", "Find B2B leads from your coding agent | Meerko docs");
