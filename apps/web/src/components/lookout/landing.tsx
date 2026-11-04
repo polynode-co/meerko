@@ -1,71 +1,14 @@
 import Image from "next/image";
-import { cookies } from "next/headers";
-import { SESSION_COOKIE, mcpUrl } from "@/lib/meerko";
+import { mcpUrl } from "@/lib/meerko";
 import { site } from "@/lib/site";
 import { LogoMark } from "../ui/brand";
 import { LookoutCommand } from "./copy-command";
+import { LimeButton, LkFooter, LkNav, Window, kicker, label, sectionTitle } from "./kit";
 import { DemoPlayer } from "./demo-player";
 
 // The landing page from the .pen design "Meerko — Lookout OS (mockup 1)" (node VhHk8).
 
-const label = "font-plex text-[13px] tracking-[0.8px] uppercase";
-const kicker = "inline-flex items-center gap-2.5 font-plex text-[14px] tracking-[0.8px] uppercase text-lk-fg/80 before:size-2 before:bg-lk-lime before:content-['']";
-const sectionTitle = "font-sans text-[32px] font-semibold tracking-[-1.2px] text-lk-fg sm:text-[44px] sm:tracking-[-1.5px]";
-
-/** Paper "OS" window: pixel title bar with a [x], dark hard shadow. */
-function Window({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`bg-lk-paper shadow-[10px_10px_0_#000] outline outline-1 -outline-offset-1 outline-lk-fg ${className}`}>
-      <div className="flex justify-between border-b-[1.5px] border-lk-ink px-3 py-[7px] text-[11px] text-lk-ink">
-        <span className="font-pixel">{title}</span>
-        <span className="font-plex">[x]</span>
-      </div>
-      <div className="p-[18px]">{children}</div>
-    </div>
-  );
-}
-
-function LimeButton({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
-  return (
-    <a href={href} className={`${label} bg-lk-lime px-4 py-[13px] font-semibold text-lk-bg transition hover:brightness-110 ${className}`}>
-      {children}
-    </a>
-  );
-}
-
 // ------------------------------------------------------------------ nav + hero
-
-async function Nav() {
-  // A saved session means signed in; /app re-checks it.
-  const signedIn = !!(await cookies()).get(SESSION_COOKIE)?.value;
-  const links: [string, string][] = [
-    ["Product", "#product"],
-    ["Docs", site.docsUrl],
-    ["Pricing", "#pricing"],
-    ["GitHub", site.githubUrl],
-  ];
-  return (
-    <header className="relative z-10 flex items-center justify-between px-6 py-[22px] lg:px-12">
-      <a href="/" aria-label="Meerko home" className="flex items-center gap-2.5">
-        <LogoMark size={26} />
-        <span className="font-pixel text-[16px] tracking-[0.6px] text-lk-fg">MEERKO</span>
-      </a>
-      <nav className="flex items-center gap-8">
-        {links.map(([name, href]) => (
-          <a key={name} href={href} className="hidden font-plex text-[13px] tracking-[0.6px] text-lk-muted uppercase transition hover:text-lk-fg md:inline">
-            {name}
-          </a>
-        ))}
-        <a
-          href={signedIn ? "/app" : site.signupUrl}
-          className="bg-lk-lime px-3.5 py-[9px] font-plex text-[13px] font-semibold tracking-[0.6px] text-lk-bg transition hover:brightness-110"
-        >
-          {signedIn ? "OPEN APP →" : "START FREE →"}
-        </a>
-      </nav>
-    </header>
-  );
-}
 
 function Hero() {
   return (
@@ -73,7 +16,7 @@ function Hero() {
       <Image src="/landing/lookout-night.jpg" alt="" fill priority sizes="100vw" className="object-cover object-center" />
       <div className="absolute inset-x-0 bottom-0 h-[200px] bg-gradient-to-b from-lk-bg/0 to-lk-bg" />
       <div className="relative mx-auto max-w-[1440px]">
-        <Nav />
+        <LkNav transparent links={[["Product", "#product"], ["Docs", site.docsUrl], ["Guides", "/guides"], ["Pricing", "#pricing"], ["GitHub", site.githubUrl]]} />
         <div className="flex max-w-[688px] flex-col gap-6 px-6 pt-10 lg:max-w-[736px] lg:pt-[72px] lg:pr-0 lg:pl-24">
           <span className={`${label} text-lk-lime`}>● Open source · AGPL-3.0</span>
           <h1 className="font-sans text-[40px] leading-[1.05] font-semibold tracking-[-1.4px] text-lk-fg sm:text-[60px] sm:leading-[62px] sm:tracking-[-2.1px]">
@@ -340,28 +283,6 @@ function Start() {
   );
 }
 
-function Footer() {
-  const links: [string, string][] = [
-    ["Docs", site.docsUrl],
-    ["GitHub", site.githubUrl],
-    ["Privacy", "/privacy"],
-    ["Terms", "/terms"],
-  ];
-  return (
-    <footer className="flex flex-col gap-4 border-t border-lk-line px-6 py-[18px] font-plex text-[12.5px] tracking-[0.8px] text-lk-dim sm:flex-row sm:items-center sm:justify-between lg:px-12">
-      <span>MEERKO · A POLYNODE PROJECT · AGPL-3.0</span>
-      <span className="flex items-center gap-7">
-        {links.map(([name, href]) => (
-          <a key={name} href={href} className="uppercase hover:text-lk-fg">
-            {name}
-          </a>
-        ))}
-        <span className="size-2 bg-lk-lime" />
-      </span>
-    </footer>
-  );
-}
-
 export function LookoutLanding() {
   return (
     <div className="bg-lk-bg text-lk-fg">
@@ -371,7 +292,7 @@ export function LookoutLanding() {
         <Pricing />
         <Start />
       </main>
-      <Footer />
+      <LkFooter />
     </div>
   );
 }
