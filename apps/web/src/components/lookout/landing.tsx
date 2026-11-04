@@ -1,10 +1,10 @@
-import { Bot, Inbox, PanelsTopLeft, Send } from "lucide-react";
 import Image from "next/image";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, mcpUrl } from "@/lib/meerko";
 import { site } from "@/lib/site";
 import { LogoMark } from "../ui/brand";
 import { LookoutCommand } from "./copy-command";
+import { DemoPlayer } from "./demo-player";
 
 // The landing page from the .pen design "Meerko — Lookout OS (mockup 1)" (node VhHk8).
 
@@ -67,90 +67,6 @@ async function Nav() {
   );
 }
 
-const session: [string, "you" | "tool" | "reply" | "quote" | "note" | "gap"][] = [
-  ["> Find 50 Series A fintech CTOs in Spain,", "you"],
-  ["  enrich + verify, write a 3-step sequence.", "you"],
-  ["● meerko.find_people      → 50 leads", "tool"],
-  ["● meerko.enrich_rows      → 47/50 emails", "tool"],
-  ["● meerko.create_sequence  → 3 steps, Gmail", "tool"],
-  ["● meerko.start_sequence   → sending", "tool"],
-  ["", "gap"],
-  ["◆ Lucía M. · CTO @ Ledgr replied", "reply"],
-  ["  “Good timing — can we talk Thursday?”", "quote"],
-  ["  intent: interested · draft ready", "note"],
-];
-const lineColor = { you: "text-lk-fg", tool: "text-lk-muted", reply: "text-lk-lime", quote: "text-lk-fg", note: "text-lk-dim", gap: "" };
-
-const desktop = [
-  { name: "Leads", icon: PanelsTopLeft },
-  { name: "Sequences", icon: Send },
-  { name: "Inbox (4)", icon: Inbox, active: true },
-  { name: "Agent", icon: Bot },
-];
-
-/** The hero's "Meerko OS" machine: an agent session, desktop icons and a draft waiting for approval. */
-function OsWindow() {
-  return (
-    <div className="mx-auto w-full max-w-[1140px] bg-lk-frame px-3 pt-3 shadow-[12px_12px_0_#000] sm:px-[22px] sm:pt-[22px]">
-      <div className="flex flex-col bg-lk-paper lg:h-[540px]">
-        <div className="flex items-center gap-6 border-b border-lk-ink px-3.5 py-2 text-lk-ink">
-          <span className="font-pixel text-[13px]">MEERKO OS</span>
-          {["File", "Leads", "Sequences", "Agent"].map((m) => (
-            <span key={m} className="hidden font-plex text-[12px] sm:inline">
-              {m}
-            </span>
-          ))}
-        </div>
-        <div className="flex flex-1 items-start gap-7 p-4 sm:p-7">
-          <div className="hidden w-24 shrink-0 flex-col items-center gap-[26px] md:flex">
-            {desktop.map(({ name, icon: Icon, active }) => (
-              <div key={name} className="flex flex-col items-center gap-1.5">
-                <span
-                  className={`grid size-11 place-items-center outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline ${active ? "bg-lk-ink text-lk-lime" : "text-lk-ink"}`}
-                >
-                  <Icon className="size-5" strokeWidth={1.75} />
-                </span>
-                <span className="font-pixel text-[10px] text-lk-ink">{name}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col self-stretch bg-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">
-            <div className="flex justify-between border-b-[1.5px] border-lk-ink bg-lk-paper px-3 py-[7px] font-plex text-[11px] text-lk-ink">
-              <span>claude — ~/outbound</span>
-              <span>[x]</span>
-            </div>
-            <div className="flex flex-col gap-[11px] overflow-x-auto p-4 font-plex text-[12px] whitespace-pre sm:p-[22px] sm:text-[13.5px]">
-              {session.map(([text, kind], i) => (
-                <div key={i} className={`min-h-[1lh] ${lineColor[kind]}`}>
-                  {text}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="hidden w-[250px] shrink-0 bg-lk-paper-hi shadow-[5px_5px_0_var(--color-lk-ink)] outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline lg:block">
-            <div className="border-b-[1.5px] border-lk-ink px-3 py-[7px] font-pixel text-[10px] text-lk-ink">DRAFT · NEEDS YOU</div>
-            <div className="flex flex-col gap-3 p-3.5">
-              <p className="text-[13px] leading-5 text-lk-ink">Thursday works. 10:00 or 15:00 your time? I’ll send an invite.</p>
-              <div className="flex gap-2">
-                <span className="flex-1 bg-lk-ink px-2.5 py-2 text-center font-plex text-[11px] font-semibold text-lk-lime">APPROVE</span>
-                <span className="flex-1 px-2.5 py-2 text-center font-plex text-[11px] text-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">
-                  DISCARD
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="flex h-[46px] items-center justify-between px-1.5 font-plex text-[11px] tracking-[1px] text-lk-dim">
-        <span>4 REPLIES WAITING · 1 SEQUENCE RUNNING</span>
-        <span className="flex items-center gap-2">
-          LIVE <span className="size-2 bg-lk-lime" />
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function Hero() {
   return (
     <section className="relative overflow-hidden">
@@ -168,9 +84,24 @@ function Hero() {
             Meerko is the open-source AI sales agent. It finds leads, sends cold email from your own Gmail or Outlook, and catches every reply,
             driven from Claude Code, Codex or Cursor.
           </p>
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <LimeButton href={site.signupUrl}>Start free with 200 credits →</LimeButton>
+            <a
+              href="/docs/quick-start"
+              className={`${label} bg-lk-fg px-4 py-[13px] font-semibold text-lk-ink shadow-[4px_4px_0_var(--color-lk-lime)] transition hover:translate-x-px hover:translate-y-px hover:shadow-[3px_3px_0_var(--color-lk-lime)]`}
+            >
+              Connect your agent →
+            </a>
+          </div>
+          <p className="font-plex text-[12px] tracking-[0.5px] text-lk-muted [text-shadow:0_1px_8px_#000]">
+            Free forever when self-hosted ·{" "}
+            <a href="/docs/self-hosting" className="underline-offset-4 hover:text-lk-fg hover:underline">
+              AGPL-3.0
+            </a>
+          </p>
         </div>
         <div className="px-6 pt-16 pb-16 lg:px-[150px] lg:pt-[84px] lg:pb-[72px]">
-          <OsWindow />
+          <DemoPlayer />
         </div>
       </div>
     </section>
