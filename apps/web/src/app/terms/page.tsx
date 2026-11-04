@@ -82,11 +82,11 @@ export default function TermsPage() {
       <Section n={5} id="data" title="Your data">
         <p>
           You own the data you put into Meerko. You let us store and process it only to run the service for you, as described in the{" "}
-          <a href="/privacy" className="text-accent underline-offset-2 hover:underline">
+          <a href="/privacy" className="text-lk-lime underline-offset-4 hover:underline">
             Privacy policy
           </a>
           . If you need a data processing agreement for the leads and emails we process for you, write to{" "}
-          <a href={`mailto:${site.contactEmail}`} className="text-accent underline-offset-2 hover:underline">
+          <a href={`mailto:${site.contactEmail}`} className="text-lk-lime underline-offset-4 hover:underline">
             {site.contactEmail}
           </a>{" "}
           and we&apos;ll sign one with you.
@@ -98,7 +98,7 @@ export default function TermsPage() {
           items={[
             <>
               Credits pay for data lookups: search results and found or verified emails. Prices are on the{" "}
-              <a href="/pricing" className="text-accent underline-offset-2 hover:underline">
+              <a href="/pricing" className="text-lk-lime underline-offset-4 hover:underline">
                 pricing page
               </a>
               ; misses are free.
