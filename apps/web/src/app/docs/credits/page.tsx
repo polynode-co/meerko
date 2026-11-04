@@ -12,8 +12,8 @@ export default function Page() {
       slug="credits"
       lead={
         <p>
-          On Meerko Cloud, lead search and email finding cost credits. Sending, replies, AI columns and everything else don&apos;t. New
-          workspaces start with 200 free credits.
+          On Meerko Cloud, lead search and email finding cost credits. Sending, replies, AI columns and everything else don&apos;t. Your
+          first workspace starts with 200 free credits, and all your <L href="/docs/workspaces">workspaces</L> share one balance.
         </p>
       }
       toc={[

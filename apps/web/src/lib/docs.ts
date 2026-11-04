@@ -33,6 +33,7 @@ export const docPages: DocPage[] = [
   { slug: "wake-your-agent", group: "Concepts", title: "Wake your agent", description: "Have Meerko call your own agent when replies arrive, so drafts are ready when you are." },
   { slug: "slack", group: "Concepts", title: "Slack", description: "Get replies and your agent's drafts in Slack, and approve them there." },
   { slug: "pipeline", group: "Concepts", title: "Pipeline", description: "Lead stages from new to won, and which moves happen on their own." },
+  { slug: "workspaces", group: "Concepts", title: "Workspaces", description: "One workspace per brand, switching between them, and the plan they share." },
   { slug: "credits", group: "Concepts", title: "Credits", description: "What costs credits on Meerko Cloud, and how to use your own provider keys." },
   { slug: "mcp-tools", group: "Reference", title: "MCP tools", description: "Every tool and command the Meerko MCP server gives your agent." },
   { slug: "cli", group: "Reference", title: "CLI", description: "Every meerko command, from your terminal or scripts." },
@@ -85,6 +86,7 @@ export const cli = reference.cli;
 
 /** How the reference groups the MCP tools. Every tool must be in exactly one group. */
 export const toolGroups: { id: string; label: string; page: string; tools: string[] }[] = [
+  { id: "workspaces", label: "Workspaces", page: "workspaces", tools: ["whoami", "list_workspaces", "switch_workspace", "create_workspace", "rename_workspace"] },
   { id: "tables", label: "Tables", page: "tables", tools: ["list_tables", "create_table", "add_column", "get_pending_cells", "update_rows", "import_rows", "query_rows", "delete_rows", "delete_table"] },
   { id: "leads", label: "Leads", page: "finding-leads", tools: ["find_people", "find_companies", "enrich_rows"] },
   { id: "mailboxes", label: "Mailboxes", page: "mailboxes", tools: ["connect_gmail", "list_mailboxes", "update_mailbox", "send_test_email", "check_domains"] },
