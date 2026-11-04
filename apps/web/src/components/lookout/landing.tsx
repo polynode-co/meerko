@@ -9,7 +9,7 @@ import { DemoPlayer } from "./demo-player";
 // The landing page from the .pen design "Meerko — Lookout OS (mockup 1)" (node VhHk8).
 
 const label = "font-plex text-[12px] tracking-[1.5px] uppercase";
-const kicker = `${label} text-lk-dim`;
+const kicker = "inline-flex items-center gap-2.5 font-plex text-[14px] tracking-[1.5px] uppercase text-lk-fg/80 before:size-2 before:bg-lk-lime before:content-['']";
 const sectionTitle = "font-sans text-[32px] font-semibold tracking-[-1.2px] text-lk-fg sm:text-[44px] sm:tracking-[-1.5px]";
 
 /** Paper "OS" window: pixel title bar with a [x], dark hard shadow. */
@@ -219,10 +219,23 @@ function Steps() {
         <span className={kicker}>01 · How it works</span>
         <h2 className={sectionTitle}>Every step is one tool call.</h2>
       </div>
-      {steps.map((s) => (
-        <article key={s.tag} className="flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-[72px]">
+      <ol className="relative flex flex-col gap-16 lg:gap-24">
+        {/* the rail that ties the steps together */}
+        <span aria-hidden className="absolute top-8 bottom-8 left-[27px] hidden w-0 border-l-2 border-dashed border-lk-gray lg:block" />
+        {steps.map((s, i) => (
+        <li key={s.tag} className="relative flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-[72px] lg:pl-[88px]">
+          <span
+            aria-hidden
+            className="grid size-14 shrink-0 place-items-center bg-lk-lime font-pixel text-[26px] text-lk-ink shadow-[4px_4px_0_#000] lg:absolute lg:top-1/2 lg:left-0 lg:-translate-y-1/2"
+          >
+            {i + 1}
+          </span>
           <div className="flex flex-col items-start gap-[18px] lg:w-[380px] lg:shrink-0">
-            <span className={`${label} text-lk-lime`}>{s.tag}</span>
+            <span className="flex items-center gap-3 font-plex text-[14px] tracking-[1.5px] uppercase">
+              <span className="text-lk-muted">Step {i + 1} of {steps.length}</span>
+              <span className="h-px w-6 bg-lk-line" />
+              <span className="bg-lk-lime/10 px-2 py-1 font-semibold text-lk-lime outline outline-1 -outline-offset-1 outline-lk-lime/40">{s.tag}</span>
+            </span>
             <h3 className="text-[30px] leading-[1.1] font-semibold tracking-[-1.2px] text-lk-fg sm:text-[36px] sm:leading-10">{s.title}</h3>
             <p className="text-[16px] leading-[26px] text-lk-muted">{s.body}</p>
             <a
@@ -233,8 +246,9 @@ function Steps() {
             </a>
           </div>
           <div className="min-w-0 flex-1">{s.window}</div>
-        </article>
-      ))}
+        </li>
+        ))}
+      </ol>
     </section>
   );
 }
