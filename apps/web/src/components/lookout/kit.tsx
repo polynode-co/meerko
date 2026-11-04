@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/meerko";
 import { site } from "@/lib/site";
@@ -150,13 +151,61 @@ export function LkFooter() {
   );
 }
 
+const directory: [string, string, string][] = [
+  ["Docs", "Quick start · MCP tools", site.docsUrl],
+  ["Guides", "Cold email · deliverability", "/guides"],
+  ["Integrations", "Gmail · Outlook · Slack", "/integrations"],
+  ["Pricing", "Free · or $49 a month", site.pricingUrl],
+  ["GitHub", "Open source · AGPL-3.0", site.githubUrl],
+  ["Alternatives", "Clay · Apollo · Instantly", "/alternatives"],
+  ["Privacy", "How we handle your data", "/privacy"],
+  ["Terms", "The small print", "/terms"],
+];
+
+/** The website footer (.pen "LK Footer — Landscape", fKqX3): a link directory, then the colony at dawn. */
+export function LkLandscapeFooter() {
+  return (
+    <footer className="overflow-hidden bg-lk-bg">
+      <div className="mx-auto flex max-w-[1440px] flex-col items-center gap-10 px-6 pt-24 pb-14 lg:px-36 lg:pt-[120px]">
+        <p className={`${kicker} text-center`}>Always on the lookout for your next customer</p>
+        <nav aria-label="Footer" className="grid w-full max-w-[960px] grid-cols-2 gap-x-6 gap-y-9 lg:grid-cols-4">
+          {directory.map(([name, caption, href]) => (
+            <a key={name} href={href} className="group flex flex-col items-center gap-2 text-center">
+              <span className="text-[24px] font-medium tracking-[-0.8px] text-lk-fg transition group-hover:text-lk-lime sm:text-[28px]">{name}</span>
+              <span className="font-plex text-[12px] tracking-[0.8px] text-lk-dim uppercase">{caption}</span>
+            </a>
+          ))}
+        </nav>
+      </div>
+      <div className="relative min-h-[320px] w-full md:aspect-[1584/672] md:min-h-0">
+        <Image src="/landing/lookout-dawn.jpg" alt="" fill sizes="100vw" className="object-cover object-[80%_center] md:object-center" />
+        <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-lk-bg via-lk-bg/80 md:h-[53%] to-lk-bg/0" />
+        {/* the pin sits over the lookout on the rock */}
+        <a href={site.signupUrl} className="group absolute top-[21%] left-[88%] hidden -translate-x-1/2 flex-col items-center gap-1.5 md:flex">
+          <span className="font-plex text-[12px] tracking-[0.8px] text-lk-fg uppercase">Start</span>
+          <span className="text-[17px] font-medium text-lk-fg group-hover:text-lk-lime">Free · 200 credits</span>
+          <span className="h-0 w-0 border-x-[7px] border-t-[10px] border-x-transparent border-t-lk-lime" />
+        </a>
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-lk-bg/0 via-lk-bg/85 to-lk-bg pt-16">
+          <div className="mx-auto flex max-w-[1440px] flex-col gap-2 px-6 pb-5 font-plex text-[12.5px] tracking-[0.8px] text-lk-muted sm:flex-row sm:items-center sm:justify-between lg:px-12">
+            <span>MEERKO · A POLYNODE PROJECT · AGPL-3.0</span>
+            <span className="flex items-center gap-2.5">
+              © {new Date().getFullYear()} POLYNODE TECHNOLOGIES S.L. <span className="size-2 bg-lk-lime" />
+            </span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 /** A marketing page: night background, nav, the page, footer. */
 export async function LkPage({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-lk-bg text-lk-fg">
       <LkNav />
       <main>{children}</main>
-      <LkFooter />
+      <LkLandscapeFooter />
     </div>
   );
 }

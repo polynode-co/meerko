@@ -3,7 +3,7 @@ import { mcpUrl } from "@/lib/meerko";
 import { site } from "@/lib/site";
 import { LogoMark } from "../ui/brand";
 import { LookoutCommand } from "./copy-command";
-import { LimeButton, LkFooter, LkNav, Window, kicker, label, sectionTitle } from "./kit";
+import { LimeButton, LkLandscapeFooter, LkNav, Window, kicker, label, sectionTitle } from "./kit";
 import { DemoPlayer } from "./demo-player";
 
 // The landing page from the .pen design "Meerko — Lookout OS (mockup 1)" (node VhHk8).
@@ -292,7 +292,7 @@ export function LookoutLanding() {
         <Pricing />
         <Start />
       </main>
-      <LkFooter />
+      <LkLandscapeFooter />
     </div>
   );
 }

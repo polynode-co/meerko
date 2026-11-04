@@ -1,6 +1,6 @@
 import { ExternalLink, Scale } from "lucide-react";
 import { JsonLd, faqJsonLd } from "@/components/json-ld";
-import { GhostButton, LimeButton, LkFooter, LkNav } from "@/components/lookout/kit";
+import { GhostButton, LimeButton, LkLandscapeFooter, LkNav } from "@/components/lookout/kit";
 import { LogoMark } from "@/components/ui/brand";
 import { guideBySlug, relatedGuides } from "@/lib/content";
 import { site } from "@/lib/site";
@@ -225,7 +225,7 @@ export function GuideShell({ slug, eyebrow, h1, lead, toc, sources, faq, cta = "
           </aside>
         </div>
       </main>
-      <LkFooter />
+      <LkLandscapeFooter />
       <JsonLd data={article} />
       {faq && <JsonLd data={faqJsonLd(faq)} />}
     </div>

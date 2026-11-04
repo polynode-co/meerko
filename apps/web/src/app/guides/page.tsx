@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { LimeButton, LkFooter, LkNav, kicker, lead, pageTitle } from "@/components/lookout/kit";
+import { LimeButton, LkLandscapeFooter, LkNav, kicker, lead, pageTitle } from "@/components/lookout/kit";
 import { LkBreadcrumbs } from "@/components/lookout/docs/breadcrumbs";
 import { alternatives, FEATURED_GUIDE, guideBySlug, guides, TOPICS, topicMeta } from "@/lib/content";
 import { site } from "@/lib/site";
@@ -132,7 +132,7 @@ export default function GuidesHub() {
           </div>
         </section>
       </main>
-      <LkFooter />
+      <LkLandscapeFooter />
     </div>
   );
 }
