@@ -78,12 +78,14 @@ export default function Page() {
 
       <Step n={4} id="google" title="Connect a mailbox (to send email)">
         <p>
-          Meerko sends from Gmail and Google Workspace over IMAP and SMTP with an app password, so sending needs no Google Cloud setup.
-          Set a key to encrypt the stored passwords:
+          Meerko sends from your own mailbox: Gmail and Google Workspace, Zoho, Fastmail or any IMAP/SMTP server with an app password,
+          or Outlook and Microsoft 365 (below). App passwords need no Google Cloud or other developer setup. Set a key to encrypt the
+          stored passwords and tokens:
         </p>
         {sh(["# generate with: openssl rand -base64 32", "MEERKO_ENCRYPTION_KEY=…"], ".env")}
         <p>
-          Restart <C>pnpm dev</C>, then connect a mailbox from Settings in the dashboard, or with <C>pnpm meerko mailboxes connect</C>.
+          Restart <C>pnpm dev</C>, then connect a mailbox from Settings in the dashboard (pick your provider), or with{" "}
+          <C>pnpm meerko mailboxes connect</C> (<C>--provider zoho</C>, <C>fastmail</C> or <C>other</C> with your IMAP and SMTP hosts).
           Both explain how to create the app password; <L href="/docs/mailboxes#connect">Mailboxes</L> has the details.
         </p>
         <Callout>
@@ -92,6 +94,18 @@ export default function Page() {
             without it.
           </p>
         </Callout>
+        <p>
+          <strong className="text-fg">Optional: Outlook and Microsoft 365.</strong> Outlook connects with Sign in with Microsoft, through
+          your own app. In Microsoft Entra (App registrations), register an app for &quot;any organizational directory and personal
+          Microsoft accounts&quot;, with the redirect URI <C>http://localhost:8787/oauth/microsoft/callback</C> and the delegated Microsoft
+          Graph permissions <C>Mail.Send</C>, <C>Mail.Read</C>, <C>User.Read</C> and <C>offline_access</C>. Create a client secret and put
+          both in <C>.env</C>; Settings then offers Outlook:
+        </p>
+        {sh(["MICROSOFT_CLIENT_ID=…", "MICROSOFT_CLIENT_SECRET=…"], ".env")}
+        <p>
+          Microsoft accepts plain <C>http://</C> redirect URIs only for <C>localhost</C>: on a server, the API needs HTTPS. Work accounts
+          need a Microsoft 365 license with Exchange Online (Outlook); Meerko refuses an account without a mailbox and says so.
+        </p>
         <p>
           <strong className="text-fg">Optional: Sign in with Google.</strong> For the dashboard&apos;s &quot;Sign in with Google&quot;,
           create an OAuth client of type <strong className="text-fg">Web application</strong> in a Google Cloud project, with the
@@ -138,13 +152,15 @@ export default function Page() {
           ["MEERKO_ENCRYPTION_KEY", "32 bytes, base64. Encrypts mailbox app passwords and tokens, provider keys and unsubscribe links. Required to send, to sign in with Google, for agent sign-in and to store provider keys."],
           ["GOOGLE_CLIENT_ID · GOOGLE_CLIENT_SECRET", "Your OAuth client, for Sign in with Google, and for mailboxes connected through Google's consent page. Not needed to send with app passwords."],
           ["MEERKO_GMAIL_OAUTH", "1 offers Google's consent page (Gmail API) for connecting mailboxes, besides app passwords. Needs the OAuth client and the Gmail API. Off by default."],
-          ["MICROSOFT_CLIENT_ID · MICROSOFT_CLIENT_SECRET", "Your app in Microsoft Entra, for connecting Outlook and Microsoft 365 mailboxes (.env.example lists its setup). Without them, Outlook isn't offered."],
+          ["MICROSOFT_CLIENT_ID · MICROSOFT_CLIENT_SECRET", "Your app in Microsoft Entra, for connecting Outlook and Microsoft 365 mailboxes (step 4). Without them, Outlook isn't offered."],
+          ["SLACK_CLIENT_ID · SLACK_CLIENT_SECRET · SLACK_SIGNING_SECRET", <>Your Slack app, for replies and drafts in a channel with Approve buttons, and /meerko. Without them, Settings → Slack takes a pasted incoming webhook instead, which only posts. Setup in <L href="/docs/slack">Slack</L>.</>],
+          ["MEERKO_ALLOW_PRIVATE_HOOKS", "1 lets agent hooks (Wake your agent) call private addresses such as localhost or your LAN. Self-hosting only; off by default."],
           ["MEERKO_SIGNUP", "invite (default): only addresses added with pnpm db:invite can sign in with Google. open: anyone can."],
           ["ICYPEAS_API_KEY", "Lead search and email finding for every workspace on this server."],
           ["MEERKO_CREDITS", "off (default) when self-hosting. on meters search and enrichment in credits, as on Meerko Cloud. Setting up Stripe turns it on."],
           ["MEERKO_TICK_SECRET", "Meerko Cloud only, where a scheduler replaces the worker. Leave it empty."],
           ["STRIPE_*", "Billing, as on Meerko Cloud (see .env.example). Leave them empty: no billing and no plan limits."],
-          ["POSTHOG_API_KEY · NEXT_PUBLIC_POSTHOG_KEY", "Product analytics. Leave them empty and nothing is sent anywhere."],
+          ["POSTHOG_API_KEY · NEXT_PUBLIC_POSTHOG_KEY · POSTHOG_HOST", "Product analytics (POSTHOG_HOST defaults to PostHog's EU cloud). Leave the keys empty and nothing is sent anywhere."],
           ["NEXT_PUBLIC_SITE_URL", "The dashboard's public URL, built into its image (Docker builds only). Same as MEERKO_APP_URL."],
         ]}
       />
@@ -179,8 +195,9 @@ export default function Page() {
       <H2 id="production">Running it in production</H2>
       <ul className="flex list-disc flex-col gap-2 pl-6">
         <li>
-          Serve the API on a public URL and set <C>MEERKO_PUBLIC_URL</C> to it: recipients click unsubscribe links on it, and Google
-          redirects to it. Update the OAuth client&apos;s redirect URIs to match.
+          Serve the API on a public URL and set <C>MEERKO_PUBLIC_URL</C> to it: recipients click unsubscribe links on it, and Google,
+          Microsoft and Slack redirect to it. Update the redirect URIs in each app you set up to match (<C>/auth/google/callback</C>,{" "}
+          <C>/oauth/google/callback</C>, <C>/oauth/microsoft/callback</C>, and the Slack app&apos;s URLs).
         </li>
         <li>
           Set <C>MEERKO_APP_URL</C> to the dashboard&apos;s public URL too, and serve both over HTTPS behind a reverse proxy. With
