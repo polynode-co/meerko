@@ -1,17 +1,10 @@
-import { CircleHelp, Mail, MessageSquare, Sparkles, TriangleAlert, Waves } from "lucide-react";
+import { Mail, Waves } from "lucide-react";
 import Link from "next/link";
 import { STAGES } from "@meerko/sdk";
-import { Card, EmptyState, label, PageHeader } from "@/components/app/ui";
+import { buttonClass, Card, CardHead, EmptyState, headLink, intentTone, label, monoLabel, Page, PageHeader, Pill, type PillTone } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
 
-const barColor: Record<string, string> = {
-  new: "bg-line",
-  contacted: "bg-accent",
-  replied: "bg-signal",
-  meeting: "bg-signal/60",
-  won: "bg-fg",
-  lost: "bg-line",
-};
+// "LK · App Overview" (rhl3j) in the .pen file.
 
 export default async function OverviewPage() {
   const [pipeline, sequences, replies, drafts, mailboxes] = await load((c) =>
@@ -20,19 +13,22 @@ export default async function OverviewPage() {
   const stats = await load((c) => Promise.all(sequences.map((s) => c.sequenceStats(s.id))));
 
   const draftFor = new Set(drafts.map((d) => d.replyId));
-  const needs = [
-    ...drafts.map((d) => ({ icon: Sparkles, tone: "text-accent", line: `Draft ready for ${d.to}`, sub: `${d.intent ? label(d.intent) : "reply"} · approve or edit` })),
+  const needs: { line: string; sub: string; pills: [string, PillTone][] }[] = [
+    ...drafts.map((d) => ({
+      line: `Draft ready for ${d.to}`,
+      sub: `${d.intent ? label(d.intent) : "reply"} · approve or edit`,
+      pills: [["draft ready", "solid"]] as [string, PillTone][],
+    })),
     ...replies
       .filter((r) => !draftFor.has(r.id))
       .map((r) => ({
-        icon: r.intent === "question" ? CircleHelp : MessageSquare,
-        tone: "text-signal",
         line: `${r.from} replied`,
         sub: `${r.intent ? label(r.intent) : "unclassified"} · ${r.sequenceName ?? "sequence"}`,
+        pills: [[r.intent ? label(r.intent) : "unclassified", r.intent ? intentTone[r.intent] : "neutral"]] as [string, PillTone][],
       })),
     ...mailboxes
       .filter((m) => m.status === "error")
-      .map((m) => ({ icon: TriangleAlert, tone: "text-[#e5795b]", line: `${m.email} lost access`, sub: "reconnect it in Settings" })),
+      .map((m) => ({ line: `${m.email} lost access`, sub: "reconnect it in Settings", pills: [["reconnect", "amber"]] as [string, PillTone][] })),
   ];
   const max = Math.max(1, ...STAGES.map((s) => pipeline.stages[s]));
   const sent = stats.reduce((n, s) => n + s.emailsSent, 0);
@@ -40,84 +36,110 @@ export default async function OverviewPage() {
   const replied = stats.reduce((n, s) => n + (s.states.replied ?? 0), 0);
 
   return (
-    <div className="flex flex-col gap-6 px-8 py-7">
+    <Page>
       <PageHeader
         eyebrow="Overview"
         title={needs.length ? `${needs.length} ${needs.length === 1 ? "thing needs" : "things need"} you.` : "All caught up."}
+        actions={
+          <>
+            <a href="/docs/quick-start" className={buttonClass("secondary")}>
+              Connect your agent
+            </a>
+            <Link href="/app/leads/find" className={buttonClass("primary")}>
+              Find leads →
+            </Link>
+          </>
+        }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <Card className="flex flex-col gap-4 p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-semibold">Pipeline</h2>
-            <span className="font-mono text-xs text-muted">{pipeline.total.toLocaleString("en")} leads</span>
-          </div>
-          {pipeline.total === 0 ? (
-            <EmptyState icon={Waves} title="No leads yet">
-              Ask your agent to “find 50 social media agency founders in Spain” and they’ll land here.
-            </EmptyState>
-          ) : (
-            <>
+      <Card>
+        <CardHead title="Pipeline">
+          <span className={monoLabel}>{pipeline.total.toLocaleString("en")} leads</span>
+        </CardHead>
+        {pipeline.total === 0 ? (
+          <EmptyState icon={Waves} title="No leads yet">
+            Ask your agent to “find 50 social media agency founders in Spain” and they’ll land here.
+          </EmptyState>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-px bg-lk-line sm:grid-cols-3 xl:grid-cols-6">
               {STAGES.map((s) => (
-                <div key={s} className="flex items-center gap-3.5">
-                  <span className="w-20 text-[13px] text-muted capitalize">{s}</span>
-                  <div className="h-[22px] flex-1 rounded bg-white/[0.03]">
-                    <div className={`h-full rounded ${barColor[s]}`} style={{ width: `${Math.max(pipeline.stages[s] ? 1 : 0, (pipeline.stages[s] / max) * 100)}%` }} />
+                <div key={s} className="flex flex-col gap-2.5 bg-lk-box px-[18px] py-[18px]">
+                  <span className={monoLabel}>{s}</span>
+                  <span className={`text-[32px] leading-none font-semibold tracking-[-1px] ${s === "meeting" || s === "won" ? "text-lk-lime" : "text-lk-fg"}`}>
+                    {pipeline.stages[s].toLocaleString("en")}
+                  </span>
+                  <div className="h-1 bg-lk-line">
+                    <div
+                      className={`h-full ${s === "lost" ? "bg-lk-gray" : "bg-lk-lime"}`}
+                      style={{ width: `${Math.max(pipeline.stages[s] ? 2 : 0, (pipeline.stages[s] / max) * 100)}%` }}
+                    />
                   </div>
-                  <span className="w-12 text-right font-mono text-[13px] font-bold">{pipeline.stages[s]}</span>
                 </div>
               ))}
-              <p className="text-xs text-muted">
-                {enrolled ? `Reply rate ${((replied / enrolled) * 100).toFixed(1)}% · ${sent} emails sent across ${sequences.length} ${sequences.length === 1 ? "sequence" : "sequences"}` : "No emails sent yet"}
-              </p>
-            </>
+            </div>
+            <p className="border-t border-lk-line px-[18px] py-3 font-plex text-[13px] tracking-[0.4px] text-lk-dim">
+              {enrolled
+                ? `Reply rate ${((replied / enrolled) * 100).toFixed(1)}% · ${sent} emails sent across ${sequences.length} ${sequences.length === 1 ? "sequence" : "sequences"}`
+                : "No emails sent yet"}
+            </p>
+          </>
+        )}
+      </Card>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card>
+          <CardHead title="Needs you">
+            <Link href="/app/inbox" className={headLink}>
+              Open inbox →
+            </Link>
+          </CardHead>
+          {needs.length === 0 ? (
+            <p className="px-[18px] py-6 text-[15px] text-lk-muted">Nothing waiting. New replies show up here within a couple of minutes.</p>
+          ) : (
+            needs.slice(0, 6).map((n, i) => (
+              <Link key={i} href="/app/inbox" className="flex items-center gap-3.5 border-b border-lk-line px-[18px] py-3.5 transition last:border-0 hover:bg-lk-frame">
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="truncate text-[15.5px] font-semibold text-lk-fg">{n.line}</span>
+                  <span className="truncate text-[15px] text-lk-muted">{n.sub}</span>
+                </span>
+                <span className="flex shrink-0 flex-wrap justify-end gap-2">
+                  {n.pills.map(([text, tone]) => (
+                    <Pill key={text} tone={tone}>
+                      {text}
+                    </Pill>
+                  ))}
+                </span>
+              </Link>
+            ))
           )}
         </Card>
 
-        <Card raised className="flex flex-col p-5">
-          <div className="flex items-center justify-between pb-2.5">
-            <h2 className="text-[15px] font-semibold">Needs you</h2>
-            <Link href="/app/inbox" className="text-xs text-accent hover:underline">Open inbox →</Link>
-          </div>
-          {needs.length === 0 ? (
-            <p className="py-6 text-[13px] text-muted">Nothing waiting. New replies show up here within a couple of minutes.</p>
+        <Card>
+          <CardHead title="Sequences">
+            <Link href="/app/sequences" className={headLink}>
+              All sequences →
+            </Link>
+          </CardHead>
+          {sequences.length === 0 ? (
+            <EmptyState icon={Mail} title="No sequences yet">
+              Ask your agent to “write a 3-step sequence for this table and show me a preview”.
+            </EmptyState>
           ) : (
-            needs.slice(0, 6).map((n, i) => (
-              <Link key={i} href="/app/inbox" className="flex items-start gap-3 border-b border-line py-2.5 last:border-0 hover:opacity-80">
-                <n.icon className={`mt-0.5 size-4 shrink-0 ${n.tone}`} />
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="truncate text-[13px] font-medium">{n.line}</span>
-                  <span className="text-xs text-muted">{n.sub}</span>
+            stats.map((s) => (
+              <Link key={s.id} href={`/app/sequences/${s.id}`} className="flex flex-col gap-2.5 border-b border-lk-line px-[18px] py-3.5 transition last:border-0 hover:bg-lk-frame">
+                <span className="flex items-center justify-between gap-3">
+                  <span className="truncate text-[15.5px] font-semibold text-lk-fg">{s.name}</span>
+                  <Pill tone={s.status === "active" ? "solid" : "neutral"}>{s.status === "active" ? "sending" : s.status}</Pill>
+                </span>
+                <span className="font-plex text-[13px] tracking-[0.6px] text-lk-dim uppercase">
+                  {s.emailsSent} sent · <span className={s.replyRate ? "text-lk-lime" : ""}>{s.replyRate}% replied</span>
                 </span>
               </Link>
             ))
           )}
         </Card>
       </div>
-
-      <Card className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="text-[15px] font-semibold">Sequences</h2>
-          <Link href="/app/sequences" className="text-xs text-accent hover:underline">All sequences →</Link>
-        </div>
-        {sequences.length === 0 ? (
-          <EmptyState icon={Mail} title="No sequences yet">
-            Ask your agent to “write a 3-step sequence for this table and show me a preview”.
-          </EmptyState>
-        ) : (
-          stats.map((s) => (
-            <Link key={s.id} href={`/app/sequences/${s.id}`} className="flex items-center gap-4 border-b border-line px-5 py-3.5 last:border-0 hover:bg-raised">
-              <span className={`size-2 rounded-full ${s.status === "active" ? "bg-signal" : s.status === "paused" ? "bg-muted" : "bg-accent"}`} />
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-[13px] font-semibold">{s.name}</span>
-                <span className="text-xs text-muted capitalize">{s.status === "active" ? "sending" : s.status}</span>
-              </span>
-              <span className="font-mono text-xs text-muted">{s.emailsSent} sent</span>
-              <span className={`w-24 text-right font-mono text-xs ${s.replyRate ? "text-signal" : "text-muted"}`}>{s.replyRate}% replied</span>
-            </Link>
-          ))
-        )}
-      </Card>
-    </div>
+    </Page>
   );
 }

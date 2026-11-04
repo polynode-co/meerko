@@ -12,7 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const mailbox = mailboxes[0] ?? null;
 
   return (
-    <div className="flex min-h-dvh">
+    <div className="flex min-h-dvh flex-col bg-lk-bg text-lk-fg lg:flex-row">
       <Sidebar
         workspace={me.workspace.name}
         userEmail={me.user?.email ?? null}

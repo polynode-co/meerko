@@ -15,7 +15,7 @@ export function EnrollButton({ sequenceId, tableName }: { sequenceId: string; ta
         <UserPlus className="size-[15px]" />
         {pending ? "Adding…" : `Add everyone from ${tableName}`}
       </button>
-      {result && <span role="status" className={`text-xs ${result.ok ? "text-muted" : "text-[#e5795b]"}`}>{result.ok ? result.message : result.error}</span>}
+      {result && <span role="status" className={`text-sm ${result.ok ? "text-lk-dim" : "text-[#e5795b]"}`}>{result.ok ? result.message : result.error}</span>}
     </div>
   );
 }

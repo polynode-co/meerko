@@ -1,19 +1,28 @@
 import { FindLeads } from "@/components/app/find-leads";
-import { Card, PageHeader } from "@/components/app/ui";
+import { AgentHint, Card, CardHead, Page, PageHeader, Pill } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
+
+// "LK · App Find leads" (oxUjs) in the .pen file.
 
 export default async function FindLeadsPage() {
   const [tables, credits] = await load((c) => Promise.all([c.listTables(), c.getCredits()]));
   return (
-    <div className="flex flex-col gap-6 px-8 py-7">
+    <Page>
       <PageHeader
-        eyebrow="Leads"
+        eyebrow="Leads / Find"
         title="Find leads"
         meta="Search people and companies, see how many match for free, then save the ones you want into a table."
+        actions={credits.enabled && <Pill tone="amber">{(credits.balance ?? 0).toLocaleString("en")} credits</Pill>}
       />
-      <Card raised className="max-w-3xl p-6">
-        <FindLeads tables={tables.map((t) => ({ id: t.id, name: t.name }))} credits={credits.enabled ? credits.balance : null} />
+      <Card className="max-w-[880px]">
+        <CardHead title="Who do you sell to?" />
+        <div className="p-[18px]">
+          <FindLeads tables={tables.map((t) => ({ id: t.id, name: t.name }))} credits={credits.enabled ? credits.balance : null} />
+        </div>
       </Card>
-    </div>
+      <div className="max-w-[880px]">
+        <AgentHint command="find 50 fintech CTOs in Spain">Or let your agent search for you.</AgentHint>
+      </div>
+    </Page>
   );
 }

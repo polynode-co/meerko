@@ -26,9 +26,9 @@ export function TestEmail({ mailboxId, defaultTo }: { mailboxId: string; default
       }}
       className="flex flex-wrap items-center gap-2"
     >
-      <input value={to} onChange={(e) => setTo(e.target.value)} type="email" placeholder="you@company.com" required className="w-56 rounded-lg border border-line bg-ink px-3 py-1.5 font-mono text-xs" />
+      <input value={to} onChange={(e) => setTo(e.target.value)} type="email" placeholder="you@company.com" required className="w-56 bg-lk-ink px-3 py-1.5 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime font-plex text-sm" />
       <button disabled={pending} className={buttonClass()}>{pending ? "Sending…" : "Send"}</button>
-      {result && <span role="status" className={`text-xs ${result.ok ? "text-signal" : "text-[#e5795b]"}`}>{result.ok ? result.message : result.error}</span>}
+      {result && <span role="status" className={`text-sm ${result.ok ? "text-lk-lime" : "text-[#e5795b]"}`}>{result.ok ? result.message : result.error}</span>}
     </form>
   );
 }

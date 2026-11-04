@@ -12,14 +12,14 @@ export function EnrichButton({ tableId }: { tableId: string }) {
   return (
     <div className="flex items-center gap-3">
       {result && (
-        <span role="status" className={`max-w-xs text-xs ${result.ok ? "text-muted" : "text-[#e5795b]"}`}>
+        <span role="status" className={`max-w-xs text-sm ${result.ok ? "text-lk-dim" : "text-[#e5795b]"}`}>
           {result.ok ? result.message : result.error}
         </span>
       )}
       <button
         disabled={pending}
         onClick={() => start(async () => setResult(await enrichEmails(tableId)))}
-        className={buttonClass("primary")}
+        className={buttonClass("secondary")}
       >
         <MailSearch className="size-[15px]" />
         {pending ? "Finding emails…" : "Find & verify emails"}

@@ -19,7 +19,7 @@ export function DisconnectMailbox({ mailboxId, email }: { mailboxId: string; ema
     );
   }
   return (
-    <span className="flex basis-full flex-wrap items-center justify-end gap-2 text-[13px]">
+    <span className="flex basis-full flex-wrap items-center justify-end gap-2 text-[15px]">
       <span className={error ? "text-[#e5795b]" : undefined}>{error ?? `Disconnect ${email}? Meerko stops sending from it and checking it for replies.`}</span>
       {!error && (
         <button
@@ -31,7 +31,7 @@ export function DisconnectMailbox({ mailboxId, email }: { mailboxId: string; ema
               if (!res.ok) setError(res.error);
             })
           }
-          className={`${buttonClass("ghost")} text-[#e5795b]`}
+          className={buttonClass("danger")}
         >
           {pending ? "Disconnecting…" : "Disconnect"}
         </button>
