@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { JsonLd } from "@/components/json-ld";
+import { JsonLd, faqJsonLd } from "@/components/json-ld";
 import { LookoutLanding } from "@/components/lookout/landing";
+import { faqs } from "@/components/lookout/landing-more";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
@@ -27,6 +28,7 @@ export default function Home() {
     <>
       <LookoutLanding />
       <JsonLd data={app} />
+      <JsonLd data={faqJsonLd(faqs)} />
     </>
   );
 }

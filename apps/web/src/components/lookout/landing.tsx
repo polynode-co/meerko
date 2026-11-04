@@ -5,6 +5,7 @@ import { LogoMark } from "../ui/brand";
 import { LookoutCommand } from "./copy-command";
 import { LimeButton, LkLandscapeFooter, LkNav, Window, kicker, label, sectionTitle } from "./kit";
 import { DemoPlayer } from "./demo-player";
+import { GtmFaq, OpenSource, Problem, Superpowers, WorksWith } from "./landing-more";
 
 // The landing page from the .pen design "Meerko — Lookout OS (mockup 1)" (node VhHk8).
 
@@ -211,7 +212,7 @@ function Pricing() {
       <div className="mx-auto flex max-w-[1440px] flex-col gap-10 px-6 py-24 lg:px-36">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-[18px]">
-            <span className={kicker}>02 · Pricing</span>
+            <span className={kicker}>04 · Pricing</span>
             <h2 className={sectionTitle}>One plan. Credits for the data.</h2>
           </div>
           <p className="text-[16px] text-lk-muted">$1 = 100 credits. Misses are free. Credits don’t expire.</p>
@@ -268,7 +269,7 @@ function Pricing() {
 function Start() {
   return (
     <section className="flex flex-col items-center gap-5 px-6 pt-20 pb-[120px] text-center">
-      <span className={kicker}>03 · Start</span>
+      <span className={kicker}>07 · Start</span>
       <h2 className={sectionTitle}>Put a meerkat on watch.</h2>
       <p className="text-[17px] text-lk-muted">Connect it to your coding agent in one command.</p>
       <div className="flex w-full max-w-[820px] flex-col gap-5 bg-[radial-gradient(ellipse_50%_50%_at_50%_50%,var(--color-lk-frame)_0%,var(--color-lk-ink)_100%)] p-5 text-left outline outline-1 -outline-offset-1 outline-lk-gray sm:p-8">
@@ -288,8 +289,13 @@ export function LookoutLanding() {
     <div className="bg-lk-bg text-lk-fg">
       <Hero />
       <main>
+        <WorksWith />
         <Steps />
+        <Problem n="02" />
+        <Superpowers n="03" />
         <Pricing />
+        <OpenSource n="05" />
+        <GtmFaq n="06" />
         <Start />
       </main>
       <LkLandscapeFooter />
