@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import { site } from "@/lib/site";
 import { Container, Eyebrow, SectionTitle } from "../ui/primitives";
 
-const plans = [
+export const plans = [
   {
     name: "Self-hosted",
     price: "$0",

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { Footer } from "@/components/sections/footer";
-import { Nav } from "@/components/sections/nav";
-import { JsonLd, faqJsonLd } from "@/components/json-ld";
-import { CreditCosts, Pricing, PricingFaq, pricingFaq } from "@/components/sections/pricing";
+import { LkPage } from "@/components/lookout/kit";
+import { PricingPage as Pricing } from "@/components/lookout/marketing/pricing";
 
 export const metadata: Metadata = {
   title: "Meerko pricing: free open-source AI sales agent, Cloud from $49/mo",
@@ -12,15 +10,8 @@ export const metadata: Metadata = {
 
 export default function PricingPage() {
   return (
-    <>
-      <Nav />
-      <main>
-        <Pricing />
-        <CreditCosts />
-        <PricingFaq />
-        <JsonLd data={faqJsonLd(pricingFaq)} />
-      </main>
-      <Footer />
-    </>
+    <LkPage>
+      <Pricing />
+    </LkPage>
   );
 }

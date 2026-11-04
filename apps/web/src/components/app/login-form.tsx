@@ -1,8 +1,9 @@
 "use client";
 
-import { Check, Gift, Ticket } from "lucide-react";
+import { Gift, Ticket } from "lucide-react";
+import Image from "next/image";
 import { useActionState } from "react";
-import { Logo, Mascot } from "@/components/ui/brand";
+import { LogoMark } from "@/components/ui/brand";
 import { login } from "@/app/app/actions";
 
 function GoogleIcon() {
@@ -16,22 +17,19 @@ function GoogleIcon() {
   );
 }
 
-/** The sand panel beside the form (hidden on small screens). */
-function BrandPanel() {
+/** The night panel beside the form (hidden on small screens), from the .pen design "LK · Login" (M5oPmh). */
+function NightPanel() {
   return (
-    <aside className="hidden w-[44%] max-w-[620px] shrink-0 flex-col items-center justify-center gap-10 bg-sand p-16 text-dark lg:flex">
-      <Mascot className="h-[240px] w-auto" />
-      <div className="flex max-w-[440px] flex-col items-center gap-3.5 text-center">
-        <p className="font-display text-[32px] leading-[1.1] font-bold tracking-[-0.02em]">Always on the lookout for your next reply.</p>
-        <p className="leading-[1.5] text-dark-muted">Find leads, send from your own Gmail or Outlook and catch every reply — from the dashboard or your agent.</p>
+    <aside className="relative hidden w-1/2 shrink-0 flex-col justify-between overflow-hidden p-12 lg:flex">
+      <Image src="/landing/lookout-night.jpg" alt="" fill priority sizes="50vw" className="object-cover object-center" />
+      <a href="/" aria-label="Meerko home" className="relative flex items-center gap-2.5 self-start">
+        <LogoMark size={26} />
+        <span className="font-pixel text-[16px] tracking-[0.6px] text-lk-fg">MEERKO</span>
+      </a>
+      <div className="relative flex flex-col gap-3.5 bg-lk-bg/80 p-6 outline outline-1 -outline-offset-1 outline-lk-line backdrop-blur-sm">
+        <p className="font-plex text-[12.5px] tracking-[0.8px] text-lk-lime uppercase">● Open source · Your own inbox · Works in Claude Code</p>
+        <p className="text-[24px] leading-[1.2] font-semibold tracking-[-0.6px] text-lk-fg">Always on the lookout for your next reply.</p>
       </div>
-      <ul className="flex flex-wrap justify-center gap-2.5">
-        {["Open source", "Your own inbox", "Works in Claude Code"].map((t) => (
-          <li key={t} className="flex items-center gap-1.5 rounded-full bg-dark/5 px-3 py-1.5 text-[13px] font-medium">
-            <Check className="size-3.5 text-[#0e9f6e]" /> {t}
-          </li>
-        ))}
-      </ul>
     </aside>
   );
 }
@@ -40,31 +38,37 @@ function BrandPanel() {
 export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: string | null; inviteOnly: boolean; notice?: string; next?: string | null }) {
   const [state, action, pending] = useActionState(login, null);
   const error = state && !state.ok ? state.error : notice;
+  const button =
+    "flex items-center justify-center gap-3 bg-lk-fg px-4 py-[15px] font-plex text-[13px] font-semibold tracking-[0.8px] text-lk-ink uppercase shadow-[4px_4px_0_var(--color-lk-lime)] transition hover:translate-x-px hover:translate-y-px hover:shadow-[3px_3px_0_var(--color-lk-lime)] disabled:opacity-50";
 
   return (
-    <div className="flex min-h-dvh">
-      <main className="flex flex-1 flex-col justify-between gap-10 px-6 py-8 sm:px-16 sm:py-10">
-        <a href="/" aria-label="Meerko home" className="self-start">
-          <Logo size={30} className="text-[22px]" />
+    <div className="flex min-h-dvh bg-lk-bg text-lk-fg">
+      <NightPanel />
+      <main className="flex flex-1 flex-col justify-between gap-10 px-6 py-8 sm:px-12 sm:py-12">
+        <a href="/" aria-label="Meerko home" className="flex items-center gap-2.5 self-start lg:invisible">
+          <LogoMark size={26} />
+          <span className="font-pixel text-[16px] tracking-[0.6px] text-lk-fg">MEERKO</span>
         </a>
 
         <div className="flex justify-center">
-          <div className="flex w-full max-w-[400px] flex-col gap-7">
-            <div className="flex flex-col gap-2.5">
-              <h1 className="font-display text-4xl font-bold tracking-[-0.02em]">Open your workspace</h1>
-              <p className="leading-[1.5] text-muted">
-                {googleUrl ? (
-                  "Sign in with the Google account Meerko knows you by."
-                ) : (
-                  <>
-                    Paste your Meerko API key. Create one with <span className="font-mono text-fg">pnpm db:seed</span> on a self-hosted install.
-                  </>
-                )}
-              </p>
-            </div>
+          <div className="flex w-full max-w-[420px] flex-col gap-5">
+            {/* The kit's kicker (components/lookout/kit.tsx is server-only, so its classes are repeated here). */}
+            <p className="inline-flex items-center gap-2.5 font-plex text-[14px] tracking-[0.8px] text-lk-fg/80 uppercase before:size-2 before:bg-lk-lime before:content-['']">
+              Sign in
+            </p>
+            <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-1.2px] sm:text-[40px] sm:tracking-[-1.4px]">Open your workspace</h1>
+            <p className="text-[15.5px] leading-[1.6] text-lk-muted">
+              {googleUrl ? (
+                "Sign in with the Google account Meerko knows you by."
+              ) : (
+                <>
+                  Paste your Meerko API key. Create one with <span className="font-plex text-lk-fg">pnpm db:seed</span> on a self-hosted install.
+                </>
+              )}
+            </p>
 
             {error && (
-              <p role="alert" className="text-[13px] text-[#e5795b]">
+              <p role="alert" className="text-[15px] text-[#ff8a6b]">
                 {error}
               </p>
             )}
@@ -72,29 +76,29 @@ export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: 
             {googleUrl ? (
               <>
                 {/* A full navigation, not a client-side Link: the API redirects on to Google. */}
-                <a href={googleUrl} className="flex items-center justify-center gap-3 rounded-[10px] bg-accent px-5 py-3.5 text-base font-semibold text-dark transition hover:brightness-110">
+                <a href={googleUrl} className={`${button} mt-1`}>
                   <GoogleIcon />
                   Continue with Google
                 </a>
                 {inviteOnly ? (
-                  <div className="flex gap-3 rounded-[10px] border border-line bg-raised px-4 py-3.5 text-sm">
-                    <Ticket className="mt-0.5 size-[17px] shrink-0 text-accent" />
+                  <div className="flex gap-3 bg-lk-box px-4 py-3.5 text-[15px] leading-[1.55] outline outline-1 -outline-offset-1 outline-lk-line">
+                    <Ticket className="mt-0.5 size-[17px] shrink-0 text-lk-lime" />
                     <p className="flex flex-col gap-1">
                       <span className="font-semibold">Meerko Cloud is invite-only for now.</span>
-                      <a href="/docs/self-hosting" className="text-accent hover:underline">
+                      <a href="/docs/self-hosting" className="text-lk-lime underline-offset-4 hover:underline">
                         Not invited yet? Self-host Meerko for free →
                       </a>
                     </p>
                   </div>
                 ) : (
-                  <p className="flex gap-2.5 text-sm text-muted">
-                    <Gift className="mt-0.5 size-[17px] shrink-0 text-accent" />
+                  <p className="flex gap-2.5 text-[15px] leading-[1.6] text-lk-dim">
+                    <Gift className="mt-0.5 size-[17px] shrink-0 text-lk-lime" />
                     New to Meerko? Your first sign-in creates your workspace with 200 free credits.
                   </p>
                 )}
               </>
             ) : (
-              <form action={action} className="flex flex-col gap-4">
+              <form action={action} className="mt-1 flex flex-col gap-4">
                 {next && <input type="hidden" name="next" value={next} />}
                 <input
                   name="key"
@@ -103,9 +107,9 @@ export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: 
                   required
                   placeholder="mk_…"
                   aria-label="API key"
-                  className="rounded-lg border border-line bg-raised px-3 py-3 font-mono text-sm outline-none focus:border-accent"
+                  className="bg-transparent px-4 py-3.5 font-plex text-[14px] text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray placeholder:text-lk-dim focus:outline-lk-lime"
                 />
-                <button disabled={pending} className="flex items-center justify-center rounded-[10px] bg-accent px-5 py-3 text-base font-semibold text-dark transition hover:brightness-110 disabled:opacity-50">
+                <button disabled={pending} className={button}>
                   {pending ? "Checking…" : "Continue"}
                 </button>
               </form>
@@ -113,13 +117,12 @@ export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: 
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted">
+        <p className="text-center text-[15px] leading-[1.6] text-lk-dim">
           By continuing you agree to the{" "}
-          <a href="/terms" className="text-fg hover:text-accent">Terms of service</a> and{" "}
-          <a href="/privacy" className="text-fg hover:text-accent">Privacy policy</a>.
+          <a href="/terms" className="text-lk-fg underline-offset-4 hover:underline">Terms of service</a> and{" "}
+          <a href="/privacy" className="text-lk-fg underline-offset-4 hover:underline">Privacy policy</a>.
         </p>
       </main>
-      <BrandPanel />
     </div>
   );
 }

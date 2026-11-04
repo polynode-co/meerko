@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { H2, Timeline, citer } from "@/components/content/guide-shell";
+import { H2, RampChart, Timeline, citer } from "@/components/lookout/marketing/ui";
 import { IntegrationShell } from "@/components/integrations/integration-shell";
 import { mailMergeSources } from "@/lib/sources";
 
@@ -78,7 +78,7 @@ export default function OutlookIntegration() {
         Microsoft&apos;s mail merge starts in Word: you write the message as a document, pick a list, and Word sends one email per record
         through Outlook
         <Cite s={mailMergeSources.word} />. Meerko keeps the list in a table and the message in a sequence. Any{" "}
-        <code className="font-mono text-[15px] text-fg">{"{{column}}"}</code> is filled in from the lead&apos;s row, and each step after the
+        <code className="font-plex text-[15px] text-lk-fg">{"{{column}}"}</code> is filled in from the lead&apos;s row, and each step after the
         first replies in the same thread a few days later.
       </p>
       <Timeline steps={[["Day 0", "First email"], ["Day 3", "Follow-up 1"], ["Day 7", "Follow-up 2"], ["Reply", "Sequence stops"]]} highlight={3} />
@@ -92,13 +92,14 @@ export default function OutlookIntegration() {
         Each mailbox has a daily limit (50 by default, from 1 to 500) and waits 3 to 7 minutes between sends. A newly connected mailbox
         ramps up from 10 a day to its limit over 21 days. Emails go out during a send window (9:00 to 17:00, Monday to Friday by default,
         in the recipient&apos;s timezone), and Meerko checks SPF, DKIM and DMARC for your domain. See the{" "}
-        <a href="/guides/email-deliverability" className="text-accent hover:underline">deliverability guide</a> for the DNS records.
+        <a href="/guides/email-deliverability" className="text-lk-lime hover:underline">deliverability guide</a> for the DNS records.
       </p>
+      <RampChart />
 
       <H2 id="agent">Or let your agent run it</H2>
       <p>
         From Claude Code, Cursor or Codex, ask for a lead list and a sequence in plain language; your agent shows you a preview and starts
-        it only after you approve. See <a href="/docs/claude-code" className="text-accent hover:underline">Claude Code setup</a>.
+        it only after you approve. See <a href="/docs/claude-code" className="text-lk-lime hover:underline">Claude Code setup</a>.
       </p>
     </IntegrationShell>
   );
