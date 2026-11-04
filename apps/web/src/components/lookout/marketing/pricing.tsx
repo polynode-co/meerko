@@ -1,4 +1,4 @@
-import { plans, pricingFaq } from "@/components/sections/pricing";
+import { plans, pricingFaq } from "@/lib/pricing";
 import { Kicker, LimeButton, lead, pageTitle, sectionTitle } from "../kit";
 import { FaqGrid, wrap } from "./ui";
 
