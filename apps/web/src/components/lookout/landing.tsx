@@ -14,7 +14,7 @@ import { GtmFaq, OpenSource, Problem, Superpowers, WorksWith } from "./landing-m
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <Image src="/landing/lookout-night.jpg" alt="" fill priority sizes="100vw" className="object-cover object-center" />
+      <Image src="/landing/lookout-night.jpg" alt="" fill priority sizes="100vw" className="object-cover object-center md:object-[77%_center]" />
       <div className="absolute inset-x-0 bottom-0 h-[200px] bg-gradient-to-b from-lk-bg/0 to-lk-bg" />
       <div className="relative mx-auto max-w-[1440px]">
         <LkNav transparent links={[["Product", "#product"], ["Docs", site.docsUrl], ["Guides", "/guides"], ["Pricing", "#pricing"], ["GitHub", site.githubUrl]]} />
