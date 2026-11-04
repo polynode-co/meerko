@@ -23,7 +23,7 @@ pnpm db:seed        # prints an API key (mk_...)
 pnpm dev            # API on :8787, the worker, and the dashboard on http://localhost:3000
 ```
 
-Log in to the dashboard with the API key. To send email, add a Google OAuth client to `.env`; the [self-hosting guide](https://meerko.ai/docs/self-hosting) walks through it, and through running everything in Docker instead (`docker-compose.selfhost.yml`).
+Log in to the dashboard with the API key. To send email, set `MEERKO_ENCRYPTION_KEY` in `.env` (`openssl rand -base64 32`) and connect a mailbox from Settings: Gmail, Zoho, Fastmail or any IMAP/SMTP server with an app password, or Outlook with your own Microsoft Entra app. Google OAuth is only needed for "Sign in with Google". The [self-hosting guide](https://meerko.ai/docs/self-hosting) walks through each, and through running everything in Docker instead (`docker-compose.selfhost.yml`).
 
 ### CLI
 
