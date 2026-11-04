@@ -14,12 +14,28 @@
   --color-accent-soft: #f2a93b1f;
   --color-accent-deep: #b36f12;
   --color-signal: #3dd6b5;
+
+  /* Landing page, "Lookout OS" (.pen mockup 1, VhHk8): night sky, paper windows, lime signal. */
+  --color-lk-bg: #0a0a0b;
+  --color-lk-ink: #0b0b0c;
+  --color-lk-frame: #1a1a1d;
+  --color-lk-box: #111113;
+  --color-lk-line: #34343a;
+  --color-lk-gray: #55555d;
+  --color-lk-dim: #9a9aa6;
+  --color-lk-muted: #b6b6bd;
+  --color-lk-fg: #f4f4f5;
+  --color-lk-paper: #e9e9e6;
+  --color-lk-paper-hi: #f6f6f3;
+  --color-lk-lime: #a8f326;
 }
 
 @theme inline {
   --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-plex: var(--font-plex-mono), ui-monospace, monospace;
+  --font-pixel: var(--font-silkscreen), ui-monospace, monospace;
 }
 
 @layer base {

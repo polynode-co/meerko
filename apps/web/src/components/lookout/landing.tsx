@@ -1,0 +1,432 @@
+import { Bot, Inbox, PanelsTopLeft, Send } from "lucide-react";
+import Image from "next/image";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE, mcpUrl } from "@/lib/meerko";
+import { site } from "@/lib/site";
+import { LogoMark } from "../ui/brand";
+import { LookoutCommand } from "./copy-command";
+
+// The landing page from the .pen design "Meerko — Lookout OS (mockup 1)" (node VhHk8).
+
+const label = "font-plex text-[12px] tracking-[1.5px] uppercase";
+const kicker = `${label} text-lk-dim`;
+const sectionTitle = "font-sans text-[32px] font-semibold tracking-[-1.2px] text-lk-fg sm:text-[44px] sm:tracking-[-1.5px]";
+
+/** Paper "OS" window: pixel title bar with a [x], dark hard shadow. */
+function Window({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`bg-lk-paper shadow-[10px_10px_0_#000] outline outline-1 -outline-offset-1 outline-lk-fg ${className}`}>
+      <div className="flex justify-between border-b-[1.5px] border-lk-ink px-3 py-[7px] text-[11px] text-lk-ink">
+        <span className="font-pixel">{title}</span>
+        <span className="font-plex">[x]</span>
+      </div>
+      <div className="p-[18px]">{children}</div>
+    </div>
+  );
+}
+
+function LimeButton({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
+  return (
+    <a href={href} className={`${label} bg-lk-lime px-4 py-[13px] font-semibold text-lk-bg transition hover:brightness-110 ${className}`}>
+      {children}
+    </a>
+  );
+}
+
+// ------------------------------------------------------------------ nav + hero
+
+async function Nav() {
+  // A saved session means signed in; /app re-checks it.
+  const signedIn = !!(await cookies()).get(SESSION_COOKIE)?.value;
+  const links: [string, string][] = [
+    ["Product", "#product"],
+    ["Docs", site.docsUrl],
+    ["Pricing", "#pricing"],
+    ["GitHub", site.githubUrl],
+  ];
+  return (
+    <header className="relative z-10 flex items-center justify-between px-6 py-[22px] lg:px-12">
+      <a href="/" aria-label="Meerko home" className="flex items-center gap-2.5">
+        <LogoMark size={26} />
+        <span className="font-pixel text-[16px] tracking-[1px] text-lk-fg">MEERKO</span>
+      </a>
+      <nav className="flex items-center gap-8">
+        {links.map(([name, href]) => (
+          <a key={name} href={href} className="hidden font-plex text-[12px] tracking-[1px] text-lk-muted uppercase transition hover:text-lk-fg md:inline">
+            {name}
+          </a>
+        ))}
+        <a
+          href={signedIn ? "/app" : site.signupUrl}
+          className="bg-lk-lime px-3.5 py-[9px] font-plex text-[12px] font-semibold tracking-[1px] text-lk-bg transition hover:brightness-110"
+        >
+          {signedIn ? "OPEN APP →" : "START FREE →"}
+        </a>
+      </nav>
+    </header>
+  );
+}
+
+const session: [string, "you" | "tool" | "reply" | "quote" | "note" | "gap"][] = [
+  ["> Find 50 Series A fintech CTOs in Spain,", "you"],
+  ["  enrich + verify, write a 3-step sequence.", "you"],
+  ["● meerko.find_people      → 50 leads", "tool"],
+  ["● meerko.enrich_rows      → 47/50 emails", "tool"],
+  ["● meerko.create_sequence  → 3 steps, Gmail", "tool"],
+  ["● meerko.start_sequence   → sending", "tool"],
+  ["", "gap"],
+  ["◆ Lucía M. · CTO @ Ledgr replied", "reply"],
+  ["  “Good timing — can we talk Thursday?”", "quote"],
+  ["  intent: interested · draft ready", "note"],
+];
+const lineColor = { you: "text-lk-fg", tool: "text-lk-muted", reply: "text-lk-lime", quote: "text-lk-fg", note: "text-lk-dim", gap: "" };
+
+const desktop = [
+  { name: "Leads", icon: PanelsTopLeft },
+  { name: "Sequences", icon: Send },
+  { name: "Inbox (4)", icon: Inbox, active: true },
+  { name: "Agent", icon: Bot },
+];
+
+/** The hero's "Meerko OS" machine: an agent session, desktop icons and a draft waiting for approval. */
+function OsWindow() {
+  return (
+    <div className="mx-auto w-full max-w-[1140px] bg-lk-frame px-3 pt-3 shadow-[12px_12px_0_#000] sm:px-[22px] sm:pt-[22px]">
+      <div className="flex flex-col bg-lk-paper lg:h-[540px]">
+        <div className="flex items-center gap-6 border-b border-lk-ink px-3.5 py-2 text-lk-ink">
+          <span className="font-pixel text-[13px]">MEERKO OS</span>
+          {["File", "Leads", "Sequences", "Agent"].map((m) => (
+            <span key={m} className="hidden font-plex text-[12px] sm:inline">
+              {m}
+            </span>
+          ))}
+        </div>
+        <div className="flex flex-1 items-start gap-7 p-4 sm:p-7">
+          <div className="hidden w-24 shrink-0 flex-col items-center gap-[26px] md:flex">
+            {desktop.map(({ name, icon: Icon, active }) => (
+              <div key={name} className="flex flex-col items-center gap-1.5">
+                <span
+                  className={`grid size-11 place-items-center outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline ${active ? "bg-lk-ink text-lk-lime" : "text-lk-ink"}`}
+                >
+                  <Icon className="size-5" strokeWidth={1.75} />
+                </span>
+                <span className="font-pixel text-[10px] text-lk-ink">{name}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col self-stretch bg-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">
+            <div className="flex justify-between border-b-[1.5px] border-lk-ink bg-lk-paper px-3 py-[7px] font-plex text-[11px] text-lk-ink">
+              <span>claude — ~/outbound</span>
+              <span>[x]</span>
+            </div>
+            <div className="flex flex-col gap-[11px] overflow-x-auto p-4 font-plex text-[12px] whitespace-pre sm:p-[22px] sm:text-[13.5px]">
+              {session.map(([text, kind], i) => (
+                <div key={i} className={`min-h-[1lh] ${lineColor[kind]}`}>
+                  {text}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="hidden w-[250px] shrink-0 bg-lk-paper-hi shadow-[5px_5px_0_var(--color-lk-ink)] outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline lg:block">
+            <div className="border-b-[1.5px] border-lk-ink px-3 py-[7px] font-pixel text-[10px] text-lk-ink">DRAFT · NEEDS YOU</div>
+            <div className="flex flex-col gap-3 p-3.5">
+              <p className="text-[13px] leading-5 text-lk-ink">Thursday works. 10:00 or 15:00 your time? I’ll send an invite.</p>
+              <div className="flex gap-2">
+                <span className="flex-1 bg-lk-ink px-2.5 py-2 text-center font-plex text-[11px] font-semibold text-lk-lime">APPROVE</span>
+                <span className="flex-1 px-2.5 py-2 text-center font-plex text-[11px] text-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">
+                  DISCARD
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex h-[46px] items-center justify-between px-1.5 font-plex text-[11px] tracking-[1px] text-lk-dim">
+        <span>4 REPLIES WAITING · 1 SEQUENCE RUNNING</span>
+        <span className="flex items-center gap-2">
+          LIVE <span className="size-2 bg-lk-lime" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Hero() {
+  return (
+    <section className="relative overflow-hidden">
+      <Image src="/landing/lookout-night.jpg" alt="" fill priority sizes="100vw" className="object-cover object-center" />
+      <div className="absolute inset-x-0 bottom-0 h-[200px] bg-gradient-to-b from-lk-bg/0 to-lk-bg" />
+      <div className="relative mx-auto max-w-[1440px]">
+        <Nav />
+        <div className="flex max-w-[688px] flex-col gap-6 px-6 pt-10 lg:max-w-[736px] lg:pt-[72px] lg:pr-0 lg:pl-24">
+          <span className={`${label} text-lk-lime`}>● Open source · AGPL-3.0</span>
+          <h1 className="font-sans text-[40px] leading-[1.05] font-semibold tracking-[-1.4px] text-lk-fg sm:text-[60px] sm:leading-[62px] sm:tracking-[-2.1px]">
+            Always on the lookout <br className="hidden sm:block" />
+            for your next customer.
+          </h1>
+          <p className="max-w-[540px] text-[17px] leading-[26px] text-lk-muted">
+            Meerko is the open-source AI sales agent. It finds leads, sends cold email from your own Gmail or Outlook, and catches every reply,
+            driven from Claude Code, Codex or Cursor.
+          </p>
+        </div>
+        <div className="px-6 pt-16 pb-16 lg:px-[150px] lg:pt-[84px] lg:pb-[72px]">
+          <OsWindow />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ------------------------------------------------------------------ how it works
+
+const leads = [
+  ["Lucía M.", "Ledgr", "lucia@ledgr.io", "verified"],
+  ["Pau R.", "Tallyo", "pau@tallyo.io", "verified"],
+  ["Marta G.", "Monea", "marta@monea.app", "verified"],
+  ["Jordi S.", "Clearbook", "—", "no email"],
+  ["Ana L.", "Fondo", "ana@fondo.dev", "verified"],
+];
+
+function LeadsWindow() {
+  const row = "flex gap-0 px-1 py-[9px] font-plex text-[11.5px]";
+  return (
+    <Window title="LEADS — fintech-ctos-es">
+      <div className="overflow-x-auto">
+        <div className="min-w-[480px]">
+          <div className={`${row} bg-lk-ink text-lk-paper`}>
+            <span className="w-[110px]">NAME</span>
+            <span className="w-[110px]">COMPANY</span>
+            <span className="flex-1">EMAIL</span>
+            <span className="w-[110px]">STATUS</span>
+          </div>
+          {leads.map(([name, company, email, status]) => (
+            <div key={name} className={`${row} border-t border-lk-ink text-lk-ink`}>
+              <span className="w-[110px]">{name}</span>
+              <span className="w-[110px]">{company}</span>
+              <span className="flex-1">{email}</span>
+              <span className={`w-[110px] ${status === "verified" ? "" : "text-lk-dim"}`}>{status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Window>
+  );
+}
+
+const sequence = [
+  ["DAY 0", "Intro: ledger reconciliation for Series A teams", "sent 47"],
+  ["DAY 3", "Follow-up: a 2-minute teardown of your stack", "sent 41"],
+  ["DAY 7", "Last note: worth a call?", "queued"],
+];
+
+function SequenceWindow() {
+  return (
+    <Window title="SEQUENCE — 3 steps">
+      {sequence.map(([day, subject, status], i) => (
+        <div key={day} className={`flex items-center gap-4 px-1 py-[18px] ${i ? "border-t border-lk-ink" : ""}`}>
+          <span className="shrink-0 bg-lk-ink px-2 py-1 font-plex text-[11px] text-lk-lime">{day}</span>
+          <span className="flex-1 text-[14px] text-lk-ink">{subject}</span>
+          <span className="shrink-0 font-plex text-[11px] text-lk-gray">{status}</span>
+        </div>
+      ))}
+    </Window>
+  );
+}
+
+function SlackWindow() {
+  return (
+    <Window title="SLACK — #outbound">
+      <div className="flex items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center bg-lk-ink">
+          <LogoMark size={24} />
+        </span>
+        <div className="flex flex-1 flex-col gap-2">
+          <span className="font-plex text-[11px] text-lk-gray">Meerko APP 14:22</span>
+          <p className="text-[14px] leading-[21px] text-lk-ink">
+            Lucía M. (Ledgr) replied: “Good timing — can we talk Thursday?”
+            <br />
+            Draft: “Thursday works. 10:00 or 15:00 your time?”
+          </p>
+          <div className="flex gap-2 pt-1.5">
+            <span className="bg-lk-ink px-3.5 py-2 font-plex text-[11.5px] text-lk-lime">Approve &amp; send</span>
+            <span className="px-3.5 py-2 font-plex text-[11.5px] text-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">Discard</span>
+          </div>
+        </div>
+      </div>
+    </Window>
+  );
+}
+
+const steps = [
+  {
+    tag: "Find",
+    title: "Leads, enriched and verified.",
+    body: "Describe who you sell to. Meerko searches, finds work emails and verifies them. A miss costs nothing.",
+    cta: ["Read the docs →", site.docsUrl],
+    window: <LeadsWindow />,
+  },
+  {
+    tag: "Send",
+    title: "From your own inbox. Never a shared domain.",
+    body: "Sequences go out from your Gmail or Outlook, within each mailbox’s daily limit, and stop for a lead the moment they reply.",
+    cta: ["See sequences →", "/docs/sequences"],
+    window: <SequenceWindow />,
+  },
+  {
+    tag: "Approve",
+    title: "Your agent drafts. You press send.",
+    body: "When a reply lands, Meerko wakes your agent to draft an answer. Its key can draft, never send. Approve in Slack or the inbox.",
+    cta: ["Wake your agent →", "/docs/wake-your-agent"],
+    window: <SlackWindow />,
+  },
+] as const;
+
+function Steps() {
+  return (
+    <section id="product" className="mx-auto flex max-w-[1440px] scroll-mt-6 flex-col gap-16 px-6 pt-16 pb-24 lg:gap-24 lg:px-36 lg:pb-[120px]">
+      <div className="flex flex-col gap-[18px]">
+        <span className={kicker}>01 · How it works</span>
+        <h2 className={sectionTitle}>Every step is one tool call.</h2>
+      </div>
+      {steps.map((s) => (
+        <article key={s.tag} className="flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-[72px]">
+          <div className="flex flex-col items-start gap-[18px] lg:w-[380px] lg:shrink-0">
+            <span className={`${label} text-lk-lime`}>{s.tag}</span>
+            <h3 className="text-[30px] leading-[1.1] font-semibold tracking-[-1.2px] text-lk-fg sm:text-[36px] sm:leading-10">{s.title}</h3>
+            <p className="text-[16px] leading-[26px] text-lk-muted">{s.body}</p>
+            <a
+              href={s.cta[1]}
+              className={`${label} bg-lk-fg px-4 py-3 font-semibold text-lk-ink shadow-[4px_4px_0_var(--color-lk-lime)] transition hover:translate-x-px hover:translate-y-px hover:shadow-[3px_3px_0_var(--color-lk-lime)]`}
+            >
+              {s.cta[0]}
+            </a>
+          </div>
+          <div className="min-w-0 flex-1">{s.window}</div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+// ------------------------------------------------------------------ pricing
+
+const credits: [string, string, string, boolean?][] = [
+  ["612", "found work emails", "8 / each"],
+  ["4,900", "leads from search", "1 / each"],
+  ["4,900", "email verifications", "1 / each"],
+  ["0", "credits to send, catch replies and draft", "always", true],
+];
+
+function Pricing() {
+  return (
+    <section id="pricing" className="scroll-mt-6 border-t border-lk-line">
+      <div className="mx-auto flex max-w-[1440px] flex-col gap-10 px-6 py-24 lg:px-36">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-[18px]">
+            <span className={kicker}>02 · Pricing</span>
+            <h2 className={sectionTitle}>One plan. Credits for the data.</h2>
+          </div>
+          <p className="text-[16px] text-lk-muted">$1 = 100 credits. Misses are free. Credits don’t expire.</p>
+        </div>
+        <div className="flex flex-col bg-lk-box outline outline-1 -outline-offset-1 outline-lk-line lg:flex-row">
+          <div className="flex flex-col gap-[22px] border-b border-lk-line p-9 lg:w-[420px] lg:shrink-0 lg:border-r lg:border-b-0">
+            <span className="font-pixel text-[14px] text-lk-lime">CLOUD PRO</span>
+            <div className="flex items-end gap-2.5">
+              <span className="text-[72px] leading-[72px] font-semibold tracking-[-3px] text-lk-fg">$49</span>
+              <span className="pb-1 font-plex text-[12px] text-lk-dim">/ MONTH</span>
+            </div>
+            {["4,900 credits every month", "Unlimited mailboxes", "Reply drafting and triage", "Email support"].map((f) => (
+              <span key={f} className="font-plex text-[13px] text-lk-muted">
+                + {f}
+              </span>
+            ))}
+            <LimeButton href={`${site.signupUrl}?next=${encodeURIComponent("/app/settings#billing")}`} className="text-center">
+              Get Pro →
+            </LimeButton>
+            <span className="text-[14px] text-lk-dim">
+              Or{" "}
+              <a href={site.signupUrl} className="underline-offset-4 hover:text-lk-fg hover:underline">
+                start free with 200 credits
+              </a>
+              .
+            </span>
+          </div>
+          <div className="flex flex-1 flex-col px-6 py-9 sm:px-10">
+            <span className="font-plex text-[11px] tracking-[1.5px] text-lk-dim">WHAT 4,900 CREDITS BUY</span>
+            {credits.map(([n, what, cost, free], i) => (
+              <div key={what} className={`flex items-center gap-6 py-5 ${i ? "border-t border-lk-line" : ""}`}>
+                <span className={`w-[110px] shrink-0 text-[32px] font-semibold tracking-[-1.2px] sm:w-[150px] sm:text-[40px] ${free ? "text-lk-lime" : "text-lk-fg"}`}>{n}</span>
+                <span className="flex-1 text-[16px] text-lk-fg">{what}</span>
+                <span className="hidden font-plex text-[11px] tracking-[1px] text-lk-dim uppercase sm:inline">{cost}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 font-plex text-[12px] tracking-[1.2px] text-lk-muted sm:flex-row sm:justify-between">
+          <a href="/docs/self-hosting" className="hover:text-lk-fg">
+            OR SELF-HOST IT FOR FREE · AGPL-3.0 →
+          </a>
+          <a href={`mailto:${site.contactEmail}`} className="hover:text-lk-fg">
+            VOLUME CREDITS? TALK TO US →
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ------------------------------------------------------------------ start + footer
+
+function Start() {
+  return (
+    <section className="flex flex-col items-center gap-5 px-6 pt-20 pb-[120px] text-center">
+      <span className={kicker}>03 · Start</span>
+      <h2 className={sectionTitle}>Put a meerkat on watch.</h2>
+      <p className="text-[17px] text-lk-muted">Connect it to your coding agent in one command.</p>
+      <div className="flex w-full max-w-[820px] flex-col gap-5 bg-[radial-gradient(ellipse_50%_50%_at_50%_50%,var(--color-lk-frame)_0%,var(--color-lk-ink)_100%)] p-5 text-left outline outline-1 -outline-offset-1 outline-lk-gray sm:p-8">
+        <span className="font-plex text-[11px] tracking-[1.5px] text-lk-dim">IN YOUR TERMINAL</span>
+        <LookoutCommand command={`claude mcp add --transport http --scope user meerko ${mcpUrl()}`} />
+        <span className="font-plex text-[11px] tracking-[1.5px] text-lk-dim">OR IN THE BROWSER</span>
+        <LimeButton href={site.signupUrl} className="px-[18px] py-4 text-right">
+          Start free with 200 credits →
+        </LimeButton>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  const links: [string, string][] = [
+    ["Docs", site.docsUrl],
+    ["GitHub", site.githubUrl],
+    ["Privacy", "/privacy"],
+    ["Terms", "/terms"],
+  ];
+  return (
+    <footer className="flex flex-col gap-4 border-t border-lk-line px-6 py-[18px] font-plex text-[11px] tracking-[1.2px] text-lk-dim sm:flex-row sm:items-center sm:justify-between lg:px-12">
+      <span>MEERKO · A POLYNODE PROJECT · AGPL-3.0</span>
+      <span className="flex items-center gap-7">
+        {links.map(([name, href]) => (
+          <a key={name} href={href} className="uppercase hover:text-lk-fg">
+            {name}
+          </a>
+        ))}
+        <span className="size-2 bg-lk-lime" />
+      </span>
+    </footer>
+  );
+}
+
+export function LookoutLanding() {
+  return (
+    <div className="bg-lk-bg text-lk-fg">
+      <Hero />
+      <main>
+        <Steps />
+        <Pricing />
+        <Start />
+      </main>
+      <Footer />
+    </div>
+  );
+}

@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, IBM_Plex_Mono, Inter, JetBrains_Mono, Silkscreen } from "next/font/google";
 import { site } from "@/lib/site";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", weight: ["700"] });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
+// The landing page's type: IBM Plex Mono for labels and terminals, Silkscreen for the pixel "OS" chrome.
+const plexMono = IBM_Plex_Mono({ subsets: ["latin"], variable: "--font-plex-mono", weight: ["400", "600"] });
+const silkscreen = Silkscreen({ subsets: ["latin"], variable: "--font-silkscreen", weight: ["400"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -23,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${inter.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`${bricolage.variable} ${inter.variable} ${jetbrains.variable} ${plexMono.variable} ${silkscreen.variable}`}>
       <body id="top">{children}</body>
     </html>
   );
