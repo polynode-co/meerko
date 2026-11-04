@@ -78,7 +78,7 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
       { first_name: "Pia", email: "pia@slalom.example" },
       { first_name: "Paula", email: "paula@webon.example" },
       { first_name: "Orion", email: "orion@estudio404.example" },
-      { first_name: "Tandem", email: "fran@reply-example.com" },
+      { first_name: "Fran", email: "fran@reply-example.com" },
     ]);
     const steps = [{ subject: "Quick question, {{first_name}}", body: "Hi {{first_name}}" }, { body: "Bump", delayDays: 3 }];
     seqId = (await createSequence(db, ws, { tableId: table.id, mailboxIds: [mb!.id], name: "Agencies", steps })).id;
