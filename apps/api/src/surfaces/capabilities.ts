@@ -41,6 +41,9 @@ const action = (name: string) => `app/app/actions.ts#${name}`;
 const page = (path: string) => `app/app/${path}`;
 const API = { supported: true } as const;
 const SETTINGS = { deliberately_absent: "Managed by a person in the dashboard's Settings" };
+const KEY = {
+  deliberately_absent: "An API key belongs to one workspace, so make a key in each. OAuth tokens (MCP, `meerko login`) can do it",
+};
 const PERSON_ONLY = {
   deliberately_absent: "Needs a person signed in to the dashboard, so a leaked key or a prompt-injected agent can't do it",
 };
@@ -61,9 +64,45 @@ export const CAPABILITIES: Capability[] = [
     summary: "See which workspace a credential acts as",
     routes: ["getMe"],
     web: yes(page("layout.tsx")),
-    mcp: { missing: "No tool says which workspace the agent is connected to" },
-    cli: yes("login"),
+    mcp: yes("whoami"),
+    cli: yes("login", "workspaces ls"),
     api: API,
+  },
+  {
+    id: "list-workspaces",
+    summary: "List your workspaces (brands) and see which is current",
+    routes: ["listWorkspaces"],
+    web: yes("components/app/workspace-switcher.tsx"),
+    mcp: yes("list_workspaces"),
+    cli: yes("workspaces ls"),
+    api: API,
+  },
+  {
+    id: "switch-workspace",
+    summary: "Move a session or app connection to another of your workspaces",
+    routes: ["switchWorkspace"],
+    web: yes(action("switchWorkspace")),
+    mcp: yes("switch_workspace"),
+    cli: yes("workspaces use"),
+    api: KEY,
+  },
+  {
+    id: "create-workspace",
+    summary: "Create a workspace for another brand, on the same plan and credits",
+    routes: ["createWorkspace"],
+    web: yes(action("createWorkspace")),
+    mcp: yes("create_workspace"),
+    cli: yes("workspaces create"),
+    api: KEY,
+  },
+  {
+    id: "rename-workspace",
+    summary: "Rename a workspace",
+    routes: ["renameWorkspace"],
+    web: yes(action("renameWorkspace")),
+    mcp: yes("rename_workspace"),
+    cli: yes("workspaces rename"),
+    api: KEY,
   },
 
   // --- tables ---

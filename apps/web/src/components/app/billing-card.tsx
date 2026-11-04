@@ -33,7 +33,9 @@ export function BillingCard({
   return (
     <Card>
       <div id="billing" className="flex items-center justify-between border-b border-lk-line px-[18px] py-4">
-        <h2 className={cardTitle}>Plan & credits</h2>
+        <h2 className={cardTitle}>
+          Plan & credits <span className="ml-2 font-plex text-[12px] font-normal tracking-[0.6px] text-lk-dim normal-case">shared by all your workspaces</span>
+        </h2>
         {canManage && billing.has_customer && (
           <form action={manageBilling}>
             <button className={buttonClass()}>Manage billing</button>

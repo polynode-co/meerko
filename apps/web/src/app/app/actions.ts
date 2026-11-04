@@ -46,6 +46,36 @@ export async function logout() {
   redirect("/login");
 }
 
+// --- Workspaces (brands). Switching moves this browser's session only; ids on the old page belong to the old
+// workspace, so both land on the overview.
+
+export async function switchWorkspace(form: FormData) {
+  const id = String(form.get("workspace_id") ?? "");
+  const res = await run((c) => c.switchWorkspace(id).then(() => {}), []);
+  if (!res.ok) redirect(`/app?workspace_error=${encodeURIComponent(res.error)}`);
+  revalidatePath("/app", "layout");
+  redirect("/app");
+}
+
+export async function createWorkspace(_: unknown, form: FormData): Promise<ActionResult> {
+  const name = String(form.get("name") ?? "").trim();
+  if (!name) return { ok: false, error: "Give it a name, like the brand" };
+  const res = await run(async (c) => {
+    const ws = await c.createWorkspace(name);
+    await c.switchWorkspace(ws.id);
+  }, []);
+  if (!res.ok) return res;
+  revalidatePath("/app", "layout");
+  redirect("/app");
+}
+
+export async function renameWorkspace(_: unknown, form: FormData): Promise<ActionResult> {
+  const id = String(form.get("workspace_id") ?? "");
+  const name = String(form.get("name") ?? "").trim();
+  if (!name) return { ok: false, error: "The name can't be empty" };
+  return run((c) => c.renameWorkspace(id, name).then((w) => `Renamed to ${w.name}`), ["/app"]);
+}
+
 /** The new key is returned once, for the Settings page to show; only its prefix is stored. */
 export async function createApiKey(_: unknown, form: FormData): Promise<ActionResult & { key?: string }> {
   const name = String(form.get("name") ?? "").trim();

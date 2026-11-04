@@ -18,7 +18,7 @@
   "tags": [
     {
       "name": "workspace",
-      "description": "Who the credential acts as"
+      "description": "Who the credential acts as, and the workspaces (brands) a person moves between"
     },
     {
       "name": "tables",
@@ -65,6 +65,49 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces": {
+      "get": {
+        "operationId": "listWorkspaces",
+        "tags": [
+          "workspace"
+        ],
+        "summary": "List your workspaces, marking the current one",
+        "description": "An API key sees only its own workspace.",
+        "responses": {
+          "200": {
+            "description": "List your workspaces, marking the current one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "workspaces": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WorkspaceListItem"
+                      }
+                    }
+                  },
+                  "required": [
+                    "workspaces"
+                  ]
                 }
               }
             }
@@ -4556,6 +4599,42 @@
       },
       "Url": {
         "$ref": "#/components/schemas/Url"
+      },
+      "WorkspaceListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "owner",
+                  "member"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null for an API key, which belongs to the workspace rather than a person"
+          },
+          "current": {
+            "type": "boolean",
+            "description": "The workspace this credential acts on now"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "current"
+        ]
       }
     }
   }

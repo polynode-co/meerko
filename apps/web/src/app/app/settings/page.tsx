@@ -11,6 +11,7 @@ import { AgentHookCard } from "@/components/app/agent-hook-card";
 import { SlackCard } from "@/components/app/slack-card";
 import { ProviderKeysCard } from "@/components/app/provider-keys-card";
 import { MailboxConnect } from "@/components/app/mailbox-connect";
+import { WorkspaceCard } from "@/components/app/workspace-card";
 import { load, publicApiUrl } from "@/lib/meerko";
 
 type Search = { gmail_connected?: string; gmail_error?: string; billing?: string; billing_error?: string; connect?: string; email?: string; slack?: string };
@@ -73,6 +74,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </div>
         ))}
       </Card>
+
+      {me.user && <WorkspaceCard id={me.workspace.id} name={me.workspace.name} canManage={me.user.role === "owner"} />}
 
       {billing.enabled && <BillingCard billing={billing} canManage={me.user?.role === "owner"} paid={paid} error={billing_error} />}
 

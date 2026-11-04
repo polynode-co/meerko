@@ -45,6 +45,13 @@ export interface Me {
   workspace: { id: string; name: string };
 }
 
+/** A workspace is a brand. `role` is null for an API key, which belongs to the workspace rather than a person. */
+export interface Workspace {
+  id: string;
+  name: string;
+  role: "owner" | "member" | null;
+}
+
 export interface ApiKey {
   id: string;
   name: string;
@@ -339,6 +346,26 @@ export class MeerkoClient {
   /** The workspace this key or session acts on, and the signed-in person (null for API keys). */
   me() {
     return this.request<Me>("GET", "/me");
+  }
+
+  /** Your workspaces (brands), with the one this credential acts on marked `current`. An API key sees only its own. */
+  listWorkspaces() {
+    return this.request<{ workspaces: (Workspace & { current: boolean })[] }>("GET", "/workspaces").then((r) => r.workspaces);
+  }
+
+  /** A new workspace sharing the plan and credits of the ones you own. Doesn't switch to it. Not for API keys. */
+  createWorkspace(name: string) {
+    return this.request<{ workspace: Workspace }>("POST", "/workspaces", { name }).then((r) => r.workspace);
+  }
+
+  /** Owners only. */
+  renameWorkspace(id: string, name: string) {
+    return this.request<{ workspace: Workspace }>("PATCH", `/workspaces/${encodeURIComponent(id)}`, { name }).then((r) => r.workspace);
+  }
+
+  /** Points this session or app connection (not others) at another of your workspaces. Not for API keys. */
+  switchWorkspace(workspaceId: string) {
+    return this.request<{ workspace: Workspace }>("POST", "/workspaces/switch", { workspace_id: workspaceId }).then((r) => r.workspace);
   }
 
   /** What the OAuth consent page shows for a pending authorization request (dashboard session only). */

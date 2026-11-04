@@ -21,10 +21,12 @@ export interface Operation {
   description?: string;
   /**
    * `any`: an API key, an OAuth app or a dashboard session. `user`: a person signed in to the dashboard (so a leaked
-   * key can't mint keys or rewire where replies go). `owner`: a signed-in workspace owner. Only `any` routes are
+   * key can't mint keys or rewire where replies go). `owner`: a signed-in workspace owner. `person`: a session or an
+   * OAuth app acting for someone (the hosted MCP, the CLI's browser sign-in), but not an API key, which belongs to one
+   * workspace. Only `any` routes are
    * in the public document; the rest exist for the dashboard.
    */
-  access: "any" | "user" | "owner";
+  access: "any" | "person" | "user" | "owner";
   /** `replies`: also callable by a replies-scoped key (an agent woken by an agent hook). */
   scope?: "replies";
   query?: z.ZodObject;
@@ -36,7 +38,7 @@ export interface Operation {
 }
 
 export const TAGS = {
-  workspace: "Who the credential acts as",
+  workspace: "Who the credential acts as, and the workspaces (brands) a person moves between",
   tables: "Tables of leads and their rows",
   leads: "Finding people and companies, and enriching rows with emails",
   mailboxes: "Mailboxes that send sequences and receive replies",
@@ -53,6 +55,10 @@ const deleted = obj({ deleted: z.boolean() });
 export const V1: Operation[] = [
   // --- workspace ---
   { method: "get", path: "/me", id: "getMe", tag: "workspace", summary: "The workspace (and person, for a session) this credential acts as", access: "any", scope: "replies", response: s.Me },
+  { method: "get", path: "/workspaces", id: "listWorkspaces", tag: "workspace", summary: "List your workspaces, marking the current one", description: "An API key sees only its own workspace.", access: "any", response: obj({ workspaces: z.array(s.WorkspaceListItem) }) },
+  { method: "post", path: "/workspaces", id: "createWorkspace", tag: "workspace", summary: "Create a workspace for another brand", description: "It shares the plan and credits of the workspaces you already own. It doesn't switch to it.", access: "person", body: s.workspaceNameInput, status: 201, response: obj({ workspace: s.Workspace }) },
+  { method: "patch", path: "/workspaces/:id", id: "renameWorkspace", tag: "workspace", summary: "Rename a workspace (owners)", access: "person", body: s.workspaceNameInput, response: obj({ workspace: s.Workspace }) },
+  { method: "post", path: "/workspaces/switch", id: "switchWorkspace", tag: "workspace", summary: "Point this session or app connection at another of your workspaces", description: "Only the credential the request came in on moves; other tabs and agents stay where they are.", access: "person", body: s.switchWorkspaceInput, response: obj({ workspace: s.Workspace }) },
 
   // --- tables ---
   { method: "get", path: "/tables", id: "listTables", tag: "tables", summary: "List tables", access: "any", response: obj({ tables: z.array(s.Table) }) },

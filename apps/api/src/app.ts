@@ -109,6 +109,13 @@ import {
   handleStripeEvent,
   openPortal,
   PlanLimitError,
+  WorkspaceError,
+  FREE_TIER_CREDITS,
+  createWorkspace,
+  listWorkspaces,
+  renameWorkspace,
+  switchWorkspace,
+  type SwitchableCredential,
   PRO_MONTHLY_CREDITS,
   CREDIT_PACK_CREDITS,
   startCheckout,
@@ -172,6 +179,8 @@ import {
   updateMailboxInput,
   updateRowsInput,
   updateSequenceInput,
+  switchWorkspaceInput,
+  workspaceNameInput,
 } from "./v1/schemas.ts";
 import { REPLIES_SCOPE_ROUTES } from "./v1/spec.ts";
 
@@ -181,6 +190,10 @@ type Env = {
     workspaceName: string;
     /** Set for dashboard sessions; null for API keys and OAuth apps (CLI, MCP, scripts). */
     user: { id: string; email: string; name: string | null; role: string } | null;
+    /** The person behind a session or an OAuth app (the hosted MCP, the CLI's browser sign-in); null for API keys. */
+    person: { id: string; email: string } | null;
+    /** The session or OAuth grant the request came in on, so it can be pointed at another workspace. Null for API keys. */
+    credential: SwitchableCredential | null;
     /** Who analytics events are about: the person behind a session or an OAuth app, else the workspace. Grants nothing. */
     actorId: string;
     /** `replies`: may only read replies and save drafts (see REPLIES_SCOPE_ROUTES). */
@@ -582,14 +595,31 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const session = await verifySession(db, token);
     if (session) {
       const user = { id: session.userId, email: session.email, name: session.name, role: session.role };
-      return { workspaceId: session.workspaceId, workspaceName: session.workspaceName, user, actor: { id: user.id, email: user.email }, scope: "full" as ApiKeyScope };
+      return {
+        workspaceId: session.workspaceId,
+        workspaceName: session.workspaceName,
+        user,
+        actor: { id: user.id, email: user.email },
+        credential: { kind: "session", id: session.sessionId } as SwitchableCredential,
+        scope: "full" as ApiKeyScope,
+      };
     }
     // An OAuth app acts for the person who approved it. It still gets no `user`, so it can't manage keys or apps;
     // `actor` only tells analytics who it is.
     const oauth = await verifyAccessToken(db, token);
-    if (oauth) return { workspaceId: oauth.workspaceId, workspaceName: oauth.workspaceName, user: null, actor: { id: oauth.userId, email: oauth.email }, scope: "full" as ApiKeyScope };
+    if (oauth) {
+      return {
+        workspaceId: oauth.workspaceId,
+        workspaceName: oauth.workspaceName,
+        user: null,
+        actor: { id: oauth.userId, email: oauth.email },
+        credential: { kind: "oauth", id: oauth.grantId } as SwitchableCredential,
+        scope: "full" as ApiKeyScope,
+      };
+    }
+    // A key belongs to its workspace and has no person behind it, so it can't move to another.
     const key = await verifyApiKey(db, token);
-    return key ? { workspaceId: key.workspaceId, workspaceName: key.workspaceName, user: null, actor: null, scope: key.scope } : null;
+    return key ? { workspaceId: key.workspaceId, workspaceName: key.workspaceName, user: null, actor: null, credential: null, scope: key.scope } : null;
   };
 
   // --- OAuth for MCP clients and the CLI (see core/oauth.ts) ---
@@ -776,6 +806,8 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     c.set("workspaceId", auth.workspaceId);
     c.set("workspaceName", auth.workspaceName);
     c.set("user", auth.user);
+    c.set("person", auth.actor);
+    c.set("credential", auth.credential);
     c.set("actorId", auth.actor?.id ?? auth.workspaceId);
     await next();
   });
@@ -784,6 +816,38 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   const actor = (c: { var: Env["Variables"] }) => c.var.actorId;
 
   v1.get("/me", (c) => c.json({ user: c.var.user, workspace: { id: c.var.workspaceId, name: c.var.workspaceName } }));
+
+  // --- Workspaces (brands). A person moves between theirs; an API key stays in the one it was made in. ---
+  const requirePerson = (c: { var: Env["Variables"] }) => {
+    if (!c.var.person || !c.var.credential) {
+      throw new HTTPException(403, { message: "An API key belongs to one workspace. Sign in (the dashboard, `meerko login`, or an MCP connection) to manage workspaces" });
+    }
+    return { person: c.var.person, credential: c.var.credential };
+  };
+  v1.get("/workspaces", async (c) => {
+    const current = c.var.workspaceId;
+    const list = c.var.person
+      ? await listWorkspaces(db, c.var.person.id)
+      : [{ id: current, name: c.var.workspaceName, role: null, createdAt: null }];
+    return c.json({ workspaces: list.map((w) => ({ id: w.id, name: w.name, role: w.role, current: w.id === current })) });
+  });
+  v1.post("/workspaces", async (c) => {
+    const { person } = requirePerson(c);
+    const { name } = await parse(workspaceNameInput, await c.req.json().catch(() => ({})));
+    const workspace = await createWorkspace(db, person.id, name, FREE_TIER_CREDITS);
+    await analytics.capture({ distinctId: person.id, event: EVENTS.workspaceCreated, workspaceId: workspace.id });
+    return c.json({ workspace }, 201);
+  });
+  v1.patch("/workspaces/:id", async (c) => {
+    const { person } = requirePerson(c);
+    const { name } = await parse(workspaceNameInput, await c.req.json().catch(() => ({})));
+    return c.json({ workspace: await renameWorkspace(db, person.id, c.req.param("id"), name) });
+  });
+  v1.post("/workspaces/switch", async (c) => {
+    const { person, credential } = requirePerson(c);
+    const { workspace_id } = await parse(switchWorkspaceInput, await c.req.json().catch(() => ({})));
+    return c.json({ workspace: await switchWorkspace(db, person.id, credential, workspace_id) });
+  });
 
   // Keys are listed with any credential, but only a signed-in person can mint or revoke one,
   // so a leaked key can't create more.
@@ -1235,6 +1299,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   app.onError(async (err, c) => {
     if (err instanceof HTTPException) return c.json({ error: err.message }, err.status);
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
+    if (err instanceof WorkspaceError) return c.json({ error: err.message }, err.status);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
     if (err instanceof SequenceError || err instanceof ReplyError || err instanceof AgentHookError || err instanceof SlackError) return c.json({ error: err.message }, 400);
     if (err instanceof MailboxInUseError || err instanceof TableInUseError) return c.json({ error: err.message }, 409);

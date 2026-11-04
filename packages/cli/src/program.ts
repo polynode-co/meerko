@@ -152,6 +152,48 @@ program
     console.log("Logged out.");
   });
 
+const workspaces = program.command("workspaces").description("your workspaces, one per brand (browser sign-in; an API key stays in its own)");
+
+workspaces
+  .command("ls")
+  .description("list your workspaces; * marks the one commands act on")
+  .action(async () => {
+    const list = await MeerkoClient.fromEnv().listWorkspaces();
+    if (json()) return console.log(JSON.stringify(list, null, 2));
+    console.table(list.map((w) => ({ "": w.current ? "*" : "", id: w.id, name: w.name, role: w.role ?? "api key" })));
+  });
+
+workspaces
+  .command("use <workspace>")
+  .description("act on another workspace from now on (an id or exact name from `workspaces ls`)")
+  .action(async (target: string) => {
+    const client = MeerkoClient.fromEnv();
+    const list = await client.listWorkspaces();
+    const match = list.find((w) => w.id === target) ?? list.filter((w) => w.name.toLowerCase() === target.toLowerCase())[0];
+    if (!match) throw new Error(`No workspace "${target}". Run \`meerko workspaces ls\`.`);
+    const ws = await client.switchWorkspace(match.id);
+    console.log(json() ? JSON.stringify(ws, null, 2) : `Now working in ${ws.name}.`);
+  });
+
+workspaces
+  .command("create <name>")
+  .description("create a workspace for another brand (shares your plan and credits)")
+  .option("--use", "switch to it")
+  .action(async (name: string, opts: { use?: boolean }) => {
+    const client = MeerkoClient.fromEnv();
+    const ws = await client.createWorkspace(name);
+    if (opts.use) await client.switchWorkspace(ws.id);
+    console.log(json() ? JSON.stringify(ws, null, 2) : `Created ${ws.name} (${ws.id})${opts.use ? ", and switched to it" : ". Switch with `meerko workspaces use`"}.`);
+  });
+
+workspaces
+  .command("rename <workspaceId> <name>")
+  .description("rename a workspace (owners)")
+  .action(async (id: string, name: string) => {
+    const ws = await MeerkoClient.fromEnv().renameWorkspace(id, name);
+    console.log(json() ? JSON.stringify(ws, null, 2) : `Renamed to ${ws.name}.`);
+  });
+
 const tables = program.command("tables").description("manage prospect tables");
 
 tables

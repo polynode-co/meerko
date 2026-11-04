@@ -103,6 +103,8 @@ export const enrichInput = z.object({
   limit: z.number().int().min(1).max(50).default(25),
   overwrite: z.boolean().default(false),
 });
+export const workspaceNameInput = z.object({ name: z.string().trim().min(1).max(80).describe("What the workspace (a brand) is called") });
+export const switchWorkspaceInput = z.object({ workspace_id: z.string().describe("One of the ids from GET /workspaces") });
 export const oauthRequestInput = z.object({ request: z.string().min(1) });
 export const oauthDecideInput = oauthRequestInput.extend({ approve: z.boolean() });
 export const createApiKeyInput = z.object({ name: z.string().trim().min(1).max(100), scope: z.enum(API_KEY_SCOPES).default("full") });
@@ -196,6 +198,12 @@ export const Me = z.object({
   user: z.object({ id: z.string(), email: z.string(), name: z.string().nullable(), role: z.string() }).nullable(),
   workspace: z.object({ id: z.string(), name: z.string() }),
 });
+export const Workspace = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.enum(["owner", "member"]).nullable().describe("Null for an API key, which belongs to the workspace rather than a person"),
+});
+export const WorkspaceListItem = Workspace.extend({ current: z.boolean().describe("The workspace this credential acts on now") });
 export const ApiKey = z.object({
   id: z.string(),
   name: z.string(),
