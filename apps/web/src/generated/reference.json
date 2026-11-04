@@ -2,6 +2,77 @@
   "mcp": {
     "tools": [
       {
+        "name": "whoami",
+        "description": "Which Meerko workspace (brand) this connection acts on now. Every other tool works in that workspace.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "list_workspaces",
+        "description": "List the user's Meerko workspaces, one per brand, with the one this connection acts on marked `current`. Workspaces share one plan and credit balance; tables, mailboxes, sequences and replies are per workspace.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "switch_workspace",
+        "description": "Point this connection at another of the user's workspaces (ids from list_workspaces). Every later call, in this conversation and any other using this connection, acts on that brand: its leads, mailboxes and sequences.\nSwitch only when the user names the brand, and say which workspace is now active.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "create_workspace",
+        "description": "Create a workspace for another brand. It shares the user's plan and credits, starts empty, and isn't switched to: call switch_workspace to work in it.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The brand's name"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "rename_workspace",
+        "description": "Rename a workspace. Only its owner can.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "workspace_id",
+            "name"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
         "name": "list_tables",
         "description": "List all prospect tables in the Meerko workspace, with their columns and row counts.",
         "inputSchema": {
@@ -1001,6 +1072,7 @@
     "groups": {
       "login": "sign in with your browser (or an API key) and save it to ~/.meerko/config.json",
       "logout": "sign out: revoke the browser sign-in and forget the saved key",
+      "workspaces": "your workspaces, one per brand (browser sign-in; an API key stays in its own)",
       "tables": "manage prospect tables",
       "pipeline": "lead counts per stage",
       "find": "search Icypeas for people or companies and save the results to a table",
@@ -1035,6 +1107,36 @@
         "usage": "meerko logout",
         "group": "logout",
         "description": "sign out: revoke the browser sign-in and forget the saved key",
+        "options": []
+      },
+      {
+        "usage": "meerko workspaces ls",
+        "group": "workspaces",
+        "description": "list your workspaces; * marks the one commands act on",
+        "options": []
+      },
+      {
+        "usage": "meerko workspaces use <workspace>",
+        "group": "workspaces",
+        "description": "act on another workspace from now on (an id or exact name from `workspaces ls`)",
+        "options": []
+      },
+      {
+        "usage": "meerko workspaces create <name>",
+        "group": "workspaces",
+        "description": "create a workspace for another brand (shares your plan and credits)",
+        "options": [
+          {
+            "flags": "--use",
+            "description": "switch to it",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko workspaces rename <workspaceId> <name>",
+        "group": "workspaces",
+        "description": "rename a workspace (owners)",
         "options": []
       },
       {

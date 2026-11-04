@@ -57,6 +57,50 @@ export function createServer(client: () => MeerkoClient, opts: { only?: { tools:
   }) as typeof server.registerPrompt;
 
   tool(
+    "whoami",
+    {
+      description: "Which Meerko workspace (brand) this connection acts on now. Every other tool works in that workspace.",
+      inputSchema: {},
+    },
+    () => run(() => client().me()),
+  );
+
+  tool(
+    "list_workspaces",
+    {
+      description:
+        "List the user's Meerko workspaces, one per brand, with the one this connection acts on marked `current`. Workspaces share one plan and credit balance; tables, mailboxes, sequences and replies are per workspace.",
+      inputSchema: {},
+    },
+    () => run(() => client().listWorkspaces()),
+  );
+
+  tool(
+    "switch_workspace",
+    {
+      description: `Point this connection at another of the user's workspaces (ids from list_workspaces). Every later call, in this conversation and any other using this connection, acts on that brand: its leads, mailboxes and sequences.
+Switch only when the user names the brand, and say which workspace is now active.`,
+      inputSchema: { workspace_id: z.string() },
+    },
+    ({ workspace_id }) => run(() => client().switchWorkspace(workspace_id)),
+  );
+
+  tool(
+    "create_workspace",
+    {
+      description: "Create a workspace for another brand. It shares the user's plan and credits, starts empty, and isn't switched to: call switch_workspace to work in it.",
+      inputSchema: { name: z.string().describe("The brand's name") },
+    },
+    ({ name }) => run(() => client().createWorkspace(name)),
+  );
+
+  tool(
+    "rename_workspace",
+    { description: "Rename a workspace. Only its owner can.", inputSchema: { workspace_id: z.string(), name: z.string() } },
+    ({ workspace_id, name }) => run(() => client().renameWorkspace(workspace_id, name)),
+  );
+
+  tool(
     "list_tables",
     { description: "List all prospect tables in the Meerko workspace, with their columns and row counts.", inputSchema: {} },
     () => run(() => client().listTables()),

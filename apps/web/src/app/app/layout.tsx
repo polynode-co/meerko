@@ -6,8 +6,8 @@ import { load } from "@/lib/meerko";
 export const metadata: Metadata = { title: "Meerko", robots: { index: false } };
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [me, mailboxes, replies, credits] = await load((c) =>
-    Promise.all([c.me(), c.listMailboxes(), c.listReplies({ limit: 100 }), c.getCredits()]),
+  const [me, mailboxes, replies, credits, workspaces] = await load((c) =>
+    Promise.all([c.me(), c.listMailboxes(), c.listReplies({ limit: 100 }), c.getCredits(), c.listWorkspaces()]),
   );
   const mailbox = mailboxes[0] ?? null;
 
@@ -15,6 +15,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-dvh flex-col bg-lk-bg text-lk-fg lg:flex-row">
       <Sidebar
         workspace={me.workspace.name}
+        workspaces={workspaces}
         userEmail={me.user?.email ?? null}
         mailbox={mailbox?.email ?? null}
         mailboxNeedsReconnect={mailbox?.status === "error"}

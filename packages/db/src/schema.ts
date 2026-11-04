@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, boolean, check, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, bigint, boolean, check, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export type ColumnType = "text" | "number" | "email" | "url" | "boolean" | "json";
 
@@ -28,6 +28,12 @@ export type Plan = (typeof PLANS)[number];
 export const workspaces = pgTable("workspaces", {
   id: id(),
   name: text("name").notNull(),
+  /**
+   * Billing is per person, not per brand: a workspace someone creates after their first points at that first one, and
+   * plan, Stripe customer, credits and plan limits are all read from it (`billingWorkspaceOf` in core). Null on the
+   * workspace that pays, which is never itself a pointer, so the chain is one step.
+   */
+  billingWorkspaceId: uuid("billing_workspace_id").references((): AnyPgColumn => workspaces.id, { onDelete: "restrict" }),
   plan: text("plan").$type<Plan>().notNull().default("free"),
   // Billing on Meerko Cloud, mirrored from Stripe by its webhooks.
   stripeCustomerId: text("stripe_customer_id").unique(),

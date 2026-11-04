@@ -7,6 +7,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/ui/brand";
 import { logout } from "@/app/app/actions";
+import type { Workspace } from "@meerko/sdk";
+import { WorkspaceSwitcher } from "@/components/app/workspace-switcher";
 
 // The "LK App Sidebar" component (pQPbg) from the .pen file. Below `lg` it folds into a top bar with a menu.
 
@@ -19,6 +21,7 @@ const nav = [
 
 export interface SidebarProps {
   workspace: string;
+  workspaces: (Workspace & { current: boolean })[];
   /** Null when signed in with an API key (self-hosting). */
   userEmail: string | null;
   mailbox: string | null;
@@ -34,7 +37,7 @@ const Brand = () => (
   </Link>
 );
 
-export function Sidebar({ workspace, userEmail, mailbox, mailboxNeedsReconnect, inboxCount, credits }: SidebarProps) {
+export function Sidebar({ workspace, workspaces, userEmail, mailbox, mailboxNeedsReconnect, inboxCount, credits }: SidebarProps) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   // Close the mobile menu after navigating.
@@ -82,12 +85,13 @@ export function Sidebar({ workspace, userEmail, mailbox, mailboxNeedsReconnect, 
         <div className="flex flex-col gap-7">
           <Brand />
 
-          <div className="flex flex-col gap-1 border-l-2 border-lk-line px-3 py-0.5">
-            <p className="truncate text-[15px] font-semibold text-lk-fg">{workspace}</p>
-            <p className={`truncate font-plex text-[12px] ${mailboxNeedsReconnect ? "text-[#e5795b]" : "text-lk-dim"}`}>
-              {mailbox ? (mailboxNeedsReconnect ? `${mailbox} · reconnect` : mailbox) : "no mailbox connected"}
-            </p>
-          </div>
+          <WorkspaceSwitcher
+            workspace={workspace}
+            workspaces={workspaces}
+            canCreate={!!userEmail}
+            subtitle={mailbox ? (mailboxNeedsReconnect ? `${mailbox} · reconnect` : mailbox) : "no mailbox connected"}
+            subtitleWarn={mailboxNeedsReconnect}
+          />
 
           <nav className="flex flex-col gap-1">
             {nav.map((n) => item(n.href, n.label, n.icon, active(n.href, n.exact), n.badge === "inbox" ? inboxCount : undefined))}

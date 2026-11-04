@@ -24,6 +24,8 @@ describe.skipIf(!process.env.DATABASE_URL)("OAuth for MCP clients (db)", () => {
   });
   afterAll(async () => {
     for (const id of clientIds) await db.delete(oauthClients).where(eq(oauthClients.id, id));
+    // Brands made in the test bill to this workspace, so they go first.
+    await db.delete(workspaces).where(eq(workspaces.billingWorkspaceId, workspaceId));
     await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
     await db.delete(users).where(eq(users.id, userId));
   });
@@ -125,7 +127,7 @@ describe.skipIf(!process.env.DATABASE_URL)("OAuth for MCP clients (db)", () => {
     );
     expect(init.status).toBe(200);
     const list = (await (await mcp({ jsonrpc: "2.0", id: 2, method: "tools/list" }, tokens.access_token)).json()) as { result: { tools: unknown[] } };
-    expect(list.result.tools).toHaveLength(34);
+    expect(list.result.tools).toHaveLength(39);
     const call = (await (
       await mcp({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "list_tables", arguments: {} } }, tokens.access_token)
     ).json()) as { result: { isError?: boolean; content: { text: string }[] } };
@@ -138,6 +140,26 @@ describe.skipIf(!process.env.DATABASE_URL)("OAuth for MCP clients (db)", () => {
     // Connected apps lists it.
     const apps = (await (await app.request("/v1/connected-apps", { headers: { authorization: `Bearer ${session}` } })).json()) as { apps: { id: string; name: string }[] };
     expect(apps.apps.map((a) => a.name)).toEqual(["Claude Code"]);
+
+    // The agent makes a second brand and moves this connection to it; the dashboard session stays put.
+    const tool = async (name: string, args: Record<string, unknown> = {}) => {
+      const out = (await (await mcp({ jsonrpc: "2.0", id: 10, method: "tools/call", params: { name, arguments: args } }, tokens.access_token)).json()) as {
+        result: { isError?: boolean; content: { text: string }[] };
+      };
+      expect(out.result.isError, out.result.content[0]?.text).toBeUndefined();
+      return JSON.parse(out.result.content[0]!.text);
+    };
+    const brand = await tool("create_workspace", { name: `Brand ${run}` });
+    expect((await tool("whoami")).workspace.id).toBe(workspaceId);
+    await tool("switch_workspace", { workspace_id: brand.id });
+    expect((await tool("whoami")).workspace).toEqual({ id: brand.id, name: `Brand ${run}` });
+    expect((await tool("list_workspaces")).map((w: { name: string; current: boolean }) => [w.name, w.current])).toEqual([
+      [`OAuth ${run}`, false],
+      [`Brand ${run}`, true],
+    ]);
+    const me = (await (await app.request("/v1/me", { headers: { authorization: `Bearer ${session}` } })).json()) as { workspace: { id: string } };
+    expect(me.workspace.id).toBe(workspaceId);
+    await tool("switch_workspace", { workspace_id: workspaceId });
 
     // Refresh rotates both tokens.
     const refreshed = (await (await form("/oauth/token", { grant_type: "refresh_token", refresh_token: tokens.refresh_token, client_id: clientId })).json()) as {

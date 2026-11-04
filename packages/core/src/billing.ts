@@ -1,5 +1,6 @@
 import Stripe from "stripe";
-import { creditLedger, eq, mailboxes, workspaces, type Db, type Plan } from "@meerko/db";
+import { creditLedger, eq, inArray, mailboxes, workspaces, type Db, type Plan } from "@meerko/db";
+import { billingWorkspaceOf, sharesBilling } from "./workspaces.ts";
 
 /** Credits a Pro subscription adds on each paid month (the $49 plan at $1 = 100 credits). */
 export const PRO_MONTHLY_CREDITS = 4900;
@@ -50,7 +51,9 @@ export class BillingError extends Error {}
 /** Stripe refused or couldn't be reached (bad key, outage, rate limit). */
 export const isStripeError = (err: unknown): err is Stripe.errors.StripeError => err instanceof Stripe.errors.StripeError;
 
+/** The plan and subscription `workspaceId` runs on: those of the workspace that pays for it (`billingWorkspaceOf`). */
 export async function getBilling(db: Db, workspaceId: string) {
+  workspaceId = await billingWorkspaceOf(db, workspaceId);
   const [ws] = await db
     .select({
       plan: workspaces.plan,
@@ -67,15 +70,21 @@ export async function getBilling(db: Db, workspaceId: string) {
 }
 
 /**
- * Throws if connecting `email` would take the workspace over its plan's mailbox count.
- * Reconnecting a mailbox it already has is always allowed.
+ * Throws if connecting `email` would take the plan over its mailbox count. The count is across every workspace on
+ * the same plan, so a second brand doesn't get a second free mailbox. Reconnecting a mailbox the workspace already
+ * has is always allowed.
  */
 export async function assertMailboxAllowed(db: Db, workspaceId: string, email: string) {
   const { plan } = await getBilling(db, workspaceId);
   const limit = PLAN_MAILBOXES[plan];
   if (!Number.isFinite(limit)) return;
-  const rows = await db.select({ email: mailboxes.email }).from(mailboxes).where(eq(mailboxes.workspaceId, workspaceId));
-  if (rows.some((m) => m.email === email.toLowerCase())) return;
+  const billingId = await billingWorkspaceOf(db, workspaceId);
+  const shared = db.select({ id: workspaces.id }).from(workspaces).where(sharesBilling(billingId));
+  const rows = await db
+    .select({ email: mailboxes.email, workspaceId: mailboxes.workspaceId })
+    .from(mailboxes)
+    .where(inArray(mailboxes.workspaceId, shared));
+  if (rows.some((m) => m.workspaceId === workspaceId && m.email === email.toLowerCase())) return;
   if (rows.length >= limit) {
     throw new PlanLimitError(`The Free plan includes ${limit} mailbox. Upgrade to Pro in Settings to connect more.`);
   }
@@ -83,6 +92,7 @@ export async function assertMailboxAllowed(db: Db, workspaceId: string, email: s
 
 /** The workspace's Stripe customer, created on first use. The idempotency key stops two tabs creating two. */
 async function ensureCustomer(db: Db, cfg: BillingConfig, workspaceId: string, email: string) {
+  workspaceId = await billingWorkspaceOf(db, workspaceId);
   const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, workspaceId));
   if (!ws) throw new Error(`Workspace ${workspaceId} not found`);
   if (ws.stripeCustomerId) return ws.stripeCustomerId;
@@ -98,8 +108,10 @@ export type CheckoutInput = { kind: "pro" } | { kind: "credits"; packs: number }
 
 /** A Stripe Checkout page for Pro or for credit packs. Returns its URL. */
 export async function startCheckout(db: Db, cfg: BillingConfig, workspaceId: string, email: string, input: CheckoutInput) {
+  // Stripe only ever sees the workspace that pays, so webhooks credit and upgrade the shared plan.
+  workspaceId = await billingWorkspaceOf(db, workspaceId);
   const billing = await getBilling(db, workspaceId);
-  if (input.kind === "pro" && billing.plan === "pro") throw new BillingError("This workspace is already on Pro. Manage it from Settings → Manage billing.");
+  if (input.kind === "pro" && billing.plan === "pro") throw new BillingError("This workspace is already on Pro (your workspaces share one plan). Manage it from Settings → Manage billing.");
   const customer = await ensureCustomer(db, cfg, workspaceId, email);
   const settings = `${cfg.appUrl.replace(/\/$/, "")}/app/settings`;
   const metadata = { workspace_id: workspaceId, kind: input.kind };
@@ -155,6 +167,7 @@ export async function openPortal(db: Db, cfg: BillingConfig, workspaceId: string
 
 /** Adds credits once per Stripe object: a redelivered webhook hits the unique `external_ref` and does nothing. */
 async function grantOnce(db: Db, workspaceId: string, amount: number, reason: string, externalRef: string) {
+  workspaceId = await billingWorkspaceOf(db, workspaceId);
   const inserted = await db
     .insert(creditLedger)
     .values({ workspaceId, delta: amount, reason, externalRef })
@@ -167,8 +180,8 @@ const idOf = (v: string | { id: string } | null | undefined) => (typeof v === "s
 
 async function workspaceForCustomer(db: Db, customerId: string | undefined, hint?: string | null) {
   if (hint) {
-    const [ws] = await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.id, hint));
-    if (ws) return ws.id;
+    const [ws] = await db.select({ id: workspaces.id, billing: workspaces.billingWorkspaceId }).from(workspaces).where(eq(workspaces.id, hint));
+    if (ws) return ws.billing ?? ws.id;
   }
   if (!customerId) return undefined;
   const [ws] = await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.stripeCustomerId, customerId));
@@ -282,6 +295,7 @@ export async function handleStripeEvent(db: Db, cfg: BillingConfig, event: Strip
 
 /** Sets a workspace's plan by hand, e.g. to comp Pro for a design partner. Stripe webhooks don't touch it without a subscription. */
 export async function setPlan(db: Db, workspaceId: string, plan: Plan) {
+  workspaceId = await billingWorkspaceOf(db, workspaceId);
   const [ws] = await db
     .update(workspaces)
     .set({ plan })
