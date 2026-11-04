@@ -17,10 +17,19 @@ export const metadata: Metadata = {
   description:
     "Meerko is an open-source AI sales agent (AI SDR): find leads, send cold email from your own Gmail or Outlook and catch every reply, from Claude Code or Cursor.",
   icons: { icon: "/meerko-icon.svg" },
+  // The share card (.pen "Social card · 1200×630"). Social sites don't render SVG previews, so it's a JPEG.
   openGraph: {
+    type: "website",
+    siteName: "Meerko",
     title: "Meerko — the open-source AI sales agent",
     description: "An AI SDR you run from Claude Code: find leads, send from your own Gmail or Outlook, catch every reply. Open source.",
-    images: ["/meerko-mascot.svg"],
+    images: [{ url: "/og/meerko.jpg", width: 1200, height: 630, alt: "Meerko: always on the lookout for your next customer. The open-source AI sales agent." }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Meerko — the open-source AI sales agent",
+    description: "An AI SDR you run from Claude Code: find leads, send from your own Gmail or Outlook, catch every reply. Open source.",
+    images: ["/og/meerko.jpg"],
   },
 };
 
