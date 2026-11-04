@@ -15,6 +15,8 @@ const CHAPTERS = [
 ] as const;
 type ChapterId = (typeof CHAPTERS)[number]["id"];
 const DURATION = CHAPTERS[CHAPTERS.length - 1].end;
+// The script above is timed for reading at 1x; it plays faster so the loop doesn't drag.
+const SPEED = 1.75;
 
 const apps = [
   { name: "Leads", icon: PanelsTopLeft, chapter: "find" },
@@ -201,7 +203,7 @@ export function DemoPlayer() {
     if (!playing || !visible) return;
     let last = performance.now();
     let raf = requestAnimationFrame(function tick(now) {
-      setT((x) => (x + (now - last) / 1000) % DURATION);
+      setT((x) => (x + ((now - last) / 1000) * SPEED) % DURATION);
       last = now;
       raf = requestAnimationFrame(tick);
     });
@@ -292,7 +294,7 @@ export function DemoPlayer() {
           })}
         </div>
         <span className="shrink-0 tabular-nums">
-          {time(t)} / {time(DURATION)}
+          {time(t / SPEED)} / {time(DURATION / SPEED)}
         </span>
       </div>
     </div>
