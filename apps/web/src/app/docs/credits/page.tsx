@@ -64,7 +64,7 @@ export default function Page() {
         <p>
           Have an <L href={docsSources.icypeas.url}>Icypeas</L> account? Store its API key in your workspace and searches and email finding
           run on it, with no Meerko credits charged. Meerko checks the key with Icypeas before saving it, stores it encrypted and only
-          ever shows its last 4 characters.
+          ever shows its last 4 characters. Add it under Provider keys in Settings, or from the CLI:
         </p>
       </Callout>
       <CodeBlock title="bash" code="pnpm meerko keys set icypeas <key>" lines={[{ text: "$ pnpm meerko keys set icypeas <key>" }]} />
@@ -76,6 +76,7 @@ export default function Page() {
         credits (30 per email found; a miss is free), so what it finds costs no Meerko credits, and it keeps working when your Meerko
         credits run out. Rows need a LinkedIn URL, or a first and last name plus a domain or company.
       </p>
+      <p>Add it in Settings the same way, or from the CLI:</p>
       <CodeBlock title="bash" code="pnpm meerko keys set firecrawl <key>" lines={[{ text: "$ pnpm meerko keys set firecrawl <key>" }]} />
       <p>
         Meerko checks the key with a free Firecrawl catalog search before saving it. FullEnrich asks you to accept its data terms in

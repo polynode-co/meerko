@@ -116,7 +116,7 @@ export default function Page() {
       <Step n={5} id="search" title="Turn on lead search">
         <p>
           People and company search and email finding run on <L href={docsSources.icypeas.url}>Icypeas</L>. Put your Icypeas API key in{" "}
-          <C>ICYPEAS_API_KEY</C> for the whole server, or store one per workspace with <C>pnpm meerko keys set icypeas &lt;key&gt;</C>{" "}
+          <C>ICYPEAS_API_KEY</C> for the whole server, or store one per workspace in Settings or with <C>pnpm meerko keys set icypeas &lt;key&gt;</C>{" "}
           (needs <C>MEERKO_ENCRYPTION_KEY</C>). Without either, search and enrichment return an error; everything else works, including
           importing your own CSV.
         </p>

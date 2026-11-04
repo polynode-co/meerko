@@ -414,7 +414,7 @@ export const CAPABILITIES: Capability[] = [
     id: "manage-provider-keys",
     summary: "Store or remove your own Icypeas/Firecrawl key",
     routes: ["setProviderKey", "deleteProviderKey"],
-    web: { missing: "Settings shows provider keys but can't add or remove one" },
+    web: yes(action("saveProviderKey"), action("removeProviderKey")),
     mcp: { deliberately_absent: "An agent should never be handed a provider secret" },
     cli: yes("keys set", "keys rm"),
     api: API,
