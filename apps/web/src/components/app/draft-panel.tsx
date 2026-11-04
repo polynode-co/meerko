@@ -1,10 +1,10 @@
 "use client";
 
-import { CheckCheck, Pencil, Send, Sparkles, Trash2 } from "lucide-react";
+import { CheckCheck, Send, Sparkles, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { REPLY_INTENTS } from "@meerko/sdk/constants";
 import { approveDraft, classifyReply, discardDraft, sendReply, type ActionResult } from "@/app/app/actions";
-import { buttonClass, field, label, monoLabel, PaperWindow } from "./ui";
+import { buttonClass, field, label, monoLabel } from "./ui";
 
 /**
  * The agent's draft answer (edit, set intent, approve or discard), or, with no draft, a box to write the
@@ -23,7 +23,6 @@ export function DraftPanel({
   answered: boolean;
 }) {
   const [body, setBody] = useState(draft?.body ?? "");
-  const [editing, setEditing] = useState(false);
   const [composing, setComposing] = useState(false);
   const [current, setCurrent] = useState(intent);
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -72,7 +71,7 @@ export function DraftPanel({
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              rows={Math.max(5, body.split("\n").length + 1)}
+              rows={Math.min(8, Math.max(3, body.split("\n").length + 1))}
               placeholder="Write your reply…"
               aria-label="Your reply"
               className={`${field} resize-y px-4 py-3.5 leading-relaxed`}
@@ -104,35 +103,32 @@ export function DraftPanel({
     );
   }
 
-  // The draft sits on paper: it's the email the person will receive, once approved.
-  const paperButton = "inline-flex items-center justify-center gap-2 px-3 py-2.5 font-plex text-[12px] font-semibold tracking-[1px] uppercase transition disabled:cursor-not-allowed disabled:opacity-50";
+  // Docked under the conversation: the agent's draft, editable in place, then approve or discard.
   return (
-    <section className="flex flex-col gap-4 pr-2 pb-2">
-      <PaperWindow title={<span className="flex items-center gap-2"><Sparkles className="size-3.5" />Draft · needs you</span>} bodyClassName="flex flex-col gap-3 p-4">
-        {editing ? (
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            rows={Math.max(6, body.split("\n").length + 1)}
-            aria-label="Draft reply"
-            className="w-full resize-y bg-lk-paper-hi px-3 py-2.5 text-[15px] leading-relaxed text-lk-ink outline outline-[1.5px] -outline-offset-1 outline-lk-ink"
-          />
-        ) : (
-          <p className="text-[15px] leading-relaxed break-words whitespace-pre-line text-lk-ink">{body}</p>
-        )}
-        <p className="font-plex text-[12px] text-lk-gray">Drafted by your agent · nothing is sent until you approve</p>
-        <div className="flex flex-wrap gap-2">
-          <button disabled={pending || !body.trim()} onClick={() => act(() => approveDraft(draft.id, body))} className={`${paperButton} flex-1 bg-lk-ink text-lk-lime hover:brightness-125`}>
-            <Send className="size-3.5" /> {pending ? "Sending…" : "Approve & send"}
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="flex items-center gap-2 font-plex text-[12.5px] tracking-[0.6px] text-lk-lime uppercase">
+          <Sparkles className="size-3.5" /> Draft by your agent · edit before sending
+        </span>
+      </div>
+      <textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={Math.min(10, Math.max(4, body.split("\n").length + 1))}
+        aria-label="Draft reply"
+        className={`${field} resize-y px-4 py-3 text-[15.5px] leading-relaxed`}
+      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="text-[14px] text-lk-dim">Nothing is sent until you approve. It goes from your mailbox, in this thread.</span>
+        <div className="flex gap-2">
+          <button disabled={pending} onClick={() => act(() => discardDraft(draft.id))} className={buttonClass()}>
+            <Trash2 className="size-[15px]" /> Discard
           </button>
-          <button disabled={pending} onClick={() => setEditing((e) => !e)} className={`${paperButton} text-lk-ink outline outline-[1.5px] -outline-offset-1 outline-lk-ink hover:bg-lk-paper-hi`}>
-            <Pencil className="size-3.5" /> {editing ? "Done" : "Edit"}
-          </button>
-          <button disabled={pending} onClick={() => act(() => discardDraft(draft.id))} className={`${paperButton} text-lk-ink outline outline-[1.5px] -outline-offset-1 outline-lk-ink hover:bg-lk-paper-hi`}>
-            <Trash2 className="size-3.5" /> Discard
+          <button disabled={pending || !body.trim()} onClick={() => act(() => approveDraft(draft.id, body))} className={buttonClass("primary")}>
+            <Send className="size-[15px]" /> {pending ? "Sending…" : "Approve & send"}
           </button>
         </div>
-      </PaperWindow>
+      </div>
       {intents}
       {feedback}
     </section>
