@@ -24,39 +24,69 @@ function Tile({ src, size = 26 }: { src: string; size?: number }) {
 
 // ------------------------------------------------------------------ works with
 
-// Only what Meerko integrates with today. Agents link to their own MCP docs; the rest to our pages.
-const tools: [string, string, string][] = [
-  ["Claude Code", "/logos/agents/claude.svg", agentDocs["Claude Code"]],
-  ["Cursor", "/logos/agents/cursor.svg", agentDocs.Cursor],
-  ["Codex", "/logos/agents/openai.svg", agentDocs.Codex],
-  ["Gemini CLI", "/logos/agents/gemini.svg", agentDocs["Gemini CLI"]],
-  ["Windsurf", "/logos/agents/windsurf.svg", agentDocs.Windsurf],
-  ["Gmail", "/logos/integrations/gmail.png", "/integrations/gmail"],
-  ["Outlook", "/logos/integrations/outlook.png", "/integrations/outlook"],
-  ["Slack", "/logos/integrations/slack.png", "/docs/slack"],
-  ["Icypeas", "/logos/integrations/icypeas.png", "https://www.icypeas.com"],
+// Only what Meerko integrates with today, grouped by the job each does. Agents link to their own MCP docs;
+// the rest to our pages. The full list is /integrations (lib/integrations.ts).
+const groups: { label: string; items: [string, string, string][] }[] = [
+  {
+    label: "Your agent",
+    items: [
+      ["Claude Code", "/logos/agents/claude.svg", agentDocs["Claude Code"]],
+      ["Cursor", "/logos/agents/cursor.svg", agentDocs.Cursor],
+      ["Codex", "/logos/agents/openai.svg", agentDocs.Codex],
+      ["Gemini CLI", "/logos/agents/gemini.svg", agentDocs["Gemini CLI"]],
+      ["Windsurf", "/logos/agents/windsurf.svg", agentDocs.Windsurf],
+    ],
+  },
+  {
+    label: "Your inbox",
+    items: [
+      ["Gmail", "/logos/integrations/gmail.png", "/integrations/gmail"],
+      ["Outlook", "/logos/integrations/outlook.png", "/integrations/outlook"],
+    ],
+  },
+  { label: "Your team", items: [["Slack", "/logos/integrations/slack.png", "/docs/slack"]] },
+  { label: "Lead data", items: [["Icypeas", "/logos/integrations/icypeas.png", "https://www.icypeas.com"]] },
 ];
 
+/** "Works with": a panel in the OS-window style, tucked into the bottom of the hero. Logos stay grey until hovered. */
 export function WorksWith() {
   return (
-    <section className="border-y border-lk-line">
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-5 px-6 py-7 lg:flex-row lg:items-center lg:gap-8 lg:px-24">
-        <p className={`${label} shrink-0 text-lk-dim`}>Works with</p>
-        <ul className="flex flex-1 flex-wrap items-center gap-x-5 gap-y-4 lg:justify-between">
-          {tools.map(([name, logo, href]) => (
-            <li key={name}>
-              <a href={href} {...ext(href)} className="flex items-center gap-2 text-[15px] font-medium text-lk-muted transition hover:text-lk-fg">
-                <Tile src={logo} size={24} />
-                {name}
-              </a>
-            </li>
+    <section aria-label="Works with" className="relative z-10 -mt-4 px-6 pb-6 lg:-mt-6 lg:px-[150px]">
+      <div className="mx-auto max-w-[1140px] bg-lk-box/85 outline outline-1 -outline-offset-1 outline-lk-line backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-4 border-b border-lk-line px-5 py-2.5">
+          <span className="font-pixel text-[13px] text-lk-fg">WORKS WITH</span>
+          <a href="/integrations" className={`${label} text-lk-lime hover:underline`}>
+            All integrations →
+          </a>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+          {groups.map((g, gi) => (
+            <div
+              key={g.label}
+              className={`flex flex-col gap-3.5 px-5 py-5 ${gi ? "border-t border-lk-line md:border-t-0 lg:border-l" : ""} ${gi === 1 ? "md:border-l" : ""} ${gi >= 2 ? "md:border-t lg:border-t-0" : ""} ${gi === 3 ? "md:border-l" : ""}`}
+            >
+              <span className="font-plex text-[12px] tracking-[0.8px] text-lk-dim uppercase">{g.label}</span>
+              <ul className="flex flex-wrap gap-x-5 gap-y-3">
+                {g.items.map(([name, logo, href]) => (
+                  <li key={name}>
+                    <a href={href} {...ext(href)} className="group flex items-center gap-2.5 text-[15px] font-medium text-lk-muted transition hover:text-lk-fg">
+                      <span className="grid size-7 shrink-0 place-items-center bg-lk-paper">
+                        <Image
+                          src={logo}
+                          alt=""
+                          width={17}
+                          height={17}
+                          className="object-contain opacity-80 grayscale transition group-hover:opacity-100 group-hover:grayscale-0"
+                        />
+                      </span>
+                      {name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-          <li>
-            <a href="/integrations" className={`${label} text-lk-lime hover:underline`}>
-              All integrations →
-            </a>
-          </li>
-        </ul>
+        </div>
       </div>
     </section>
   );
