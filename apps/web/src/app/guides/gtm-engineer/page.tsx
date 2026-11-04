@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { citer, GuideShell, H2 } from "@/components/content/guide-shell";
+import { citer, GuideShell, H2 } from "@/components/lookout/docs/guide";
 import { gtmSources as S } from "@/lib/sources";
 
 // Targets "gtm engineer" (3.6k/mo, +86% YoY), "what is a gtm engineer" (480, KD 4), "gtm engineer salary" (260, KD 1)

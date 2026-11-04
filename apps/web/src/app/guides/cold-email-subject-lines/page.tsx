@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { citer, GuideShell, H2 } from "@/components/content/guide-shell";
+import { citer, GuideShell, H2 } from "@/components/lookout/docs/guide";
 import { ftcCanSpam } from "@/lib/sources";
 
 // Targets "cold email subject lines" (1.6k/mo, KD 2, +171% YoY) (DataForSEO, US, Oct 2026).
@@ -75,7 +75,7 @@ export default function Page() {
         {examples.map(([group, lines]) => (
           <div key={group} className="flex flex-col gap-2 rounded-xl border border-line px-5 py-4">
             <p className="font-semibold text-fg">{group}</p>
-            <ul className="flex flex-col gap-1 font-mono text-[14px]">
+            <ul className="flex flex-col gap-1 font-mono text-[15px]">
               {lines.map((l) => (
                 <li key={l}>{l}</li>
               ))}

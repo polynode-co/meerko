@@ -1,7 +1,7 @@
 import { BellRing, PenLine, ShieldCheck } from "lucide-react";
-import { CodeBlock } from "@/components/docs/code-block";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { C, Callout, Cards, Fields, H2, L, Step, Tool } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { C, Callout, Cards, Fields, H2, L, Step, Tool } from "@/components/lookout/docs/ui";
 import { ROUTINE_PROMPT, routineSetupPrompt } from "@/lib/agent-hook";
 import { publicApiUrl } from "@/lib/meerko";
 

@@ -1,7 +1,7 @@
 import { CheckCircle2, MessageSquare, ShieldCheck } from "lucide-react";
-import { CodeBlock } from "@/components/docs/code-block";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { C, Callout, Cards, Fields, H2, L, Step } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { C, Callout, Cards, Fields, H2, L, Step } from "@/components/lookout/docs/ui";
 import { publicApiUrl } from "@/lib/meerko";
 import { slackManifest } from "@/lib/slack";
 

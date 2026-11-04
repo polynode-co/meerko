@@ -1,6 +1,6 @@
-import { CodeBlock } from "@/components/docs/code-block";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { C, H2, L } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { C, H2, L } from "@/components/lookout/docs/ui";
 import { cli, cliAnchor } from "@/lib/docs";
 import { apiUrl } from "@/lib/meerko";
 
@@ -57,7 +57,7 @@ export default function Page() {
               {commands.map((c) => (
                 <div key={c.usage} id={cliAnchor(c.usage)} className="flex scroll-mt-24 flex-col gap-2 border-t border-line px-[18px] py-3.5 first:border-t-0">
                   <code className="font-mono text-[13.5px] text-accent">{c.usage.replace(/^meerko/, "pnpm meerko")}</code>
-                  <p className="text-[14.5px] leading-normal">{sentence(c.description)}</p>
+                  <p className="text-[15px] leading-normal">{sentence(c.description)}</p>
                   {c.options.length > 0 && (
                     <dl className="flex flex-col gap-1 text-[13.5px]">
                       {c.options.map((o) => (

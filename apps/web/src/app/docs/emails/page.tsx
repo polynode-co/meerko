@@ -1,5 +1,5 @@
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { AskAgent, C, Callout, Facts, Fields, H2, L, Tool } from "@/components/docs/ui";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { AskAgent, C, Callout, Facts, Fields, H2, L, Tool } from "@/components/lookout/docs/ui";
 
 export const metadata = docsMetadata("emails", "Find and verify work emails | Meerko docs");
 

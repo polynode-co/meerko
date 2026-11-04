@@ -1,6 +1,6 @@
-import { CodeBlock } from "@/components/docs/code-block";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { C, Callout, Fields, H2, L } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { C, Callout, Fields, H2, L } from "@/components/lookout/docs/ui";
 import { mcpUrl, publicApiUrl } from "@/lib/meerko";
 
 export const metadata = docsMetadata("api-keys");

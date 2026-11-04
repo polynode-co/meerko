@@ -1,7 +1,7 @@
 import { AlertTriangle } from "lucide-react";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
 import { googleSources } from "@/lib/sources";
-import { AskAgent, C, Callout, Facts, H2, L, Tool } from "@/components/docs/ui";
+import { AskAgent, C, Callout, Facts, H2, L, Tool } from "@/components/lookout/docs/ui";
 
 export const metadata = docsMetadata("mailboxes", "Send cold email from your own Gmail or Outlook | Meerko docs");
 

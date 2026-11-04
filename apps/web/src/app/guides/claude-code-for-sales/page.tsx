@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { citer, GuideShell, H2, Sample } from "@/components/content/guide-shell";
+import { citer, GuideShell, H2, Sample } from "@/components/lookout/docs/guide";
 import { mcpUrl } from "@/lib/meerko";
 
 // Targets "claude code use cases" (320/mo, KD 13) and "claude code for marketing/sales" (DataForSEO, US, Oct 2026).

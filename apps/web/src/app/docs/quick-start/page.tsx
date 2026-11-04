@@ -1,7 +1,7 @@
 import { Server } from "lucide-react";
-import { CodeBlock } from "@/components/docs/code-block";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { AskAgent, C, Callout, L, Step } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { AskAgent, C, Callout, L, Step } from "@/components/lookout/docs/ui";
 import { mcpUrl } from "@/lib/meerko";
 
 export const metadata = docsMetadata("quick-start", "Meerko Cloud quick start | Meerko docs");

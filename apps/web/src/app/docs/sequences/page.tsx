@@ -1,7 +1,7 @@
 import { ChevronRight, CircleSlash, MailX, Reply, ShieldCheck } from "lucide-react";
-import { CodeBlock } from "@/components/docs/code-block";
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { AskAgent, C, Callout, Cards, Facts, Fields, H2, IconList, L, Tool } from "@/components/docs/ui";
+import { CodeBlock } from "@/components/lookout/docs/code-block";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { AskAgent, C, Callout, Cards, Facts, Fields, H2, IconList, L, Tool } from "@/components/lookout/docs/ui";
 
 export const metadata = docsMetadata("sequences", "Cold email sequences from Gmail or Outlook, run by your agent | Meerko docs");
 
@@ -63,9 +63,9 @@ export default function Page() {
               href={`/docs/mcp-tools#${tool}`}
               className={`flex flex-1 flex-col gap-1.5 rounded-[10px] border p-3.5 ${i === 3 ? "border-accent/35 bg-accent-soft" : "border-line bg-raised hover:border-muted"}`}
             >
-              <span className={`font-mono text-[11px] ${i === 3 ? "text-accent" : ""}`}>{String(i + 1).padStart(2, "0")}</span>
+              <span className={`font-mono text-[12px] ${i === 3 ? "text-accent" : ""}`}>{String(i + 1).padStart(2, "0")}</span>
               <span className="font-semibold text-fg">{stage}</span>
-              <span className={`font-mono text-[11.5px] ${i === 3 ? "text-accent" : ""}`}>{tool}</span>
+              <span className={`font-mono text-[12px] ${i === 3 ? "text-accent" : ""}`}>{tool}</span>
             </a>
             {i < lifecycle.length - 1 && <ChevronRight className="hidden size-3.5 shrink-0 sm:block" />}
           </li>

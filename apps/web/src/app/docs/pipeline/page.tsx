@@ -1,5 +1,5 @@
-import { DocsShell, docsMetadata } from "@/components/docs/shell";
-import { AskAgent, C, H2, Tool } from "@/components/docs/ui";
+import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
+import { AskAgent, C, H2, Tool } from "@/components/lookout/docs/ui";
 
 export const metadata = docsMetadata("pipeline");
 
@@ -28,10 +28,10 @@ export default function Page() {
       <ol className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {stages.map(([stage, how, auto], i) => (
           <li key={stage} className={`flex flex-col gap-1.5 rounded-xl border px-4 py-3.5 ${auto ? "border-line bg-raised" : "border-accent/35 bg-accent-soft"}`}>
-            <span className="font-mono text-[11px]">{String(i + 1).padStart(2, "0")}</span>
+            <span className="font-mono text-[12px]">{String(i + 1).padStart(2, "0")}</span>
             <span className="font-mono text-[15px] font-semibold text-fg">{stage}</span>
             <span className="text-[13px] leading-snug">{how}</span>
-            <span className={`pt-1 font-mono text-[10.5px] tracking-[0.1em] uppercase ${auto ? "" : "text-accent"}`}>{auto ? "Automatic" : "You set it"}</span>
+            <span className={`pt-1 font-mono text-[12px] tracking-[0.1em] uppercase ${auto ? "" : "text-accent"}`}>{auto ? "Automatic" : "You set it"}</span>
           </li>
         ))}
       </ol>

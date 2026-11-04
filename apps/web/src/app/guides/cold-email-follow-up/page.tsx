@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Callout, citer, GuideShell, H2, Sample, Timeline } from "@/components/content/guide-shell";
+import { Callout, citer, GuideShell, H2, Sample, Timeline } from "@/components/lookout/docs/guide";
 import { ftcCanSpam, googleSources } from "@/lib/sources";
 
 // Targets "cold email follow up" (3.6k–18k/mo, KD 8) (DataForSEO, US, Oct 2026).
