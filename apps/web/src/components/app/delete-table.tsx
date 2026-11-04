@@ -19,7 +19,7 @@ export function DeleteTable({ tableId, rowCount }: { tableId: string; rowCount: 
     );
   }
   return (
-    <span className="flex items-center gap-2 text-[13px]">
+    <span className="flex items-center gap-2 text-[15px]">
       <span>{error ?? `Delete the table and its ${rowCount.toLocaleString("en")} leads?`}</span>
       <button
         type="button"
@@ -30,7 +30,7 @@ export function DeleteTable({ tableId, rowCount }: { tableId: string; rowCount: 
             if (!res.ok) setError(res.error);
           })
         }
-        className={`${buttonClass("ghost")} text-[#e5795b]`}
+        className={buttonClass("danger")}
       >
         {pending ? "Deleting…" : "Delete"}
       </button>

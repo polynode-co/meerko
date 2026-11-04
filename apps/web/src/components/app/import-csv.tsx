@@ -19,20 +19,20 @@ export function ImportCsv({ variant = "secondary" }: { variant?: "primary" | "se
     );
   }
   return (
-    <form action={action} className="flex flex-col gap-3 rounded-xl border border-line bg-raised p-4 text-left text-[13px]">
+    <form action={action} className="flex flex-col gap-3 border border-lk-gray bg-lk-frame p-4 text-left text-[15px]">
       <label className="flex flex-col gap-1.5">
-        <span className="font-semibold">CSV file</span>
-        <input name="file" type="file" accept=".csv,text/csv" required className="text-[13px] file:mr-3 file:rounded-md file:border-0 file:bg-line file:px-3 file:py-1.5 file:text-fg" />
-        <span className="text-xs text-muted">
-          First row is the header. Columns like <span className="font-mono">first_name</span>, <span className="font-mono">company</span> and{" "}
-          <span className="font-mono">email</span> are recognised; any others become columns you can use in emails. Up to 10,000 rows.
+        <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim uppercase">CSV file</span>
+        <input name="file" type="file" accept=".csv,text/csv" required className="text-[15px] file:mr-3 file:border-0 file:bg-lk-line file:px-3 file:py-1.5 file:text-lk-fg" />
+        <span className="text-sm text-lk-dim">
+          First row is the header. Columns like <span className="font-plex">first_name</span>, <span className="font-plex">company</span> and{" "}
+          <span className="font-plex">email</span> are recognised; any others become columns you can use in emails. Up to 10,000 rows.
         </span>
       </label>
       <label className="flex flex-col gap-1.5">
-        <span className="font-semibold">Table name</span>
-        <input name="name" placeholder="Defaults to the file name" className="rounded-lg border border-line bg-ink px-3 py-2" />
+        <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim uppercase">Table name</span>
+        <input name="name" placeholder="Defaults to the file name" className="bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime" />
       </label>
-      {state && !state.ok && <p role="alert" className="text-xs text-[#e5795b]">{state.error}</p>}
+      {state && !state.ok && <p role="alert" className="text-sm text-[#e5795b]">{state.error}</p>}
       <div className="flex gap-2">
         <button disabled={pending} className={buttonClass("primary")}>{pending ? "Importing…" : "Import"}</button>
         <button type="button" onClick={() => setOpen(false)} className={buttonClass("ghost")}>Cancel</button>

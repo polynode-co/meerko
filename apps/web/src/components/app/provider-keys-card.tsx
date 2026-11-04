@@ -1,9 +1,9 @@
 "use client";
 
-import { KeyRound, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useActionState, useState, useTransition, type ReactNode } from "react";
 import { removeProviderKey, saveProviderKey } from "@/app/app/actions";
-import { buttonClass, Card } from "@/components/app/ui";
+import { buttonClass, Card, cardTitle } from "@/components/app/ui";
 
 type ProviderKey = { provider: string; last4: string; createdAt: string };
 
@@ -21,28 +21,28 @@ export function ProviderKeysCard({ keys, title, children }: { keys: ProviderKey[
   const stored = new Map(keys.map((k) => [k.provider, k]));
 
   return (
-    <Card className="overflow-hidden">
-      <div className="border-b border-line px-5 py-4">
-        <h2 className="flex items-center gap-2 text-[15px] font-semibold"><KeyRound className="size-4 text-accent" />{title}</h2>
-        <div className="mt-1 text-[13px] text-muted">{children}</div>
+    <Card>
+      <div className="border-b border-lk-line px-[18px] py-4">
+        <h2 className={cardTitle}>{title}</h2>
+        <div className="mt-1 text-[15px] text-lk-dim">{children}</div>
       </div>
 
       {PROVIDERS.map((p) => {
         const k = stored.get(p.id);
         return (
-          <div key={p.id} className="flex flex-wrap items-center gap-4 border-b border-line px-5 py-3">
+          <div key={p.id} className="flex flex-wrap items-center gap-4 border-b border-lk-line px-[18px] py-3">
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-[13px] font-medium">{p.name}</span>
-              <span className="text-[11px] text-muted">{p.role}</span>
+              <span className="text-[15px] font-medium">{p.name}</span>
+              <span className="text-[14px] text-lk-dim">{p.role}</span>
             </span>
             {k ? (
-              <span className="font-mono text-xs">…{k.last4} <span className="text-muted">· no credits charged</span></span>
+              <span className="font-plex text-sm">…{k.last4} <span className="text-lk-dim">· no credits charged</span></span>
             ) : (
-              <span className="text-xs text-muted">not set</span>
+              <span className="text-sm text-lk-dim">not set</span>
             )}
             {k &&
               (confirming === p.id ? (
-                <span className="flex items-center gap-2 text-[13px]">
+                <span className="flex items-center gap-2 text-[15px]">
                   <span>Remove the {p.name} key?</span>
                   <button
                     type="button"
@@ -54,7 +54,7 @@ export function ProviderKeysCard({ keys, title, children }: { keys: ProviderKey[
                         setConfirming(undefined);
                       })
                     }
-                    className={`${buttonClass("ghost")} text-[#e5795b]`}
+                    className={buttonClass("danger")}
                   >
                     {removing ? "Removing…" : "Remove"}
                   </button>
@@ -69,8 +69,8 @@ export function ProviderKeysCard({ keys, title, children }: { keys: ProviderKey[
         );
       })}
 
-      <form action={save} className="flex flex-wrap items-center gap-2 px-5 py-4">
-        <select name="provider" defaultValue="icypeas" aria-label="Provider" className="rounded-lg border border-line bg-ink px-3 py-2 text-[13px] outline-none focus:border-accent">
+      <form action={save} className="flex flex-wrap items-center gap-2 px-[18px] py-4">
+        <select name="provider" defaultValue="icypeas" aria-label="Provider" className="bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime text-[15px]">
           {PROVIDERS.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
@@ -84,15 +84,15 @@ export function ProviderKeysCard({ keys, title, children }: { keys: ProviderKey[
           spellCheck={false}
           placeholder="Paste the API key"
           aria-label="API key"
-          className="min-w-0 flex-1 rounded-lg border border-line bg-ink px-3 py-2 font-mono text-[13px] outline-none focus:border-accent"
+          className="min-w-0 flex-1 bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime font-plex text-[15px]"
         />
         <button disabled={saving} className={buttonClass("primary")}>{saving ? "Checking…" : stored.size ? "Save key" : "Add key"}</button>
-        <p className="basis-full text-[11px] text-muted">Saving a key replaces the one stored for that provider. Meerko checks it with the provider first, at no cost.</p>
+        <p className="basis-full text-[12px] text-lk-dim">Saving a key replaces the one stored for that provider. Meerko checks it with the provider first, at no cost.</p>
       </form>
 
-      {saved?.ok && saved.message && <p role="status" className="border-t border-line px-5 py-3 text-[13px]">{saved.message}</p>}
+      {saved?.ok && saved.message && <p role="status" className="border-t border-lk-line px-[18px] py-3 text-[15px]">{saved.message}</p>}
       {(saved && !saved.ok) || removeError ? (
-        <p role="alert" className="border-t border-line px-5 py-3 text-[13px] text-[#e5795b]">{saved && !saved.ok ? saved.error : removeError}</p>
+        <p role="alert" className="border-t border-lk-line px-[18px] py-3 text-[15px] text-[#e5795b]">{saved && !saved.ok ? saved.error : removeError}</p>
       ) : null}
     </Card>
   );

@@ -1,13 +1,12 @@
 "use client";
 
-import { Mail } from "lucide-react";
 import { startTransition, useActionState, useEffect, useState } from "react";
 import { MAIL_PROVIDERS, type MailProviderId } from "@meerko/sdk/constants";
 import { connectGmail, connectMailbox, connectOutlook } from "@/app/app/actions";
-import { buttonClass } from "./ui";
+import { buttonClass, cardTitle } from "./ui";
 
-const field = "w-full rounded-lg border border-line bg-ink px-3 py-2 text-[13px] outline-none focus:border-accent";
-const link = "text-accent underline-offset-2 hover:underline";
+const field = "w-full bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime text-[15px]";
+const link = "text-lk-lime underline-offset-2 hover:underline";
 
 /**
  * The Mailboxes card's header and its connect form. Mailboxes connect over IMAP and SMTP with an app password:
@@ -20,15 +19,15 @@ export function MailboxConnect({ oauth, outlook, initialOpen, initialEmail }: { 
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-line px-5 py-4">
-        <h2 className="flex items-center gap-2 text-[15px] font-semibold"><Mail className="size-4 text-accent" />Mailboxes</h2>
+      <div className="flex items-center justify-between border-b border-lk-line px-[18px] py-4">
+        <h2 className={cardTitle}>Mailboxes</h2>
         {!open && (
           <button type="button" onClick={() => (setOpen(true), setDone(undefined))} className={buttonClass("primary")}>
             Connect mailbox
           </button>
         )}
       </div>
-      {done && <p role="status" className="border-b border-line bg-signal/10 px-5 py-3 text-[13px]">{done}</p>}
+      {done && <p role="status" className="border-b border-lk-line bg-lk-lime/10 px-[18px] py-3 text-[15px]">{done}</p>}
       {open && (
         <ConnectForm
           oauth={oauth}
@@ -86,10 +85,10 @@ function ConnectForm({ oauth, outlook, initialEmail, onCancel, onDone }: { oauth
         const data = new FormData(e.currentTarget);
         startTransition(() => connect(data));
       }}
-      className="flex flex-col gap-4 border-b border-line bg-raised px-5 py-5 text-[13px]"
+      className="flex flex-col gap-4 border-b border-lk-line bg-lk-box px-[18px] py-5 text-[15px]"
     >
       <label className="flex max-w-xs flex-col gap-1">
-        <span className="text-xs text-muted">Email provider</span>
+        <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim uppercase">Email provider</span>
         <select name="provider" value={provider} onChange={(e) => setProvider(e.target.value as MailProviderId)} className={field}>
           {Object.entries(MAIL_PROVIDERS)
             .filter(([id]) => id !== "outlook" || outlook)
@@ -102,7 +101,7 @@ function ConnectForm({ oauth, outlook, initialEmail, onCancel, onDone }: { oauth
       {provider === "outlook" ? (
         <div className="flex flex-col gap-3">
           <p className="font-semibold">Connect an Outlook or Microsoft 365 inbox</p>
-          <p className="text-muted">
+          <p className="text-lk-dim">
             Sign in with Microsoft and approve Meerko: it asks to send email as you and to read your mail, so it can spot replies.
             Microsoft doesn&apos;t allow passwords for this, so there&apos;s nothing to copy. Your IT admin may need to approve Meerko first.
           </p>
@@ -134,7 +133,7 @@ function ConnectForm({ oauth, outlook, initialEmail, onCancel, onDone }: { oauth
                 ? "Connect any inbox over IMAP and SMTP"
                 : `Connect a ${MAIL_PROVIDERS[provider].name} inbox with an app password`}
           </p>
-          <ol className="ml-4 list-decimal space-y-1 text-muted">
+          <ol className="ml-4 list-decimal space-y-1 text-lk-dim">
             {gmail ? (
               <>
                 <li>
@@ -152,7 +151,7 @@ function ConnectForm({ oauth, outlook, initialEmail, onCancel, onDone }: { oauth
               providerSteps[provider].map((step, i) => <li key={i}>{step}</li>)
             )}
           </ol>
-          <p className="text-xs text-muted">
+          <p className="text-sm text-lk-dim">
             {gmail
               ? "Google emails you a security alert when the password is created and first used. That's expected."
               : "Meerko signs in to your mail server before saving the password, encrypted."}
@@ -161,26 +160,26 @@ function ConnectForm({ oauth, outlook, initialEmail, onCancel, onDone }: { oauth
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted">Address to send from</span>
-            <input {...bind("email")} type="email" required placeholder="you@company.com" className={`${field} font-mono`} />
+            <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim uppercase">Address to send from</span>
+            <input {...bind("email")} type="email" required placeholder="you@company.com" className={`${field} font-plex`} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted">{gmail ? "App password" : "Password or app password"}</span>
-            <input name="password" type="password" required autoComplete="off" spellCheck={false} placeholder={gmail ? "abcd efgh ijkl mnop" : ""} className={`${field} font-mono`} />
+            <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim uppercase">{gmail ? "App password" : "Password or app password"}</span>
+            <input name="password" type="password" required autoComplete="off" spellCheck={false} placeholder={gmail ? "abcd efgh ijkl mnop" : ""} className={`${field} font-plex`} />
           </label>
           {provider === "other" && (
             <>
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted">IMAP server (port 993)</span>
-                <input {...bind("imap_host")} required placeholder="imap.example.com" className={`${field} font-mono`} />
+                <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim uppercase">IMAP server (port 993)</span>
+                <input {...bind("imap_host")} required placeholder="imap.example.com" className={`${field} font-plex`} />
               </label>
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-muted">SMTP server</span>
-                  <input {...bind("smtp_host")} required placeholder="smtp.example.com" className={`${field} font-mono`} />
+                  <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim uppercase">SMTP server</span>
+                  <input {...bind("smtp_host")} required placeholder="smtp.example.com" className={`${field} font-plex`} />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-muted">Port</span>
+                  <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim uppercase">Port</span>
                   <select {...bind("smtp_port")} className={field}>
                     <option value="465">465</option>
                     <option value="587">587</option>
@@ -190,16 +189,16 @@ function ConnectForm({ oauth, outlook, initialEmail, onCancel, onDone }: { oauth
             </>
           )}
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted">Sender name (optional)</span>
+            <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim uppercase">Sender name (optional)</span>
             <input {...bind("name")} maxLength={100} placeholder="Your name" className={field} />
           </label>
           {alias ? (
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-muted">{gmail ? "Google account you sign in with" : "User name, if it isn't the address"}</span>
-              <input {...bind("login")} placeholder={gmail ? "you@main-domain.com" : ""} className={`${field} font-mono`} />
+              <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim uppercase">{gmail ? "Google account you sign in with" : "User name, if it isn't the address"}</span>
+              <input {...bind("login")} placeholder={gmail ? "you@main-domain.com" : ""} className={`${field} font-plex`} />
             </label>
           ) : (
-            <button type="button" onClick={() => setAlias(true)} className="self-end text-left text-xs text-muted underline-offset-2 hover:underline">
+            <button type="button" onClick={() => setAlias(true)} className="self-end text-left text-sm text-lk-dim underline-offset-2 hover:underline">
               {gmail ? "Is this address an alias of another Google account?" : "Do you sign in with a different user name?"}
             </button>
           )}
