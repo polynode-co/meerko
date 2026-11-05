@@ -68,17 +68,17 @@ export function DocsShell({ slug, h1, lead, toc, tools, children }: DocsShellPro
   const pager = "flex min-w-0 flex-1 flex-col gap-1.5 p-5 outline outline-1 -outline-offset-1 outline-lk-line transition hover:outline-lk-gray";
   return (
     <div className="min-h-dvh bg-lk-bg text-lk-fg">
-      <LkNav />
+      <LkNav wide />
       <main style={lkScopeStyle} className={lkScopeClass}>
-        <div className="mx-auto flex max-w-[1440px]">
+        <div className="flex">
           <aside className="hidden w-[296px] shrink-0 border-r border-lk-line lg:block">
-            <div className="sticky top-0 max-h-dvh overflow-y-auto py-10 pr-6 pl-12">
+            <div className="lk-scroll sticky top-0 max-h-dvh overflow-y-auto py-10 pr-6 pl-12">
               <DocsMenu slug={slug} />
             </div>
           </aside>
 
           <article className="flex min-w-0 flex-1 flex-col gap-[22px] px-5 pt-10 pb-20 text-[16px] leading-[1.65] text-lk-muted sm:px-10 lg:px-[72px] lg:pt-14 lg:pb-24">
-            <div className="flex w-full max-w-[808px] flex-col gap-[22px]">
+            <div className="mx-auto flex w-full max-w-[880px] flex-col gap-[22px]">
               <LkBreadcrumbs items={[["Docs", "/docs"], [page.title, docHref(slug)]]} trail={[["Docs", "/docs"], [page.group]]} />
               <header className="flex flex-col gap-4">
                 <h1 className="font-sans text-[36px] leading-[1.08] font-semibold tracking-[-1.4px] text-lk-fg sm:text-[48px] sm:leading-[50px] sm:tracking-[-2px]">
@@ -119,7 +119,7 @@ export function DocsShell({ slug, h1, lead, toc, tools, children }: DocsShellPro
           </article>
 
           <aside className="hidden w-[288px] shrink-0 xl:block">
-            <div className="sticky top-0 flex max-h-dvh flex-col gap-7 overflow-y-auto pt-14 pr-12 pb-10">
+            <div className="lk-scroll sticky top-0 flex max-h-dvh flex-col gap-7 overflow-y-auto pt-14 pr-12 pb-10">
               {toc.length > 0 && <LkToc items={toc} />}
               {tools && tools.length > 0 && (
                 <div className="flex flex-col gap-2 border-t border-lk-line pt-5">

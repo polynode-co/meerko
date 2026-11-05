@@ -63,5 +63,46 @@
   [aria-disabled="true"] {
     cursor: not-allowed;
   }
+
+  /* Scrollbars: a thin graphite thumb on a clear track, lime while dragged, so the page and the docs
+     menus don't get the OS's white gutter on the dark design. */
+  html {
+    scrollbar-color: var(--color-lk-line) transparent;
+    scrollbar-width: thin;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-lk-line);
+    border: 3px solid transparent;
+    border-radius: 0;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-lk-gray);
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--color-lk-lime);
+  }
+}
+
+/* The docs side menus show their scrollbar only while hovered. */
+.lk-scroll {
+  scrollbar-color: transparent transparent;
+}
+.lk-scroll:hover {
+  scrollbar-color: var(--color-lk-line) transparent;
+}
+.lk-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+.lk-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: var(--color-lk-line);
 }
 

@@ -90,7 +90,8 @@ export function CtaBand({ title, body, cta = "Get started free →", href = site
   );
 }
 
-export async function LkNav({ links, transparent = false }: { links?: [string, string][]; transparent?: boolean }) {
+/** `wide` drops the 1440px cap, for full-width layouts like the docs. */
+export async function LkNav({ links, transparent = false, wide = false }: { links?: [string, string][]; transparent?: boolean; wide?: boolean }) {
   // A saved session means signed in; /app re-checks it.
   const signedIn = !!(await cookies()).get(SESSION_COOKIE)?.value;
   const items = links ?? [
@@ -102,7 +103,7 @@ export async function LkNav({ links, transparent = false }: { links?: [string, s
   ];
   return (
     <header className={`relative z-10 ${transparent ? "" : "border-b border-lk-line bg-lk-bg"}`}>
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-[22px] lg:px-12">
+      <div className={`mx-auto flex items-center justify-between px-6 py-[22px] lg:px-12 ${wide ? "" : "max-w-[1440px]"}`}>
         <a href="/" aria-label="Meerko home" className="flex items-center gap-2.5">
           <LogoMark size={26} />
           <span className="font-pixel text-[16px] tracking-[0.6px] text-lk-fg">MEERKO</span>
