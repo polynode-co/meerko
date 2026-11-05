@@ -189,15 +189,6 @@ const commands = [
   ["/triage-replies", "Sort replies and draft answers to approve."],
   ["/pipeline", "See who's interested, booked and won."],
 ];
-// Claude and ChatGPT link to our own setup pages; the coding agents to their MCP docs.
-const agents: [string, string][] = [
-  ["Claude", "/logos/agents/claude.svg"],
-  ["ChatGPT", "/logos/agents/openai.svg"],
-  ["Claude Code", "/logos/agents/claude.svg"],
-  ["Codex", "/logos/agents/openai.svg"],
-  ["Cursor", "/logos/agents/cursor.svg"],
-  ["Grok", "/logos/agents/grok.svg"],
-];
 const leads = [
   ["Lucía Ferrer", "Brava Pay", "verified"],
   ["Marc Soler", "Kokoro Finance", "verified"],
@@ -263,9 +254,7 @@ export function Superpowers({ n }: { n: string }) {
             <span className={kicker}>{n} · MCP · works in your agent</span>
             <h2 className={sectionTitle}>Your agent stops when you close it. Meerko doesn&apos;t.</h2>
             <p className="text-[17px] leading-[1.6] text-lk-muted">
-              Add Meerko to Claude Code, Codex or Cursor once. Your agent decides who to target, what to write and how to answer. Meerko
-              remembers every lead, sends on schedule within each mailbox&apos;s limits, skips anyone already enrolled or unsubscribed, and
-              wakes your agent when someone replies.
+              Your agent picks who to target and what to say. Meerko keeps sending and catches every reply, around the clock.
             </p>
           </div>
           <dl className="flex flex-col">
@@ -278,23 +267,6 @@ export function Superpowers({ n }: { n: string }) {
               </div>
             ))}
           </dl>
-          <div className="flex flex-col gap-3">
-            <p className={`${label} text-lk-dim`}>Works with</p>
-            <ul className="flex flex-wrap gap-2">
-              {agents.map(([name, logo]) => (
-                <li key={name}>
-                  <a
-                    href={agentDocs[name] ?? `/docs/${name.toLowerCase()}`}
-                    {...ext(agentDocs[name] ?? "")}
-                    className="flex items-center gap-2 bg-lk-box py-1.5 pr-3.5 pl-1.5 text-[14px] font-medium text-lk-fg outline outline-1 -outline-offset-1 outline-lk-line hover:outline-lk-muted"
-                  >
-                    <Tile src={logo} size={24} />
-                    {name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
           <div className="flex flex-wrap items-center gap-5">
             <CopyPromptButton text={setupPrompt()} label="Copy setup prompt" />
             <a href="/docs/claude-code" className={`${label} text-lk-fg hover:text-lk-lime`}>
