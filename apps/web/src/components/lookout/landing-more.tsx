@@ -258,10 +258,11 @@ export function Superpowers({ n }: { n: string }) {
         <div className="order-1 flex w-full flex-1 flex-col gap-9 lg:order-2">
           <div className="flex flex-col gap-[18px]">
             <span className={kicker}>{n} · MCP · works in your agent</span>
-            <h2 className={sectionTitle}>Give your agent outbound superpowers.</h2>
+            <h2 className={sectionTitle}>Your agent stops when you close it. Meerko doesn&apos;t.</h2>
             <p className="text-[17px] leading-[1.6] text-lk-muted">
-              Add Meerko to Claude Code, Codex or Cursor once. Then just ask: your agent finds the leads, writes the emails and works the
-              replies.
+              Add Meerko to Claude Code, Codex or Cursor once. Your agent decides who to target, what to write and how to answer. Meerko
+              remembers every lead, sends on schedule within each mailbox&apos;s limits, skips anyone already enrolled or unsubscribed, and
+              wakes your agent when someone replies.
             </p>
           </div>
           <dl className="flex flex-col">
@@ -374,6 +375,10 @@ export const faqs = [
   [
     "Is Meerko really free?",
     "Yes. The self-hosted edition is AGPL and has every core feature. You only pay data providers directly with your own keys. Meerko Cloud charges credits for data lookups; AI runs in your own agent.",
+  ],
+  [
+    "Why not just give my agent a Gmail and an Icypeas connector?",
+    "Your agent forgets between sessions and can't send on a schedule. Meerko keeps the leads, sequences, replies and pipeline in one place, sends within each mailbox's daily limit while your agent is closed, skips unsubscribes and duplicates, and wakes your agent when someone replies.",
   ],
   [
     "Is Meerko an open-source Clay alternative?",
