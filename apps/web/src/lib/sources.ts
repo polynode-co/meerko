@@ -53,6 +53,8 @@ export const instantlySources = { pricing: { label: "Instantly pricing", url: "h
 /** For /docs: the setup steps that depend on other products. */
 export const docsSources = {
   claudeCodeMcp: { label: "Claude Code docs: Connect Claude Code to tools via MCP", url: "https://code.claude.com/docs/en/mcp" },
+  claudeConnectors: { label: "Claude Help: Getting started with custom connectors using remote MCP", url: "https://support.claude.com/en/articles/11175166-getting-started-with-custom-connectors-using-remote-mcp" },
+  chatgptMcp: { label: "OpenAI Apps SDK: Connect from ChatGPT", url: "https://developers.openai.com/apps-sdk/deploy/connect-chatgpt" },
   codexMcp: { label: "OpenAI Codex docs: Model Context Protocol", url: "https://developers.openai.com/codex/mcp" },
   cursorMcp: { label: "Cursor docs: Model Context Protocol", url: "https://cursor.com/docs/context/mcp" },
   geminiMcp: { label: "Gemini CLI docs: MCP servers", url: "https://geminicli.com/docs/tools/mcp-server/" },
