@@ -2,6 +2,7 @@
 // serves it at /mcp for remote clients signed in with OAuth. The docs reference
 // (apps/web/src/generated/reference.json) is generated from it by scripts/docs-reference.mts.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { TOOL_ANNOTATIONS } from "./annotations.ts";
 import { z } from "zod";
 import { MeerkoClient, REPLY_INTENTS, STAGES } from "@meerko/sdk";
 
@@ -47,9 +48,11 @@ export const DRAFTER_PROMPTS = ["triage-replies"];
 export function createServer(client: () => MeerkoClient, opts: { only?: { tools: string[]; prompts: string[] } } = {}) {
   const server = new McpServer({ name: "meerko", version: "0.0.0" });
   const only = opts.only;
-  const tool = ((name: string, ...rest: unknown[]) => {
+  const tool = ((name: string, config: Record<string, unknown>, ...rest: unknown[]) => {
     if (only && !only.tools.includes(name)) return undefined;
-    return (server.registerTool as (...args: unknown[]) => unknown).call(server, name, ...rest);
+    // Every tool gets its title and behaviour hints from annotations.ts, which the app directories require.
+    const { title, ...annotations } = TOOL_ANNOTATIONS[name] ?? ({} as Partial<(typeof TOOL_ANNOTATIONS)[string]>);
+    return (server.registerTool as (...args: unknown[]) => unknown).call(server, name, { title, annotations, ...config }, ...rest);
   }) as typeof server.registerTool;
   const prompt = ((name: string, ...rest: unknown[]) => {
     if (only && !only.prompts.includes(name)) return undefined;
@@ -521,10 +524,14 @@ Write like a person answering an email: short, specific to what they said, in th
     "get_credits",
     {
       description:
-        "Show the workspace's credit balance (null when self-hosted with your own provider keys). On Meerko Cloud it also returns the plan and buy_url, the page where a person can buy more credits: share it when credits run out.",
+        "Show the workspace's credit balance (null when self-hosted with your own provider keys, or when credits are off). Searches and email finding stop when it runs out; sending and replies keep working. If it's low, tell the user so before a large search.",
       inputSchema: {},
     },
-    () => run(() => client().getCredits()),
+    // Only the balance: the app directories don't allow plan details or links to buy inside the app. People top up in Settings.
+    () => run(async () => {
+      const { enabled, balance } = await client().getCredits();
+      return { enabled, balance };
+    }),
   );
 
   prompt(

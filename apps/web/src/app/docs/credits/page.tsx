@@ -56,8 +56,9 @@ export default function Page() {
         don&apos;t expire, and you keep them if you cancel Pro. Cancel or change your card from Manage billing.
       </p>
       <p>
-        On Meerko Cloud, <Tool name="get_credits" /> also returns your plan and <C>buy_url</C>, the Connections page where a person can top
-        up, so your agent can hand you the link when a lookup runs out.
+        <Tool name="get_credits" /> shows your agent the balance, so it can warn you before a large search. Plans and
+        top-ups live in Connections, not in the chat: the Claude and ChatGPT app directories don&apos;t allow buying inside an app. The
+        REST API&apos;s <C>GET /v1/credits</C> still returns the plan and a <C>buy_url</C> for your own scripts.
       </p>
       <H2 id="own-key">Use your own provider key</H2>
       <Callout icon={KeyRound}>

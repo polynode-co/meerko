@@ -1004,7 +1004,7 @@
       },
       {
         "name": "get_credits",
-        "description": "Show the workspace's credit balance (null when self-hosted with your own provider keys). On Meerko Cloud it also returns the plan and buy_url, the page where a person can buy more credits: share it when credits run out.",
+        "description": "Show the workspace's credit balance (null when self-hosted with your own provider keys, or when credits are off). Searches and email finding stop when it runs out; sending and replies keep working. If it's low, tell the user so before a large search.",
         "inputSchema": {
           "type": "object",
           "properties": {},
