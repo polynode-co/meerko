@@ -6,7 +6,7 @@ import { site } from "@/lib/site";
 
 export const plans = [
   {
-    name: "Cloud Free",
+    name: "Free",
     price: "$0",
     per: "to start",
     sub: "200 credits included",
@@ -15,7 +15,7 @@ export const plans = [
     href: site.signupUrl,
   },
   {
-    name: "Cloud Pro",
+    name: "Pro",
     price: "$49",
     per: "/ month",
     sub: "4,900 credits / month",

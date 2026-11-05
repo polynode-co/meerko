@@ -219,7 +219,7 @@ function Pricing() {
         </div>
         <div className="flex flex-col bg-lk-box outline outline-1 -outline-offset-1 outline-lk-line lg:flex-row">
           <div className="flex flex-col gap-[22px] border-b border-lk-line p-9 lg:w-[420px] lg:shrink-0 lg:border-r lg:border-b-0">
-            <span className="font-pixel text-[14px] text-lk-lime">CLOUD PRO</span>
+            <span className="font-pixel text-[14px] text-lk-lime">PRO</span>
             <div className="flex items-end gap-2.5">
               <span className="text-[72px] leading-[72px] font-semibold tracking-[-3px] text-lk-fg">$49</span>
               <span className="pb-1 font-plex text-[13px] text-lk-dim">/ MONTH</span>

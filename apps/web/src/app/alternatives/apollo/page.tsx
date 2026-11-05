@@ -16,7 +16,7 @@ const apollo: Comparison = {
   pitch:
     "Apollo is a sales platform with a contact database, sequences and pipeline tools. Meerko is an open-source AI sales agent you run from Claude Code: self-host it for free and keep every lead in your own Postgres, or use Meerko Cloud from $49/mo.",
   rows: [
-    { label: "Paid plans from", meerko: "$49/mo (Cloud Pro)", them: "$49/mo (Basic), as listed", source: apolloSources.pricing },
+    { label: "Paid plans from", meerko: "$49/mo (Pro)", them: "$49/mo (Basic), as listed", source: apolloSources.pricing },
     { label: "Free plan", meerko: "200 credits on Cloud", them: "Free plan with no time limit", source: apolloSources.pricing },
     { label: "Email sequences", meerko: "From your own Gmail or Outlook", them: "Included from Basic", source: apolloSources.pricing },
     { label: "What credits pay for", meerko: "Found and verified emails, lead search", them: "Emails, phone numbers, warmup, mailboxes and more", source: apolloSources.pricing },
