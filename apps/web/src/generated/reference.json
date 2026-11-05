@@ -3,7 +3,13 @@
     "tools": [
       {
         "name": "whoami",
+        "title": "Show the current workspace",
         "description": "Which Meerko workspace (brand) this connection acts on now. Every other tool works in that workspace.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -12,7 +18,13 @@
       },
       {
         "name": "list_workspaces",
+        "title": "List workspaces",
         "description": "List the user's Meerko workspaces, one per brand, with the one this connection acts on marked `current`. Workspaces share one plan and credit balance; tables, mailboxes, sequences and replies are per workspace.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -21,7 +33,13 @@
       },
       {
         "name": "switch_workspace",
+        "title": "Switch workspace",
         "description": "Point this connection at another of the user's workspaces (ids from list_workspaces). Every later call, in this conversation and any other using this connection, acts on that brand: its leads, mailboxes and sequences.\nSwitch only when the user names the brand, and say which workspace is now active.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -37,7 +55,13 @@
       },
       {
         "name": "create_workspace",
+        "title": "Create a workspace",
         "description": "Create a workspace for another brand. It shares the user's plan and credits, starts empty, and isn't switched to: call switch_workspace to work in it.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -54,7 +78,13 @@
       },
       {
         "name": "rename_workspace",
+        "title": "Rename a workspace",
         "description": "Rename a workspace. Only its owner can.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -74,7 +104,13 @@
       },
       {
         "name": "list_tables",
+        "title": "List lead tables",
         "description": "List all prospect tables in the Meerko workspace, with their columns and row counts.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -83,7 +119,13 @@
       },
       {
         "name": "create_table",
+        "title": "Create a lead table",
         "description": "Create a new prospect table (e.g. 'Fintech CTOs Spain'). Columns are optional; they are also auto-created on import.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -125,7 +167,13 @@
       },
       {
         "name": "add_column",
+        "title": "Add a column",
         "description": "Add a column to a table. Give it a `prompt` to make it an AI column: an instruction that you (the agent) answer per row, e.g. \"Score ICP fit 1-5 for {{company}}: {{description}}\" or \"Write a one-line opener for {{first_name}} at {{company}}\".\nMeerko doesn't run the prompt itself. Fill the column with get_pending_cells + update_rows. Calling this again with a new prompt replaces the instruction.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -160,7 +208,13 @@
       },
       {
         "name": "get_pending_cells",
+        "title": "Get cells waiting for the agent",
         "description": "Fetch rows whose AI column is still empty, each with the column's instruction already filled in from that row (\"instruction\") plus the full row data.\nAnswer each instruction yourself from the row data (and research, if the instruction asks for it), then save all answers in one update_rows call. Repeat while \"remaining\" > 0.\nWrite \"N/A\" when a row lacks what the instruction needs, so it isn't returned again.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -194,7 +248,13 @@
       },
       {
         "name": "update_rows",
+        "title": "Update rows",
         "description": "Write values into existing rows by row id. Each update's `data` is merged into the row; new keys become new columns. Max 1,000 rows per call.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -233,7 +293,13 @@
       },
       {
         "name": "import_rows",
+        "title": "Import rows",
         "description": "Insert rows (objects of column -> value) into a table. Keys are normalized to snake_case and unknown keys become new columns. Max 10,000 rows per call.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -260,7 +326,13 @@
       },
       {
         "name": "query_rows",
+        "title": "Query rows",
         "description": "Read rows from a table, each with its pipeline stage. `filter` is an exact-match object on column keys, e.g. {\"country\": \"Spain\"}; `stage` filters by stage (new, contacted, replied, meeting, won, lost).",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -304,7 +376,13 @@
       },
       {
         "name": "find_people",
+        "title": "Find people",
         "description": "Search the lead database for people and save them as rows in a table (first_name, last_name, title, company, domain, company_size, industry, location, linkedin_url, company_linkedin_url).\nFilters are objects keyed by field. Text fields take {include?: string[], exclude?: string[]}; numeric fields take range operators {\">=\": n, \"<=\": n}.\nUse alpha-2 country codes for location (\"ES\", \"US\"). Expand titles across languages and acronyms ([\"CTO\", \"Chief Technology Officer\", \"Director de Tecnología\"]).\nPeople fields: currentJobTitle, pastJobTitle, firstname, lastname, location, keyword, skills, languages, school, currentCompanyName, currentCompanyWebsite, currentCompanyUrn, \"currentCompany.industry\", \"currentCompany.location\", \"currentCompany.keyword\"; ranges: \"currentCompany.headcount\", \"currentCompany.revenue\", totalYearsOfExperience; growth: \"currentCompany.headcountGrowth\" {timespan: \"6months\"|\"12months\"|\"24months\", min, max}.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -348,7 +426,13 @@
       },
       {
         "name": "find_companies",
+        "title": "Find companies",
         "description": "Search the lead database for companies and save them as rows in a table (company, domain, industry, employees, location, founded_year, description, linkedin_url, company_urn).\nFilters are objects keyed by field. Text fields take {include?: string[], exclude?: string[]}; numeric fields take range operators {\">=\": n, \"<=\": n}.\nUse alpha-2 country codes for location (\"ES\", \"US\"). Expand titles across languages and acronyms ([\"CTO\", \"Chief Technology Officer\", \"Director de Tecnología\"]).\nCompany fields: name, industry (LinkedIn industry names, e.g. \"Financial Services\", \"Software Development\"), location, keyword, domain, type; ranges: headcount, revenue (USD); growth: headcountGrowth {timespan, min, max}.\nTo get decision-makers at the found companies, pass their company_urn values to find_people as currentCompanyUrn.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -392,7 +476,13 @@
       },
       {
         "name": "enrich_rows",
+        "title": "Find and verify emails",
         "description": "Find work emails (from first_name, last_name and domain or company columns) and verify them, writing email, email_certainty and email_verification back to each row.\nOnly rows missing a result are processed, at most `limit` per call (~3s per row). Keep calling while `remaining` > 0.\nCosts: 8 credits per email found, 1 per verification; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost.\nemail_certainty values: ultra_sure, very_sure, probable (deliverability unconfirmed), not_found, missing_input (row lacks a name or domain).",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -437,7 +527,13 @@
       },
       {
         "name": "connect_gmail",
+        "title": "Connect a mailbox",
         "description": "Start connecting an inbox to send from: Gmail/Google Workspace, Outlook/Microsoft 365, Zoho, Fastmail or any IMAP/SMTP provider. For Outlook pass provider \"outlook\": it returns a Microsoft sign-in link for the user to open and approve. For the others the user connects it themselves with an app password: give them the returned link (or CLI command) and its steps. Then call list_mailboxes to confirm it's connected. Never ask for a password in chat.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -460,7 +556,13 @@
       },
       {
         "name": "list_mailboxes",
+        "title": "List mailboxes",
         "description": "List connected sending mailboxes with their daily limit, what they may send today (effectiveLimit, lower while a new mailbox ramps up; rampDay) and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -469,7 +571,13 @@
       },
       {
         "name": "update_mailbox",
+        "title": "Update mailbox settings",
         "description": "Set a mailbox's daily send limit, the sender name recipients see, or its ramp.\nNew mailboxes ramp up automatically: they start at 10 emails a day and grow to their daily limit over 21 days (list_mailboxes shows effectiveLimit and rampDay). Turn the ramp off only for an inbox that already sends regularly.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -497,7 +605,13 @@
       },
       {
         "name": "check_domains",
+        "title": "Check sending domains",
         "description": "Check SPF, DKIM and DMARC for every domain the workspace sends from. A missing record is a common reason mail lands in spam: tell the user which record to add before starting a sequence. \"managed\" means consumer Gmail, where Google handles it. DKIM is checked at Google Workspace's default selector (\"google\").",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -506,7 +620,13 @@
       },
       {
         "name": "send_test_email",
+        "title": "Send a test email",
         "description": "Send a test email from a connected mailbox to check it works. Only send to the user's own address.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": true
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -526,7 +646,13 @@
       },
       {
         "name": "create_sequence",
+        "title": "Create a sequence",
         "description": "Create a DRAFT email sequence for a table, sent from a pool of one or more connected mailboxes (see list_mailboxes). Each lead is assigned one mailbox and every step comes from it, in the same thread; more mailboxes means more volume per day.\nWrite short, plain, personal emails: step 1 with a subject, 1-3 follow-ups that reply in the same thread. Use only {{vars}} that the table's rows actually have; rows missing a used variable are skipped at enrollment.\nThen: preview_sequence to check, enroll_rows, show the user the preview and enrollment counts, and only call start_sequence after the user approves.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -607,7 +733,13 @@
       },
       {
         "name": "update_sequence",
+        "title": "Edit a sequence",
         "description": "Edit a sequence's name, mailbox pool, assignment, send window or steps (steps replace all existing ones; pause an active sequence first). Changing mailbox_ids moves leads not yet emailed to the new pool; leads already mid-thread stay on their mailbox, or stop if it was removed.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -681,7 +813,13 @@
       },
       {
         "name": "preview_sequence",
+        "title": "Preview a sequence email",
         "description": "Render every step of a sequence for one row (the first row by default), exactly as it will be sent, plus any template variables that row is missing.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -700,7 +838,13 @@
       },
       {
         "name": "enroll_rows",
+        "title": "Enroll rows in a sequence",
         "description": "Enroll rows from the sequence's table. Skips (and counts) rows with no email, an undeliverable email, an unsubscribed address, a missing template variable, or already enrolled. Enrolling doesn't send anything until the sequence is started.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -735,7 +879,13 @@
       },
       {
         "name": "start_sequence",
+        "title": "Start sending a sequence",
         "description": "Start sending a sequence. Real emails go to real people from the user's mailbox: only call this after the user has seen the preview and explicitly approved. Sends respect the send window, the mailbox's daily limit and spacing.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": true
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -751,7 +901,13 @@
       },
       {
         "name": "pause_sequence",
+        "title": "Pause a sequence",
         "description": "Pause a sequence; nothing more is sent until it's started again.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -767,7 +923,13 @@
       },
       {
         "name": "list_sequences",
+        "title": "List sequences",
         "description": "List sequences with status and enrollment counts.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -776,7 +938,13 @@
       },
       {
         "name": "sequence_stats",
+        "title": "Show sequence stats",
         "description": "A sequence's enrollment states (active, completed, replied, unsubscribed, failed...), emails sent, reply rate, and its mailbox pool: each mailbox's sends today against its limit, ramp day and number of leads.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -792,7 +960,13 @@
       },
       {
         "name": "list_replies",
+        "title": "List replies",
         "description": "Replies to the user's sequences that nobody has classified yet (newest first). Each has the reply text (quoted history removed), the earlier emails in the thread, and the prospect's table row.\nMeerko already stopped the sequence for anyone who replied, and handled bounces, unsubscribe requests and out-of-office replies by itself (hidden here unless include_automatic).\nRead each reply, decide its intent and save it with classify_reply. Summarize the interested ones and questions for the user.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -817,7 +991,13 @@
       },
       {
         "name": "classify_reply",
+        "title": "Classify a reply",
         "description": "Set a reply's intent after reading it: interested (wants to talk / asks for a meeting), question (asks something before deciding), not_now (timing), not_interested, referral (points to someone else), wrong_person, other. Set handled: true when no further action is needed.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -849,7 +1029,13 @@
       },
       {
         "name": "draft_reply",
+        "title": "Draft a reply",
         "description": "Save a draft answer to a reply (from list_replies). Nothing is sent: the user reviews it first.\nWrite like a person answering an email: short, specific to what they said, in their language, with one clear next step (e.g. two meeting times or a booking link if the user gave you one). Sign off with the sender's first name: Gmail doesn't add the user's signature to emails sent through Meerko. Drafting again for the same reply replaces the pending draft.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -870,7 +1056,13 @@
       },
       {
         "name": "list_drafts",
+        "title": "List reply drafts",
         "description": "Pending drafts with the reply each answers, the thread so far and the prospect's row. Show them to the user for approval.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -879,7 +1071,13 @@
       },
       {
         "name": "approve_draft",
+        "title": "Approve and send a reply",
         "description": "Send a draft as a reply in the same email thread, from the user's mailbox. Only call this after the user has read this specific draft and explicitly said to send it. Pass `body` if the user edited the text.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": true
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -898,7 +1096,13 @@
       },
       {
         "name": "discard_draft",
+        "title": "Discard a reply draft",
         "description": "Throw a pending draft away.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -914,7 +1118,13 @@
       },
       {
         "name": "pipeline",
+        "title": "Show the pipeline",
         "description": "Lead counts per stage (new → contacted → replied → meeting → won → lost), for one table or the whole workspace. Meerko moves leads to contacted when the first email is sent and to replied when they answer; meeting, won and lost are set with move_stage.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -927,7 +1137,13 @@
       },
       {
         "name": "move_stage",
+        "title": "Move leads to a pipeline stage",
         "description": "Move leads (rows) to a pipeline stage, e.g. meeting when a call is booked, won or lost. Use query_rows with `stage` to find leads at a stage.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -963,7 +1179,13 @@
       },
       {
         "name": "delete_rows",
+        "title": "Delete rows",
         "description": "Permanently delete leads (rows) from a table, e.g. poor fits or a person who asked to be removed. Their sequences stop; emails already sent and do-not-email entries (unsubscribes, bounces) are kept. Prefer move_stage to `lost` to keep a lead's history. Confirm with the user before deleting.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -988,7 +1210,13 @@
       },
       {
         "name": "delete_table",
+        "title": "Delete a table",
         "description": "Permanently delete a table with all its rows and its paused or draft sequences. Refused while one of its sequences is active (pause it first). Confirm with the user before deleting.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -1004,7 +1232,13 @@
       },
       {
         "name": "get_credits",
+        "title": "Show credit balance",
         "description": "Show the workspace's credit balance (null when self-hosted with your own provider keys, or when credits are off). Searches and email finding stop when it runs out; sending and replies keep working. If it's low, tell the user so before a large search.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
         "inputSchema": {
           "type": "object",
           "properties": {},

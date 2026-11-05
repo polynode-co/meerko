@@ -527,7 +527,7 @@ Write like a person answering an email: short, specific to what they said, in th
         "Show the workspace's credit balance (null when self-hosted with your own provider keys, or when credits are off). Searches and email finding stop when it runs out; sending and replies keep working. If it's low, tell the user so before a large search.",
       inputSchema: {},
     },
-    // Only the balance: the app directories don't allow plan details or links to buy inside the app. People top up in Settings.
+    // Only the balance: the app directories don't allow plan details or links to buy inside the app. People top up in Connections.
     () => run(async () => {
       const { enabled, balance } = await client().getCredits();
       return { enabled, balance };

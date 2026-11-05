@@ -72,7 +72,7 @@ export default function Page() {
         an error is left as it was and retried on the next call. The CLI loops until done with <C>pnpm meerko enrich &lt;tableId&gt; --all</C>.
       </p>
       <p>
-        Add your own Firecrawl key (in Connections, or <C>pnpm meerko keys set firecrawl &lt;key&gt;</C>) and email finding tries it when Icypeas misses, at no Meerko credits: see{" "}
+        On Pro or self-hosted, add your own Firecrawl key (in Connections, or <C>pnpm meerko keys set firecrawl &lt;key&gt;</C>) and email finding tries it when Icypeas misses, at no Meerko credits: see{" "}
         <L href="/docs/credits#firecrawl">Find more emails with Firecrawl</L>.
       </p>
     </DocsShell>

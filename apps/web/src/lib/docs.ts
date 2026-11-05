@@ -57,7 +57,10 @@ export function docNeighbours(slug: string) {
 
 export interface McpTool {
   name: string;
+  title: string;
   description: string;
+  /** The hints in packages/mcp/src/annotations.ts. Agents ask before running a destructive tool. */
+  annotations: { readOnlyHint?: boolean; destructiveHint?: boolean; openWorldHint?: boolean };
   inputSchema: JsonSchema;
 }
 
@@ -116,7 +119,10 @@ export function toolByName(name: string) {
 }
 
 /** Tools whose description tells the agent to wait for the user's explicit OK. */
-export const needsApproval = (tool: McpTool) => /explicitly/i.test(tool.description);
+/** Tools that send real email: destructive and reaching outside the account (annotations.ts). */
+export const needsApproval = (tool: McpTool) => !!tool.annotations.destructiveHint && !!tool.annotations.openWorldHint;
+/** Tools that delete or overwrite the user's own data. */
+export const cantUndo = (tool: McpTool) => !!tool.annotations.destructiveHint && !tool.annotations.openWorldHint;
 
 /** An entry in the docs search. */
 export interface SearchEntry {
