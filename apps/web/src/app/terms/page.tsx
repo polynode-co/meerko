@@ -57,7 +57,7 @@ export default function TermsPage() {
           items={[
             "Sign in with a Google account you control, and keep it secure. Your first sign-in creates your workspace.",
             "You're responsible for what happens in your workspace, including what API keys and connected apps do. An agent you approve acts with your authority.",
-            "Disconnect apps and revoke keys you no longer use, from Settings.",
+            "Disconnect apps and revoke keys you no longer use, from Connections.",
           ]}
         />
       </Section>
@@ -104,7 +104,7 @@ export default function TermsPage() {
               ; misses are free.
             </>,
             "Free credits have no cash value and can be withdrawn if they're abused.",
-            "Pro is billed monthly in advance and renews until you cancel it in Settings → Manage billing. Cancelling stops the next renewal; Pro lasts until the end of the month you paid for.",
+            "Pro is billed monthly in advance and renews until you cancel it in Connections → Manage billing. Cancelling stops the next renewal; Pro lasts until the end of the month you paid for.",
             "Credits don't expire while your account is open, including Pro's monthly credits after you cancel.",
             <>
               Payments are processed by Stripe. You can cancel Pro at any time; there are no refunds for part of a month. Other refunds,

@@ -18,7 +18,7 @@ export default async function NewSequencePage({ searchParams }: { searchParams: 
         <Card>
           <EmptyState icon={Mail} title="Connect a mailbox first">
             Sequences send from your own Gmail or Google Workspace inbox.{" "}
-            <span className="mt-4 flex justify-center"><Link href="/app/settings" className={buttonClass("primary")}>Go to Settings</Link></span>
+            <span className="mt-4 flex justify-center"><Link href="/app/settings" className={buttonClass("primary")}>Go to Connections</Link></span>
           </EmptyState>
         </Card>
       ) : tables.length === 0 ? (

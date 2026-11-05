@@ -35,7 +35,7 @@ export default function Page() {
 
       <Step n={2} id="gmail" title="Connect your mailbox">
         <p>
-          In the dashboard, open <L href="/app/settings">Settings</L> and click <strong className="text-fg">Connect mailbox</strong>.
+          In the dashboard, open <L href="/app/settings">Connections</L> and click <strong className="text-fg">Connect mailbox</strong>.
           Pick your provider (Gmail, Zoho, Fastmail or any IMAP/SMTP server), create an app password for the inbox you send from and
           paste it in: the form links to each step, and <L href="/docs/mailboxes#connect">Mailboxes</L> explains them. New mailboxes start at 10 emails a day and ramp up to their
           limit (50 by default) over 21 days; <L href="/docs/mailboxes#ramp">Mailboxes</L> explains how to change that.

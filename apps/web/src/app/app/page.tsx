@@ -28,7 +28,7 @@ export default async function OverviewPage() {
       })),
     ...mailboxes
       .filter((m) => m.status === "error")
-      .map((m) => ({ line: `${m.email} lost access`, sub: "reconnect it in Settings", pills: [["reconnect", "amber"]] as [string, PillTone][] })),
+      .map((m) => ({ line: `${m.email} lost access`, sub: "reconnect it in Connections", pills: [["reconnect", "amber"]] as [string, PillTone][] })),
   ];
   const max = Math.max(1, ...STAGES.map((s) => pipeline.stages[s]));
   const sent = stats.reduce((n, s) => n + s.emailsSent, 0);

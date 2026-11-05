@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { renameWorkspace } from "@/app/app/actions";
 import { buttonClass, Card, cardTitle } from "@/components/app/ui";
 
-/** Settings → Workspace: this brand's name. Owners can rename it. */
+/** Connections → Workspace: this brand's name. Owners can rename it. */
 export function WorkspaceCard({ id, name, canManage }: { id: string; name: string; canManage: boolean }) {
   const [state, rename, renaming] = useActionState(renameWorkspace, null);
   return (

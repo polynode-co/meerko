@@ -1149,7 +1149,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/mailboxes/gmail/connect", async (c) => {
     if (!deps.gmailOAuthConnect) {
-      throw new HTTPException(400, { message: "This server connects Gmail with an app password: use `meerko mailboxes connect`, or Settings → Mailboxes in the dashboard" });
+      throw new HTTPException(400, { message: "This server connects Gmail with an app password: use `meerko mailboxes connect`, or Connections → Mailboxes in the dashboard" });
     }
     const { login_hint, return_to } = await parse(oauthConnectInput, await c.req.json().catch(() => ({})));
     // Without MEERKO_APP_URL the server can't vouch for any return URL, so the callback shows its own page instead.

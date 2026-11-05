@@ -76,7 +76,7 @@ export async function renameWorkspace(_: unknown, form: FormData): Promise<Actio
   return run((c) => c.renameWorkspace(id, name).then((w) => `Renamed to ${w.name}`), ["/app"]);
 }
 
-/** The new key is returned once, for the Settings page to show; only its prefix is stored. */
+/** The new key is returned once, for the Connections page to show; only its prefix is stored. */
 export async function createApiKey(_: unknown, form: FormData): Promise<ActionResult & { key?: string }> {
   const name = String(form.get("name") ?? "").trim();
   if (!name) return { ok: false, error: "Give the key a name, like the machine or agent that will use it" };
@@ -140,7 +140,7 @@ export async function saveSlackWebhook(_: unknown, form: FormData): Promise<Acti
   }
 }
 
-/** Starts the Meerko Slack app's install: the browser goes to Slack, then back to Settings. */
+/** Starts the Meerko Slack app's install: the browser goes to Slack, then back to Connections. */
 export async function installSlack(): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   try {
     return { ok: true, url: await (await meerko()).slackInstallUrl() };
@@ -286,7 +286,7 @@ export async function connectMailbox(_: ActionResult | null, form: FormData): Pr
 }
 
 /** Google's consent page (Gmail API), where the server has it on. */
-/** Sends the browser to Microsoft's sign-in for an Outlook mailbox; the API's callback brings it back to Settings. */
+/** Sends the browser to Microsoft's sign-in for an Outlook mailbox; the API's callback brings it back to Connections. */
 export async function connectOutlook(): Promise<ActionResult | void> {
   let url: string;
   try {
@@ -312,7 +312,7 @@ export async function connectGmail() {
   redirect(url);
 }
 
-/** Sends the browser to a Stripe page, or back to Settings with the API's reason when it refused. */
+/** Sends the browser to a Stripe page, or back to Connections with the API's reason when it refused. */
 async function toStripe(fn: (c: MeerkoClient) => Promise<string>) {
   let url: string;
   try {

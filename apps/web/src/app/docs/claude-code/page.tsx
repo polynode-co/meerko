@@ -56,7 +56,7 @@ export default function Page() {
           the sign-in and renews it on its own.
         </p>
         <p>
-          The app then shows up under <L href="/app/settings">Settings → Connected apps</L>, where you can disconnect it at any time.
+          The app then shows up under <L href="/app/settings">Connections → Connected apps</L>, where you can disconnect it at any time.
         </p>
       </Step>
 
@@ -90,7 +90,7 @@ export default function Page() {
         </li>
         <li>
           To sign out, choose <strong className="text-fg">Clear authentication</strong> for <C>meerko</C> in <C>/mcp</C>, or disconnect
-          Claude Code in Settings.
+          Claude Code in Connections.
         </li>
         <li>
           To remove it: <C>claude mcp remove meerko</C>.

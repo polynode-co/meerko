@@ -28,7 +28,7 @@ export default function Page() {
       <H2 id="dashboard">In the dashboard</H2>
       <p>
         The workspace name at the top of the sidebar opens a list of your workspaces. Pick one to switch to it, or add a new one, which
-        switches you to it straight away. Owners rename a workspace in Settings.
+        switches you to it straight away. Owners rename a workspace in Connections.
       </p>
 
       <H2 id="agents">From your agent</H2>

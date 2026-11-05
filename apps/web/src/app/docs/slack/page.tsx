@@ -46,14 +46,14 @@ export default function Page() {
       <H2 id="connect">Connect Slack</H2>
       <Step n={1} id="connect-add" title="Add to Slack">
         <p>
-          Under <L href="/app/settings#slack">Settings → Slack</L>, click <strong>Add to Slack</strong>, pick the channel on Slack&apos;s
-          page and allow. You&apos;re sent back to Settings.
+          Under <L href="/app/settings#slack">Connections → Slack</L>, click <strong>Add to Slack</strong>, pick the channel on Slack&apos;s
+          page and allow. You&apos;re sent back to Connections.
         </p>
       </Step>
       <Step n={2} id="connect-test" title="Send a test">
         <p>
           Click <strong>Send test</strong>: a message appears in the channel. If the app is removed from Slack, Meerko turns the connection
-          off and Settings says why.
+          off and Connections says why.
         </p>
       </Step>
 
@@ -78,7 +78,7 @@ export default function Page() {
 
       <H2 id="webhook">Without the app: an incoming webhook</H2>
       <p>
-        Create an <L href="https://api.slack.com/messaging/webhooks">incoming webhook</L> in Slack and paste its URL under Settings →
+        Create an <L href="https://api.slack.com/messaging/webhooks">incoming webhook</L> in Slack and paste its URL under Connections →
         Slack. Meerko posts the same messages, with a <strong>Review in Meerko</strong> link instead of buttons, and <C>/meerko</C>{" "}
         isn&apos;t available.
       </p>
@@ -97,7 +97,7 @@ export default function Page() {
           [<C key="g">SLACK_SIGNING_SECRET</C>, "Signing Secret"],
         ]}
       />
-      <p>Without them, Settings offers only the incoming webhook.</p>
+      <p>Without them, Connections offers only the incoming webhook.</p>
     </DocsShell>
   );
 }

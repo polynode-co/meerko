@@ -201,7 +201,7 @@ export default async function ConsentPage({ searchParams }: { searchParams: Prom
       <p className="text-[15px] leading-[1.55] text-lk-ink/70">
         Only allow apps you started connecting yourself. Disconnect any time in{" "}
         <a href="/app/settings" className="font-semibold text-lk-ink underline underline-offset-4">
-          Settings → Connected apps
+          Connections → Connected apps
         </a>
         .
       </p>

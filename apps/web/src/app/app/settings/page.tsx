@@ -36,7 +36,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   );
   return (
     <Page className="max-w-[1200px]">
-      <PageHeader eyebrow="Settings" title="Mailboxes & keys" />
+      <PageHeader eyebrow="Connections" title="Mailboxes & keys" />
 
       {gmail_connected && (
         <Notice ok>

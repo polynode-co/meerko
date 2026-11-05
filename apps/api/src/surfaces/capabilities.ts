@@ -40,7 +40,7 @@ const yes = (...where: string[]): Cell => ({ supported: where });
 const action = (name: string) => `app/app/actions.ts#${name}`;
 const page = (path: string) => `app/app/${path}`;
 const API = { supported: true } as const;
-const SETTINGS = { deliberately_absent: "Managed by a person in the dashboard's Settings" };
+const SETTINGS = { deliberately_absent: "Managed by a person in the dashboard's Connections" };
 const KEY = {
   deliberately_absent: "An API key belongs to one workspace, so make a key in each. OAuth tokens (MCP, `meerko login`) can do it",
 };
@@ -267,7 +267,7 @@ export const CAPABILITIES: Capability[] = [
     id: "update-mailbox",
     summary: "Change a mailbox's daily limit, name or ramp-up",
     routes: ["updateMailbox"],
-    web: { missing: "Settings → Mailboxes can't change a limit, name or ramp" },
+    web: { missing: "Connections → Mailboxes can't change a limit, name or ramp" },
     mcp: yes("update_mailbox"),
     cli: yes("mailboxes set"),
     api: API,

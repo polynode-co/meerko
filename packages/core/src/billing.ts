@@ -15,7 +15,7 @@ export const PLAN_MAILBOXES: Record<Plan, number> = { free: 1, pro: Number.POSIT
  */
 export const PLAN_OWN_KEYS: Record<Plan, boolean> = { free: false, pro: true };
 export const OWN_KEYS_PRO_MESSAGE =
-  "Using your own provider keys on Meerko Cloud is a Pro feature. Upgrade in Settings, or self-host Meerko to run on your own keys for free.";
+  "Using your own provider keys on Meerko Cloud is a Pro feature. Upgrade in Connections, or self-host Meerko to run on your own keys for free.";
 
 /** True if the workspace's plan lets it use its own provider keys. */
 export async function ownKeysAllowed(db: Db, workspaceId: string) {
@@ -36,7 +36,7 @@ export interface BillingConfig {
   stripe: Stripe;
   webhookSecret: string;
   prices: { pro: string; credits: string };
-  /** The dashboard's URL; Checkout and the portal send the browser back to its Settings page. */
+  /** The dashboard's URL; Checkout and the portal send the browser back to its Connections page. */
   appUrl: string;
   /** A billing portal configuration (bpc_…); the account's default when unset. */
   portalConfiguration?: string;
@@ -104,7 +104,7 @@ export async function assertMailboxAllowed(db: Db, workspaceId: string, email: s
     .where(inArray(mailboxes.workspaceId, shared));
   if (rows.some((m) => m.workspaceId === workspaceId && m.email === email.toLowerCase())) return;
   if (rows.length >= limit) {
-    throw new PlanLimitError(`The Free plan includes ${limit} mailbox. Upgrade to Pro in Settings to connect more.`);
+    throw new PlanLimitError(`The Free plan includes ${limit} mailbox. Upgrade to Pro in Connections to connect more.`);
   }
 }
 
@@ -129,7 +129,7 @@ export async function startCheckout(db: Db, cfg: BillingConfig, workspaceId: str
   // Stripe only ever sees the workspace that pays, so webhooks credit and upgrade the shared plan.
   workspaceId = await billingWorkspaceOf(db, workspaceId);
   const billing = await getBilling(db, workspaceId);
-  if (input.kind === "pro" && billing.plan === "pro") throw new BillingError("This workspace is already on Pro (your workspaces share one plan). Manage it from Settings → Manage billing.");
+  if (input.kind === "pro" && billing.plan === "pro") throw new BillingError("This workspace is already on Pro (your workspaces share one plan). Manage it from Connections → Manage billing.");
   const customer = await ensureCustomer(db, cfg, workspaceId, email);
   const settings = `${cfg.appUrl.replace(/\/$/, "")}/app/settings`;
   const metadata = { workspace_id: workspaceId, kind: input.kind };

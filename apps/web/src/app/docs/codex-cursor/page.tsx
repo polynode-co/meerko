@@ -47,7 +47,7 @@ export default function Page() {
       {block("~/.cursor/mcp.json", ["{", '  "mcpServers": {', `    "meerko": { "url": "${url}" }`, "  }", "}"])}
       <p>Then ask in the agent chat, e.g. &quot;find 20 heads of growth at fintechs in Spain and verify their emails&quot;.</p>
       <p>
-        Every app you sign in shows up under <L href="/app/settings">Settings → Connected apps</L>, where you can disconnect it.
+        Every app you sign in shows up under <L href="/app/settings">Connections → Connected apps</L>, where you can disconnect it.
       </p>
 
       <H2 id="api-key">With an API key instead</H2>
