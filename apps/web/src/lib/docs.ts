@@ -21,6 +21,8 @@ export const docPages: DocPage[] = [
   { slug: "", group: "Get started", title: "Introduction", description: "What Meerko is, and where to start." },
   { slug: "quick-start", group: "Get started", title: "Quick start", description: "Sign in to Meerko Cloud, connect your mailbox and add Meerko to your agent." },
   { slug: "self-hosting", group: "Get started", title: "Self-hosting", description: "Run the API, the worker, the web app and Postgres on your own machine or servers." },
+  { slug: "claude", group: "Connect your agent", title: "Claude", description: "Add Meerko to Claude on the web, desktop or mobile as a connector, and sign in." },
+  { slug: "chatgpt", group: "Connect your agent", title: "ChatGPT", description: "Add Meerko to ChatGPT as a custom MCP server and use it in any conversation." },
   { slug: "claude-code", group: "Connect your agent", title: "Claude Code", description: "Add the hosted Meerko MCP server to Claude Code with one command and sign in with your browser." },
   { slug: "codex-cursor", group: "Connect your agent", title: "Codex & Cursor", description: "Add the hosted Meerko MCP server to OpenAI Codex or Cursor and sign in." },
   { slug: "mcp-clients", group: "Connect your agent", title: "Other MCP clients", description: "Connect Gemini CLI or any MCP client that supports remote servers." },
@@ -57,7 +59,10 @@ export function docNeighbours(slug: string) {
 
 export interface McpTool {
   name: string;
+  title: string;
   description: string;
+  /** The hints in packages/mcp/src/annotations.ts. Agents ask before running a destructive tool. */
+  annotations: { readOnlyHint?: boolean; destructiveHint?: boolean; openWorldHint?: boolean };
   inputSchema: JsonSchema;
 }
 
@@ -116,7 +121,10 @@ export function toolByName(name: string) {
 }
 
 /** Tools whose description tells the agent to wait for the user's explicit OK. */
-export const needsApproval = (tool: McpTool) => /explicitly/i.test(tool.description);
+/** Tools that send real email: destructive and reaching outside the account (annotations.ts). */
+export const needsApproval = (tool: McpTool) => !!tool.annotations.destructiveHint && !!tool.annotations.openWorldHint;
+/** Tools that delete or overwrite the user's own data. */
+export const cantUndo = (tool: McpTool) => !!tool.annotations.destructiveHint && !tool.annotations.openWorldHint;
 
 /** An entry in the docs search. */
 export interface SearchEntry {

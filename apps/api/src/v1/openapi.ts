@@ -98,7 +98,7 @@ export function buildOpenApi(): Json {
       version: "1",
       description:
         "Everything the Meerko dashboard, CLI and MCP server do, over HTTP: they are clients of this same API. " +
-        "Authenticate with an API key from Settings → API keys (`Authorization: Bearer mk_…`).",
+        "Authenticate with an API key from Connections → API keys (`Authorization: Bearer mk_…`).",
     },
     servers: [{ url: "https://api.meerko.ai" }],
     security: [{ bearer: [] }],

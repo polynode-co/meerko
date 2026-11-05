@@ -13,15 +13,14 @@ export function WorkspaceSwitcher({
   workspace,
   workspaces,
   canCreate,
-  subtitle,
-  subtitleWarn,
+  warning,
 }: {
   workspace: string;
   workspaces: (Workspace & { current: boolean })[];
   /** False when signed in with an API key (self-hosting), which belongs to one workspace. */
   canCreate: boolean;
-  subtitle: string;
-  subtitleWarn: boolean;
+  /** Shown under the name, e.g. when the mailbox needs reconnecting. */
+  warning: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -52,7 +51,7 @@ export function WorkspaceSwitcher({
       >
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="truncate text-[15px] font-semibold text-lk-fg">{workspace}</span>
-          <span className={`truncate font-plex text-[12px] ${subtitleWarn ? "text-[#e5795b]" : "text-lk-dim"}`}>{subtitle}</span>
+          {warning && <span className="truncate font-plex text-[12px] text-[#e5795b]">{warning}</span>}
         </span>
         <ChevronsUpDown className="size-4 shrink-0 text-lk-dim group-hover:text-lk-fg" />
       </button>

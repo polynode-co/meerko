@@ -32,6 +32,8 @@ export interface Integration {
 }
 
 export const integrations: Integration[] = [
+  { slug: "claude", name: "Claude", group: "AI agents", logo: "/logos/agents/claude.svg", setup: "Sign in", href: "/docs/claude", summary: "Add Meerko as a connector in Claude on the web or desktop and run your outbound from a chat." },
+  { slug: "chatgpt", name: "ChatGPT", group: "AI agents", logo: "/logos/agents/openai.svg", mono: true, setup: "Sign in", href: "/docs/chatgpt", summary: "Add Meerko to ChatGPT as a custom MCP server and use it in any conversation." },
   { slug: "claude-code", name: "Claude Code", group: "AI agents", logo: "/logos/agents/claude.svg", setup: "One command", href: "/docs/claude-code", summary: "Add the hosted MCP server and run prospecting, sequences and replies from your terminal." },
   { slug: "cursor", name: "Cursor", group: "AI agents", logo: "/logos/agents/cursor.svg", mono: true, setup: "One command", href: "/docs/codex-cursor", summary: "Use Meerko's tools from Cursor's agent, signed in with your browser." },
   { slug: "codex", name: "Codex", group: "AI agents", logo: "/logos/agents/openai.svg", mono: true, setup: "One command", href: "/docs/codex-cursor", summary: "Add Meerko to OpenAI Codex as a remote MCP server." },
@@ -42,7 +44,7 @@ export const integrations: Integration[] = [
   { slug: "imap", name: "Zoho, Fastmail & IMAP", group: "Mailboxes", logos: ["/logos/integrations/zoho.svg", "/logos/integrations/fastmail.svg"], setup: "App password", href: "/docs/mailboxes#connect", summary: "Any provider with IMAP and SMTP over TLS connects the same way as Gmail." },
   { slug: "icypeas", name: "Icypeas", group: "Lead data", logo: "/logos/integrations/icypeas.png", setup: "Built in", href: "/docs/finding-leads", summary: "People and company search and email finding, included on Meerko Cloud. Bring your own key to skip credits." },
   { slug: "firecrawl", name: "Firecrawl", group: "Lead data", logo: "/logos/integrations/firecrawl.png", setup: "Your own key", href: "/docs/credits#firecrawl", summary: "Add your Firecrawl key and email finding tries FullEnrich's data when Icypeas misses, with no Meerko credits." },
-  { slug: "generect", name: "Generect", group: "Lead data", setup: "Built in", href: "/docs/credits#generect", summary: "Phone numbers on Pro, and a last try at emails Icypeas misses. Bring your own key to use it on any plan without credits." },
+  { slug: "generect", name: "Generect", group: "Lead data", setup: "Built in", href: "/docs/credits#generect", summary: "Phone numbers on Pro, and a last try at emails Icypeas misses. On Pro or self-hosted, bring your own key to use it without credits." },
   { slug: "slack", name: "Slack", group: "Notifications", logo: "/logos/integrations/slack.png", setup: "Sign in", href: "/docs/slack", summary: "Replies and drafts in a channel, with Approve and Discard buttons, and /meerko for what's waiting." },
   { slug: "webhooks", name: "Webhooks", group: "Notifications", setup: "Paste a URL", href: "/docs/wake-your-agent", summary: "A signed call to any agent or workflow (Agent SDK, n8n, CI) when new replies wait." },
   { slug: "api", name: "REST API", group: "Developers", setup: "Your own key", href: "/docs/api", summary: "Every dashboard action over HTTP, with an OpenAPI 3.1 document." },

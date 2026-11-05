@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { alternatives, guides } from "@/lib/content";
+import { alternatives, guides, versusPages } from "@/lib/content";
 import { docHref, docPages } from "@/lib/docs";
 import { integrationPages } from "@/lib/integrations";
 import { site } from "@/lib/site";
@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
     ...guides.map((g) => ({ path: `/guides/${g.slug}`, changeFrequency: "monthly", priority: 0.7 })),
     ...alternatives.map((a) => ({ path: `/alternatives/${a.slug}`, changeFrequency: "monthly", priority: 0.7 })),
+    ...versusPages.map((v) => ({ path: `/compare/${v.slug}`, changeFrequency: "monthly", priority: 0.6 })),
     ...integrationPages.map((i) => ({ path: `/integrations/${i.slug}`, changeFrequency: "monthly", priority: 0.7 })),
   ].map(({ path, changeFrequency, priority }) => ({
     url: new URL(path, site.url).toString(),

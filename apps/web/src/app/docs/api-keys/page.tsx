@@ -36,7 +36,7 @@ export default function Page() {
 
       <H2 id="create">Creating a key</H2>
       <p>
-        In the dashboard, open <L href="/app/settings">Settings → API keys</L>, name the key and create it. Keys start with <C>mk_</C>{" "}
+        In the dashboard, open <L href="/app/settings">Connections → API keys</L>, name the key and create it. Keys start with <C>mk_</C>{" "}
         and are shown once, so copy it straight away. Creating and revoking keys needs you signed in to the dashboard with Google.
         Self-hosted installs also get a key from <C>pnpm db:seed</C>.
       </p>
@@ -59,7 +59,7 @@ export default function Page() {
 
       <H2 id="revoke">Revoking</H2>
       <p>
-        Delete a key from the same list in Settings. Anything using it stops working straight away. The list shows when each key was last
+        Delete a key from the same list in Connections. Anything using it stops working straight away. The list shows when each key was last
         used, which helps spot the ones nobody needs. Apps that signed in with the browser are under Connected apps on the same page.
       </p>
 

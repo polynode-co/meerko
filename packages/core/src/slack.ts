@@ -118,9 +118,9 @@ export async function completeSlackInstall(
   try {
     state = JSON.parse(box.decrypt(input.state));
   } catch {
-    throw new SlackError("This Slack link is invalid. Start again from Settings.", "bad_state");
+    throw new SlackError("This Slack link is invalid. Start again from Connections.", "bad_state");
   }
-  if (state.exp < (deps.now ?? new Date()).getTime()) throw new SlackError("This Slack link expired. Start again from Settings.", "expired_state");
+  if (state.exp < (deps.now ?? new Date()).getTime()) throw new SlackError("This Slack link expired. Start again from Connections.", "expired_state");
 
   const res = await (deps.fetch ?? fetch)("https://slack.com/api/oauth.v2.access", {
     method: "POST",
@@ -634,7 +634,7 @@ export async function handleSlackCommand(db: Db, deps: SlackDeps, form: { team_i
     : [];
   // A Slack workspace connected to several Meerko workspaces: the one posting to this channel wins.
   const conn = conns.find((c) => c.channelId === form.channel_id) ?? conns[0];
-  if (!conn || !form.user_id) return ephemeral("This Slack workspace isn't connected to Meerko. Connect it under Settings → Slack.");
+  if (!conn || !form.user_id) return ephemeral("This Slack workspace isn't connected to Meerko. Connect it under Connections → Slack.");
   const member = await memberFor(db, fetchFn, deps.box.decrypt(conn.secret), conn.workspaceId, form.user_id);
   if (!member) return ephemeral("Only members of the connected Meerko workspace can use /meerko. Your Slack email has to match your Meerko login.");
 

@@ -33,7 +33,7 @@ export default function GmailIntegration() {
       }
       steps={[
         ["Make an app password", "Turn on 2-Step Verification, then create an app password named Meerko in your Google account."],
-        ["Connect the mailbox", "Paste it in Settings → Connect mailbox. Meerko checks it with Gmail before saving it, encrypted."],
+        ["Connect the mailbox", "Paste it in Connections → Connect mailbox. Meerko checks it with Gmail before saving it, encrypted."],
         ["Write the sequence", "Up to 10 steps with {{first_name}}-style variables, or ask your coding agent to draft it from a table."],
       ]}
       compare={{

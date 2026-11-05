@@ -30,7 +30,7 @@ const sdkRecipe = (drafterUrl: string) => `import { createHmac, timingSafeEqual 
 import { createServer } from "node:http";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
-const SECRET = process.env.MEERKO_WEBHOOK_SECRET!; // whsec_… from Settings
+const SECRET = process.env.MEERKO_WEBHOOK_SECRET!; // whsec_… from Connections
 const KEY = process.env.MEERKO_DRAFTS_KEY!; // a drafts-only mk_ key
 
 function verified(header: string, body: string) {
@@ -91,7 +91,7 @@ export default function Page() {
       />
       <p>
         Bounces, unsubscribes and out-of-office replies are handled by Meerko&apos;s rules and never wake your agent. Set it up under{" "}
-        <L href="/app/settings">Settings → Wake your agent</L>.
+        <L href="/app/settings">Connections → Wake your agent</L>.
       </p>
 
       <H2 id="safety">What the woken agent can do</H2>
@@ -103,7 +103,7 @@ export default function Page() {
         head={["Credential", "Where"]}
         rows={[
           [<C key="d">{drafterUrl}</C>, "The drafts-only MCP server, for a Claude Code routine's connector. It offers only the four reply tools."],
-          ["Drafts-only API key", <>Create one under <L href="/app/settings">Settings → API keys</L> for anything you call with a webhook.</>],
+          ["Drafts-only API key", <>Create one under <L href="/app/settings">Connections → API keys</L> for anything you call with a webhook.</>],
         ]}
       />
       <p>
@@ -137,7 +137,7 @@ export default function Page() {
         <p>
           Only the routines page can make an API trigger&apos;s token, so this step is always yours. Open the routine at{" "}
           <L href="https://claude.ai/code/routines">claude.ai/code/routines</L>, choose <strong>Edit</strong>, add an API trigger and
-          generate its token (it&apos;s shown once). Paste its URL and token under <L href="/app/settings">Settings → Wake your agent</L>, then
+          generate its token (it&apos;s shown once). Paste its URL and token under <L href="/app/settings">Connections → Wake your agent</L>, then
           click <strong>Send test</strong>. The routine runs once, with nothing to do.
         </p>
       </Step>
@@ -190,7 +190,7 @@ export default function Page() {
           ["At most one call every 5 minutes.", "Keeps routines under their hourly limit and your agent's bill small."],
           ["Each reply is announced once, after your hook answers with a 2xx.", "A failed call is retried later with the same replies."],
           ["Replies from before you set up the hook are skipped.", "Turning it on doesn't replay your history."],
-          ["After a day of failed calls, the hook turns itself off.", "Settings shows the last error. Fix it and turn it back on."],
+          ["After a day of failed calls, the hook turns itself off.", "Connections shows the last error. Fix it and turn it back on."],
         ]}
       />
     </DocsShell>

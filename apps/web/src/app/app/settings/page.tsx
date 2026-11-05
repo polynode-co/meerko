@@ -36,7 +36,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   );
   return (
     <Page className="max-w-[1200px]">
-      <PageHeader eyebrow="Settings" title="Mailboxes & keys" />
+      <PageHeader eyebrow="Connections" title="Mailboxes & keys" />
 
       {gmail_connected && (
         <Notice ok>
@@ -100,9 +100,18 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       <ApiKeysCard keys={apiKeys} apiUrl={publicApiUrl()} canManage={!!me.user} />
 
-      <ProviderKeysCard keys={keys} title={billing.enabled ? "Provider keys" : "Credits & provider keys"}>
-        {billing.enabled ? (
-          "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged. Add a Firecrawl key and email finding tries it when Icypeas misses, also free. Add a Generect key and phone numbers and missed emails run on your Generect account, on any plan."
+      <ProviderKeysCard
+        keys={keys}
+        title={billing.enabled ? "Provider keys" : "Credits & provider keys"}
+        locked={billing.enabled && billing.plan === "free"}
+      >
+        {billing.enabled && billing.plan === "free" ? (
+          <>
+            Your own provider keys are a Pro feature on Meerko Cloud. On Free, searches and email finding run on Meerko&apos;s keys and your credits.{" "}
+            Upgrade below, or <a href="/docs/self-hosting" className="text-lk-fg underline underline-offset-2">self-host Meerko</a> to run on your own keys for free.
+          </>
+        ) : billing.enabled ? (
+          "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged. Add a Firecrawl key and email finding tries it when Icypeas misses, also free. Add a Generect key and phone numbers and missed emails run on your Generect account."
         ) : credits.enabled ? (
           <>Balance: <span className="font-plex text-lk-lime">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 8, verifications 1, search results 1, phone numbers 80. Misses are free. Add your own Icypeas key to skip credits, or a Firecrawl or Generect key to find more.</>
         ) : (

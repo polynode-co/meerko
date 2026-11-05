@@ -35,7 +35,7 @@ export default function Page() {
 
       <Step n={2} id="gmail" title="Connect your mailbox">
         <p>
-          In the dashboard, open <L href="/app/settings">Settings</L> and click <strong className="text-fg">Connect mailbox</strong>.
+          In the dashboard, open <L href="/app/settings">Connections</L> and click <strong className="text-fg">Connect mailbox</strong>.
           Pick your provider (Gmail, Zoho, Fastmail or any IMAP/SMTP server), create an app password for the inbox you send from and
           paste it in: the form links to each step, and <L href="/docs/mailboxes#connect">Mailboxes</L> explains them. New mailboxes start at 10 emails a day and ramp up to their
           limit (50 by default) over 21 days; <L href="/docs/mailboxes#ramp">Mailboxes</L> explains how to change that.
@@ -47,7 +47,8 @@ export default function Page() {
         <CodeBlock title="bash" code={add} lines={[{ text: `$ ${add}` }]} />
         <p>
           Then run <C>/mcp</C> in Claude Code, pick <C>meerko</C> and sign in: your browser opens, you continue with Google and click{" "}
-          <strong className="text-fg">Allow</strong>. Using another agent? See <L href="/docs/codex-cursor">Codex & Cursor</L> and{" "}
+          <strong className="text-fg">Allow</strong>. Working in a chat app instead? See <L href="/docs/claude">Claude</L> and <L href="/docs/chatgpt">ChatGPT</L>. Another agent? See{" "}
+          <L href="/docs/codex-cursor">Codex & Cursor</L> and{" "}
           <L href="/docs/mcp-clients">other clients</L>.
         </p>
       </Step>

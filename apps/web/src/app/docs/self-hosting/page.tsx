@@ -84,7 +84,7 @@ export default function Page() {
         </p>
         {sh(["# generate with: openssl rand -base64 32", "MEERKO_ENCRYPTION_KEY=…"], ".env")}
         <p>
-          Restart <C>pnpm dev</C>, then connect a mailbox from Settings in the dashboard (pick your provider), or with{" "}
+          Restart <C>pnpm dev</C>, then connect a mailbox from Connections in the dashboard (pick your provider), or with{" "}
           <C>pnpm meerko mailboxes connect</C> (<C>--provider zoho</C>, <C>fastmail</C> or <C>other</C> with your IMAP and SMTP hosts).
           Both explain how to create the app password; <L href="/docs/mailboxes#connect">Mailboxes</L> has the details.
         </p>
@@ -99,7 +99,7 @@ export default function Page() {
           your own app. In Microsoft Entra (App registrations), register an app for &quot;any organizational directory and personal
           Microsoft accounts&quot;, with the redirect URI <C>http://localhost:8787/oauth/microsoft/callback</C> and the delegated Microsoft
           Graph permissions <C>Mail.Send</C>, <C>Mail.Read</C>, <C>User.Read</C> and <C>offline_access</C>. Create a client secret and put
-          both in <C>.env</C>; Settings then offers Outlook:
+          both in <C>.env</C>; Connections then offers Outlook:
         </p>
         {sh(["MICROSOFT_CLIENT_ID=…", "MICROSOFT_CLIENT_SECRET=…"], ".env")}
         <p>
@@ -130,7 +130,7 @@ export default function Page() {
       <Step n={5} id="search" title="Turn on lead search">
         <p>
           People and company search and email finding run on <L href={docsSources.icypeas.url}>Icypeas</L>. Put your Icypeas API key in{" "}
-          <C>ICYPEAS_API_KEY</C> for the whole server, or store one per workspace in Settings or with <C>pnpm meerko keys set icypeas &lt;key&gt;</C>{" "}
+          <C>ICYPEAS_API_KEY</C> for the whole server, or store one per workspace in Connections or with <C>pnpm meerko keys set icypeas &lt;key&gt;</C>{" "}
           (needs <C>MEERKO_ENCRYPTION_KEY</C>). Without either, search and enrichment return an error; everything else works, including
           importing your own CSV.
         </p>
@@ -153,7 +153,7 @@ export default function Page() {
           ["GOOGLE_CLIENT_ID · GOOGLE_CLIENT_SECRET", "Your OAuth client, for Sign in with Google, and for mailboxes connected through Google's consent page. Not needed to send with app passwords."],
           ["MEERKO_GMAIL_OAUTH", "1 offers Google's consent page (Gmail API) for connecting mailboxes, besides app passwords. Needs the OAuth client and the Gmail API. Off by default."],
           ["MICROSOFT_CLIENT_ID · MICROSOFT_CLIENT_SECRET", "Your app in Microsoft Entra, for connecting Outlook and Microsoft 365 mailboxes (step 4). Without them, Outlook isn't offered."],
-          ["SLACK_CLIENT_ID · SLACK_CLIENT_SECRET · SLACK_SIGNING_SECRET", <>Your Slack app, for replies and drafts in a channel with Approve buttons, and /meerko. Without them, Settings → Slack takes a pasted incoming webhook instead, which only posts. Setup in <L href="/docs/slack">Slack</L>.</>],
+          ["SLACK_CLIENT_ID · SLACK_CLIENT_SECRET · SLACK_SIGNING_SECRET", <>Your Slack app, for replies and drafts in a channel with Approve buttons, and /meerko. Without them, Connections → Slack takes a pasted incoming webhook instead, which only posts. Setup in <L href="/docs/slack">Slack</L>.</>],
           ["MEERKO_ALLOW_PRIVATE_HOOKS", "1 lets agent hooks (Wake your agent) call private addresses such as localhost or your LAN. Self-hosting only; off by default."],
           ["MEERKO_SIGNUP", "invite (default): only addresses added with pnpm db:invite can sign in with Google. open: anyone can."],
           ["ICYPEAS_API_KEY", "Lead search and email finding for every workspace on this server."],

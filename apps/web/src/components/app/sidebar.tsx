@@ -1,6 +1,6 @@
 "use client";
 
-import { Inbox, LayoutDashboard, LogOut, Menu, PanelsTopLeft, Send, Settings, X } from "lucide-react";
+import { Inbox, LayoutDashboard, LogOut, Menu, PanelsTopLeft, Plug, Send, X } from "lucide-react";
 import Link from "next/link";
 import posthog from "posthog-js";
 import { usePathname } from "next/navigation";
@@ -17,6 +17,7 @@ const nav = [
   { href: "/app/leads", label: "Leads", icon: PanelsTopLeft },
   { href: "/app/sequences", label: "Sequences", icon: Send },
   { href: "/app/inbox", label: "Inbox", icon: Inbox, badge: "inbox" as const },
+  { href: "/app/settings", label: "Connections", icon: Plug },
 ];
 
 export interface SidebarProps {
@@ -24,7 +25,6 @@ export interface SidebarProps {
   workspaces: (Workspace & { current: boolean })[];
   /** Null when signed in with an API key (self-hosting). */
   userEmail: string | null;
-  mailbox: string | null;
   mailboxNeedsReconnect: boolean;
   inboxCount: number;
   credits: { enabled: boolean; balance: number | null };
@@ -37,7 +37,7 @@ const Brand = () => (
   </Link>
 );
 
-export function Sidebar({ workspace, workspaces, userEmail, mailbox, mailboxNeedsReconnect, inboxCount, credits }: SidebarProps) {
+export function Sidebar({ workspace, workspaces, userEmail, mailboxNeedsReconnect, inboxCount, credits }: SidebarProps) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   // Close the mobile menu after navigating.
@@ -89,8 +89,7 @@ export function Sidebar({ workspace, workspaces, userEmail, mailbox, mailboxNeed
             workspace={workspace}
             workspaces={workspaces}
             canCreate={!!userEmail}
-            subtitle={mailbox ? (mailboxNeedsReconnect ? `${mailbox} · reconnect` : mailbox) : "no mailbox connected"}
-            subtitleWarn={mailboxNeedsReconnect}
+            warning={mailboxNeedsReconnect ? "Mailbox needs reconnecting" : null}
           />
 
           <nav className="flex flex-col gap-1">
@@ -112,8 +111,6 @@ export function Sidebar({ workspace, workspaces, userEmail, mailbox, mailboxNeed
               <span className="text-[15px] text-lk-fg">your own keys</span>
             )}
           </div>
-
-          {item("/app/settings", "Settings", Settings, active("/app/settings"))}
 
           <div className="flex flex-col gap-1.5 px-2.5">
             {userEmail && (

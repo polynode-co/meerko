@@ -30,11 +30,12 @@ const groups: { label: string; items: [string, string, string][] }[] = [
   {
     label: "Your agent",
     items: [
+      ["Claude", "/logos/agents/claude.svg", "/docs/claude"],
+      ["ChatGPT", "/logos/agents/openai.svg", "/docs/chatgpt"],
       ["Claude Code", "/logos/agents/claude.svg", agentDocs["Claude Code"]],
       ["Cursor", "/logos/agents/cursor.svg", agentDocs.Cursor],
       ["Codex", "/logos/agents/openai.svg", agentDocs.Codex],
-      ["Gemini CLI", "/logos/agents/gemini.svg", agentDocs["Gemini CLI"]],
-      ["Windsurf", "/logos/agents/windsurf.svg", agentDocs.Windsurf],
+      ["Grok", "/logos/agents/grok.svg", agentDocs.Grok],
     ],
   },
   {
@@ -63,10 +64,10 @@ export function WorksWith() {
           {groups.map((g, gi) => (
             <div
               key={g.label}
-              className={`flex flex-col gap-3.5 px-5 py-5 ${gi ? "border-t border-lk-line md:border-t-0 lg:border-l" : ""} ${gi === 1 ? "md:border-l" : ""} ${gi >= 2 ? "md:border-t lg:border-t-0" : ""} ${gi === 3 ? "md:border-l" : ""}`}
+              className={`flex flex-col gap-3.5 px-4 py-5 ${gi ? "border-t border-lk-line md:border-t-0 lg:border-l" : ""} ${gi === 1 ? "md:border-l" : ""} ${gi >= 2 ? "md:border-t lg:border-t-0" : ""} ${gi === 3 ? "md:border-l" : ""}`}
             >
               <span className="font-plex text-[12px] tracking-[0.8px] text-lk-dim uppercase">{g.label}</span>
-              <ul className="flex flex-wrap gap-x-5 gap-y-3">
+              <ul className="flex flex-wrap gap-x-3.5 gap-y-3">
                 {g.items.map(([name, logo, href]) => (
                   <li key={name}>
                     <a href={href} {...ext(href)} className="group flex items-center gap-2.5 text-[15px] font-medium text-lk-muted transition hover:text-lk-fg">
@@ -188,13 +189,6 @@ const commands = [
   ["/triage-replies", "Sort replies and draft answers to approve."],
   ["/pipeline", "See who's interested, booked and won."],
 ];
-const agents: [string, string][] = [
-  ["Claude Code", "/logos/agents/claude.svg"],
-  ["Codex", "/logos/agents/openai.svg"],
-  ["Cursor", "/logos/agents/cursor.svg"],
-  ["Gemini CLI", "/logos/agents/gemini.svg"],
-  ["Windsurf", "/logos/agents/windsurf.svg"],
-];
 const leads = [
   ["Lucía Ferrer", "Brava Pay", "verified"],
   ["Marc Soler", "Kokoro Finance", "verified"],
@@ -258,10 +252,9 @@ export function Superpowers({ n }: { n: string }) {
         <div className="order-1 flex w-full flex-1 flex-col gap-9 lg:order-2">
           <div className="flex flex-col gap-[18px]">
             <span className={kicker}>{n} · MCP · works in your agent</span>
-            <h2 className={sectionTitle}>Give your agent outbound superpowers.</h2>
+            <h2 className={sectionTitle}>Your agent stops when you close it. Meerko doesn&apos;t.</h2>
             <p className="text-[17px] leading-[1.6] text-lk-muted">
-              Add Meerko to Claude Code, Codex or Cursor once. Then just ask: your agent finds the leads, writes the emails and works the
-              replies.
+              Your agent picks who to target and what to say. Meerko keeps sending and catches every reply, around the clock.
             </p>
           </div>
           <dl className="flex flex-col">
@@ -274,24 +267,6 @@ export function Superpowers({ n }: { n: string }) {
               </div>
             ))}
           </dl>
-          <div className="flex flex-col gap-3">
-            <p className={`${label} text-lk-dim`}>Works with</p>
-            <ul className="flex flex-wrap gap-2">
-              {agents.map(([name, logo]) => (
-                <li key={name}>
-                  <a
-                    href={agentDocs[name]}
-                    target="_blank"
-                    rel="noopener"
-                    className="flex items-center gap-2 bg-lk-box py-1.5 pr-3.5 pl-1.5 text-[14px] font-medium text-lk-fg outline outline-1 -outline-offset-1 outline-lk-line hover:outline-lk-muted"
-                  >
-                    <Tile src={logo} size={24} />
-                    {name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
           <div className="flex flex-wrap items-center gap-5">
             <CopyPromptButton text={setupPrompt()} label="Copy setup prompt" />
             <a href="/docs/claude-code" className={`${label} text-lk-fg hover:text-lk-lime`}>
@@ -374,6 +349,10 @@ export const faqs = [
   [
     "Is Meerko really free?",
     "Yes. The self-hosted edition is AGPL and has every core feature. You only pay data providers directly with your own keys. Meerko Cloud charges credits for data lookups; AI runs in your own agent.",
+  ],
+  [
+    "Why not just give my agent a Gmail and an Icypeas connector?",
+    "Your agent forgets between sessions and can't send on a schedule. Meerko keeps the leads, sequences, replies and pipeline in one place, sends within each mailbox's daily limit while your agent is closed, skips unsubscribes and duplicates, and wakes your agent when someone replies.",
   ],
   [
     "Is Meerko an open-source Clay alternative?",

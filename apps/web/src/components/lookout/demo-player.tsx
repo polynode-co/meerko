@@ -16,7 +16,7 @@ const CHAPTERS = [
 type ChapterId = (typeof CHAPTERS)[number]["id"];
 const DURATION = CHAPTERS[CHAPTERS.length - 1].end;
 // The script above is timed for reading at 1x; it plays faster so the loop doesn't drag.
-const SPEED = 1.75;
+const SPEED = 2.6;
 
 const apps = [
   { name: "Leads", icon: PanelsTopLeft, chapter: "find" },
@@ -218,7 +218,7 @@ export function DemoPlayer() {
 
   return (
     <div ref={root} className="mx-auto w-full max-w-[1140px] bg-lk-frame px-3 pt-3 shadow-[12px_12px_0_#000] sm:px-[22px] sm:pt-[22px]">
-      <div className="flex flex-col bg-lk-paper lg:h-[540px]" aria-label={`Meerko demo: ${chapter.label}`} role="img">
+      <div className="flex flex-col bg-lk-paper lg:h-[540px]" aria-label={`Meerko demo: ${chapter.label}`} role="group">
         <div className="flex items-center gap-6 border-b border-lk-ink px-3.5 py-2 text-lk-ink">
           <span className="font-pixel text-[13.5px]">MEERKO OS</span>
           {["File", "Leads", "Sequences", "Agent"].map((m) => (
@@ -232,14 +232,20 @@ export function DemoPlayer() {
             {apps.map(({ name, icon: Icon, chapter: c }) => {
               const active = c === chapter.id;
               return (
-                <div key={name} className="flex flex-col items-center gap-1.5">
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setT(CHAPTERS.find((x) => x.id === c)!.start)}
+                  aria-label={`Jump to ${CHAPTERS.find((x) => x.id === c)!.label}`}
+                  className="group flex flex-col items-center gap-1.5"
+                >
                   <span
-                    className={`grid size-11 place-items-center outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline transition-colors duration-300 ${active ? "bg-lk-ink text-lk-lime" : "text-lk-ink"}`}
+                    className={`grid size-11 place-items-center outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline transition-colors duration-300 ${active ? "bg-lk-ink text-lk-lime" : "text-lk-ink group-hover:bg-lk-ink/10"}`}
                   >
                     <Icon className="size-5" strokeWidth={1.75} />
                   </span>
                   <span className="font-pixel text-[13px] text-lk-ink">{name === "Inbox" && repliesIn ? `Inbox (${repliesIn})` : name}</span>
-                </div>
+                </button>
               );
             })}
           </div>

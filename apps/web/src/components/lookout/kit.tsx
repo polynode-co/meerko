@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/meerko";
 import { site } from "@/lib/site";
 import { LogoMark } from "../ui/brand";
+import { CookieSettingsButton } from "../analytics/cookie-banner";
+import { NavFrame } from "./nav-frame";
 
 // The Lookout kit: the shared pieces of every marketing page, from the .pen "Lookout Kit — components"
 // (FKxST). Night background, IBM Plex Mono labels, Silkscreen pixel titles, paper windows, lime signal.
@@ -90,7 +92,8 @@ export function CtaBand({ title, body, cta = "Get started free →", href = site
   );
 }
 
-export async function LkNav({ links, transparent = false }: { links?: [string, string][]; transparent?: boolean }) {
+/** `wide` drops the 1440px cap, for full-width layouts like the docs. */
+export async function LkNav({ links, transparent = false, wide = false }: { links?: [string, string][]; transparent?: boolean; wide?: boolean }) {
   // A saved session means signed in; /app re-checks it.
   const signedIn = !!(await cookies()).get(SESSION_COOKIE)?.value;
   const items = links ?? [
@@ -101,8 +104,8 @@ export async function LkNav({ links, transparent = false }: { links?: [string, s
     ["GitHub", site.githubUrl],
   ];
   return (
-    <header className={`relative z-10 ${transparent ? "" : "border-b border-lk-line bg-lk-bg"}`}>
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-[22px] lg:px-12">
+    <NavFrame transparent={transparent}>
+      <div className={`mx-auto flex h-full items-center justify-between px-6 lg:px-12 ${wide ? "" : "max-w-[1440px]"}`}>
         <a href="/" aria-label="Meerko home" className="flex items-center gap-2.5">
           <LogoMark size={26} />
           <span className="font-pixel text-[16px] tracking-[0.6px] text-lk-fg">MEERKO</span>
@@ -121,7 +124,7 @@ export async function LkNav({ links, transparent = false }: { links?: [string, s
           </a>
         </nav>
       </div>
-    </header>
+    </NavFrame>
   );
 }
 
@@ -144,6 +147,7 @@ export function LkFooter() {
               {name}
             </a>
           ))}
+          <CookieSettingsButton className="uppercase hover:text-lk-fg" />
           <span className="size-2 bg-lk-lime" />
         </span>
       </div>
@@ -190,6 +194,7 @@ export function LkLandscapeFooter() {
           <div className="mx-auto flex max-w-[1440px] flex-col gap-2 px-6 pb-5 font-plex text-[12.5px] tracking-[0.8px] text-lk-muted sm:flex-row sm:items-center sm:justify-between lg:px-12">
             <span>MEERKO · A POLYNODE PROJECT · AGPL-3.0</span>
             <span className="flex items-center gap-2.5">
+              <CookieSettingsButton className="uppercase hover:text-lk-fg" /> ·
               © {new Date().getFullYear()} POLYNODE TECHNOLOGIES S.L. <span className="size-2 bg-lk-lime" />
             </span>
           </div>

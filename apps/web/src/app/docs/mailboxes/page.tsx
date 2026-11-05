@@ -40,7 +40,7 @@ export default function Page() {
           Open <L href="https://myaccount.google.com/apppasswords">App passwords</L>, name it &quot;Meerko&quot; and copy the 16 letters.
         </li>
         <li>
-          Paste it in <L href="/app/settings?connect=gmail">Settings → Connect mailbox</L>, or run <C>pnpm meerko mailboxes connect</C>.
+          Paste it in <L href="/app/settings?connect=gmail">Connections → Connect mailbox</L>, or run <C>pnpm meerko mailboxes connect</C>.
           Meerko checks it with Gmail before saving it, encrypted.
         </li>
       </ol>
@@ -119,7 +119,7 @@ export default function Page() {
       <p>
         <Tool name="send_test_email" /> sends a short &quot;Meerko test email&quot; from the mailbox to an address you choose. Send it to
         yourself to check the connection. In the dashboard it&apos;s <strong className="text-fg">Send test</strong> next to each
-        mailbox in Settings; from the terminal, <C>pnpm meerko mailboxes test &lt;id&gt; --to you@example.com</C>.
+        mailbox in Connections; from the terminal, <C>pnpm meerko mailboxes test &lt;id&gt; --to you@example.com</C>.
       </p>
 
       <H2 id="reconnect">When a mailbox needs reconnecting</H2>
@@ -127,7 +127,7 @@ export default function Page() {
         <p>
           If Gmail stops accepting the mailbox&apos;s app password, for example because you removed it or changed your Google password
           (which revokes app passwords), it shows as <C>error</C>. Its sequences wait instead of failing: create a new app password,
-          reconnect it from Settings with the same address, and they pick up where they stopped. Removing a mailbox from Meerko
+          reconnect it from Connections with the same address, and they pick up where they stopped. Removing a mailbox from Meerko
           doesn&apos;t revoke the password: remove it from <L href="https://myaccount.google.com/apppasswords">App passwords</L> too.
         </p>
       </Callout>

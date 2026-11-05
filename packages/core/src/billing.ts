@@ -11,9 +11,28 @@ export const MAX_CREDIT_PACKS = 100;
 export const PLAN_MAILBOXES: Record<Plan, number> = { free: 1, pro: Number.POSITIVE_INFINITY };
 /**
  * Whether a plan finds phone numbers on Meerko's provider key. A phone costs us $0.40 at Generect, so on Free the 200
- * signup credits would be spent on our money; a workspace's own Generect key works on any plan.
+ * signup credits would be spent on our money. A workspace's own Generect key is a Pro feature like any own key.
  */
 export const PLAN_PHONES: Record<Plan, boolean> = { free: false, pro: true };
+
+/**
+ * Whether a plan may use the workspace's own provider keys (Icypeas, Firecrawl, Generect). Only enforced when billing
+ * is on (Meerko Cloud): self-hosting is always on your own keys. On Free, Cloud runs on Meerko's keys and credits.
+ */
+export const PLAN_OWN_KEYS: Record<Plan, boolean> = { free: false, pro: true };
+export const OWN_KEYS_PRO_MESSAGE =
+  "Using your own provider keys on Meerko Cloud is a Pro feature. Upgrade in Connections, or self-host Meerko to run on your own keys for free.";
+
+/** True if the workspace's plan lets it use its own provider keys. */
+export async function ownKeysAllowed(db: Db, workspaceId: string) {
+  const { plan } = await getBilling(db, workspaceId);
+  return PLAN_OWN_KEYS[plan];
+}
+
+/** Throws a PlanLimitError if the workspace's plan can't use its own provider keys. */
+export async function assertOwnKeysAllowed(db: Db, workspaceId: string) {
+  if (!(await ownKeysAllowed(db, workspaceId))) throw new PlanLimitError(OWN_KEYS_PRO_MESSAGE);
+}
 
 /** Stripe statuses that keep Pro. `past_due` keeps it while Stripe retries the card. */
 const PRO_STATUSES = new Set<Stripe.Subscription.Status>(["active", "trialing", "past_due"]);
@@ -23,7 +42,7 @@ export interface BillingConfig {
   stripe: Stripe;
   webhookSecret: string;
   prices: { pro: string; credits: string };
-  /** The dashboard's URL; Checkout and the portal send the browser back to its Settings page. */
+  /** The dashboard's URL; Checkout and the portal send the browser back to its Connections page. */
   appUrl: string;
   /** A billing portal configuration (bpc_…); the account's default when unset. */
   portalConfiguration?: string;
@@ -91,7 +110,7 @@ export async function assertMailboxAllowed(db: Db, workspaceId: string, email: s
     .where(inArray(mailboxes.workspaceId, shared));
   if (rows.some((m) => m.workspaceId === workspaceId && m.email === email.toLowerCase())) return;
   if (rows.length >= limit) {
-    throw new PlanLimitError(`The Free plan includes ${limit} mailbox. Upgrade to Pro in Settings to connect more.`);
+    throw new PlanLimitError(`The Free plan includes ${limit} mailbox. Upgrade to Pro in Connections to connect more.`);
   }
 }
 
@@ -124,7 +143,7 @@ export async function startCheckout(db: Db, cfg: BillingConfig, workspaceId: str
   // Stripe only ever sees the workspace that pays, so webhooks credit and upgrade the shared plan.
   workspaceId = await billingWorkspaceOf(db, workspaceId);
   const billing = await getBilling(db, workspaceId);
-  if (input.kind === "pro" && billing.plan === "pro") throw new BillingError("This workspace is already on Pro (your workspaces share one plan). Manage it from Settings → Manage billing.");
+  if (input.kind === "pro" && billing.plan === "pro") throw new BillingError("This workspace is already on Pro (your workspaces share one plan). Manage it from Connections → Manage billing.");
   const customer = await ensureCustomer(db, cfg, workspaceId, email);
   const settings = `${cfg.appUrl.replace(/\/$/, "")}/app/settings`;
   const metadata = { workspace_id: workspaceId, kind: input.kind };

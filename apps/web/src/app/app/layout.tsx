@@ -17,7 +17,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         workspace={me.workspace.name}
         workspaces={workspaces}
         userEmail={me.user?.email ?? null}
-        mailbox={mailbox?.email ?? null}
         mailboxNeedsReconnect={mailbox?.status === "error"}
         inboxCount={replies.length}
         credits={credits}

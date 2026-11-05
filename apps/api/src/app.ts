@@ -112,6 +112,8 @@ import {
   handleStripeEvent,
   openPortal,
   PlanLimitError,
+  assertOwnKeysAllowed,
+  ownKeysAllowed,
   WorkspaceError,
   FREE_TIER_CREDITS,
   createWorkspace,
@@ -146,7 +148,7 @@ import {
   type IcypeasQuery,
 } from "@meerko/core";
 import type { ApiKeyScope, Db } from "@meerko/db";
-import { createAnalytics, EVENTS, type Analytics } from "./analytics.ts";
+import { createAnalytics, EVENTS, signupSource, type Analytics } from "./analytics.ts";
 import {
   agentHookInput,
   approveDraftInput,
@@ -310,8 +312,12 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   const icypeasForKey = deps.icypeasForKey ?? ((apiKey: string) => new IcypeasClient({ apiKey }));
 
   /** A workspace's own Icypeas key wins and is never metered; otherwise the server's key and credit policy apply. */
+  /** On Meerko Cloud, own keys are a Pro feature: a Free workspace's stored keys are ignored and it runs on credits. */
+  const ownKey = async (workspaceId: string, provider: "icypeas" | "firecrawl" | "generect") =>
+    deps.billing && !(await ownKeysAllowed(db, workspaceId)) ? null : getProviderKey(db, box, workspaceId, provider);
+
   const icypeasFor = async (workspaceId: string): Promise<{ client: IcypeasClient; credits: CreditPolicy; ownKey: boolean }> => {
-    const own = await getProviderKey(db, box, workspaceId, "icypeas");
+    const own = await ownKey(workspaceId, "icypeas");
     if (own) return { client: icypeasForKey(own), credits: { enabled: false }, ownKey: true };
     if (!deps.icypeas) {
       throw new HTTPException(503, { message: "No Icypeas key: add yours with `meerko keys set icypeas <key>`, or set ICYPEAS_API_KEY on the server" });
@@ -340,9 +346,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     } catch (err) {
       icypeasMissing = err;
     }
-    const firecrawlKey = await getProviderKey(db, box, workspaceId, "firecrawl");
+    const firecrawlKey = await ownKey(workspaceId, "firecrawl");
     if (firecrawlKey) providers.push(firecrawlProvider(firecrawlForKey(firecrawlKey)));
-    const generectKey = await getProviderKey(db, box, workspaceId, "generect");
+    const generectKey = await ownKey(workspaceId, "generect");
     if (generectKey) providers.push(generectProvider(generectForKey(generectKey), { ownKey: true }));
     else if (deps.generect) providers.push(generectProvider(deps.generect));
     if (providers.length === 0) throw icypeasMissing;
@@ -557,7 +563,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       path: "/auth/google",
       maxAge: SIGN_IN_TTL_MS / 1000,
     });
-    const state = Buffer.from(box!.encrypt(JSON.stringify({ n: nonce, exp: Date.now() + SIGN_IN_TTL_MS })), "base64").toString("base64url");
+    // Where the visit came from (the web app's lib/attribution.ts), carried in the state to the sign_up event.
+    const source = signupSource(c.req.query());
+    const state = Buffer.from(box!.encrypt(JSON.stringify({ n: nonce, exp: Date.now() + SIGN_IN_TTL_MS, s: source })), "base64").toString("base64url");
     return c.redirect(deps.googleSignIn!.signInUrl(state));
   });
 
@@ -567,7 +575,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const nonce = getCookie(c, NONCE_COOKIE);
     deleteCookie(c, NONCE_COOKIE, { path: "/auth/google" });
     if (error) return c.redirect(toLogin(error === "access_denied" ? "Sign-in was cancelled." : `Google said: ${error}`));
-    let payload: { n?: string; exp?: number } = {};
+    let payload: { n?: string; exp?: number; s?: Record<string, string> } = {};
     try {
       payload = JSON.parse(box!.decrypt(Buffer.from(state ?? "", "base64url").toString("base64")));
     } catch {
@@ -580,7 +588,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       const profile = await deps.googleSignIn!.signInProfile(code);
       const { userId, workspaceId, newUser } = await signInWithGoogle(db, profile, deps.signup ?? "invite");
       const person = { email: profile.email, name: profile.name ?? null };
-      if (newUser) await analytics.capture({ distinctId: userId, event: EVENTS.signUp, workspaceId, properties: { method: "google" }, set: person });
+      if (newUser) {
+        await analytics.capture({ distinctId: userId, event: EVENTS.signUp, workspaceId, properties: { method: "google", ...signupSource(payload.s ?? {}) }, set: person });
+      }
       await analytics.capture({ distinctId: userId, event: EVENTS.signInCompleted, workspaceId, properties: { method: "google" }, set: person });
       const authCode = await createAuthCode(db, userId, workspaceId);
       return c.redirect(backToApp(new URL("/auth/callback", deps.appUrl).toString(), { code: authCode }));
@@ -1082,7 +1092,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.post("/tables/:id/enrich", async (c) => {
     const input = await parse(enrichInput, await c.req.json());
     const enrichment = await enrichmentFor(c.var.workspaceId);
-    // Phones on Meerko's Generect key are a Pro feature; on the workspace's own key they work on any plan.
+    // Phones are a Pro feature on Meerko Cloud, on Meerko's Generect key or the workspace's own (own keys are Pro too).
     if (input.fields.includes("phone")) {
       if (!enrichment.providers.some((p) => p.supports.includes("phone"))) {
         throw new HTTPException(503, { message: "No phone provider: add your Generect key with `meerko keys set generect <key>`, or set GENERECT_API_KEY on the server" });
@@ -1172,7 +1182,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/mailboxes/gmail/connect", async (c) => {
     if (!deps.gmailOAuthConnect) {
-      throw new HTTPException(400, { message: "This server connects Gmail with an app password: use `meerko mailboxes connect`, or Settings → Mailboxes in the dashboard" });
+      throw new HTTPException(400, { message: "This server connects Gmail with an app password: use `meerko mailboxes connect`, or Connections → Mailboxes in the dashboard" });
     }
     const { login_hint, return_to } = await parse(oauthConnectInput, await c.req.json().catch(() => ({})));
     // Without MEERKO_APP_URL the server can't vouch for any return URL, so the callback shows its own page instead.
@@ -1307,6 +1317,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const provider = await parse(byokProvider, c.req.param("provider"));
     const { key } = await parse(providerKeyInput, await c.req.json());
     if (!box) throw new EncryptionNotConfiguredError();
+    if (deps.billing) await assertOwnKeysAllowed(db, c.var.workspaceId);
     // A free call proves the key works before it's stored: an Icypeas count, a Firecrawl catalog search, or the
     // Generect account profile.
     try {

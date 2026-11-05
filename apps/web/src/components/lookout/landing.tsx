@@ -17,7 +17,7 @@ function Hero() {
       <Image src="/landing/lookout-night.jpg" alt="" fill priority sizes="100vw" className="object-cover object-center md:object-[77%_center]" />
       <div className="absolute inset-x-0 bottom-0 h-[200px] bg-gradient-to-b from-lk-bg/0 to-lk-bg" />
       <div className="relative mx-auto max-w-[1440px]">
-        <LkNav transparent links={[["Product", "#product"], ["Docs", site.docsUrl], ["Guides", "/guides"], ["Pricing", "#pricing"], ["GitHub", site.githubUrl]]} />
+        <LkNav transparent links={[["Product", "#product"], ["Docs", site.docsUrl], ["Guides", "/guides"], ["Pricing", site.pricingUrl], ["GitHub", site.githubUrl]]} />
         <div className="flex max-w-[688px] flex-col gap-6 px-6 pt-10 lg:max-w-[736px] lg:pt-[72px] lg:pr-0 lg:pl-24">
           <span className={`${label} text-lk-lime`}>● Open source · AGPL-3.0</span>
           <h1 className="font-sans text-[40px] leading-[1.05] font-semibold tracking-[-1.4px] text-lk-fg sm:text-[60px] sm:leading-[62px] sm:tracking-[-2.1px]">
@@ -25,8 +25,8 @@ function Hero() {
             for your next customer.
           </h1>
           <p className="max-w-[540px] text-[17px] leading-[26px] text-lk-muted">
-            Meerko is the open-source AI sales agent. It finds leads, sends cold email from your own Gmail or Outlook, and catches every reply,
-            driven from Claude Code, Codex or Cursor.
+            Meerko is the outbound engine for your AI agent. Claude Code, Codex or Cursor does the thinking. Meerko finds the leads, sends
+            from your own Gmail or Outlook and catches every reply, around the clock, even when your agent is closed.
           </p>
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <LimeButton href={site.signupUrl}>Start free with 200 credits →</LimeButton>
@@ -38,7 +38,7 @@ function Hero() {
             </a>
           </div>
           <p className="font-plex text-[13px] tracking-[0.5px] text-lk-muted [text-shadow:0_1px_8px_#000]">
-            Free forever when self-hosted ·{" "}
+            Cloud $49/mo, no seats · Free forever when self-hosted ·{" "}
             <a href="/docs/self-hosting" className="underline-offset-4 hover:text-lk-fg hover:underline">
               AGPL-3.0
             </a>
@@ -213,18 +213,18 @@ function Pricing() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-[18px]">
             <span className={kicker}>04 · Pricing</span>
-            <h2 className={sectionTitle}>One plan. Credits for the data.</h2>
+            <h2 className={sectionTitle}>One flat plan. No seats, no per-mailbox fees.</h2>
           </div>
           <p className="text-[16px] text-lk-muted">$1 = 100 credits. Misses are free. Credits don’t expire.</p>
         </div>
         <div className="flex flex-col bg-lk-box outline outline-1 -outline-offset-1 outline-lk-line lg:flex-row">
           <div className="flex flex-col gap-[22px] border-b border-lk-line p-9 lg:w-[420px] lg:shrink-0 lg:border-r lg:border-b-0">
-            <span className="font-pixel text-[14px] text-lk-lime">CLOUD PRO</span>
+            <span className="font-pixel text-[14px] text-lk-lime">PRO</span>
             <div className="flex items-end gap-2.5">
               <span className="text-[72px] leading-[72px] font-semibold tracking-[-3px] text-lk-fg">$49</span>
               <span className="pb-1 font-plex text-[13px] text-lk-dim">/ MONTH</span>
             </div>
-            {["4,900 credits every month", "Unlimited mailboxes", "Reply drafting and triage", "Email support"].map((f) => (
+            {["Unlimited mailboxes", "Sending and reply detection, 24/7", "Your agent woken on every reply", "4,900 credits every month", "Your own provider keys, 0 credits"].map((f) => (
               <span key={f} className="font-plex text-[13.5px] text-lk-muted">
                 + {f}
               </span>

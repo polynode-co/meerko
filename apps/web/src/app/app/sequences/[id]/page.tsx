@@ -72,7 +72,7 @@ export default async function SequencePage({ params, searchParams }: { params: P
           ? {
               tone: "outline-[#e5795b]/60 bg-[#e5795b]/10",
               title: pool.mailboxes.length === 1 ? "Stopped: the mailbox lost access" : "Stopped: every mailbox lost access",
-              text: "Reconnect them in Settings and sending picks up where it left off.",
+              text: "Reconnect them in Connections and sending picks up where it left off.",
             }
           : stats.remaining === 0
             ? {

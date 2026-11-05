@@ -23,7 +23,7 @@ pnpm db:seed        # prints an API key (mk_...)
 pnpm dev            # API on :8787, the worker, and the dashboard on http://localhost:3000
 ```
 
-Log in to the dashboard with the API key. To send email, set `MEERKO_ENCRYPTION_KEY` in `.env` (`openssl rand -base64 32`) and connect a mailbox from Settings: Gmail, Zoho, Fastmail or any IMAP/SMTP server with an app password, or Outlook with your own Microsoft Entra app. Google OAuth is only needed for "Sign in with Google". The [self-hosting guide](https://meerko.ai/docs/self-hosting) walks through each, and through running everything in Docker instead (`docker-compose.selfhost.yml`).
+Log in to the dashboard with the API key. To send email, set `MEERKO_ENCRYPTION_KEY` in `.env` (`openssl rand -base64 32`) and connect a mailbox from Connections: Gmail, Zoho, Fastmail or any IMAP/SMTP server with an app password, or Outlook with your own Microsoft Entra app. Google OAuth is only needed for "Sign in with Google". The [self-hosting guide](https://meerko.ai/docs/self-hosting) walks through each, and through running everything in Docker instead (`docker-compose.selfhost.yml`).
 
 ### CLI
 
@@ -49,7 +49,7 @@ Codex, Cursor and Gemini CLI connect the same way, by URL. Without Google sign-i
 - **Tools:** tables and rows, lead search and enrichment, mailboxes, sequences, replies and drafts, pipeline and credits (32 in all; your agent lists them).
 - **Commands (MCP prompts):** `find-leads`, `write-sequence`, `triage-replies`, `pipeline`. In Claude Code they appear as `/mcp__meerko__find-leads` and so on. Anything that emails someone waits for your OK.
 - **Slack:** Meerko posts new replies and your agent's drafts to a channel. With the Meerko Slack app each draft has Approve and Discard buttons (only workspace members can press them) and `/meerko` shows what's waiting; a pasted incoming webhook works too, posts only. See the [docs](https://meerko.ai/docs/slack).
-- **Wake your agent:** when replies arrive, Meerko can call a Claude Code routine or any webhook so your agent drafts the answers while you're away. The woken agent connects to `/mcp/drafter` (or uses a drafts-only API key), which can read replies and save drafts but never send. Set it up under Settings → Wake your agent; see the [docs](https://meerko.ai/docs/wake-your-agent).
+- **Wake your agent:** when replies arrive, Meerko can call a Claude Code routine or any webhook so your agent drafts the answers while you're away. The woken agent connects to `/mcp/drafter` (or uses a drafts-only API key), which can read replies and save drafts but never send. Set it up under Connections → Wake your agent; see the [docs](https://meerko.ai/docs/wake-your-agent).
 
 ## Analytics
 

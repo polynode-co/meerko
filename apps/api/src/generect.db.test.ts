@@ -103,7 +103,14 @@ describe.skipIf(!process.env.DATABASE_URL)("Generect: missed emails and phone nu
     await call("/v1/provider-keys/icypeas", { method: "DELETE" });
   });
 
-  it("checks an own Generect key, then runs phones on it on Free without credits", async () => {
+  it("refuses an own Generect key on Free: own keys are a Pro feature on Cloud", async () => {
+    await setPlan(db, ws, "free");
+    const res = await call("/v1/provider-keys/generect", { method: "PUT", body: JSON.stringify({ key: "gen-own-5678" }) });
+    expect(res.status).toBe(402);
+  });
+
+  it("checks an own Generect key on Pro, then runs phones on it without credits", async () => {
+    await setPlan(db, ws, "pro");
     const bad = await call("/v1/provider-keys/generect", { method: "PUT", body: JSON.stringify({ key: "bad-key-0000" }) });
     expect(bad.status).toBe(400);
     expect((await bad.json()).error).toContain("Generect rejected this key");

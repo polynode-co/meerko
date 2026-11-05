@@ -32,7 +32,7 @@ export default function OutlookIntegration() {
         </p>
       }
       steps={[
-        ["Sign in with Microsoft", "Pick Outlook in Settings → Connect mailbox and approve Meerko. Work, school and personal accounts work."],
+        ["Sign in with Microsoft", "Pick Outlook in Connections → Connect mailbox and approve Meerko. Work, school and personal accounts work."],
         ["Add your leads", "Import a CSV, search for people, or let your agent build the table. Each column becomes a variable."],
         ["Start the sequence", "Up to 10 steps, sent inside a send window. Nothing goes out until you start it."],
       ]}

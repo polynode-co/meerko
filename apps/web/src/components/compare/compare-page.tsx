@@ -36,10 +36,9 @@ export interface Comparison {
   faq?: [string, string][];
 }
 
-const repo = site.githubUrl;
 // Facts about Meerko, each with the page that shows it.
 const onlyMeerko = [
-  { title: "Open source (AGPL-3.0)", body: "Read, fork and audit every line.", href: `${repo}/blob/main/LICENSE` },
+  { title: "Open source (AGPL-3.0)", body: "The code that runs Meerko Cloud is the code you can run yourself.", href: "/docs/self-hosting" },
   { title: "Self-host for $0", body: "Run it on your own infra with your own provider keys.", href: "/docs/self-hosting" },
   { title: "Your Postgres", body: "Self-hosted, every lead, email and reply stays in your database.", href: "/docs/self-hosting#what-runs" },
 ];
@@ -112,7 +111,7 @@ export function ComparePage({ c }: { c: Comparison }) {
           </table>
         </div>
         <p className={crumb}>
-          {c.name} facts from {c.name}&apos;s own pages, checked {CHECKED_ON}. Prices are billed monthly.
+          {c.name} facts from {c.name}&apos;s own pages, checked {CHECKED_ON}. Prices are per month on monthly billing.
         </p>
       </section>
 

@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { citer, GuideShell, H2, Sample } from "@/components/lookout/docs/guide";
 import { mcpUrl } from "@/lib/meerko";
 
-// Targets "claude code use cases" (320/mo, KD 13) and "claude code for marketing/sales" (DataForSEO, US, Oct 2026).
+// Targets "claude code use cases" (320/mo, KD 13), "claude code marketing" (90, KD 13) and "claude code for sales" (DataForSEO, US, Oct–Nov 2026).
 export const metadata: Metadata = {
-  title: "Claude Code for Sales: Outbound Use Cases with MCP | Meerko",
-  description: "How to use Claude Code for sales and outbound: build lead lists, write sequences and triage replies through an MCP server, with prompts you can copy.",
+  title: "Claude Code for Sales and Marketing: Outbound Use Cases with MCP | Meerko",
+  description: "How to use Claude Code for sales, marketing and outbound: build lead lists, write sequences and triage replies through an MCP server, with prompts you can copy.",
   alternates: { canonical: "/guides/claude-code-for-sales" },
 };
 
@@ -44,14 +44,14 @@ export default function Page() {
       faq={[
         ["Can Claude Code send emails?", "Not by itself. It uses the tools of the MCP servers you connect; with an outbound server like Meerko it can draft and schedule emails that send from your own mailbox."],
         ["What is an MCP server?", "A program that gives an AI agent tools, such as searching leads or sending a sequence. Claude Code connects to MCP servers you add with `claude mcp add`."],
-        ["Does this work in Cursor or Codex too?", "Yes. Any agent that supports MCP can use the same server; Meerko's setup guide covers Claude Code, Codex, Cursor, Gemini CLI and Windsurf."],
+        ["Does this work in Cursor or Codex too?", "Yes. Any agent that supports MCP can use the same server; Meerko's setup guides cover Claude, ChatGPT, Claude Code, Cursor, Codex and Grok (Grok through its connectors page)."],
       ]}
     >
       <H2 id="how">How it works: MCP</H2>
       <p>
         Claude Code can use tools beyond its built-in set through the Model Context Protocol (MCP): you add a server, and its
         tools become available in your session.<Cite s={claudeMcp} /> For outbound, that server needs tools for lead data,
-        sending and replies. Meerko&apos;s MCP server provides 31 of them, plus four ready-made commands.
+        sending and replies. Meerko&apos;s MCP server provides 39 of them, plus four ready-made commands.
       </p>
 
       <H2 id="use-cases">Use cases</H2>

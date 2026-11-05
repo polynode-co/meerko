@@ -243,7 +243,7 @@ export async function revokeOAuthToken(db: Db, anyToken: string) {
   else if (anyToken.startsWith(REFRESH_PREFIX)) await db.delete(oauthGrants).where(eq(oauthGrants.refreshHash, h));
 }
 
-/** Apps with access to the workspace, for Settings → Connected apps. */
+/** Apps with access to the workspace, for Connections → Connected apps. */
 export async function listConnectedApps(db: Db, workspaceId: string) {
   return db
     .select({ id: oauthGrants.id, name: oauthClients.name, userEmail: users.email, createdAt: oauthGrants.createdAt, lastUsedAt: oauthGrants.lastUsedAt })
