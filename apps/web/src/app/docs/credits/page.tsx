@@ -52,12 +52,13 @@ export default function Page() {
       <H2 id="buying">Buying credits</H2>
       <p>
         A workspace owner buys credits in the dashboard&apos;s Connections, under Plan &amp; credits, on any plan: packs of 1,000 credits for
-        $10, paid with Stripe. Pro ($49 a month) adds 4,900 credits when you subscribe and each time it renews, and lets you connect more than one mailbox. Credits
+        $10, paid with Stripe. Pro ($49 a month) adds 4,900 credits when you subscribe and each time it renews, lets you connect more than one mailbox, and lets you use your own provider keys with no credits charged. Credits
         don&apos;t expire, and you keep them if you cancel Pro. Cancel or change your card from Manage billing.
       </p>
       <p>
-        On Meerko Cloud, <Tool name="get_credits" /> also returns your plan and <C>buy_url</C>, the Connections page where a person can top
-        up, so your agent can hand you the link when a lookup runs out.
+        <Tool name="get_credits" /> shows your agent the balance, so it can warn you before a large search. Plans and
+        top-ups live in Connections, not in the chat: the Claude and ChatGPT app directories don&apos;t allow buying inside an app. The
+        REST API&apos;s <C>GET /v1/credits</C> still returns the plan and a <C>buy_url</C> for your own scripts.
       </p>
       <H2 id="own-key">Use your own provider key</H2>
       <Callout icon={KeyRound}>

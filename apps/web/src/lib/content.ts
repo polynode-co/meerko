@@ -1,7 +1,7 @@
 // The registry of content pages (docs/CONTENT.md). Hubs, related links, the footer and the sitemap read from it.
-import { Mail, ShieldCheck, Terminal, type LucideIcon } from "lucide-react";
+import { Bot, Mail, ShieldCheck, Terminal, type LucideIcon } from "lucide-react";
 
-export type Topic = "Cold email" | "Deliverability" | "GTM engineering";
+export type Topic = "Cold email" | "Deliverability" | "GTM engineering" | "AI agents";
 
 export interface GuideEntry {
   slug: string;
@@ -14,13 +14,14 @@ export interface GuideEntry {
   crossLinks: string[];
 }
 
-export const TOPICS: Topic[] = ["Cold email", "Deliverability", "GTM engineering"];
+export const TOPICS: Topic[] = ["AI agents", "Cold email", "Deliverability", "GTM engineering"];
 
 /** Icon and one-line pitch per topic, for hub sections, eyebrows and related cards. */
 export const topicMeta: Record<Topic, { icon: LucideIcon; tagline: string }> = {
   "Cold email": { icon: Mail, tagline: "Write emails people answer." },
   Deliverability: { icon: ShieldCheck, tagline: "Land in the inbox, not in spam." },
   "GTM engineering": { icon: Terminal, tagline: "Build the systems around outbound." },
+  "AI agents": { icon: Bot, tagline: "Run outbound from the assistant you already use." },
 };
 
 /** The guide featured at the top of /guides. */
@@ -76,6 +77,55 @@ export const guides: GuideEntry[] = [
     summary: "Use cases for running prospecting, sequences and replies from Claude Code.",
     crossLinks: ["cold-email-templates"],
   },
+  {
+    slug: "claude-for-sales",
+    topic: "AI agents",
+    title: "Claude for sales: connectors for outbound",
+    summary: "Find leads, send sequences and answer replies from a Claude chat, with a connector.",
+    crossLinks: ["claude-code-for-sales", "cold-email-follow-up"],
+  },
+  {
+    slug: "chatgpt-for-sales",
+    topic: "AI agents",
+    title: "ChatGPT for sales: connectors and MCP",
+    summary: "How to connect ChatGPT to your outbound tools with a custom MCP server.",
+    crossLinks: ["cold-email-templates"],
+  },
+  {
+    slug: "best-mcp-servers-for-sales",
+    topic: "AI agents",
+    title: "The best MCP servers for sales",
+    summary: "Gmail, HubSpot, Apollo, Clay and Meerko: what each MCP server lets your assistant do.",
+    crossLinks: ["gtm-engineer"],
+  },
+  {
+    slug: "gmail-mcp",
+    topic: "AI agents",
+    title: "Gmail MCP: email from your AI assistant",
+    summary: "The ways to give Claude or ChatGPT access to Gmail, and what each can and can't do.",
+    crossLinks: ["gmail-sending-limits", "email-deliverability"],
+  },
+  {
+    slug: "grok-connectors",
+    topic: "AI agents",
+    title: "Grok connectors and custom MCP servers",
+    summary: "How Grok's connectors work and how to add a custom MCP server.",
+    crossLinks: ["gtm-engineer"],
+  },
+  {
+    slug: "ai-sdr",
+    topic: "AI agents",
+    title: "AI SDR: what it is and what it costs",
+    summary: "What an AI SDR does, the main tools and their prices, and the run-it-in-your-assistant option.",
+    crossLinks: ["cold-email-follow-up", "gtm-engineer"],
+  },
+  {
+    slug: "ai-lead-generation",
+    topic: "AI agents",
+    title: "AI lead generation",
+    summary: "How to find, verify and reach B2B leads with an AI assistant, step by step.",
+    crossLinks: ["cold-email-templates", "email-deliverability"],
+  },
 ];
 
 export const guideBySlug = (slug: string) => guides.find((g) => g.slug === slug)!;
@@ -100,6 +150,22 @@ export const alternatives: AlternativeEntry[] = [
   { slug: "clay", name: "Clay", logo: "/logos/clay.png", summary: "Clay pricing and features next to Meerko, from Clay's own pages." },
   { slug: "apollo", name: "Apollo", logo: "/logos/apollo.png", summary: "Apollo's plans and features next to Meerko, from Apollo's own pages." },
   { slug: "instantly", name: "Instantly", logo: "/logos/instantly.png", summary: "Instantly pricing and features next to Meerko, from Instantly's own pages." },
+  { slug: "reply-io", name: "Reply.io", logo: "/logos/reply-io.png", summary: "Reply.io's plans and features next to Meerko, from Reply's own pricing page." },
+  { slug: "lemlist", name: "lemlist", logo: "/logos/lemlist.png", summary: "lemlist pricing and features next to Meerko, from lemlist's own pages." },
+  { slug: "smartlead", name: "Smartlead", logo: "/logos/smartlead.png", summary: "Smartlead pricing and features next to Meerko, from Smartlead's own pages." },
+  { slug: "hunter", name: "Hunter", logo: "/logos/hunter.png", summary: "Hunter's email finder, verifier and pricing next to Meerko, from Hunter's own pages." },
+];
+
+/** Head-to-head pages under /compare: two other tools side by side, Meerko as a third option. */
+export interface VersusEntry {
+  slug: string;
+  title: string;
+  summary: string;
+}
+
+export const versusPages: VersusEntry[] = [
+  { slug: "clay-vs-apollo", title: "Clay vs Apollo", summary: "Enrichment tables or a contact database: prices and features from each vendor's own pages." },
+  { slug: "instantly-vs-smartlead", title: "Instantly vs Smartlead", summary: "Two cold-email senders compared on price, volume and lead data." },
 ];
 
 export const alternativeBySlug = (slug: string) => alternatives.find((a) => a.slug === slug)!;

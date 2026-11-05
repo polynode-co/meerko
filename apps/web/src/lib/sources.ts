@@ -1,14 +1,14 @@
 // Every claim the site makes about another product lives here, with the page it came from.
 // Re-check these when you touch them: prices and features change. Anything we can't source stays off the site.
 
-export const CHECKED_ON = "6 Oct 2026";
+export const CHECKED_ON = "5 Nov 2026";
 
 /** Entry-level paid plans, billed monthly, as listed on each vendor's own pricing page. */
 export const stackPrices = [
-  { tool: "Clay", logo: "/logos/clay.png", job: "Tables & enrichment", plan: "Launch", price: 167, url: "https://www.clay.com/pricing" },
-  { tool: "Instantly", logo: "/logos/instantly.png", job: "Sending", plan: "Outreach Growth", price: 47, url: "https://instantly.ai/pricing" },
+  { tool: "Clay", logo: "/logos/clay.png", job: "Tables & enrichment", plan: "Launch", price: 185, url: "https://www.clay.com/pricing" },
+  { tool: "Instantly", logo: "/logos/instantly.png", job: "Sending", plan: "Growth", price: 47, url: "https://instantly.ai/pricing" },
   { tool: "HubSpot", logo: "/logos/hubspot.svg", job: "CRM", plan: "Sales Hub Starter, 1 seat", price: 20, url: "https://www.hubspot.com/pricing/sales" },
-  { tool: "Zapier", logo: "/logos/zapier.svg", job: "Glue", plan: "Pro, 750 tasks", price: 29.99, url: "https://zapier.com/pricing" },
+  { tool: "Zapier", logo: "/logos/zapier.svg", job: "Glue", plan: "Professional, 750 tasks", price: 29.99, url: "https://zapier.com/pricing" },
 ];
 
 /** Each agent's own documentation for adding an MCP server. */
@@ -16,8 +16,7 @@ export const agentDocs: Record<string, string> = {
   "Claude Code": "https://code.claude.com/docs/en/mcp",
   Codex: "https://developers.openai.com/codex/mcp",
   Cursor: "https://cursor.com/docs/context/mcp",
-  "Gemini CLI": "https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md",
-  Windsurf: "https://docs.windsurf.com/windsurf/cascade/mcp",
+  Grok: "https://docs.x.ai/grok/connectors",
 };
 
 /** Clay, for /alternatives/clay. Only what Clay's own pages say. */
@@ -50,9 +49,17 @@ export const ftcCanSpam = { label: "FTC: CAN-SPAM Act: A Compliance Guide for Bu
 export const apolloSources = { pricing: { label: "Apollo pricing", url: "https://www.apollo.io/pricing" } };
 export const instantlySources = { pricing: { label: "Instantly pricing", url: "https://instantly.ai/pricing" } };
 
+/** Reply.io, lemlist, Smartlead and Hunter, for /alternatives and /compare. Each vendor's own pricing page, checked 5 Nov 2026. */
+export const replySources = { pricing: { label: "Reply.io pricing", url: "https://reply.io/pricing/" } };
+export const lemlistSources = { pricing: { label: "lemlist pricing", url: "https://www.lemlist.com/pricing" } };
+export const smartleadSources = { pricing: { label: "Smartlead pricing", url: "https://www.smartlead.ai/pricing" } };
+export const hunterSources = { pricing: { label: "Hunter pricing", url: "https://hunter.io/pricing" } };
+
 /** For /docs: the setup steps that depend on other products. */
 export const docsSources = {
   claudeCodeMcp: { label: "Claude Code docs: Connect Claude Code to tools via MCP", url: "https://code.claude.com/docs/en/mcp" },
+  claudeConnectors: { label: "Claude Help: Getting started with custom connectors using remote MCP", url: "https://support.claude.com/en/articles/11175166-getting-started-with-custom-connectors-using-remote-mcp" },
+  chatgptMcp: { label: "OpenAI Apps SDK: Connect from ChatGPT", url: "https://developers.openai.com/apps-sdk/deploy/connect-chatgpt" },
   codexMcp: { label: "OpenAI Codex docs: Model Context Protocol", url: "https://developers.openai.com/codex/mcp" },
   cursorMcp: { label: "Cursor docs: Model Context Protocol", url: "https://cursor.com/docs/context/mcp" },
   geminiMcp: { label: "Gemini CLI docs: MCP servers", url: "https://geminicli.com/docs/tools/mcp-server/" },

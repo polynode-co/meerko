@@ -2,7 +2,7 @@ import { ChevronDown, ShieldCheck } from "lucide-react";
 import { OpenOnHash } from "@/components/lookout/docs/search";
 import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
 import { C, Callout, H2, L } from "@/components/lookout/docs/ui";
-import { type McpTool, docHref, mcp, needsApproval, toolByName, toolGroups, toolParams } from "@/lib/docs";
+import { type McpTool, cantUndo, docHref, mcp, needsApproval, toolByName, toolGroups, toolParams } from "@/lib/docs";
 
 export const metadata = docsMetadata("mcp-tools", "Meerko MCP tools reference | Meerko docs");
 
@@ -27,9 +27,13 @@ function ToolEntry({ tool }: { tool: McpTool }) {
         <span className="min-w-0 flex-1 text-[15px] leading-normal">{first}</span>
         {needsApproval(tool) && (
           <span className="hidden shrink-0 items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[12px] text-accent sm:inline-flex">
-            <ShieldCheck className="size-3" /> needs your OK
+            <ShieldCheck className="size-3" /> sends email · needs your OK
           </span>
         )}
+        {cantUndo(tool) && (
+          <span className="hidden shrink-0 rounded-full bg-ink px-2 py-0.5 font-mono text-[12px] sm:inline-flex">can&apos;t undo</span>
+        )}
+        {tool.annotations.readOnlyHint && <span className="hidden shrink-0 rounded-full bg-ink px-2 py-0.5 font-mono text-[12px] sm:inline-flex">read-only</span>}
         <ChevronDown className="mt-1 size-3.5 shrink-0 transition group-open:rotate-180" />
       </summary>
       <div className="flex flex-col gap-4 px-[18px] pb-5">
@@ -89,6 +93,11 @@ export default function Page() {
           ))}{" "}
           send real email. Their descriptions tell your agent to call them only after you&apos;ve seen the preview or the draft and said
           yes.
+        </p>
+        <p>
+          Every tool also carries a title and the standard MCP hints: read-only, destructive (it sends, deletes or overwrites), and open-world
+          (it reaches outside your account: the lead database, DNS or someone&apos;s inbox). Claude, ChatGPT and other clients use them to ask
+          you before running a destructive tool.
         </p>
       </Callout>
 

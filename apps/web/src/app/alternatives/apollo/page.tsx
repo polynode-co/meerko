@@ -9,32 +9,32 @@ export const metadata: Metadata = {
   alternates: { canonical: "/alternatives/apollo" },
 };
 
-// Every Apollo cell cites Apollo's pricing page (its plan data and FAQ), checked 6 Oct 2026.
+// Every Apollo cell cites Apollo's pricing page (its plan data and FAQ), checked 5 Nov 2026.
 const apollo: Comparison = {
   slug: "apollo",
   name: "Apollo",
   pitch:
-    "Apollo is a sales platform with a contact database, sequences and pipeline tools. Meerko is an open-source AI sales agent you run from Claude Code: self-host it for free and keep every lead in your own Postgres, or use Meerko Cloud from $49/mo.",
+    "Apollo is a sales platform with a contact database, sequences and pipeline tools. Meerko is an open-source AI sales agent that runs inside Claude, ChatGPT or your coding agent: self-host it for free and keep every lead in your own Postgres, or use Meerko Cloud from $49/mo.",
   rows: [
-    { label: "Paid plans from", meerko: "$49/mo (Cloud Pro)", them: "$49/mo (Basic), as listed", source: apolloSources.pricing },
-    { label: "Free plan", meerko: "200 credits on Cloud", them: "Free plan with no time limit", source: apolloSources.pricing },
+    { label: "Paid plans from", meerko: "$49/mo (Pro)", them: "$65/mo per seat (Basic)", source: apolloSources.pricing },
+    { label: "Free plan", meerko: "200 credits once, 1 mailbox", them: "Free plan with no time limit", source: apolloSources.pricing },
     { label: "Email sequences", meerko: "From your own Gmail or Outlook", them: "Included from Basic", source: apolloSources.pricing },
     { label: "What credits pay for", meerko: "Found and verified emails, lead search", them: "Emails, phone numbers, warmup, mailboxes and more", source: apolloSources.pricing },
   ],
   pricing: {
     plans: [
       { name: "Free", price: "$0", detail: "For exploring Apollo or light use; stays free with no time limit." },
-      { name: "Basic", price: "$49/mo", detail: "For individual sellers: email sequencing and core integrations." },
+      { name: "Basic", price: "$65/mo", detail: "For individual sellers: email sequencing and core integrations." },
       { name: "Professional", price: "$99/mo", detail: "Higher credit limits, AI features, call recording and advanced CRM integrations." },
-      { name: "Custom", price: "Custom", detail: "Custom volumes, SSO, advanced security and dedicated support." },
+      { name: "Organization", price: "$119/mo", detail: "Billed annually only, minimum 3 seats. Advanced tools, custom solutions and expert help." },
     ],
-    note: "Prices as listed in the plan data on Apollo's pricing page, which doesn't say whether they reflect monthly or annual billing: check with Apollo before you buy. All seats on an account are on the same plan.",
+    note: "Per seat, monthly billing, as listed on Apollo's pricing page. Billed annually, Basic is $49 and Professional $79 a seat a month. All seats on an account are on the same plan.",
     source: apolloSources.pricing,
   },
   faq: [
     [
       "How much does Apollo cost?",
-      "Apollo's pricing page lists a Free plan, Basic at $49/mo and Professional at $99/mo, plus a Custom plan priced by its sales team. Check the billing period with Apollo.",
+      "Apollo's pricing page lists a Free plan, Basic at $65 and Professional at $99 a seat a month on monthly billing ($49 and $79 billed annually), and Organization at $119 a seat a month, billed annually for at least 3 seats.",
     ],
     ["Is there a free version of Apollo?", "Yes. Apollo says its free plan stays free with no time limit."],
     [

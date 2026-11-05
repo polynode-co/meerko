@@ -14,7 +14,7 @@ export async function describeMcp() {
   const [{ tools }, { prompts }] = await Promise.all([client.listTools(), client.listPrompts()]);
   await client.close();
   return {
-    tools: tools.map(({ name, description, inputSchema }) => ({ name, description: description ?? "", inputSchema })),
+    tools: tools.map(({ name, title, description, annotations, inputSchema }) => ({ name, title: title ?? name, description: description ?? "", annotations: annotations ?? {}, inputSchema })),
     prompts: prompts.map(({ name, title, description, arguments: args }) => ({ name, title: title ?? name, description: description ?? "", arguments: args ?? [] })),
   };
 }

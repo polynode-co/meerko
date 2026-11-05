@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { LkPage, lead, pageTitle } from "@/components/lookout/kit";
 import { LkBreadcrumbs, wrap } from "@/components/lookout/marketing/ui";
-import { alternatives } from "@/lib/content";
+import { alternatives, versusPages } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: "Open-Source Alternatives to Clay, Apollo & Instantly | Meerko",
-  description: "How Meerko, the open-source AI sales agent, compares with Clay, Apollo and Instantly on price and features, from each vendor's own pages.",
+  title: "Open-Source Alternatives to Clay, Apollo, Instantly & lemlist | Meerko",
+  description: "How Meerko, the open-source AI sales agent, compares with Clay, Apollo, Instantly, Reply.io, lemlist, Smartlead and Hunter on price and features, from each vendor's own pages.",
   alternates: { canonical: "/alternatives" },
 };
 
@@ -40,6 +40,22 @@ export default function AlternativesHub() {
           </li>
         ))}
       </ul>
+      <section className={`${wrap} flex flex-col gap-4 pb-16`}>
+        <h2 className="font-plex text-[12.5px] tracking-[0.8px] text-lk-dim uppercase">Head-to-head</h2>
+        <ul className="grid gap-4 md:grid-cols-3">
+          {versusPages.map((v) => (
+            <li key={v.slug}>
+              <a
+                href={`/compare/${v.slug}`}
+                className="flex h-full flex-col gap-1 bg-lk-box px-[18px] py-4 outline outline-1 -outline-offset-1 outline-lk-line transition hover:outline-lk-gray"
+              >
+                <span className="text-[16px] font-semibold text-lk-fg">{v.title}</span>
+                <span className="text-[15px] leading-snug text-lk-muted">{v.summary}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
       <div className={`${wrap} pb-24`}>
         <a href="/guides" className="font-plex text-[13px] tracking-[0.6px] text-lk-muted uppercase hover:text-lk-fg">
           Read the outbound guides →

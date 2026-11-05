@@ -120,7 +120,7 @@ export function LegalShell({ title, path, toc, summary, children }: LegalShellPr
     <LkPage>
       <div className="mx-auto flex w-full max-w-[1440px] gap-[72px] px-6 pt-14 pb-24 lg:px-36 lg:pt-20">
         <aside className="hidden w-[260px] shrink-0 lg:block">
-          <div className="sticky top-8 flex max-h-[calc(100dvh-4rem)] flex-col gap-9 overflow-y-auto pb-4">
+          <div className="sticky top-[calc(var(--lk-nav-h)+2rem)] flex max-h-[calc(100dvh-var(--lk-nav-h)-4rem)] flex-col gap-9 overflow-y-auto pb-4">
             <nav aria-label="Legal" className="flex flex-col gap-1.5">
               <p className="mb-1 font-plex text-[12.5px] tracking-[0.8px] text-lk-dim uppercase">Legal</p>
               {legalNav.map(([label, href]) => {

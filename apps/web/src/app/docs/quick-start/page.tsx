@@ -47,7 +47,8 @@ export default function Page() {
         <CodeBlock title="bash" code={add} lines={[{ text: `$ ${add}` }]} />
         <p>
           Then run <C>/mcp</C> in Claude Code, pick <C>meerko</C> and sign in: your browser opens, you continue with Google and click{" "}
-          <strong className="text-fg">Allow</strong>. Using another agent? See <L href="/docs/codex-cursor">Codex & Cursor</L> and{" "}
+          <strong className="text-fg">Allow</strong>. Working in a chat app instead? See <L href="/docs/claude">Claude</L> and <L href="/docs/chatgpt">ChatGPT</L>. Another agent? See{" "}
+          <L href="/docs/codex-cursor">Codex & Cursor</L> and{" "}
           <L href="/docs/mcp-clients">other clients</L>.
         </p>
       </Step>

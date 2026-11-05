@@ -19,7 +19,7 @@ const app = {
   sameAs: [site.githubUrl],
   offers: [
     { "@type": "Offer", name: "Self-hosted", price: "0", priceCurrency: "USD" },
-    { "@type": "Offer", name: "Cloud Pro", price: "49", priceCurrency: "USD" },
+    { "@type": "Offer", name: "Pro", price: "49", priceCurrency: "USD" },
   ],
 };
 
