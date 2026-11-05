@@ -51,6 +51,7 @@ export function countryCode(region: string | null | undefined) {
 }
 
 export function consentRequired(region: string | null | undefined) {
-  const code = region?.trim().toUpperCase();
+  // Anything that isn't a country code asks too.
+  const code = countryCode(region);
   return !code || CONSENT_COUNTRIES.has(code);
 }
