@@ -35,7 +35,6 @@ const groups: { label: string; items: [string, string, string][] }[] = [
       ["Claude Code", "/logos/agents/claude.svg", agentDocs["Claude Code"]],
       ["Cursor", "/logos/agents/cursor.svg", agentDocs.Cursor],
       ["Codex", "/logos/agents/openai.svg", agentDocs.Codex],
-      ["Gemini CLI", "/logos/agents/gemini.svg", agentDocs["Gemini CLI"]],
     ],
   },
   {
@@ -196,7 +195,6 @@ const agents: [string, string][] = [
   ["Claude Code", "/logos/agents/claude.svg"],
   ["Codex", "/logos/agents/openai.svg"],
   ["Cursor", "/logos/agents/cursor.svg"],
-  ["Gemini CLI", "/logos/agents/gemini.svg"],
 ];
 const leads = [
   ["Lucía Ferrer", "Brava Pay", "verified"],
