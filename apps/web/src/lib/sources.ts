@@ -49,6 +49,12 @@ export const ftcCanSpam = { label: "FTC: CAN-SPAM Act: A Compliance Guide for Bu
 export const apolloSources = { pricing: { label: "Apollo pricing", url: "https://www.apollo.io/pricing" } };
 export const instantlySources = { pricing: { label: "Instantly pricing", url: "https://instantly.ai/pricing" } };
 
+/** Reply.io, lemlist, Smartlead and Hunter, for /alternatives and /compare. Each vendor's own pricing page, checked 5 Nov 2026. */
+export const replySources = { pricing: { label: "Reply.io pricing", url: "https://reply.io/pricing/" } };
+export const lemlistSources = { pricing: { label: "lemlist pricing", url: "https://www.lemlist.com/pricing" } };
+export const smartleadSources = { pricing: { label: "Smartlead pricing", url: "https://www.smartlead.ai/pricing" } };
+export const hunterSources = { pricing: { label: "Hunter pricing", url: "https://hunter.io/pricing" } };
+
 /** For /docs: the setup steps that depend on other products. */
 export const docsSources = {
   claudeCodeMcp: { label: "Claude Code docs: Connect Claude Code to tools via MCP", url: "https://code.claude.com/docs/en/mcp" },

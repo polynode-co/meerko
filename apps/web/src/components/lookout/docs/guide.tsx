@@ -83,15 +83,15 @@ export function Timeline({ steps, highlight }: { steps: [label: string, text: st
 
 const ctas = {
   start: {
-    title: "Run this from your coding agent",
+    title: "Run this from your AI assistant",
     body: "Meerko finds the leads, sends the sequence from your own Gmail or Outlook and stops it when someone replies. Self-host it for free or start on Meerko Cloud with 200 free credits.",
     primary: ["Get started free", site.pricingUrl],
-    secondary: ["Connect it to Claude Code", "/docs/claude-code"],
+    secondary: ["Connect it to Claude", "/docs/claude"],
   },
   docs: {
-    title: "Try it in Claude Code",
+    title: "Try it in Claude or ChatGPT",
     body: "Add the Meerko MCP server and ask for a lead list, a sequence or a reply triage in plain language.",
-    primary: ["Set up the MCP server", "/docs/claude-code"],
+    primary: ["Connect your assistant", "/docs/quick-start"],
     secondary: ["See pricing", site.pricingUrl],
   },
 } as const;
@@ -216,7 +216,7 @@ export function GuideShell({ slug, eyebrow, h1, lead, toc, sources, faq, cta = "
                 <span className="flex items-center gap-2.5 font-pixel text-[15px] text-lk-fg">
                   <LogoMark size={22} /> Meerko
                 </span>
-                <p className="text-[15px] leading-[1.5] text-lk-muted">The open-source AI sales agent, run from Claude Code. Sends from your own Gmail or Outlook.</p>
+                <p className="text-[15px] leading-[1.5] text-lk-muted">The open-source AI sales agent for Claude, ChatGPT and your coding agent. Sends from your own Gmail or Outlook.</p>
                 <LimeButton href={site.pricingUrl} className="text-center">
                   Get started free
                 </LimeButton>
