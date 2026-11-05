@@ -1,17 +1,10 @@
 import { site } from "@/lib/site";
 
 // The plans and pricing FAQ shown on /pricing. Figures match packages/core (credits.ts, billing.ts).
+// Two plans plus credit packs as the add-on. Self-hosting and volume deals are one line each under the cards,
+// not plans: there's nothing to buy for the first, and no enterprise features yet for the second.
 
 export const plans = [
-  {
-    name: "Self-hosted",
-    price: "$0",
-    per: "forever",
-    sub: "Your infra, your keys",
-    features: ["Everything in the repo", "Bring your own provider keys", "CLI, MCP & API", "Community support"],
-    cta: "Clone on GitHub",
-    href: site.githubUrl,
-  },
   {
     name: "Cloud Free",
     price: "$0",
@@ -31,15 +24,6 @@ export const plans = [
     // Sign in (or up), then upgrade from Connections, where Checkout starts.
     href: `${site.signupUrl}?next=${encodeURIComponent("/app/settings#billing")}`,
     popular: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    per: "",
-    sub: "Volume credits",
-    features: ["Volume credit pricing", "Custom sending limits", "Onboarding help", "Dedicated support"],
-    cta: "Talk to us",
-    href: `mailto:${site.contactEmail}`,
   },
 ];
 

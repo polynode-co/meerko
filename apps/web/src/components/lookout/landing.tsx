@@ -17,7 +17,7 @@ function Hero() {
       <Image src="/landing/lookout-night.jpg" alt="" fill priority sizes="100vw" className="object-cover object-center md:object-[77%_center]" />
       <div className="absolute inset-x-0 bottom-0 h-[200px] bg-gradient-to-b from-lk-bg/0 to-lk-bg" />
       <div className="relative mx-auto max-w-[1440px]">
-        <LkNav transparent links={[["Product", "#product"], ["Docs", site.docsUrl], ["Guides", "/guides"], ["Pricing", "#pricing"], ["GitHub", site.githubUrl]]} />
+        <LkNav transparent links={[["Product", "#product"], ["Docs", site.docsUrl], ["Guides", "/guides"], ["Pricing", site.pricingUrl], ["GitHub", site.githubUrl]]} />
         <div className="flex max-w-[688px] flex-col gap-6 px-6 pt-10 lg:max-w-[736px] lg:pt-[72px] lg:pr-0 lg:pl-24">
           <span className={`${label} text-lk-lime`}>● Open source · AGPL-3.0</span>
           <h1 className="font-sans text-[40px] leading-[1.05] font-semibold tracking-[-1.4px] text-lk-fg sm:text-[60px] sm:leading-[62px] sm:tracking-[-2.1px]">
