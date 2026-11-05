@@ -22,6 +22,25 @@ export const EVENTS = {
 } as const;
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];
 
+/**
+ * A sign-up's source, from the query the web app passes to /auth/google/start (apps/web/src/lib/attribution.ts):
+ * UTM tags, the referring site and the landing page, as `sign_up` properties. It's how signups are attributed for
+ * visitors who said no to the analytics cookie. Unknown keys and odd values are dropped.
+ */
+export function signupSource(query: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+  const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 100) : null);
+  for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) {
+    const v = text(query[k]);
+    if (v) out[k] = v;
+  }
+  const ref = text(query.ref ?? query.referrer_domain);
+  if (ref && /^[a-z0-9.-]+(:\d+)?$/i.test(ref)) out.referrer_domain = ref.toLowerCase();
+  const landing = text(query.landing ?? query.landing_path);
+  if (landing?.startsWith("/")) out.landing_path = landing;
+  return out;
+}
+
 export interface CaptureInput {
   /** The user when there is one (dashboard), otherwise the workspace (API keys, OAuth apps). */
   distinctId: string;

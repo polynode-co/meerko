@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
+import { attributionQuery } from "@/lib/attribution";
 import { NEXT_COOKIE, publicApiUrl, safeNext } from "@/lib/meerko";
 
 /** "Continue with Google" with somewhere to come back to: remembers `next`, then starts the API's sign-in. */
@@ -9,5 +10,7 @@ export async function GET(request: NextRequest) {
   if (next) {
     (await cookies()).set(NEXT_COOKIE, next, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 15 * 60 });
   }
-  redirect(new URL("/auth/google/start", publicApiUrl()).toString());
+  const start = new URL("/auth/google/start", publicApiUrl());
+  start.search = attributionQuery(Object.fromEntries(request.nextUrl.searchParams));
+  redirect(start.toString());
 }

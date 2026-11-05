@@ -15,7 +15,8 @@ export function PostHogIdentify({
   workspace: { id: string; name: string };
 }) {
   useEffect(() => {
-    if (!posthog.__loaded) return;
+    // Only with the cookie accepted: a cookieless visitor has no browser identity to tie to a person.
+    if (!posthog.__loaded || posthog.get_explicit_consent_status() !== "granted") return;
     // API-key logins (self-hosting) have no person; the workspace stands in, like on the API.
     posthog.identify(user?.id ?? workspace.id, user ? { email: user.email, name: user.name } : { workspace_name: workspace.name });
     posthog.group("workspace", workspace.id, { name: workspace.name });
