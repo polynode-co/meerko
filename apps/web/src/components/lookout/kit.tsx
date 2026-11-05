@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/meerko";
 import { site } from "@/lib/site";
 import { LogoMark } from "../ui/brand";
+import { CookieSettingsButton } from "../analytics/cookie-banner";
 import { NavFrame } from "./nav-frame";
 
 // The Lookout kit: the shared pieces of every marketing page, from the .pen "Lookout Kit — components"
@@ -146,6 +147,7 @@ export function LkFooter() {
               {name}
             </a>
           ))}
+          <CookieSettingsButton className="uppercase hover:text-lk-fg" />
           <span className="size-2 bg-lk-lime" />
         </span>
       </div>
@@ -192,6 +194,7 @@ export function LkLandscapeFooter() {
           <div className="mx-auto flex max-w-[1440px] flex-col gap-2 px-6 pb-5 font-plex text-[12.5px] tracking-[0.8px] text-lk-muted sm:flex-row sm:items-center sm:justify-between lg:px-12">
             <span>MEERKO · A POLYNODE PROJECT · AGPL-3.0</span>
             <span className="flex items-center gap-2.5">
+              <CookieSettingsButton className="uppercase hover:text-lk-fg" /> ·
               © {new Date().getFullYear()} POLYNODE TECHNOLOGIES S.L. <span className="size-2 bg-lk-lime" />
             </span>
           </div>

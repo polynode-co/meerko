@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, IBM_Plex_Mono, Inter, JetBrains_Mono, Silkscreen } from "next/font/google";
+import { CookieBanner } from "@/components/analytics/cookie-banner";
+import { SignupAttribution } from "@/components/analytics/signup-attribution";
 import { site } from "@/lib/site";
 import "./globals.css";
 
@@ -36,7 +38,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${bricolage.variable} ${inter.variable} ${jetbrains.variable} ${plexMono.variable} ${silkscreen.variable}`}>
-      <body id="top">{children}</body>
+      <body id="top">
+        {children}
+        <CookieBanner />
+        <SignupAttribution />
+      </body>
     </html>
   );
 }
