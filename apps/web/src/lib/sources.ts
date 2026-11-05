@@ -18,6 +18,7 @@ export const agentDocs: Record<string, string> = {
   Cursor: "https://cursor.com/docs/context/mcp",
   "Gemini CLI": "https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md",
   Windsurf: "https://docs.windsurf.com/windsurf/cascade/mcp",
+  Grok: "https://docs.x.ai/grok/connectors",
 };
 
 /** Clay, for /alternatives/clay. Only what Clay's own pages say. */

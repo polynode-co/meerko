@@ -35,6 +35,7 @@ const groups: { label: string; items: [string, string, string][] }[] = [
       ["Claude Code", "/logos/agents/claude.svg", agentDocs["Claude Code"]],
       ["Cursor", "/logos/agents/cursor.svg", agentDocs.Cursor],
       ["Codex", "/logos/agents/openai.svg", agentDocs.Codex],
+      ["Grok", "/logos/agents/grok.svg", agentDocs.Grok],
     ],
   },
   {
@@ -63,10 +64,10 @@ export function WorksWith() {
           {groups.map((g, gi) => (
             <div
               key={g.label}
-              className={`flex flex-col gap-3.5 px-5 py-5 ${gi ? "border-t border-lk-line md:border-t-0 lg:border-l" : ""} ${gi === 1 ? "md:border-l" : ""} ${gi >= 2 ? "md:border-t lg:border-t-0" : ""} ${gi === 3 ? "md:border-l" : ""}`}
+              className={`flex flex-col gap-3.5 px-4 py-5 ${gi ? "border-t border-lk-line md:border-t-0 lg:border-l" : ""} ${gi === 1 ? "md:border-l" : ""} ${gi >= 2 ? "md:border-t lg:border-t-0" : ""} ${gi === 3 ? "md:border-l" : ""}`}
             >
               <span className="font-plex text-[12px] tracking-[0.8px] text-lk-dim uppercase">{g.label}</span>
-              <ul className="flex flex-wrap gap-x-4 gap-y-3">
+              <ul className="flex flex-wrap gap-x-3.5 gap-y-3">
                 {g.items.map(([name, logo, href]) => (
                   <li key={name}>
                     <a href={href} {...ext(href)} className="group flex items-center gap-2.5 text-[15px] font-medium text-lk-muted transition hover:text-lk-fg">
@@ -195,6 +196,7 @@ const agents: [string, string][] = [
   ["Claude Code", "/logos/agents/claude.svg"],
   ["Codex", "/logos/agents/openai.svg"],
   ["Cursor", "/logos/agents/cursor.svg"],
+  ["Grok", "/logos/agents/grok.svg"],
 ];
 const leads = [
   ["Lucía Ferrer", "Brava Pay", "verified"],
