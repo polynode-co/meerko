@@ -10,9 +10,10 @@ type ProviderKey = { provider: string; last4: string; createdAt: string };
 const PROVIDERS = [
   { id: "icypeas", name: "Icypeas", role: "searches and email finding" },
   { id: "firecrawl", name: "Firecrawl", role: "a second try at emails Icypeas misses" },
+  { id: "generect", name: "Generect", role: "phone numbers, and a last try at missed emails" },
 ] as const;
 
-/** Your own Icypeas/Firecrawl keys. The API checks a key with the provider before storing it, encrypted; only the last 4 come back. */
+/** Your own Icypeas/Firecrawl/Generect keys. The API checks a key with the provider before storing it, encrypted; only the last 4 come back. */
 /** `locked`: Meerko Cloud on Free, where own keys are a Pro feature. Stored keys show as paused and can be removed. */
 export function ProviderKeysCard({ keys, title, locked = false, children }: { keys: ProviderKey[]; title: string; locked?: boolean; children: ReactNode }) {
   const [saved, save, saving] = useActionState(saveProviderKey, null);

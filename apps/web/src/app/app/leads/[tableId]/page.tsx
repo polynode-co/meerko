@@ -3,7 +3,7 @@ import Link from "next/link";
 import { STAGES, type Stage } from "@meerko/sdk";
 import { AddLead } from "@/components/app/add-lead";
 import { DeleteTable } from "@/components/app/delete-table";
-import { EnrichButton } from "@/components/app/enrich-button";
+import { EnrichButton, PhoneButton } from "@/components/app/enrich-button";
 import { LeadsTable, type LeadColumn } from "@/components/app/leads-table";
 import { AgentHint, buttonClass, Card, CardHead, monoLabel, Page, PageHeader } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
@@ -70,6 +70,7 @@ export default async function TablePage({
         actions={
           <>
             {(keys.has("first_name") || keys.has("email")) && <EnrichButton tableId={tableId} />}
+            {(keys.has("first_name") || keys.has("linkedin_url")) && <PhoneButton tableId={tableId} />}
             <AddLead floating tableId={tableId} extraColumns={table.columns.filter((c) => !MERGED.has(c.key) && !c.prompt).map((c) => ({ key: c.key, name: c.name }))} />
             <Link href={`/app/sequences/new?table=${tableId}`} className={buttonClass("primary")}>
               <Send className="size-[15px]" /> New sequence

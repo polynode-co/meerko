@@ -67,6 +67,7 @@ export const docsSources = {
   refreshExpiry: { label: "Google: Using OAuth 2.0, refresh token expiration", url: "https://developers.google.com/identity/protocols/oauth2#expiration" },
   icypeas: { label: "Icypeas", url: "https://www.icypeas.com" },
   firecrawl: { label: "Firecrawl Alexandria", url: "https://docs.firecrawl.dev/features/alexandria" },
+  generect: { label: "Generect API", url: "https://docs.generect.com/api-reference/introduction" },
 };
 
 /** For /integrations/gmail and /integrations/outlook: what each mail product's own help pages say about mail merge. */

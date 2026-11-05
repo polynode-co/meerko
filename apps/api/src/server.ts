@@ -1,11 +1,12 @@
 import { serve } from "@hono/node-server";
-import { GoogleOAuth, IcypeasClient, MicrosoftOAuth, SecretBox, stripeFromEnv, type SignupMode } from "@meerko/core";
+import { GenerectClient, GoogleOAuth, IcypeasClient, MicrosoftOAuth, SecretBox, stripeFromEnv, type SignupMode } from "@meerko/core";
 import { createDb } from "@meerko/db";
 import { createAnalytics } from "./analytics.ts";
 import { createApp } from "./app.ts";
 
 const port = Number(process.env.PORT ?? 8787);
 const icypeasKey = process.env.ICYPEAS_API_KEY;
+const generectKey = process.env.GENERECT_API_KEY;
 const publicUrl = process.env.MEERKO_PUBLIC_URL ?? `http://localhost:${port}`;
 const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_SIGNING_SECRET } = process.env;
 const analytics = createAnalytics();
@@ -13,6 +14,8 @@ const analytics = createAnalytics();
 const billing = stripeFromEnv();
 const app = createApp(createDb(), {
   icypeas: icypeasKey ? new IcypeasClient({ apiKey: icypeasKey }) : undefined,
+  // Optional: emails Icypeas misses, and phone numbers. Without it, only workspaces with their own Generect key get them.
+  generect: generectKey ? new GenerectClient({ apiKey: generectKey }) : undefined,
   // Selling credits only makes sense where they're spent, so billing turns metering on.
   credits: { enabled: process.env.MEERKO_CREDITS === "on" || !!billing },
   secretBox: SecretBox.fromEnv(),

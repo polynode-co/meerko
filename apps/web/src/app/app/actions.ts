@@ -165,17 +165,18 @@ export async function removeSlack() {
   return run((c) => c.deleteSlack().then(() => "Disconnected"), ["/app/settings"]);
 }
 
-const PROVIDER_KEYS = ["icypeas", "firecrawl"] as const;
+const PROVIDER_KEYS = ["icypeas", "firecrawl", "generect"] as const;
+const PROVIDER_NAMES: Record<ProviderKeyId, string> = { icypeas: "Icypeas", firecrawl: "Firecrawl", generect: "Generect" };
 type ProviderKeyId = (typeof PROVIDER_KEYS)[number];
 const isProvider = (p: unknown): p is ProviderKeyId => PROVIDER_KEYS.includes(p as ProviderKeyId);
 
-/** Stores your own Icypeas or Firecrawl key. The API checks it with the provider before saving. */
+/** Stores your own Icypeas, Firecrawl or Generect key. The API checks it with the provider before saving. */
 export async function saveProviderKey(_: unknown, form: FormData): Promise<ActionResult> {
   const provider = form.get("provider");
   const key = String(form.get("key") ?? "").trim();
-  if (!isProvider(provider)) return { ok: false, error: "Pick Icypeas or Firecrawl" };
+  if (!isProvider(provider)) return { ok: false, error: "Pick Icypeas, Firecrawl or Generect" };
   if (key.length < 8) return { ok: false, error: "Paste the full API key" };
-  const name = provider === "icypeas" ? "Icypeas" : "Firecrawl";
+  const name = PROVIDER_NAMES[provider];
   return run((c) => c.setProviderKey(provider, key).then((r) => `${name} key …${r.last4} saved. Lookups through it cost no credits.`), ["/app/settings"]);
 }
 
@@ -265,6 +266,14 @@ export async function enrichEmails(tableId: string) {
     const r = await c.enrichRows(tableId, { limit: 25 });
     if (r.stoppedReason === "insufficient_credits") return `Out of credits after ${r.processed} rows`;
     return `${r.found.email} emails found, ${r.found.email_verification} verified, ${r.notFound} not found · ${r.remaining} rows left`;
+  }, [`/app/leads/${tableId}`, "/app"]);
+}
+
+export async function findPhones(tableId: string) {
+  return run(async (c) => {
+    const r = await c.enrichRows(tableId, { fields: ["phone"], limit: 25 });
+    if (r.stoppedReason === "insufficient_credits") return `Out of credits after ${r.processed} rows`;
+    return `${r.found.phone} phone numbers found, ${r.notFound} not found · ${r.remaining} rows left`;
   }, [`/app/leads/${tableId}`, "/app"]);
 }
 

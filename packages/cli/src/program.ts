@@ -351,8 +351,8 @@ program
 
 program
   .command("enrich <tableId>")
-  .description("find and verify emails for rows that don't have them yet")
-  .option("--fields <list>", "comma-separated: email, email_verification", "email,email_verification")
+  .description("find and verify emails (or, with --fields phone, phone numbers) for rows that don't have them yet")
+  .option("--fields <list>", "comma-separated: email, email_verification, phone (80 credits each, Pro)", "email,email_verification")
   .option("-f, --filter <json>", "only enrich rows matching this exact-match filter")
   .option("-l, --limit <n>", "rows per batch (max 50)", "25")
   .option("--all", "keep going in batches until no rows remain")
@@ -360,7 +360,7 @@ program
   .action(async (tableId: string, opts: { fields: string; filter?: string; limit: string; all?: boolean; overwrite?: boolean }) => {
     const client = MeerkoClient.fromEnv();
     const input = {
-      fields: opts.fields.split(",").map((f) => f.trim()) as ("email" | "email_verification")[],
+      fields: opts.fields.split(",").map((f) => f.trim()) as ("email" | "email_verification" | "phone")[],
       filter: opts.filter ? JSON.parse(opts.filter) : undefined,
       limit: Number(opts.limit),
       overwrite: opts.overwrite,
@@ -371,6 +371,7 @@ program
       else
         console.log(
           `Processed ${res.processed}: ${res.found.email} emails found, ${res.found.email_verification} verified, ` +
+            (res.found.phone ? `${res.found.phone} phones found, ` : "") +
             `${res.notFound} not found, ${res.errors} errors. ${res.creditsSpent} credits` +
             (res.balance !== undefined ? ` (balance ${res.balance})` : "") +
             `. ${res.remaining} rows remaining.` +
@@ -692,13 +693,15 @@ keys
 
 keys
   .command("set <provider> <key>")
-  .description("store a provider key (supported: icypeas, firecrawl). It's checked with the provider first")
+  .description("store a provider key (supported: icypeas, firecrawl, generect). It's checked with the provider first")
   .action(async (provider: string, key: string) => {
     const res = await MeerkoClient.fromEnv().setProviderKey(provider, key);
     const done =
       res.provider === "firecrawl"
         ? "Email finding now tries Firecrawl when Icypeas misses; what it finds costs no credits."
-        : "Searches and enrichment now use it, with no credits charged.";
+        : res.provider === "generect"
+          ? "Missed emails and phone numbers now go through your Generect account, on any plan, with no credits charged."
+          : "Searches and enrichment now use it, with no credits charged.";
     console.log(json() ? JSON.stringify(res) : `Saved ${res.provider} key …${res.last4}. ${done}`);
   });
 

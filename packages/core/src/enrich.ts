@@ -11,16 +11,21 @@ const OUTPUT_COLUMNS: Record<EnrichField, Omit<ColumnDef, "key">[]> = {
     { name: "email_certainty", type: "text" },
   ],
   email_verification: [{ name: "email_verification", type: "text" }],
+  phone: [
+    { name: "phone", type: "text" },
+    { name: "phone_type", type: "text" },
+  ],
 };
 
 /** Search certainties that already mean "verified", so re-verifying would only burn credits. */
 const VERIFIED = new Set(["ultra_sure", "very_sure"]);
 
-// A row needs a field when its output is still empty. Misses record `email_certainty: not_found`,
+// A row needs a field when its output is still empty. Misses record `email_certainty` (or `phone_type`) `not_found`,
 // so rows that already missed aren't retried (and re-billed for provider time) on every call.
 const NEEDS: Record<EnrichField, SQL> = {
   email: sql`coalesce(${tableRows.data}->>'email', '') = '' and ${tableRows.data}->>'email_certainty' is null`,
   email_verification: sql`coalesce(${tableRows.data}->>'email', '') <> '' and ${tableRows.data}->>'email_verification' is null`,
+  phone: sql`coalesce(${tableRows.data}->>'phone', '') = '' and ${tableRows.data}->>'phone_type' is null`,
 };
 
 export interface EnrichRowsInput {
@@ -76,7 +81,7 @@ export async function enrichRows(
 
   const result: EnrichRowsResult = {
     processed: 0,
-    found: { email: 0, email_verification: 0 },
+    found: { email: 0, email_verification: 0, phone: 0 },
     notFound: 0,
     errors: 0,
     creditsSpent: 0,
@@ -112,7 +117,9 @@ export async function enrichRows(
         const patch =
           field === "email"
             ? { email: run.value, email_certainty: run.confidence ?? null }
-            : { email_verification: run.value };
+            : field === "phone"
+              ? { phone: run.value, phone_type: run.confidence ?? "unknown" }
+              : { email_verification: run.value };
         const ownKey = providers.find((p) => p.name === run.provider)?.ownKey ?? false;
         const cost = policy.enabled && !ownKey ? price : 0;
         await db.transaction(async (tx) => {
@@ -123,7 +130,7 @@ export async function enrichRows(
         result.found[field] += 1;
         result.creditsSpent += cost;
       } else if (run.attempts.some((a) => a.outcome === "not_found")) {
-        const patch = field === "email" ? { email_certainty: "not_found" } : { email_verification: "not_found" };
+        const patch = { [MISS_KEY[field]]: "not_found" };
         await writeResult(db, row.id, field, patch, "not_found", null, run.providerCost, 0);
         Object.assign(data, patch);
         result.notFound += 1;
@@ -131,10 +138,10 @@ export async function enrichRows(
         // Leave the row untouched so the next call retries it.
         result.errors += 1;
         result.firstError ??= run.attempts.find((a) => a.error)?.error;
-      } else if (field === "email") {
+      } else if (field !== "email_verification") {
         // Every provider lacked input (e.g. no domain). Mark it so the row leaves `remaining`;
         // `overwrite` retries it after the user fills the gap.
-        const patch = { email_certainty: "missing_input" };
+        const patch = { [MISS_KEY[field]]: "missing_input" };
         await writeResult(db, row.id, field, patch, "skipped", null, 0, 0);
         Object.assign(data, patch);
       }
@@ -148,11 +155,14 @@ export async function enrichRows(
   return result;
 }
 
+/** The column that records a miss (`not_found`, `missing_input`) so the row isn't retried on every call. */
+const MISS_KEY: Record<EnrichField, string> = { email: "email_certainty", email_verification: "email_verification", phone: "phone_type" };
+
 function needs(field: EnrichField, data: Record<string, unknown>) {
   const empty = (v: unknown) => v === null || v === undefined || v === "";
-  return field === "email"
-    ? empty(data.email) && empty(data.email_certainty)
-    : !empty(data.email) && empty(data.email_verification);
+  if (field === "email") return empty(data.email) && empty(data.email_certainty);
+  if (field === "phone") return empty(data.phone) && empty(data.phone_type);
+  return !empty(data.email) && empty(data.email_verification);
 }
 
 type Writer = Pick<Db, "update" | "insert">;

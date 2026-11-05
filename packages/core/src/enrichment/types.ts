@@ -1,4 +1,4 @@
-export type EnrichField = "email" | "email_verification";
+export type EnrichField = "email" | "email_verification" | "phone";
 
 /** Provider-reported confidence, e.g. Icypeas `ultra_sure` | `very_sure` | `probable` | `undeliverable`. */
 export type Confidence = string;
@@ -7,7 +7,7 @@ export interface EnrichResult {
   /** `null` when the provider ran but found nothing. */
   value: unknown;
   confidence?: Confidence;
-  /** Provider credits actually consumed (0 on a miss for Icypeas). */
+  /** What the provider charged, in its own unit: Icypeas and Firecrawl credits, Generect USD. 0 on a miss. */
   providerCost: number;
   raw?: unknown;
 }

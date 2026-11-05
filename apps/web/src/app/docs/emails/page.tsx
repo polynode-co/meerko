@@ -65,6 +65,7 @@ export default function Page() {
           ["Per call", "Up to 50 rows", "25 by default, about 3 seconds a row. It returns how many remain; your agent calls again until 0. The dashboard's Find & verify emails button runs one batch of 25 per click."],
           ["Email found", "8 credits", <>On Meerko Cloud. Misses are free. <L href="/docs/credits">Credits</L>.</>],
           ["Verification", "1 credit", "Only for emails that aren't verified already."],
+          ["Phone found", "80 credits", <>Only when you ask for phones; Pro on Meerko Cloud. <L href="/docs/credits#generect">Phone numbers</L>.</>],
         ]}
       />
       <p>
@@ -73,7 +74,7 @@ export default function Page() {
       </p>
       <p>
         On Pro or self-hosted, add your own Firecrawl key (in Connections, or <C>pnpm meerko keys set firecrawl &lt;key&gt;</C>) and email finding tries it when Icypeas misses, at no Meerko credits: see{" "}
-        <L href="/docs/credits#firecrawl">Find more emails with Firecrawl</L>.
+        <L href="/docs/credits#firecrawl">Find more emails with Firecrawl</L>. Emails both miss get a last try on Generect.
       </p>
     </DocsShell>
   );

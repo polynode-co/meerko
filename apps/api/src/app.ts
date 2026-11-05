@@ -69,6 +69,9 @@ import {
   getProviderKey,
   FirecrawlClient,
   firecrawlProvider,
+  GenerectClient,
+  generectProvider,
+  assertPhonesAllowed,
   IcypeasClient,
   icypeasProvider,
   InsufficientCreditsError,
@@ -203,6 +206,8 @@ type Env = {
   };
 };
 
+const PROVIDER_NAMES = { icypeas: "Icypeas", firecrawl: "Firecrawl", generect: "Generect" } as const;
+
 /** Sent by the in-process client behind /mcp/drafter. It can only narrow a credential, so sending it yourself gains nothing. */
 const SCOPE_HEADER = "x-meerko-scope";
 
@@ -227,6 +232,10 @@ export interface AppDeps {
   slackFetch?: typeof fetch;
   /** Builds a Firecrawl client for a workspace's own key (overridable in tests). */
   firecrawlForKey?: (apiKey: string) => FirecrawlClient;
+  /** Meerko's Generect key (GENERECT_API_KEY): the paid fallback for emails and the source of phone numbers. */
+  generect?: GenerectClient;
+  /** Builds a Generect client for a workspace's own key (overridable in tests). */
+  generectForKey?: (apiKey: string) => GenerectClient;
   /** Unset when GOOGLE_CLIENT_ID/SECRET aren't configured; Gmail routes then return 503. */
   googleOAuth?: GoogleOAuth;
   /** Overrides fetch for Gmail API calls (tests). */
@@ -304,33 +313,46 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   /** A workspace's own Icypeas key wins and is never metered; otherwise the server's key and credit policy apply. */
   /** On Meerko Cloud, own keys are a Pro feature: a Free workspace's stored keys are ignored and it runs on credits. */
-  const ownKey = async (workspaceId: string, provider: "icypeas" | "firecrawl") =>
+  const ownKey = async (workspaceId: string, provider: "icypeas" | "firecrawl" | "generect") =>
     deps.billing && !(await ownKeysAllowed(db, workspaceId)) ? null : getProviderKey(db, box, workspaceId, provider);
 
-  const icypeasFor = async (workspaceId: string): Promise<{ client: IcypeasClient; credits: CreditPolicy }> => {
+  const icypeasFor = async (workspaceId: string): Promise<{ client: IcypeasClient; credits: CreditPolicy; ownKey: boolean }> => {
     const own = await ownKey(workspaceId, "icypeas");
-    if (own) return { client: icypeasForKey(own), credits: { enabled: false } };
+    if (own) return { client: icypeasForKey(own), credits: { enabled: false }, ownKey: true };
     if (!deps.icypeas) {
       throw new HTTPException(503, { message: "No Icypeas key: add yours with `meerko keys set icypeas <key>`, or set ICYPEAS_API_KEY on the server" });
     }
-    return { client: deps.icypeas, credits };
+    return { client: deps.icypeas, credits, ownKey: false };
   };
   const firecrawlForKey = deps.firecrawlForKey ?? ((apiKey: string) => new FirecrawlClient({ apiKey }));
 
+  const generectForKey = deps.generectForKey ?? ((apiKey: string) => new GenerectClient({ apiKey }));
+
   /**
-   * The email-finding waterfall: Icypeas first (the workspace's key, else the server's), then Firecrawl when the
-   * workspace stored a Firecrawl key. Firecrawl alone is enough to enrich.
+   * The enrichment waterfall, per field:
+   * - email: Icypeas (the workspace's key, else the server's), then Firecrawl on the workspace's own key, then
+   *   Generect (the workspace's key, else the server's) for what the others missed;
+   * - email_verification: Icypeas;
+   * - phone: Generect.
+   * Each provider says whether it runs on the workspace's own key; only the others are metered in credits. Any one
+   * provider is enough to enrich.
    */
-  const enrichmentFor = async (workspaceId: string): Promise<{ providers: EnrichmentProvider[]; credits: CreditPolicy }> => {
-    const firecrawlKey = await ownKey(workspaceId, "firecrawl");
-    const firecrawl = firecrawlKey ? [firecrawlProvider(firecrawlForKey(firecrawlKey))] : [];
+  const enrichmentFor = async (workspaceId: string): Promise<{ providers: EnrichmentProvider[]; credits: CreditPolicy; generectOwnKey: boolean }> => {
+    const providers: EnrichmentProvider[] = [];
+    let icypeasMissing: unknown;
     try {
       const icy = await icypeasFor(workspaceId);
-      return { providers: [icypeasProvider(icy.client), ...firecrawl], credits: icy.credits };
+      providers.push(icypeasProvider(icy.client, { ownKey: icy.ownKey }));
     } catch (err) {
-      if (firecrawl.length === 0) throw err;
-      return { providers: firecrawl, credits };
+      icypeasMissing = err;
     }
+    const firecrawlKey = await ownKey(workspaceId, "firecrawl");
+    if (firecrawlKey) providers.push(firecrawlProvider(firecrawlForKey(firecrawlKey)));
+    const generectKey = await ownKey(workspaceId, "generect");
+    if (generectKey) providers.push(generectProvider(generectForKey(generectKey), { ownKey: true }));
+    else if (deps.generect) providers.push(generectProvider(deps.generect));
+    if (providers.length === 0) throw icypeasMissing;
+    return { providers, credits, generectOwnKey: !!generectKey };
   };
   const analytics = deps.analytics ?? createAnalytics({});
   const app = new Hono<Env>();
@@ -1070,6 +1092,13 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.post("/tables/:id/enrich", async (c) => {
     const input = await parse(enrichInput, await c.req.json());
     const enrichment = await enrichmentFor(c.var.workspaceId);
+    // Phones are a Pro feature on Meerko Cloud, on Meerko's Generect key or the workspace's own (own keys are Pro too).
+    if (input.fields.includes("phone")) {
+      if (!enrichment.providers.some((p) => p.supports.includes("phone"))) {
+        throw new HTTPException(503, { message: "No phone provider: add your Generect key with `meerko keys set generect <key>`, or set GENERECT_API_KEY on the server" });
+      }
+      if (deps.billing && !enrichment.generectOwnKey) await assertPhonesAllowed(db, c.var.workspaceId);
+    }
     const result = await enrichRows(db, c.var.workspaceId, c.req.param("id"), enrichment.providers, input, enrichment.credits);
     await analytics.capture({ distinctId: actor(c), event: EVENTS.rowsEnriched, workspaceId: c.var.workspaceId, properties: { fields: input.fields, limit: input.limit } });
     return c.json(result);
@@ -1289,12 +1318,14 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const { key } = await parse(providerKeyInput, await c.req.json());
     if (!box) throw new EncryptionNotConfiguredError();
     if (deps.billing) await assertOwnKeysAllowed(db, c.var.workspaceId);
-    // A free call proves the key works before it's stored: an Icypeas count, or a Firecrawl catalog search.
+    // A free call proves the key works before it's stored: an Icypeas count, a Firecrawl catalog search, or the
+    // Generect account profile.
     try {
       if (provider === "firecrawl") await firecrawlForKey(key).checkKey();
+      else if (provider === "generect") await generectForKey(key).checkKey();
       else await icypeasForKey(key).countCompanies({ location: { include: ["US"] } });
     } catch (err) {
-      throw new HTTPException(400, { message: `${provider === "firecrawl" ? "Firecrawl" : "Icypeas"} rejected this key: ${(err as Error).message}` });
+      throw new HTTPException(400, { message: `${PROVIDER_NAMES[provider]} rejected this key: ${(err as Error).message}` });
     }
     await setProviderKey(db, box, c.var.workspaceId, provider, key);
     return c.json({ provider, last4: key.slice(-4) });

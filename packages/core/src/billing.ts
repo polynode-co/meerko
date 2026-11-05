@@ -10,8 +10,14 @@ export const MAX_CREDIT_PACKS = 100;
 /** Mailboxes a workspace may connect on each plan. Only enforced when billing is on (Meerko Cloud). */
 export const PLAN_MAILBOXES: Record<Plan, number> = { free: 1, pro: Number.POSITIVE_INFINITY };
 /**
- * Whether a plan may use the workspace's own provider keys (Icypeas, Firecrawl). Only enforced when billing is on
- * (Meerko Cloud): self-hosting is always on your own keys. On Free, Cloud runs on Meerko's keys and credits.
+ * Whether a plan finds phone numbers on Meerko's provider key. A phone costs us $0.40 at Generect, so on Free the 200
+ * signup credits would be spent on our money. A workspace's own Generect key is a Pro feature like any own key.
+ */
+export const PLAN_PHONES: Record<Plan, boolean> = { free: false, pro: true };
+
+/**
+ * Whether a plan may use the workspace's own provider keys (Icypeas, Firecrawl, Generect). Only enforced when billing
+ * is on (Meerko Cloud): self-hosting is always on your own keys. On Free, Cloud runs on Meerko's keys and credits.
  */
 export const PLAN_OWN_KEYS: Record<Plan, boolean> = { free: false, pro: true };
 export const OWN_KEYS_PRO_MESSAGE =
@@ -105,6 +111,14 @@ export async function assertMailboxAllowed(db: Db, workspaceId: string, email: s
   if (rows.some((m) => m.workspaceId === workspaceId && m.email === email.toLowerCase())) return;
   if (rows.length >= limit) {
     throw new PlanLimitError(`The Free plan includes ${limit} mailbox. Upgrade to Pro in Connections to connect more.`);
+  }
+}
+
+/** Throws unless the workspace's plan includes phone numbers on Meerko's key (`PLAN_PHONES`). */
+export async function assertPhonesAllowed(db: Db, workspaceId: string) {
+  const { plan } = await getBilling(db, workspaceId);
+  if (!PLAN_PHONES[plan]) {
+    throw new PlanLimitError("Finding phone numbers is on Pro. Upgrade in Settings, or add your own Generect key to use it on Free.");
   }
 }
 

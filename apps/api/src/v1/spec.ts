@@ -79,7 +79,7 @@ export const V1: Operation[] = [
   { method: "post", path: "/search/people", id: "searchPeople", tag: "leads", summary: "Find people and add them to a table (spends credits)", access: "any", body: s.searchInput, status: 201, response: s.SearchResult },
   { method: "post", path: "/search/companies/count", id: "countCompanies", tag: "leads", summary: "Count companies matching a search (free)", access: "any", body: s.countInput, response: obj({ total: z.number() }) },
   { method: "post", path: "/search/companies", id: "searchCompanies", tag: "leads", summary: "Find companies and add them to a table (spends credits)", access: "any", body: s.searchInput, status: 201, response: s.SearchResult },
-  { method: "post", path: "/tables/:id/enrich", id: "enrichRows", tag: "leads", summary: "Find and verify emails for rows (spends credits)", access: "any", body: s.enrichInput, response: s.EnrichResult },
+  { method: "post", path: "/tables/:id/enrich", id: "enrichRows", tag: "leads", summary: "Find and verify emails, or find phone numbers, for rows (spends credits)", access: "any", body: s.enrichInput, response: s.EnrichResult },
 
   // --- mailboxes ---
   { method: "get", path: "/mailboxes", id: "listMailboxes", tag: "mailboxes", summary: "List mailboxes", access: "any", response: obj({ mailboxes: z.array(s.Mailbox) }) },
@@ -117,7 +117,7 @@ export const V1: Operation[] = [
   // --- credits ---
   { method: "get", path: "/credits", id: "getCredits", tag: "credits", summary: "Credit balance, and where a person tops up", access: "any", response: s.Credits },
   { method: "get", path: "/provider-keys", id: "listProviderKeys", tag: "credits", summary: "Your own provider keys (last 4 only)", access: "any", response: obj({ keys: z.array(s.ProviderKey) }) },
-  { method: "put", path: "/provider-keys/:provider", id: "setProviderKey", tag: "credits", summary: "Store your own Icypeas or Firecrawl key; lookups through it spend no credits", access: "any", body: s.providerKeyInput, response: obj({ provider: z.string(), last4: z.string() }) },
+  { method: "put", path: "/provider-keys/:provider", id: "setProviderKey", tag: "credits", summary: "Store your own Icypeas, Firecrawl or Generect key; lookups through it spend no credits", access: "any", body: s.providerKeyInput, response: obj({ provider: z.string(), last4: z.string() }) },
   { method: "delete", path: "/provider-keys/:provider", id: "deleteProviderKey", tag: "credits", summary: "Remove a provider key", access: "any", response: deleted },
 
   // --- settings (mostly the dashboard's) ---

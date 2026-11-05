@@ -236,10 +236,12 @@ const pick = (row: Record<string, unknown>, ...keys: string[]) => {
   return null;
 };
 
-export function icypeasProvider(client: IcypeasClient): EnrichmentProvider {
+/** `ownKey`: the client runs on the workspace's own Icypeas key, so what it finds costs no Meerko credits. */
+export function icypeasProvider(client: IcypeasClient, opts: { ownKey?: boolean } = {}): EnrichmentProvider {
   return {
     name: "icypeas",
     supports: ["email", "email_verification"] as const,
+    ownKey: opts.ownKey ?? false,
     async enrich(field: EnrichField, row): Promise<EnrichResult> {
       if (field === "email") {
         const firstname = pick(row, "first_name", "firstname");
