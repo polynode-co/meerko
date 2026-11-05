@@ -109,6 +109,8 @@ import {
   handleStripeEvent,
   openPortal,
   PlanLimitError,
+  assertOwnKeysAllowed,
+  ownKeysAllowed,
   WorkspaceError,
   FREE_TIER_CREDITS,
   createWorkspace,
@@ -301,8 +303,12 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   const icypeasForKey = deps.icypeasForKey ?? ((apiKey: string) => new IcypeasClient({ apiKey }));
 
   /** A workspace's own Icypeas key wins and is never metered; otherwise the server's key and credit policy apply. */
+  /** On Meerko Cloud, own keys are a Pro feature: a Free workspace's stored keys are ignored and it runs on credits. */
+  const ownKey = async (workspaceId: string, provider: "icypeas" | "firecrawl") =>
+    deps.billing && !(await ownKeysAllowed(db, workspaceId)) ? null : getProviderKey(db, box, workspaceId, provider);
+
   const icypeasFor = async (workspaceId: string): Promise<{ client: IcypeasClient; credits: CreditPolicy }> => {
-    const own = await getProviderKey(db, box, workspaceId, "icypeas");
+    const own = await ownKey(workspaceId, "icypeas");
     if (own) return { client: icypeasForKey(own), credits: { enabled: false } };
     if (!deps.icypeas) {
       throw new HTTPException(503, { message: "No Icypeas key: add yours with `meerko keys set icypeas <key>`, or set ICYPEAS_API_KEY on the server" });
@@ -316,7 +322,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
    * workspace stored a Firecrawl key. Firecrawl alone is enough to enrich.
    */
   const enrichmentFor = async (workspaceId: string): Promise<{ providers: EnrichmentProvider[]; credits: CreditPolicy }> => {
-    const firecrawlKey = await getProviderKey(db, box, workspaceId, "firecrawl");
+    const firecrawlKey = await ownKey(workspaceId, "firecrawl");
     const firecrawl = firecrawlKey ? [firecrawlProvider(firecrawlForKey(firecrawlKey))] : [];
     try {
       const icy = await icypeasFor(workspaceId);
@@ -1278,6 +1284,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const provider = await parse(byokProvider, c.req.param("provider"));
     const { key } = await parse(providerKeyInput, await c.req.json());
     if (!box) throw new EncryptionNotConfiguredError();
+    if (deps.billing) await assertOwnKeysAllowed(db, c.var.workspaceId);
     // A free call proves the key works before it's stored: an Icypeas count, or a Firecrawl catalog search.
     try {
       if (provider === "firecrawl") await firecrawlForKey(key).checkKey();

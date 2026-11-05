@@ -62,8 +62,9 @@ export default function Page() {
       <H2 id="own-key">Use your own provider key</H2>
       <Callout icon={KeyRound}>
         <p>
-          Have an <L href={docsSources.icypeas.url}>Icypeas</L> account? Store its API key in your workspace and searches and email finding
-          run on it, with no Meerko credits charged. Meerko checks the key with Icypeas before saving it, stores it encrypted and only
+          Have an <L href={docsSources.icypeas.url}>Icypeas</L> account? On Pro, store its API key in your workspace and searches and
+          email finding run on it, with no Meerko credits charged. On Free, Meerko Cloud runs on its own keys and your credits, and keys
+          you saved earlier are paused until you upgrade. Self-hosted, your own keys are always free. Meerko checks the key with Icypeas before saving it, stores it encrypted and only
           ever shows its last 4 characters. Add it under Provider keys in Settings, or from the CLI:
         </p>
       </Callout>
@@ -71,7 +72,7 @@ export default function Page() {
 
       <H2 id="firecrawl">Find more emails with Firecrawl</H2>
       <p>
-        Add a <L href={docsSources.firecrawl.url}>Firecrawl</L> key and email finding gets a second step: when Icypeas doesn&apos;t find
+        On Pro (or self-hosted), add a <L href={docsSources.firecrawl.url}>Firecrawl</L> key and email finding gets a second step: when Icypeas doesn&apos;t find
         someone&apos;s email, Meerko asks FullEnrich through Firecrawl Alexandria, which checks more sources. It runs on your Firecrawl
         credits (30 per email found; a miss is free), so what it finds costs no Meerko credits, and it keeps working when your Meerko
         credits run out. Rows need a LinkedIn URL, or a first and last name plus a domain or company.

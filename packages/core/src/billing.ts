@@ -9,6 +9,24 @@ export const CREDIT_PACK_CREDITS = 1000;
 export const MAX_CREDIT_PACKS = 100;
 /** Mailboxes a workspace may connect on each plan. Only enforced when billing is on (Meerko Cloud). */
 export const PLAN_MAILBOXES: Record<Plan, number> = { free: 1, pro: Number.POSITIVE_INFINITY };
+/**
+ * Whether a plan may use the workspace's own provider keys (Icypeas, Firecrawl). Only enforced when billing is on
+ * (Meerko Cloud): self-hosting is always on your own keys. On Free, Cloud runs on Meerko's keys and credits.
+ */
+export const PLAN_OWN_KEYS: Record<Plan, boolean> = { free: false, pro: true };
+export const OWN_KEYS_PRO_MESSAGE =
+  "Using your own provider keys on Meerko Cloud is a Pro feature. Upgrade in Settings, or self-host Meerko to run on your own keys for free.";
+
+/** True if the workspace's plan lets it use its own provider keys. */
+export async function ownKeysAllowed(db: Db, workspaceId: string) {
+  const { plan } = await getBilling(db, workspaceId);
+  return PLAN_OWN_KEYS[plan];
+}
+
+/** Throws a PlanLimitError if the workspace's plan can't use its own provider keys. */
+export async function assertOwnKeysAllowed(db: Db, workspaceId: string) {
+  if (!(await ownKeysAllowed(db, workspaceId))) throw new PlanLimitError(OWN_KEYS_PRO_MESSAGE);
+}
 
 /** Stripe statuses that keep Pro. `past_due` keeps it while Stripe retries the card. */
 const PRO_STATUSES = new Set<Stripe.Subscription.Status>(["active", "trialing", "past_due"]);

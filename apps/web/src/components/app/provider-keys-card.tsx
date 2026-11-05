@@ -13,7 +13,8 @@ const PROVIDERS = [
 ] as const;
 
 /** Your own Icypeas/Firecrawl keys. The API checks a key with the provider before storing it, encrypted; only the last 4 come back. */
-export function ProviderKeysCard({ keys, title, children }: { keys: ProviderKey[]; title: string; children: ReactNode }) {
+/** `locked`: Meerko Cloud on Free, where own keys are a Pro feature. Stored keys show as paused and can be removed. */
+export function ProviderKeysCard({ keys, title, locked = false, children }: { keys: ProviderKey[]; title: string; locked?: boolean; children: ReactNode }) {
   const [saved, save, saving] = useActionState(saveProviderKey, null);
   const [removing, startRemove] = useTransition();
   const [confirming, setConfirming] = useState<string>();
@@ -36,7 +37,7 @@ export function ProviderKeysCard({ keys, title, children }: { keys: ProviderKey[
               <span className="text-[14px] text-lk-dim">{p.role}</span>
             </span>
             {k ? (
-              <span className="font-plex text-sm">…{k.last4} <span className="text-lk-dim">· no credits charged</span></span>
+              <span className="font-plex text-sm">…{k.last4} <span className="text-lk-dim">· {locked ? "paused on Free" : "no credits charged"}</span></span>
             ) : (
               <span className="text-sm text-lk-dim">not set</span>
             )}
@@ -69,26 +70,28 @@ export function ProviderKeysCard({ keys, title, children }: { keys: ProviderKey[
         );
       })}
 
-      <form action={save} className="flex flex-wrap items-center gap-2 px-[18px] py-4">
-        <select name="provider" defaultValue="icypeas" aria-label="Provider" className="bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime text-[15px]">
-          {PROVIDERS.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
-        <input
-          name="key"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="Paste the API key"
-          aria-label="API key"
-          className="min-w-0 flex-1 bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime font-plex text-[15px]"
-        />
-        <button disabled={saving} className={buttonClass("primary")}>{saving ? "Checking…" : stored.size ? "Save key" : "Add key"}</button>
-        <p className="basis-full text-[12px] text-lk-dim">Saving a key replaces the one stored for that provider. Meerko checks it with the provider first, at no cost.</p>
-      </form>
+      {!locked && (
+        <form action={save} className="flex flex-wrap items-center gap-2 px-[18px] py-4">
+          <select name="provider" defaultValue="icypeas" aria-label="Provider" className="bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime text-[15px]">
+            {PROVIDERS.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <input
+            name="key"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="Paste the API key"
+            aria-label="API key"
+            className="min-w-0 flex-1 bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime font-plex text-[15px]"
+          />
+          <button disabled={saving} className={buttonClass("primary")}>{saving ? "Checking…" : stored.size ? "Save key" : "Add key"}</button>
+          <p className="basis-full text-[12px] text-lk-dim">Saving a key replaces the one stored for that provider. Meerko checks it with the provider first, at no cost.</p>
+        </form>
+      )}
 
       {saved?.ok && saved.message && <p role="status" className="border-t border-lk-line px-[18px] py-3 text-[15px]">{saved.message}</p>}
       {(saved && !saved.ok) || removeError ? (

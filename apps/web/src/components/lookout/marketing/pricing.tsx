@@ -87,7 +87,7 @@ function Credits() {
       <div className="flex flex-col gap-3 font-plex text-[13px] tracking-[0.6px] text-lk-muted uppercase sm:flex-row sm:justify-between">
         <span>Top up any time: 1,000 credits for $10</span>
         <a href="/docs/credits" className="hover:text-lk-fg">
-          Your own provider keys? 0 credits →
+          Your own provider keys on Pro? 0 credits →
         </a>
       </div>
     </section>
