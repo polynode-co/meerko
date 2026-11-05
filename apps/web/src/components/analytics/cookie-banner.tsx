@@ -3,6 +3,7 @@
 import Image from "next/image";
 import posthog from "posthog-js";
 import { useEffect, useState } from "react";
+import { visitorRegion } from "@/lib/visitor-region";
 
 /** Fired by "Cookie settings" in the footer to ask again. */
 const REOPEN = "meerko:cookie-settings";
@@ -18,18 +19,14 @@ export function CookieBanner() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!posthog.__loaded) return;
-    if (posthog.get_explicit_consent_status() === "pending") {
+    // PostHog starts once the region is known (instrumentation-client.ts), so wait for the same answer.
+    void visitorRegion().then(({ consent }) => {
+      if (!posthog.__loaded || posthog.get_explicit_consent_status() !== "pending") return;
       // Only where the law asks for consent (lib/consent-region.ts); elsewhere PostHog's cookie goes on without
-      // a banner. If the check fails, ask.
-      fetch("/consent-region")
-        .then((r) => r.json() as Promise<{ consent: boolean }>)
-        .catch(() => ({ consent: true }))
-        .then(({ consent }) => {
-          if (consent) setOpen(true);
-          else posthog.opt_in_capturing({ captureEventName: false });
-        });
-    }
+      // a banner. If the check failed, ask.
+      if (consent) setOpen(true);
+      else posthog.opt_in_capturing({ captureEventName: false });
+    });
     const reopen = () => setOpen(true);
     window.addEventListener(REOPEN, reopen);
     return () => window.removeEventListener(REOPEN, reopen);
