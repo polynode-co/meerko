@@ -76,7 +76,7 @@ export class GenerectClient {
     const body = p.linkedinUrl
       ? { linkedin_url: p.linkedinUrl }
       : { first_name: p.firstName, last_name: p.lastName, domain: p.domain };
-    const json = await this.request<{ data?: { valid_email?: string | null; result?: string; catch_all?: boolean }; meta?: { amount_charged?: number } }>(
+    const json = await this.request<{ data?: { valid_email?: string | null; result?: string; catch_all?: boolean | string }; meta?: { amount_charged?: number } }>(
       "POST",
       "/api/v1/email/find/",
       body,
@@ -84,7 +84,7 @@ export class GenerectClient {
     return {
       email: json.data?.valid_email ?? null,
       result: json.data?.result,
-      catchAll: json.data?.catch_all,
+      catchAll: asBool(json.data?.catch_all),
       charged: Number(json.meta?.amount_charged ?? 0),
     };
   }
@@ -101,7 +101,8 @@ export class GenerectClient {
     const found = phone?.status === "FOUND" && typeof phone.number === "string" && phone.number !== "";
     return {
       number: found ? phone!.number! : null,
-      type: found ? phone!.type : undefined,
+      // The docs say `mobile`; the API sends `MOBILE`.
+      type: found ? phone!.type?.toLowerCase() : undefined,
       country: found ? phone!.country : undefined,
       charged: Number(json.meta?.amount_charged ?? 0),
     };
@@ -119,6 +120,9 @@ export class GenerectClient {
     return json as T;
   }
 }
+
+/** The API sends some booleans as strings (`"catch_all": "false"`). */
+const asBool = (v: unknown): boolean | undefined => (typeof v === "boolean" ? v : typeof v === "string" ? v.toLowerCase() === "true" : undefined);
 
 const codeFor = (status: number) =>
   status === 401 ? "unauthorized" : status === 402 ? "insufficient_funds" : status === 429 ? "rate_limited" : `http_${status}`;

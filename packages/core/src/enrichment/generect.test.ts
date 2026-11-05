@@ -33,6 +33,11 @@ describe("generectProvider", () => {
   it("marks catch-all emails probable and treats a null email as a free miss", async () => {
     const catchAll = client({ data: { valid_email: "ana@acme.es", result: "valid", catch_all: true }, meta: { amount_charged: 0.02 } });
     expect(await catchAll.provider.enrich("email", ana)).toMatchObject({ confidence: "probable" });
+    // The live API sends catch_all as a string.
+    const asText = client({ data: { valid_email: "ana@acme.es", result: "valid", catch_all: "false" }, meta: { amount_charged: 0.02 } });
+    expect(await asText.provider.enrich("email", ana)).toMatchObject({ confidence: "very_sure" });
+    const asTextTrue = client({ data: { valid_email: "ana@acme.es", result: "valid", catch_all: "true" }, meta: { amount_charged: 0.02 } });
+    expect(await asTextTrue.provider.enrich("email", ana)).toMatchObject({ confidence: "probable" });
     const miss = client({ data: { valid_email: null }, meta: { amount_charged: 0 } });
     expect(await miss.provider.enrich("email", ana)).toEqual({ value: null, providerCost: 0 });
   });
@@ -42,7 +47,7 @@ describe("generectProvider", () => {
     await byUrl.provider.enrich("email", { ...ana, linkedin_url: "https://www.linkedin.com/in/ana" });
     expect(byUrl.calls[0]!.body).toEqual({ linkedin_url: "https://www.linkedin.com/in/ana" });
 
-    const phone = client({ data: { phone: { number: "+34600111222", status: "FOUND", type: "mobile", country: "ES" } }, meta: { amount_charged: 0.4 } });
+    const phone = client({ data: { phone: { number: "+34600111222", status: "FOUND", type: "MOBILE", country: "ES" } }, meta: { amount_charged: 0.4 } });
     expect(await phone.provider.enrich("phone", ana)).toEqual({ value: "+34600111222", confidence: "mobile", providerCost: 0.4 });
     expect(phone.calls[0]).toMatchObject({ url: "https://api.generect.com/api/v1/phone/find/", body: { first_name: "Ana", last_name: "Ruiz", company: "Acme" } });
 
