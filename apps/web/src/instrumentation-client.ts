@@ -1,4 +1,5 @@
 import posthog from "posthog-js";
+import { visitorRegion } from "@/lib/visitor-region";
 
 // PostHog in the browser (same setup as antwork): pageviews, replay with inputs masked, uncaught errors.
 // Off without NEXT_PUBLIC_POSTHOG_KEY, so local runs and self-hosted installs send nothing.
@@ -10,7 +11,14 @@ const release = process.env.NEXT_PUBLIC_COMMIT_SHA;
 /** Which part of the site an event came from; the marketing site and the dashboard share one origin. */
 const surfaceFor = (pathname: string) => (pathname === "/app" || pathname.startsWith("/app/") || pathname.startsWith("/oauth/") ? "app" : "marketing");
 
+// Init waits for /consent-region (one small same-origin request) so the first pageview already carries
+// `country`. PostHog drops the IP of cookieless events before its own GeoIP runs, so without this, visitors
+// who haven't accepted the cookie would have no country at all.
 if (key) {
+  void visitorRegion().then(({ country }) => startPostHog(key, country));
+}
+
+function startPostHog(key: string, country: string | null) {
   try {
     posthog.init(key, {
       // Through the /ingest rewrite in next.config.ts; ui_host keeps toolbar and replay links on PostHog.
@@ -44,6 +52,7 @@ if (key) {
           ...event.properties,
           app_env: appEnv,
           surface: surfaceFor(window.location.pathname),
+          ...(country ? { country } : {}),
           ...(release ? { $release: release } : {}),
         };
         return event;

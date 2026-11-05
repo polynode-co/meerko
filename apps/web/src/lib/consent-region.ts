@@ -44,6 +44,12 @@ const CONSENT_COUNTRIES = new Set([
  * (core-infrastructure lb-serverless). An unknown country asks: local runs, dev, and anything the
  * load balancer couldn't place.
  */
+/** The visitor's country as a two-letter code, or null when the load balancer didn't send one. */
+export function countryCode(region: string | null | undefined) {
+  const code = region?.trim().toUpperCase();
+  return code && /^[A-Z]{2}$/.test(code) ? code : null;
+}
+
 export function consentRequired(region: string | null | undefined) {
   const code = region?.trim().toUpperCase();
   return !code || CONSENT_COUNTRIES.has(code);
