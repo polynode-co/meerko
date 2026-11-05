@@ -102,9 +102,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       <ProviderKeysCard keys={keys} title={billing.enabled ? "Provider keys" : "Credits & provider keys"}>
         {billing.enabled ? (
-          "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged. Add a Firecrawl key and email finding tries it when Icypeas misses, also free."
+          "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged. Add a Firecrawl key and email finding tries it when Icypeas misses, also free. Add a Generect key and phone numbers and missed emails run on your Generect account, on any plan."
         ) : credits.enabled ? (
-          <>Balance: <span className="font-plex text-lk-lime">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 8, verifications 1, search results 1. Misses are free. Add your own Icypeas key to skip credits, or a Firecrawl key to find more emails.</>
+          <>Balance: <span className="font-plex text-lk-lime">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 8, verifications 1, search results 1, phone numbers 80. Misses are free. Add your own Icypeas key to skip credits, or a Firecrawl or Generect key to find more.</>
         ) : (
           "Credits are off on this install: searches and enrichment use your own provider keys."
         )}

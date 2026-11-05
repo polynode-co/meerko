@@ -9,6 +9,11 @@ export const CREDIT_PACK_CREDITS = 1000;
 export const MAX_CREDIT_PACKS = 100;
 /** Mailboxes a workspace may connect on each plan. Only enforced when billing is on (Meerko Cloud). */
 export const PLAN_MAILBOXES: Record<Plan, number> = { free: 1, pro: Number.POSITIVE_INFINITY };
+/**
+ * Whether a plan finds phone numbers on Meerko's provider key. A phone costs us $0.40 at Generect, so on Free the 200
+ * signup credits would be spent on our money; a workspace's own Generect key works on any plan.
+ */
+export const PLAN_PHONES: Record<Plan, boolean> = { free: false, pro: true };
 
 /** Stripe statuses that keep Pro. `past_due` keeps it while Stripe retries the card. */
 const PRO_STATUSES = new Set<Stripe.Subscription.Status>(["active", "trialing", "past_due"]);
@@ -87,6 +92,14 @@ export async function assertMailboxAllowed(db: Db, workspaceId: string, email: s
   if (rows.some((m) => m.workspaceId === workspaceId && m.email === email.toLowerCase())) return;
   if (rows.length >= limit) {
     throw new PlanLimitError(`The Free plan includes ${limit} mailbox. Upgrade to Pro in Settings to connect more.`);
+  }
+}
+
+/** Throws unless the workspace's plan includes phone numbers on Meerko's key (`PLAN_PHONES`). */
+export async function assertPhonesAllowed(db: Db, workspaceId: string) {
+  const { plan } = await getBilling(db, workspaceId);
+  if (!PLAN_PHONES[plan]) {
+    throw new PlanLimitError("Finding phone numbers is on Pro. Upgrade in Settings, or add your own Generect key to use it on Free.");
   }
 }
 

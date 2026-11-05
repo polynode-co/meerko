@@ -27,7 +27,7 @@ export interface SearchResult {
   addedColumns: Column[];
 }
 
-export type EnrichField = "email" | "email_verification";
+export type EnrichField = "email" | "email_verification" | "phone";
 export interface EnrichResult {
   processed: number;
   found: Record<EnrichField, number>;

@@ -22,6 +22,7 @@ export default function Page() {
         ["buying", "Buying credits"],
         ["own-key", "Use your own provider key"],
         ["firecrawl", "Find more emails with Firecrawl"],
+        ["generect", "Phone numbers and Generect"],
         ["self-hosted", "Self-hosted"],
       ]}
       tools={["get_credits"]}
@@ -33,6 +34,7 @@ export default function Page() {
           ["Search result saved", "1 per result"],
           ["Email found", "8"],
           ["Email verified", "1"],
+          ["Phone number found", "80, on Pro"],
           ["Counting search results", "Free"],
           ["Searches and lookups that find nothing", "Free"],
         ]}
@@ -82,6 +84,23 @@ export default function Page() {
         Meerko checks the key with a free Firecrawl catalog search before saving it. FullEnrich asks you to accept its data terms in
         Firecrawl once; until you do, the step fails with a link to accept them. Its terms only allow marketing to work emails, which is
         all Meerko asks it for. Email verification still runs on Icypeas.
+      </p>
+
+      <H2 id="generect">Phone numbers and Generect</H2>
+      <p>
+        Meerko finds phone numbers through <L href={docsSources.generect.url}>Generect</L>, and asks it for the emails Icypeas (and
+        Firecrawl, if you added a key) didn&apos;t find. A missed email found this way costs the usual 8 credits. A phone number costs 80
+        credits, only when one is found, and only when you ask for phones: email finding never looks them up. On Meerko Cloud, phones
+        are part of Pro. Rows need a LinkedIn URL, or a first and last name plus a company or domain.
+      </p>
+      <p>
+        With your own Generect key, phones and missed emails run on your Generect balance instead, on any plan and with no Meerko credits:
+      </p>
+      <CodeBlock title="bash" code="pnpm meerko keys set generect <key>" lines={[{ text: "$ pnpm meerko keys set generect <key>" }]} />
+      <p>
+        Find phones from a table&apos;s Find phones button, <C>pnpm meerko enrich &lt;tableId&gt; --fields phone</C>, or ask your agent.
+        Results land in the <C>phone</C> column (E.164, like <C>+14155550123</C>) with its <C>phone_type</C>: <C>mobile</C>,{" "}
+        <C>fixed_line</C>, <C>voip</C>, or <C>not_found</C>.
       </p>
 
       <H2 id="self-hosted">Self-hosted</H2>

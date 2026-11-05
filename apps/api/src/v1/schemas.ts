@@ -97,7 +97,11 @@ export const enrollInput = z.object({
   limit: z.number().int().min(1).max(5000).optional(),
 });
 export const enrichInput = z.object({
-  fields: z.array(z.enum(["email", "email_verification"])).min(1).default(["email", "email_verification"]),
+  fields: z
+    .array(z.enum(["email", "email_verification", "phone"]))
+    .min(1)
+    .default(["email", "email_verification"])
+    .describe("phone is opt-in (80 credits per number found, Pro on Meerko Cloud); the default finds and verifies emails"),
   filter: jsonObject.optional(),
   // Rows are enriched synchronously, one at a time (~3s each), so keep calls small.
   limit: z.number().int().min(1).max(50).default(25),
@@ -185,7 +189,7 @@ export const SearchResult = z.object({
 });
 export const EnrichResult = z.object({
   processed: z.number(),
-  found: z.object({ email: z.number(), email_verification: z.number() }),
+  found: z.object({ email: z.number(), email_verification: z.number(), phone: z.number() }),
   notFound: z.number(),
   errors: z.number(),
   firstError: z.string().optional(),

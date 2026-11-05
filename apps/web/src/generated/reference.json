@@ -392,7 +392,7 @@
       },
       {
         "name": "enrich_rows",
-        "description": "Find work emails (from first_name, last_name and domain or company columns) and verify them, writing email, email_certainty and email_verification back to each row.\nOnly rows missing a result are processed, at most `limit` per call (~3s per row). Keep calling while `remaining` > 0.\nCosts: 8 credits per email found, 1 per verification; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost.\nemail_certainty values: ultra_sure, very_sure, probable (deliverability unconfirmed), not_found, missing_input (row lacks a name or domain).",
+        "description": "Find work emails (from first_name, last_name and domain or company columns, or linkedin_url) and verify them, writing email, email_certainty and email_verification back to each row. With fields [\"phone\"], find phone numbers instead, writing phone (E.164) and phone_type.\nOnly rows missing a result are processed, at most `limit` per call (~3s per row). Keep calling while `remaining` > 0.\nCosts: 8 credits per email found, 1 per verification, 80 per phone number found; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost. Phones are on Pro (or the user's own Generect key) and are never found unless asked for: only request them when the user wants to call.\nemail_certainty values: ultra_sure, very_sure, probable (deliverability unconfirmed), not_found, missing_input (row lacks a name or domain). phone_type values: mobile, fixed_line, voip, not_found, missing_input.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -400,13 +400,14 @@
               "type": "string"
             },
             "fields": {
-              "description": "Default: both",
+              "description": "Default: email and email_verification",
               "type": "array",
               "items": {
                 "type": "string",
                 "enum": [
                   "email",
-                  "email_verification"
+                  "email_verification",
+                  "phone"
                 ]
               }
             },
@@ -1076,7 +1077,7 @@
       "tables": "manage prospect tables",
       "pipeline": "lead counts per stage",
       "find": "search Icypeas for people or companies and save the results to a table",
-      "enrich": "find and verify emails for rows that don't have them yet",
+      "enrich": "find and verify emails (or, with --fields phone, phone numbers) for rows that don't have them yet",
       "mailboxes": "connect the inboxes Meerko sends from",
       "sequences": "multi-step email sequences sent from your mailbox",
       "replies": "replies to your sequences",
@@ -1295,11 +1296,11 @@
       {
         "usage": "meerko enrich <tableId>",
         "group": "enrich",
-        "description": "find and verify emails for rows that don't have them yet",
+        "description": "find and verify emails (or, with --fields phone, phone numbers) for rows that don't have them yet",
         "options": [
           {
             "flags": "--fields <list>",
-            "description": "comma-separated: email, email_verification",
+            "description": "comma-separated: email, email_verification, phone (80 credits each, Pro)",
             "default": "email,email_verification",
             "required": false
           },
@@ -1576,7 +1577,7 @@
       {
         "usage": "meerko keys set <provider> <key>",
         "group": "keys",
-        "description": "store a provider key (supported: icypeas, firecrawl). It's checked with the provider first",
+        "description": "store a provider key (supported: icypeas, firecrawl, generect). It's checked with the provider first",
         "options": []
       },
       {

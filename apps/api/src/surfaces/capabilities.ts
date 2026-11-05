@@ -227,9 +227,9 @@ export const CAPABILITIES: Capability[] = [
   },
   {
     id: "enrich",
-    summary: "Find and verify emails",
+    summary: "Find and verify emails, and find phone numbers",
     routes: ["enrichRows"],
-    web: yes(action("enrichEmails")),
+    web: yes(action("enrichEmails"), action("findPhones")),
     mcp: yes("enrich_rows"),
     cli: yes("enrich"),
     api: API,
@@ -442,7 +442,7 @@ export const CAPABILITIES: Capability[] = [
   },
   {
     id: "list-provider-keys",
-    summary: "See your own Icypeas/Firecrawl keys (last 4)",
+    summary: "See your own Icypeas/Firecrawl/Generect keys (last 4)",
     routes: ["listProviderKeys"],
     web: yes("app/app/settings/page.tsx"),
     mcp: { deliberately_absent: "Provider keys are a person's setup, not an agent's" },
@@ -451,7 +451,7 @@ export const CAPABILITIES: Capability[] = [
   },
   {
     id: "manage-provider-keys",
-    summary: "Store or remove your own Icypeas/Firecrawl key",
+    summary: "Store or remove your own Icypeas/Firecrawl/Generect key",
     routes: ["setProviderKey", "deleteProviderKey"],
     web: yes(action("saveProviderKey"), action("removeProviderKey")),
     mcp: { deliberately_absent: "An agent should never be handed a provider secret" },

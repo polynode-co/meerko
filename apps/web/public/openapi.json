@@ -1297,7 +1297,7 @@
         "tags": [
           "leads"
         ],
-        "summary": "Find and verify emails for rows (spends credits)",
+        "summary": "Find and verify emails, or find phone numbers, for rows (spends credits)",
         "parameters": [
           {
             "name": "id",
@@ -1320,13 +1320,15 @@
                       "email",
                       "email_verification"
                     ],
+                    "description": "phone is opt-in (80 credits per number found, Pro on Meerko Cloud); the default finds and verifies emails",
                     "minItems": 1,
                     "type": "array",
                     "items": {
                       "type": "string",
                       "enum": [
                         "email",
-                        "email_verification"
+                        "email_verification",
+                        "phone"
                       ]
                     }
                   },
@@ -1354,7 +1356,7 @@
         },
         "responses": {
           "200": {
-            "description": "Find and verify emails for rows (spends credits)",
+            "description": "Find and verify emails, or find phone numbers, for rows (spends credits)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3263,7 +3265,7 @@
         "tags": [
           "credits"
         ],
-        "summary": "Store your own Icypeas or Firecrawl key; lookups through it spend no credits",
+        "summary": "Store your own Icypeas, Firecrawl or Generect key; lookups through it spend no credits",
         "parameters": [
           {
             "name": "provider",
@@ -3295,7 +3297,7 @@
         },
         "responses": {
           "200": {
-            "description": "Store your own Icypeas or Firecrawl key; lookups through it spend no credits",
+            "description": "Store your own Icypeas, Firecrawl or Generect key; lookups through it spend no credits",
             "content": {
               "application/json": {
                 "schema": {

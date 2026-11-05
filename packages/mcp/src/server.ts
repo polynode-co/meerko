@@ -222,13 +222,13 @@ To get decision-makers at the found companies, pass their company_urn values to 
   tool(
     "enrich_rows",
     {
-      description: `Find work emails (from first_name, last_name and domain or company columns) and verify them, writing email, email_certainty and email_verification back to each row.
+      description: `Find work emails (from first_name, last_name and domain or company columns, or linkedin_url) and verify them, writing email, email_certainty and email_verification back to each row. With fields ["phone"], find phone numbers instead, writing phone (E.164) and phone_type.
 Only rows missing a result are processed, at most \`limit\` per call (~3s per row). Keep calling while \`remaining\` > 0.
-Costs: 8 credits per email found, 1 per verification; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost.
-email_certainty values: ultra_sure, very_sure, probable (deliverability unconfirmed), not_found, missing_input (row lacks a name or domain).`,
+Costs: 8 credits per email found, 1 per verification, 80 per phone number found; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost. Phones are on Pro (or the user's own Generect key) and are never found unless asked for: only request them when the user wants to call.
+email_certainty values: ultra_sure, very_sure, probable (deliverability unconfirmed), not_found, missing_input (row lacks a name or domain). phone_type values: mobile, fixed_line, voip, not_found, missing_input.`,
       inputSchema: {
         table_id: z.string(),
-        fields: z.array(z.enum(["email", "email_verification"])).optional().describe("Default: both"),
+        fields: z.array(z.enum(["email", "email_verification", "phone"])).optional().describe("Default: email and email_verification"),
         filter: z.record(z.string(), z.unknown()).optional().describe("Only enrich rows matching this exact-match filter"),
         limit: z.number().int().min(1).max(50).optional().describe("Rows per call (default 25)"),
         overwrite: z.boolean().optional().describe("Re-run rows that already have a result"),

@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { and, eq, providerKeys, sql, type Db } from "@meerko/db";
 
-export const BYOK_PROVIDERS = ["icypeas", "firecrawl"] as const;
+export const BYOK_PROVIDERS = ["icypeas", "firecrawl", "generect"] as const;
 export type ByokProvider = (typeof BYOK_PROVIDERS)[number];
 
 export class EncryptionNotConfiguredError extends Error {
