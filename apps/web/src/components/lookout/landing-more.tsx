@@ -30,11 +30,12 @@ const groups: { label: string; items: [string, string, string][] }[] = [
   {
     label: "Your agent",
     items: [
+      ["Claude", "/logos/agents/claude.svg", "/docs/claude"],
+      ["ChatGPT", "/logos/agents/openai.svg", "/docs/chatgpt"],
       ["Claude Code", "/logos/agents/claude.svg", agentDocs["Claude Code"]],
       ["Cursor", "/logos/agents/cursor.svg", agentDocs.Cursor],
       ["Codex", "/logos/agents/openai.svg", agentDocs.Codex],
       ["Gemini CLI", "/logos/agents/gemini.svg", agentDocs["Gemini CLI"]],
-      ["Windsurf", "/logos/agents/windsurf.svg", agentDocs.Windsurf],
     ],
   },
   {
@@ -66,7 +67,7 @@ export function WorksWith() {
               className={`flex flex-col gap-3.5 px-5 py-5 ${gi ? "border-t border-lk-line md:border-t-0 lg:border-l" : ""} ${gi === 1 ? "md:border-l" : ""} ${gi >= 2 ? "md:border-t lg:border-t-0" : ""} ${gi === 3 ? "md:border-l" : ""}`}
             >
               <span className="font-plex text-[12px] tracking-[0.8px] text-lk-dim uppercase">{g.label}</span>
-              <ul className="flex flex-wrap gap-x-5 gap-y-3">
+              <ul className="flex flex-wrap gap-x-4 gap-y-3">
                 {g.items.map(([name, logo, href]) => (
                   <li key={name}>
                     <a href={href} {...ext(href)} className="group flex items-center gap-2.5 text-[15px] font-medium text-lk-muted transition hover:text-lk-fg">
@@ -188,12 +189,14 @@ const commands = [
   ["/triage-replies", "Sort replies and draft answers to approve."],
   ["/pipeline", "See who's interested, booked and won."],
 ];
+// Claude and ChatGPT link to our own setup pages; the coding agents to their MCP docs.
 const agents: [string, string][] = [
+  ["Claude", "/logos/agents/claude.svg"],
+  ["ChatGPT", "/logos/agents/openai.svg"],
   ["Claude Code", "/logos/agents/claude.svg"],
   ["Codex", "/logos/agents/openai.svg"],
   ["Cursor", "/logos/agents/cursor.svg"],
   ["Gemini CLI", "/logos/agents/gemini.svg"],
-  ["Windsurf", "/logos/agents/windsurf.svg"],
 ];
 const leads = [
   ["Lucía Ferrer", "Brava Pay", "verified"],
@@ -281,9 +284,8 @@ export function Superpowers({ n }: { n: string }) {
               {agents.map(([name, logo]) => (
                 <li key={name}>
                   <a
-                    href={agentDocs[name]}
-                    target="_blank"
-                    rel="noopener"
+                    href={agentDocs[name] ?? `/docs/${name.toLowerCase()}`}
+                    {...ext(agentDocs[name] ?? "")}
                     className="flex items-center gap-2 bg-lk-box py-1.5 pr-3.5 pl-1.5 text-[14px] font-medium text-lk-fg outline outline-1 -outline-offset-1 outline-lk-line hover:outline-lk-muted"
                   >
                     <Tile src={logo} size={24} />
