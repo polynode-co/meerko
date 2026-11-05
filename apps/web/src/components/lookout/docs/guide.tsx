@@ -210,7 +210,7 @@ export function GuideShell({ slug, eyebrow, h1, lead, toc, sources, faq, cta = "
           </article>
 
           <aside className="hidden pt-[220px] xl:block">
-            <div className="sticky top-8 flex max-w-[260px] flex-col gap-8">
+            <div className="sticky top-[calc(var(--lk-nav-h)+2rem)] flex max-w-[260px] flex-col gap-8">
               <LkToc items={tocItems} />
               <div className="flex flex-col gap-3 bg-lk-box p-[18px] outline outline-1 -outline-offset-1 outline-lk-line">
                 <span className="flex items-center gap-2.5 font-pixel text-[15px] text-lk-fg">

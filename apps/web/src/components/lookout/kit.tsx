@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/meerko";
 import { site } from "@/lib/site";
 import { LogoMark } from "../ui/brand";
+import { NavFrame } from "./nav-frame";
 
 // The Lookout kit: the shared pieces of every marketing page, from the .pen "Lookout Kit — components"
 // (FKxST). Night background, IBM Plex Mono labels, Silkscreen pixel titles, paper windows, lime signal.
@@ -102,8 +103,8 @@ export async function LkNav({ links, transparent = false, wide = false }: { link
     ["GitHub", site.githubUrl],
   ];
   return (
-    <header className={`relative z-10 ${transparent ? "" : "border-b border-lk-line bg-lk-bg"}`}>
-      <div className={`mx-auto flex items-center justify-between px-6 py-[22px] lg:px-12 ${wide ? "" : "max-w-[1440px]"}`}>
+    <NavFrame transparent={transparent}>
+      <div className={`mx-auto flex h-full items-center justify-between px-6 lg:px-12 ${wide ? "" : "max-w-[1440px]"}`}>
         <a href="/" aria-label="Meerko home" className="flex items-center gap-2.5">
           <LogoMark size={26} />
           <span className="font-pixel text-[16px] tracking-[0.6px] text-lk-fg">MEERKO</span>
@@ -122,7 +123,7 @@ export async function LkNav({ links, transparent = false, wide = false }: { link
           </a>
         </nav>
       </div>
-    </header>
+    </NavFrame>
   );
 }
 

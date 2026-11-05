@@ -41,6 +41,11 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Anchor jumps land below the pinned marketing nav (components/lookout/nav-frame.tsx). */
+    scroll-padding-top: var(--lk-nav-h);
+  }
+  :root {
+    --lk-nav-h: 81px;
   }
   body {
     @apply bg-ink text-fg font-sans antialiased;

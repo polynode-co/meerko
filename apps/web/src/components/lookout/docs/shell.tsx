@@ -72,7 +72,7 @@ export function DocsShell({ slug, h1, lead, toc, tools, children }: DocsShellPro
       <main style={lkScopeStyle} className={lkScopeClass}>
         <div className="flex">
           <aside className="hidden w-[296px] shrink-0 border-r border-lk-line lg:block">
-            <div className="lk-scroll sticky top-0 max-h-dvh overflow-y-auto py-10 pr-6 pl-12">
+            <div className="lk-scroll sticky top-[var(--lk-nav-h)] max-h-[calc(100dvh-var(--lk-nav-h))] overflow-y-auto py-10 pr-6 pl-12">
               <DocsMenu slug={slug} />
             </div>
           </aside>
@@ -119,7 +119,7 @@ export function DocsShell({ slug, h1, lead, toc, tools, children }: DocsShellPro
           </article>
 
           <aside className="hidden w-[288px] shrink-0 xl:block">
-            <div className="lk-scroll sticky top-0 flex max-h-dvh flex-col gap-7 overflow-y-auto pt-14 pr-12 pb-10">
+            <div className="lk-scroll sticky top-[var(--lk-nav-h)] flex max-h-[calc(100dvh-var(--lk-nav-h))] flex-col gap-7 overflow-y-auto pt-14 pr-12 pb-10">
               {toc.length > 0 && <LkToc items={toc} />}
               {tools && tools.length > 0 && (
                 <div className="flex flex-col gap-2 border-t border-lk-line pt-5">
