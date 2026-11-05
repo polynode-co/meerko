@@ -11,14 +11,25 @@ const REOPEN = "meerko:cookie-settings";
  * The cookie banner. PostHog runs cookieless until the visitor chooses (instrumentation-client.ts:
  * cookieless_mode "on_reject" with opt-out by default), so visits are counted either way. "Accept" turns on
  * PostHog's cookie, which links visits across days and enables session replay. Each choice is captured as
- * `cookie_consent_chosen`, so the accept rate is a PostHog insight. Hidden when PostHog isn't configured.
+ * `cookie_consent_chosen`, so the accept rate is a PostHog insight. Shown only to visitors in countries that require
+ * consent (/consent-region); elsewhere the cookie goes on without asking. Hidden when PostHog isn't configured.
  */
 export function CookieBanner() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!posthog.__loaded) return;
-    if (posthog.get_explicit_consent_status() === "pending") setOpen(true);
+    if (posthog.get_explicit_consent_status() === "pending") {
+      // Only where the law asks for consent (lib/consent-region.ts); elsewhere PostHog's cookie goes on without
+      // a banner. If the check fails, ask.
+      fetch("/consent-region")
+        .then((r) => r.json() as Promise<{ consent: boolean }>)
+        .catch(() => ({ consent: true }))
+        .then(({ consent }) => {
+          if (consent) setOpen(true);
+          else posthog.opt_in_capturing({ captureEventName: false });
+        });
+    }
     const reopen = () => setOpen(true);
     window.addEventListener(REOPEN, reopen);
     return () => window.removeEventListener(REOPEN, reopen);

@@ -230,8 +230,9 @@ export default function PrivacyPage() {
 
       <Section n={11} id="cookies" title="Cookies">
         <p>
-          The cookies needed to sign you in, and one analytics cookie from PostHog that we only set if you accept it in the cookie
-          banner. No advertising cookies. If you say no, PostHog still counts your visit without storing anything in your browser:
+          The cookies needed to sign you in, and one analytics cookie from PostHog. No advertising cookies. In the EU, the EEA, the
+          UK and Switzerland we only set the analytics cookie if you accept it in the cookie banner; elsewhere it&apos;s set on your
+          first visit, and you can turn it off with &ldquo;Cookie settings&rdquo;. If you say no, PostHog still counts your visit without storing anything in your browser:
           it recognises the same visitor for one day from a hash of the IP address and browser, salted daily on PostHog&apos;s
           servers, so there are no session recordings and no link between visits on different days. Change your choice any time with
           &ldquo;Cookie settings&rdquo; at the bottom of every page.
@@ -241,7 +242,7 @@ export default function PrivacyPage() {
           rows={[
             ["meerko_session", "Keeps you signed in to the dashboard", "30 days"],
             ["meerko_next", "Brings you back to the page you were on after signing in", "15 minutes"],
-            ["ph_<key>_posthog", "PostHog analytics, only if you accept: recognises the same browser across visits (also kept in local storage)", "1 year"],
+            ["ph_<key>_posthog", "PostHog analytics (in the EU, EEA, UK and Switzerland only if you accept): recognises the same browser across visits (also kept in local storage)", "1 year"],
             ["__ph_opt_in_out_<key>", "Remembers your cookie banner choice, so we don't ask again", "1 year"],
             ["meerko_signin_nonce", "Ties a Google sign-in to the browser that started it, so nobody can sign you in to their account", "10 minutes"],
           ]}
