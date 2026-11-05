@@ -21,6 +21,12 @@ if (key) {
       capture_pageleave: true,
       // A person for every visitor, so first-touch referrer and UTM survive to sign-up.
       person_profiles: "always",
+      // EU consent: until the visitor accepts the cookie banner (components/analytics/cookie-banner.tsx), PostHog
+      // stores nothing in the browser and counts visits with its server-side cookieless hash. Accepting turns on
+      // the cookie and session replay; "No thanks" stays cookieless. Needs cookieless tracking enabled in the
+      // PostHog project settings, or the cookieless events are dropped.
+      cookieless_mode: "on_reject",
+      opt_out_capturing_by_default: true,
       session_recording: {
         maskAllInputs: true,
         maskTextSelector: "[data-ph-mask]",

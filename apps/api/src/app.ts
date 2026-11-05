@@ -145,7 +145,7 @@ import {
   type IcypeasQuery,
 } from "@meerko/core";
 import type { ApiKeyScope, Db } from "@meerko/db";
-import { createAnalytics, EVENTS, type Analytics } from "./analytics.ts";
+import { createAnalytics, EVENTS, signupSource, type Analytics } from "./analytics.ts";
 import {
   agentHookInput,
   approveDraftInput,
@@ -541,7 +541,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       path: "/auth/google",
       maxAge: SIGN_IN_TTL_MS / 1000,
     });
-    const state = Buffer.from(box!.encrypt(JSON.stringify({ n: nonce, exp: Date.now() + SIGN_IN_TTL_MS })), "base64").toString("base64url");
+    // Where the visit came from (the web app's lib/attribution.ts), carried in the state to the sign_up event.
+    const source = signupSource(c.req.query());
+    const state = Buffer.from(box!.encrypt(JSON.stringify({ n: nonce, exp: Date.now() + SIGN_IN_TTL_MS, s: source })), "base64").toString("base64url");
     return c.redirect(deps.googleSignIn!.signInUrl(state));
   });
 
@@ -551,7 +553,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const nonce = getCookie(c, NONCE_COOKIE);
     deleteCookie(c, NONCE_COOKIE, { path: "/auth/google" });
     if (error) return c.redirect(toLogin(error === "access_denied" ? "Sign-in was cancelled." : `Google said: ${error}`));
-    let payload: { n?: string; exp?: number } = {};
+    let payload: { n?: string; exp?: number; s?: Record<string, string> } = {};
     try {
       payload = JSON.parse(box!.decrypt(Buffer.from(state ?? "", "base64url").toString("base64")));
     } catch {
@@ -564,7 +566,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       const profile = await deps.googleSignIn!.signInProfile(code);
       const { userId, workspaceId, newUser } = await signInWithGoogle(db, profile, deps.signup ?? "invite");
       const person = { email: profile.email, name: profile.name ?? null };
-      if (newUser) await analytics.capture({ distinctId: userId, event: EVENTS.signUp, workspaceId, properties: { method: "google" }, set: person });
+      if (newUser) {
+        await analytics.capture({ distinctId: userId, event: EVENTS.signUp, workspaceId, properties: { method: "google", ...signupSource(payload.s ?? {}) }, set: person });
+      }
       await analytics.capture({ distinctId: userId, event: EVENTS.signInCompleted, workspaceId, properties: { method: "google" }, set: person });
       const authCode = await createAuthCode(db, userId, workspaceId);
       return c.redirect(backToApp(new URL("/auth/callback", deps.appUrl).toString(), { code: authCode }));
