@@ -17,12 +17,19 @@ export interface SystemMailer {
 /** An SMTP mailer from a connection URL, or null when either setting is missing. */
 export function smtpMailer(url: string | undefined, from: string | undefined): SystemMailer | null {
   if (!url || !from) return null;
-  const transport = nodemailer.createTransport(url);
+  // Greet the server with the sender's domain: inside a container the hostname is often "localhost", and
+  // some relays (Google Workspace's smtp-relay.gmail.com) refuse that greeting with "421 Try again later".
+  const transport = nodemailer.createTransport({ url, name: heloName(from) });
   return {
     async send(mail) {
       await transport.sendMail({ from, ...mail });
     },
   };
+}
+
+/** The domain of a sender like "Meerko <noreply@meerko.ai>", or undefined to keep nodemailer's default. */
+export function heloName(from: string) {
+  return from.match(/@([a-z0-9.-]+\.[a-z]{2,})>?\s*$/i)?.[1]?.toLowerCase();
 }
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
