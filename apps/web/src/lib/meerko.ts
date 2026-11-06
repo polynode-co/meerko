@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { MeerkoApiError, MeerkoClient } from "@meerko/sdk";
 
 /**
- * Holds the dashboard's credential: a session token (`ms_…`) from "Sign in with Google", or an API key
- * (`mk_…`) on self-hosted installs without Google. The API accepts either as a Bearer token.
+ * Holds the dashboard's credential: a session token (`ms_…`) from Google or an email link, or an API key
+ * (`mk_…`) on self-hosted installs with neither. The API accepts either as a Bearer token.
  */
 export const SESSION_COOKIE = "meerko_session";
 export const apiUrl = () => process.env.MEERKO_API_URL ?? "http://localhost:8787";

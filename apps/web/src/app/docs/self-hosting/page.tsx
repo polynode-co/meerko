@@ -71,7 +71,7 @@ export default function Page() {
         </p>
         <p>
           Until <C>MEERKO_ENCRYPTION_KEY</C> is set (step 4), the worker logs &quot;Sender idle&quot; and sends nothing. Tables, imports and AI columns already
-          work. Once Google sign-in is on (step 4), the login page offers it instead; the API-key form stays at{" "}
+          work. Once Google or email sign-in is on (step 4), the login page offers it instead; the API-key form stays at{" "}
           <C>localhost:3000/login?method=key</C>.
         </p>
       </Step>
@@ -174,12 +174,12 @@ export default function Page() {
 
       <H2 id="agent">Connect your agent</H2>
       <p>
-        The API serves the MCP server at <C>http://localhost:8787/mcp</C>. With Google connected (step 4), agents and the CLI sign in with
+        The API serves the MCP server at <C>http://localhost:8787/mcp</C>. With Google or email sign-in on (step 4), agents and the CLI sign in with
         the browser, as on Meerko Cloud:
       </p>
       {sh(["claude mcp add --transport http --scope user meerko http://localhost:8787/mcp", "pnpm meerko login"])}
       <p>
-        Without Google, use the key from the seed: add <C>--header &quot;Authorization: Bearer mk_…&quot;</C> to the first command, and{" "}
+        Without either, use the key from the seed: add <C>--header &quot;Authorization: Bearer mk_…&quot;</C> to the first command, and{" "}
         <C>--key mk_…</C> to the second. More in <L href="/docs/claude-code#other-ways">Claude Code</L> and{" "}
         <L href="/docs/codex-cursor">Codex & Cursor</L>.
       </p>

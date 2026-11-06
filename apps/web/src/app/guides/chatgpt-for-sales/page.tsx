@@ -97,7 +97,7 @@ export default function Page() {
           Select <strong className="text-fg">Create as a plugin</strong>, then review the tools ChatGPT found.
         </li>
       </ol>
-      <p>For Meerko, the URL is below. Choose OAuth for authentication; you sign in with Google, with no API key to paste.</p>
+      <p>For Meerko, the URL is below. Choose OAuth for authentication; you sign in with Google or an email link, with no API key to paste.</p>
       <Sample title="Server URL">{mcpUrl()}</Sample>
       <p>
         When a server adds tools, open it in ChatGPT Plugins, select <strong className="text-fg">Refresh</strong> and start a new

@@ -77,7 +77,7 @@ export function ApiKeysCard({ keys, apiUrl, canManage }: { keys: ApiKey[]; apiUr
           )}
         </div>
       ))}
-      {!canManage && <p className="px-[18px] py-3 text-sm text-lk-dim">Sign in with Google to create or revoke keys.</p>}
+      {!canManage && <p className="px-[18px] py-3 text-sm text-lk-dim">Sign in with your account, not an API key, to create or revoke keys.</p>}
     </Card>
   );
 }

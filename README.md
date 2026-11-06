@@ -23,12 +23,12 @@ pnpm db:seed        # prints an API key (mk_...)
 pnpm dev            # API on :8787, the worker, and the dashboard on http://localhost:3000
 ```
 
-Log in to the dashboard with the API key. To send email, set `MEERKO_ENCRYPTION_KEY` in `.env` (`openssl rand -base64 32`) and connect a mailbox from Connections: Gmail, Zoho, Fastmail or any IMAP/SMTP server with an app password, or Outlook with your own Microsoft Entra app. Google OAuth is only needed for "Sign in with Google". The [self-hosting guide](https://meerko.ai/docs/self-hosting) walks through each, and through running everything in Docker instead (`docker-compose.selfhost.yml`).
+Log in to the dashboard with the API key. To send email, set `MEERKO_ENCRYPTION_KEY` in `.env` (`openssl rand -base64 32`) and connect a mailbox from Connections: Gmail, Zoho, Fastmail or any IMAP/SMTP server with an app password, or Outlook with your own Microsoft Entra app. Google OAuth is only needed for "Sign in with Google"; to let people sign in with an emailed link instead, set `MEERKO_SMTP_URL` and `MEERKO_MAIL_FROM` (any SMTP server). The [self-hosting guide](https://meerko.ai/docs/self-hosting) walks through each, and through running everything in Docker instead (`docker-compose.selfhost.yml`).
 
 ### CLI
 
 ```bash
-pnpm meerko login                                  # opens your browser to sign in (or: --key mk_... without Google sign-in)
+pnpm meerko login                                  # opens your browser to sign in (or: --key mk_... without browser sign-in)
 pnpm meerko tables create "Fintech CTOs Spain"
 pnpm meerko tables import <tableId> leads.csv      # unknown headers become columns
 pnpm meerko tables rows <tableId> --filter '{"country":"Spain"}'
@@ -44,7 +44,7 @@ claude mcp add --transport http --scope user meerko http://localhost:8787/mcp
 # then run /mcp in Claude Code and authenticate
 ```
 
-Codex, Cursor and Gemini CLI connect the same way, by URL. Without Google sign-in configured, send an API key instead: `--header "Authorization: Bearer mk_..."`. The server also runs locally over stdio: `claude mcp add meerko -- npx tsx /absolute/path/to/meerko/packages/mcp/src/index.ts` (it uses the CLI's saved login).
+ChatGPT, Grok, Codex and Cursor connect the same way, by URL. Without Google or email sign-in configured, send an API key instead: `--header "Authorization: Bearer mk_..."`. The server also runs locally over stdio: `claude mcp add meerko -- npx tsx /absolute/path/to/meerko/packages/mcp/src/index.ts` (it uses the CLI's saved login).
 
 - **Tools:** tables and rows, lead search and enrichment, mailboxes, sequences, replies and drafts, pipeline and credits (32 in all; your agent lists them).
 - **Commands (MCP prompts):** `find-leads`, `write-sequence`, `triage-replies`, `pipeline`. In Claude Code they appear as `/mcp__meerko__find-leads` and so on. Anything that emails someone waits for your OK.

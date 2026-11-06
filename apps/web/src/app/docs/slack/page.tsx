@@ -60,7 +60,7 @@ export default function Page() {
       <H2 id="approving">Who can approve</H2>
       <p>
         When someone clicks Approve or Discard, Meerko asks Slack for their email and checks it belongs to a member of the Meerko workspace.
-        Anyone else in the channel gets a private note and nothing happens. So the Slack email has to match the Google account you sign in
+        Anyone else in the channel gets a private note and nothing happens. So the Slack email has to match the email you sign in
         to Meerko with.
       </p>
       <Callout>

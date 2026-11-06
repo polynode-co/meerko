@@ -100,7 +100,7 @@ export default function Page() {
       <H2 id="other-ways">Other ways to connect</H2>
       <H3>With an API key</H3>
       <p>
-        On a <L href="/docs/self-hosting">self-hosted</L> server without Google sign-in, send an{" "}
+        On a <L href="/docs/self-hosting">self-hosted</L> server without Google or email sign-in, send an{" "}
         <L href="/docs/api-keys">API key</L> instead of signing in:
       </p>
       {sh("bash", [`claude mcp add --transport http --scope user meerko ${url} \\`, '    --header "Authorization: Bearer mk_…"'])}

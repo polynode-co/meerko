@@ -58,7 +58,7 @@ export default function PrivacyPage() {
         <Table
           head={["Data", "What it is"]}
           rows={[
-            ["Account", "Your name, email address and Google account ID, from Sign in with Google."],
+            ["Account", "Your email address. With Sign in with Google, also your name and Google account ID."],
             ["Mailboxes", "The address you connect, the password, app password or Google token that lets Meerko use it (encrypted), the account it signs in as if that differs, its mail servers if it isn't Gmail, your sender name and daily limit."],
             ["Your workspace", "Tables and leads you import or find, sequences, drafts, and their pipeline stages."],
             ["Emails", "Emails Meerko sends for you, and the replies in those threads."],
@@ -150,7 +150,7 @@ export default function PrivacyPage() {
           rows={[
             [
               "Encryption in transit",
-              "meerko.ai and api.meerko.ai are only served over HTTPS (TLS), and plain HTTP is redirected to it. Meerko connects to your mail server (IMAP and SMTP) and to Google sign-in over TLS too.",
+              "meerko.ai and api.meerko.ai are only served over HTTPS (TLS), and plain HTTP is redirected to it. Meerko connects to your mail server (IMAP and SMTP) to Google sign-in and to the server that sends sign-in emails over TLS too.",
             ],
             [
               "Encrypted mailbox credentials",

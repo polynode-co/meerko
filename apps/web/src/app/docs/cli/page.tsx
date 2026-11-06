@@ -34,7 +34,7 @@ export default function Page() {
         lines={[{ text: "$ git clone https://github.com/polynode-co/meerko ~/meerko && cd ~/meerko && pnpm install" }, { text: `$ pnpm meerko login --url ${apiUrl()}` }]}
       />
       <p>
-        Without <C>--url</C> it uses <C>http://localhost:8787</C>, a self-hosted API on this machine. On a server without Google sign-in,
+        Without <C>--url</C> it uses <C>http://localhost:8787</C>, a self-hosted API on this machine. On a server without Google or email sign-in,
         log in with an <L href="/docs/api-keys">API key</L> instead: <C>--key mk_…</C>. The <C>MEERKO_API_KEY</C> and{" "}
         <C>MEERKO_API_URL</C> environment variables override the saved login. <C>pnpm meerko logout</C> signs out.
       </p>
