@@ -26,6 +26,13 @@ export function FindLeads({ tables, credits }: { tables: { id: string; name: str
   const [intent, setIntent] = useState<"count" | "add">("count");
   const [state, dispatch, pending] = useActionState(findLeads, null);
   const people = kind === "people";
+  // Shown beside the button that was pressed: at the bottom of a long form it's off-screen on a phone.
+  const error = (forIntent: "count" | "add") =>
+    state && !state.ok && intent === forIntent ? (
+      <p role="alert" className="basis-full text-[15px] text-[#e5795b]">
+        {state.error}
+      </p>
+    ) : null;
 
   // Submitted by hand rather than with `action={…}`, which resets the form afterwards: counting shouldn't clear the
   // filters you're refining. The submitter carries `intent` (count or add).
@@ -98,6 +105,7 @@ export function FindLeads({ tables, credits }: { tables: { id: string; name: str
             {state.total.toLocaleString("en")} {state.total === 1 ? "match" : "matches"}
           </span>
         )}
+        {error("count")}
       </div>
 
       <div className="flex flex-col gap-4 bg-lk-ink p-4 outline outline-1 -outline-offset-1 outline-lk-line">
@@ -117,24 +125,20 @@ export function FindLeads({ tables, credits }: { tables: { id: string; name: str
             </select>
           </Field>
           {!tableId && (
-            <Field label="New table name">
-              <input name="tableName" className={field} placeholder={people ? "Fintech CTOs, Spain" : "Fintech companies"} />
+            <Field label="New table name" hint="Optional.">
+              <input name="tableName" className={field} placeholder="Named after your search" />
             </Field>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button name="intent" value="add" disabled={pending} className={buttonClass("primary")}>
             {pending && intent === "add" ? "Adding…" : "Find and add"}
           </button>
           <span className="text-[14px] text-lk-dim">Then use Find &amp; verify emails on the table.</span>
+          {error("add")}
         </div>
       </div>
 
-      {state && !state.ok && (
-        <p role="alert" className="text-[15px] text-[#e5795b]">
-          {state.error}
-        </p>
-      )}
     </form>
   );
 }

@@ -56,3 +56,19 @@ export function buildLeadQuery(kind: LeadKind, form: LeadForm): { query: LeadQue
   if (Object.keys(query).length === 0) return { error: "Add at least one filter" };
   return { query };
 }
+
+/**
+ * A name for the new table when the person left it empty, from what they searched for: "CTO, VP Engineering · ES".
+ * Falls back to the kind and today's date, so "Find and add" never stops on a missing name.
+ */
+export function defaultTableName(kind: LeadKind, form: LeadForm, today = new Date()) {
+  const short = (v: unknown, n = 2) => {
+    const items = list(v);
+    return items.length ? items.slice(0, n).join(", ") + (items.length > n ? "…" : "") : "";
+  };
+  const what = kind === "people" ? short(form.titles) || short(form.keywords) || short(form.industry, 1) : short(form.names) || short(form.industry, 1) || short(form.keywords);
+  const where = short(form.location, 3).toUpperCase();
+  const name = [what, where].filter(Boolean).join(" · ");
+  if (name) return name.slice(0, 80);
+  return `${kind === "people" ? "People" : "Companies"} · ${today.toISOString().slice(0, 10)}`;
+}
