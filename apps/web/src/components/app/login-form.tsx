@@ -1,10 +1,11 @@
 "use client";
 
-import { Gift, Ticket } from "lucide-react";
+import { Gift, MailCheck, Ticket } from "lucide-react";
 import Image from "next/image";
 import { useActionState } from "react";
 import { LogoMark } from "@/components/ui/brand";
 import { login } from "@/app/app/actions";
+import { requestEmailLink } from "@/app/login/actions";
 
 function GoogleIcon() {
   return (
@@ -34,12 +35,70 @@ function NightPanel() {
   );
 }
 
-/** `googleUrl` set: "Sign in with Google" (cloud). Unset: paste an API key (self-hosting without Google). */
-export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: string | null; inviteOnly: boolean; notice?: string; next?: string | null }) {
+const button =
+  "flex items-center justify-center gap-3 bg-lk-fg px-4 py-[15px] font-plex text-[13px] font-semibold tracking-[0.8px] text-lk-ink uppercase shadow-[4px_4px_0_var(--color-lk-lime)] transition hover:translate-x-px hover:translate-y-px hover:shadow-[3px_3px_0_var(--color-lk-lime)] disabled:opacity-50";
+const secondaryButton =
+  "flex items-center justify-center gap-3 px-4 py-[14px] font-plex text-[13px] font-semibold tracking-[0.8px] text-lk-fg uppercase outline outline-1 -outline-offset-1 outline-lk-gray transition hover:outline-lk-lime disabled:opacity-50";
+const field =
+  "bg-transparent px-4 py-3.5 font-plex text-[14px] text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray placeholder:text-lk-dim focus:outline-lk-lime";
+
+/** "Email me a link", then "check your inbox". The API sends the link (MEERKO_SMTP_URL). */
+function EmailLinkForm({ primary, next, attribution }: { primary: boolean; next?: string | null; attribution: Record<string, string> }) {
+  const [state, action, pending] = useActionState(requestEmailLink, null);
+  if (state && "sent" in state) {
+    return (
+      <div role="status" className="flex gap-3 bg-lk-box px-4 py-3.5 text-[15px] leading-[1.55] outline outline-1 -outline-offset-1 outline-lk-line">
+        <MailCheck className="mt-0.5 size-[17px] shrink-0 text-lk-lime" />
+        <p className="flex flex-col gap-1">
+          <span className="font-semibold">Check your inbox</span>
+          <span className="text-lk-muted">
+            We sent a sign-in link to <span className="text-lk-fg">{state.sent}</span>. It works once and expires in 15 minutes.
+          </span>
+        </p>
+      </div>
+    );
+  }
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      {next && <input type="hidden" name="next" value={next} />}
+      {Object.entries(attribution).map(([k, v]) => (
+        <input key={k} type="hidden" name={k} value={v} />
+      ))}
+      <input name="email" type="email" autoComplete="email" required placeholder="you@company.com" aria-label="Email address" className={field} />
+      {state && "error" in state && (
+        <p role="alert" className="text-[15px] text-[#ff8a6b]">
+          {state.error}
+        </p>
+      )}
+      <button disabled={pending} className={primary ? button : secondaryButton}>
+        {pending ? "Sending…" : "Email me a sign-in link"}
+      </button>
+    </form>
+  );
+}
+
+/**
+ * `googleUrl` and/or `emailLinks` set: "Continue with Google" and "Email me a sign-in link" (cloud, or self-hosting
+ * with Google or SMTP configured). Neither: paste an API key.
+ */
+export function LoginForm({
+  googleUrl,
+  emailLinks = false,
+  inviteOnly,
+  notice,
+  next,
+  attribution = {},
+}: {
+  googleUrl: string | null;
+  emailLinks?: boolean;
+  inviteOnly: boolean;
+  notice?: string;
+  next?: string | null;
+  attribution?: Record<string, string>;
+}) {
   const [state, action, pending] = useActionState(login, null);
   const error = state && !state.ok ? state.error : notice;
-  const button =
-    "flex items-center justify-center gap-3 bg-lk-fg px-4 py-[15px] font-plex text-[13px] font-semibold tracking-[0.8px] text-lk-ink uppercase shadow-[4px_4px_0_var(--color-lk-lime)] transition hover:translate-x-px hover:translate-y-px hover:shadow-[3px_3px_0_var(--color-lk-lime)] disabled:opacity-50";
+  const signIn = !!googleUrl || emailLinks;
 
   return (
     <div className="flex min-h-dvh bg-lk-bg text-lk-fg">
@@ -58,8 +117,12 @@ export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: 
             </p>
             <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-1.2px] sm:text-[40px] sm:tracking-[-1.4px]">Open your workspace</h1>
             <p className="text-[15.5px] leading-[1.6] text-lk-muted">
-              {googleUrl ? (
+              {googleUrl && emailLinks ? (
+                "Continue with Google, or get a sign-in link by email."
+              ) : googleUrl ? (
                 "Sign in with the Google account Meerko knows you by."
+              ) : emailLinks ? (
+                "We'll email you a link to sign in. No password needed."
               ) : (
                 <>
                   Paste your Meerko API key. Create one with <span className="font-plex text-lk-fg">pnpm db:seed</span> on a self-hosted install.
@@ -73,13 +136,21 @@ export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: 
               </p>
             )}
 
-            {googleUrl ? (
+            {signIn ? (
               <>
-                {/* A full navigation, not a client-side Link: the API redirects on to Google. */}
-                <a href={googleUrl} className={`${button} mt-1`}>
-                  <GoogleIcon />
-                  Continue with Google
-                </a>
+                {googleUrl && (
+                  // A full navigation, not a client-side Link: the API redirects on to Google.
+                  <a href={googleUrl} className={`${button} mt-1`}>
+                    <GoogleIcon />
+                    Continue with Google
+                  </a>
+                )}
+                {googleUrl && emailLinks && (
+                  <p className="flex items-center gap-3 font-plex text-[12px] tracking-[0.8px] text-lk-dim uppercase before:h-px before:flex-1 before:bg-lk-line before:content-[''] after:h-px after:flex-1 after:bg-lk-line after:content-['']">
+                    or
+                  </p>
+                )}
+                {emailLinks && <EmailLinkForm primary={!googleUrl} next={next} attribution={attribution} />}
                 {inviteOnly ? (
                   <div className="flex gap-3 bg-lk-box px-4 py-3.5 text-[15px] leading-[1.55] outline outline-1 -outline-offset-1 outline-lk-line">
                     <Ticket className="mt-0.5 size-[17px] shrink-0 text-lk-lime" />
@@ -107,7 +178,7 @@ export function LoginForm({ googleUrl, inviteOnly, notice, next }: { googleUrl: 
                   required
                   placeholder="mk_…"
                   aria-label="API key"
-                  className="bg-transparent px-4 py-3.5 font-plex text-[14px] text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray placeholder:text-lk-dim focus:outline-lk-lime"
+                  className={field}
                 />
                 <button disabled={pending} className={button}>
                   {pending ? "Checking…" : "Continue"}

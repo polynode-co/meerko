@@ -54,6 +54,14 @@ import {
   setAgentHook,
   testAgentHook,
   createAuthCode,
+  createEmailSignIn,
+  createSession,
+  mayJoin,
+  recentEmailSignIns,
+  redeemEmailSignIn,
+  signInLinkMail,
+  signInWithEmail,
+  type SystemMailer,
   deleteSession,
   exchangeAuthCode,
   listApiKeys,
@@ -269,6 +277,11 @@ export interface AppDeps {
    * Unset (self-hosting without Google, or no MEERKO_APP_URL) means the dashboard logs in with an API key.
    */
   googleSignIn?: GoogleOAuth;
+  /**
+   * Sends Meerko's own email (MEERKO_SMTP_URL + MEERKO_MAIL_FROM). With MEERKO_APP_URL it turns on sign-in
+   * links by email; unset, the login page offers only Google (or an API key).
+   */
+  mailer?: SystemMailer | null;
   /** Who may sign in with Google: anyone (`open`) or invited emails only (`invite`, the default). */
   signup?: SignupMode;
   /**
@@ -550,7 +563,63 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   const signInEnabled = () => !!(deps.googleSignIn && deps.appUrl && box);
   const toLogin = (error: string) => backToApp(new URL("/login", deps.appUrl).toString(), { error });
 
-  app.get("/auth/config", (c) => c.json({ google: signInEnabled(), signup: deps.signup ?? "invite" }));
+  const emailSignInEnabled = () => !!(deps.mailer && deps.appUrl);
+  // Across all addresses, per instance: a cap on how much mail strangers can make this server send.
+  const emailLinkSends = attemptLimiter(300, 60 * 60_000);
+
+  app.get("/auth/config", (c) => c.json({ google: signInEnabled(), email: emailSignInEnabled(), signup: deps.signup ?? "invite" }));
+
+  // --- Sign-in links by email ---
+  // The web app's server calls these. The link opens a page with a button that calls /auth/email/verify, so
+  // mail scanners that open every link don't use it up.
+  const emailOff = () => new HTTPException(404, { message: "Email sign-in isn't configured on this server" });
+
+  app.post("/auth/email/start", async (c) => {
+    if (!emailSignInEnabled()) throw emailOff();
+    const body = await parse(
+      z.object({ email: z.string().trim().toLowerCase().pipe(z.email().max(254)), source: z.record(z.string(), z.string()).optional() }),
+      await c.req.json().catch(() => ({})),
+    );
+    const email = body.email;
+    if ((await recentEmailSignIns(db, email, 15 * 60_000)) >= 3) {
+      throw new HTTPException(429, { message: "We've sent a few links to that address already. Check your inbox, or try again in 15 minutes." });
+    }
+    if ((deps.signup ?? "invite") === "invite" && !(await mayJoin(db, email))) {
+      throw new HTTPException(403, { message: `${email} hasn't been invited to Meerko yet.` });
+    }
+    if (!emailLinkSends.allow("all")) throw new HTTPException(429, { message: "Too many sign-in emails right now. Try again in a few minutes." });
+    const token = await createEmailSignIn(db, email, signupSource(body.source ?? {}));
+    const link = new URL("/login/email", deps.appUrl);
+    link.searchParams.set("token", token);
+    try {
+      await deps.mailer!.send(signInLinkMail(email, link.toString()));
+    } catch (err) {
+      console.error(err);
+      throw new HTTPException(502, { message: "We couldn't send the email. Try again, or continue with Google." });
+    }
+    return c.body(null, 204);
+  });
+
+  /** Uses a sign-in link's token and returns a session token, like /auth/exchange. */
+  app.post("/auth/email/verify", async (c) => {
+    if (!emailSignInEnabled()) throw emailOff();
+    const { token } = await parse(z.object({ token: z.string().min(1) }), await c.req.json().catch(() => ({})));
+    const link = await redeemEmailSignIn(db, token);
+    if (!link) throw new HTTPException(400, { message: "This sign-in link has expired or was already used. Ask for a new one." });
+    try {
+      const { userId, workspaceId, newUser } = await signInWithEmail(db, link.email, deps.signup ?? "invite");
+      const person = { email: link.email };
+      if (newUser) {
+        await analytics.capture({ distinctId: userId, event: EVENTS.signUp, workspaceId, properties: { method: "email", ...signupSource(link.source) }, set: person });
+      }
+      await analytics.capture({ distinctId: userId, event: EVENTS.signInCompleted, workspaceId, properties: { method: "email" }, set: person });
+      const session = await createSession(db, userId, workspaceId);
+      return c.json({ token: session.token, expires_at: session.expiresAt });
+    } catch (err) {
+      if (err instanceof SignInError) throw new HTTPException(403, { message: err.message });
+      throw err;
+    }
+  });
 
   app.get("/auth/google/start", (c) => {
     if (!signInEnabled()) throw new HTTPException(404, { message: "Google sign-in isn't configured on this server" });

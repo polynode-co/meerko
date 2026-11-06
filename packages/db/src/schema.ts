@@ -63,8 +63,8 @@ export const apiKeys = pgTable("api_keys", {
 /** People who sign in to the dashboard. Workspaces predate users: the CLI and agents still use API keys. */
 export const users = pgTable("users", {
   id: id(),
-  // Google's stable account id; the email can change.
-  googleSub: text("google_sub").notNull().unique(),
+  // Google's stable account id; the email can change. Null for people who only sign in with an email link.
+  googleSub: text("google_sub").unique(),
   email: text("email").notNull().unique(),
   name: text("name"),
   createdAt: createdAt(),
@@ -106,6 +106,18 @@ export const authCodes = pgTable("auth_codes", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
+/**
+ * Sign-in links sent by email (MEERKO_SMTP_URL). Stored hashed, used once, short-lived. `source` is where the
+ * visit came from (the web app's lib/attribution.ts), for the sign_up event.
+ */
+export const emailSignIns = pgTable("email_sign_ins", {
+  tokenHash: text("token_hash").primaryKey(),
+  email: text("email").notNull(),
+  source: jsonb("source").$type<Record<string, string>>().notNull().default(sql`'{}'::jsonb`),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: createdAt(),
 });
 
 /** Emails allowed into a workspace; claimed on that address's first Google sign-in. */

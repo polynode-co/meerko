@@ -330,7 +330,17 @@ export class MeerkoClient {
 
   /** Whether the server offers "Sign in with Google", and whether anyone can sign up (public; no key needed). */
   authConfig() {
-    return this.call<{ google: boolean; signup: "open" | "invite" }>("GET", "/auth/config");
+    return this.call<{ google: boolean; email?: boolean; signup: "open" | "invite" }>("GET", "/auth/config");
+  }
+
+  /** Emails a sign-in link to `email` (public; the server needs MEERKO_SMTP_URL). `source` is the visit's attribution. */
+  requestEmailSignIn(email: string, source?: Record<string, string>) {
+    return this.call<void>("POST", "/auth/email/start", { email, source });
+  }
+
+  /** Uses the token from a sign-in link and returns a session token, once (public). */
+  verifyEmailSignIn(token: string) {
+    return this.call<{ token: string; expires_at: string }>("POST", "/auth/email/verify", { token });
   }
 
   /** Trades the one-time code from the Google sign-in callback for a session token (public; no key needed). */

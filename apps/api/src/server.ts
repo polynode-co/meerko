@@ -1,5 +1,5 @@
 import { serve } from "@hono/node-server";
-import { GenerectClient, GoogleOAuth, IcypeasClient, MicrosoftOAuth, SecretBox, stripeFromEnv, type SignupMode } from "@meerko/core";
+import { GenerectClient, GoogleOAuth, IcypeasClient, MicrosoftOAuth, SecretBox, smtpMailer, stripeFromEnv, type SignupMode } from "@meerko/core";
 import { createDb } from "@meerko/db";
 import { createAnalytics } from "./analytics.ts";
 import { createApp } from "./app.ts";
@@ -55,6 +55,8 @@ const app = createApp(createDb(), {
           redirectUri: new URL("/auth/google/callback", publicUrl).toString(),
         })
       : undefined,
+  // Any SMTP server; turns on sign-in links by email. Unset (the self-hosting default) leaves them off.
+  mailer: smtpMailer(process.env.MEERKO_SMTP_URL, process.env.MEERKO_MAIL_FROM),
   signup: process.env.MEERKO_SIGNUP === "open" ? "open" : ("invite" satisfies SignupMode),
   publicUrl,
   analytics,
