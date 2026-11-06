@@ -18,17 +18,17 @@ async function isSignedIn(token: string) {
   }
 }
 
-/** "Sign in with Google" when the API offers it; otherwise (self-hosting) the API-key form. */
+/** "Sign in with Google" and email links when the API offers them; otherwise (self-hosting) the API-key form. */
 async function signInOptions(next: string | null, attribution: string) {
   try {
-    const { google, signup } = await new MeerkoClient({ apiUrl: apiUrl(), apiKey: "" }).authConfig();
+    const { google, email, signup } = await new MeerkoClient({ apiUrl: apiUrl(), apiKey: "" }).authConfig();
     // With somewhere to return to, /auth/start remembers it across the Google round trip.
     // The visit's source (lib/attribution.ts) rides along so the API can put it on the sign_up event.
     const query = [next ? `next=${encodeURIComponent(next)}` : "", attribution].filter(Boolean).join("&");
     const start = next ? `/auth/start?${query}` : `${new URL("/auth/google/start", publicApiUrl()).toString()}${query ? `?${query}` : ""}`;
-    return { googleUrl: google ? start : null, inviteOnly: signup !== "open" };
+    return { googleUrl: google ? start : null, emailLinks: !!email, inviteOnly: signup !== "open" };
   } catch {
-    return { googleUrl: null, inviteOnly: true };
+    return { googleUrl: null, emailLinks: false, inviteOnly: true };
   }
 }
 
@@ -42,6 +42,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const options = await signInOptions(next, attributionQuery(params));
   // ?method=key shows the API-key form even where Google sign-in is on: for app reviewers given a key, who can't
   // pass Google's new-location checks on a shared account.
-  if (method === "key") options.googleUrl = null;
-  return <LoginForm {...options} next={next} notice={error ?? (expired ? "Your session expired. Sign in again." : undefined)} />;
+  if (method === "key") Object.assign(options, { googleUrl: null, emailLinks: false });
+  const attribution = Object.fromEntries(new URLSearchParams(attributionQuery(params)));
+  return <LoginForm {...options} attribution={attribution} next={next} notice={error ?? (expired ? "Your session expired. Sign in again." : undefined)} />;
 }

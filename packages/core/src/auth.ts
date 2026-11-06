@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, asc, authCodes, creditLedger, eq, invitations, lte, memberships, sessions, sql, users, workspaces, type Db, type Role } from "@meerko/db";
+import { and, asc, authCodes, creditLedger, emailSignIns, eq, gte, invitations, lte, memberships, sessions, sql, users, workspaces, type Db, type Role } from "@meerko/db";
 import { FREE_TIER_CREDITS } from "./credits.ts";
 import type { GoogleProfile } from "./mail/gmail.ts";
 
@@ -7,6 +7,8 @@ const SESSION_PREFIX = "ms_";
 const CODE_PREFIX = "mc_";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
 const CODE_TTL_MS = 60_000;
+const EMAIL_LINK_PREFIX = "ml_";
+const EMAIL_LINK_TTL_MS = 15 * 60_000;
 const TOUCH_EVERY_MS = 60 * 60_000;
 
 /** `open`: any Google account gets a workspace. `invite`: only emails with an invitation can sign in. */
@@ -25,8 +27,21 @@ const hashToken = (token: string) => createHash("sha256").update(token).digest("
 export async function signInWithGoogle(db: Db, profile: GoogleProfile, signup: SignupMode) {
   // Invitations are matched by email, so only an address Google has verified may claim them.
   if (!profile.emailVerified) throw new SignInError("Your Google account's email isn't verified.");
+  return signInVerified(db, { sub: profile.sub, email: profile.email, name: profile.name }, signup);
+}
+
+/**
+ * Finds or creates the user behind an email address they just proved they own (a sign-in link), then does
+ * what Google sign-in does. Matched by email, so someone who signed up with Google can use a link too.
+ */
+export async function signInWithEmail(db: Db, email: string, signup: SignupMode) {
+  return signInVerified(db, { email: normalizeEmail(email) }, signup);
+}
+
+/** The shared half of every sign-in: `email` is verified by the caller (Google, or a link sent to it). */
+async function signInVerified(db: Db, profile: { sub?: string; email: string; name?: string }, signup: SignupMode) {
   return db.transaction(async (tx) => {
-    const [bySub] = await tx.select().from(users).where(eq(users.googleSub, profile.sub));
+    const [bySub] = profile.sub ? await tx.select().from(users).where(eq(users.googleSub, profile.sub)) : [];
     const [byEmail] = bySub ? [] : await tx.select().from(users).where(eq(users.email, profile.email));
     let user = bySub ?? byEmail;
     const newUser = !user;
@@ -34,11 +49,11 @@ export async function signInWithGoogle(db: Db, profile: GoogleProfile, signup: S
       // A recreated Google account keeps its Meerko user; a changed address or name is picked up.
       [user] = await tx
         .update(users)
-        .set({ googleSub: profile.sub, email: profile.email, name: profile.name ?? user.name })
+        .set({ googleSub: profile.sub ?? user.googleSub, email: profile.email, name: profile.name ?? user.name })
         .where(eq(users.id, user.id))
         .returning();
     } else {
-      [user] = await tx.insert(users).values({ googleSub: profile.sub, email: profile.email, name: profile.name }).returning();
+      [user] = await tx.insert(users).values({ googleSub: profile.sub ?? null, email: profile.email, name: profile.name }).returning();
     }
 
     const invites = await tx.delete(invitations).where(eq(invitations.email, profile.email)).returning();
@@ -65,6 +80,47 @@ export async function signInWithGoogle(db: Db, profile: GoogleProfile, signup: S
     await tx.insert(creditLedger).values({ workspaceId: ws!.id, delta: FREE_TIER_CREDITS, reason: "free_tier" });
     return { userId: user!.id, workspaceId: ws!.id, newUser };
   });
+}
+
+export const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+/** Whether `email` could sign in with signup set to `invite`: they already have an account or an invitation. */
+export async function mayJoin(db: Db, email: string) {
+  const address = normalizeEmail(email);
+  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, address)).limit(1);
+  if (user) return true;
+  const [invite] = await db.select({ email: invitations.email }).from(invitations).where(eq(invitations.email, address)).limit(1);
+  return !!invite;
+}
+
+/** How many sign-in links went to `email` in the last `windowMs` (the API's per-address limit). */
+export async function recentEmailSignIns(db: Db, email: string, windowMs: number) {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(emailSignIns)
+    .where(and(eq(emailSignIns.email, normalizeEmail(email)), gte(emailSignIns.createdAt, new Date(Date.now() - windowMs))));
+  return row?.n ?? 0;
+}
+
+/** A one-time token for a sign-in link to `email`, valid for 15 minutes. Only its hash is stored. */
+export async function createEmailSignIn(db: Db, email: string, source: Record<string, string> = {}) {
+  // Rows are kept a day past expiry so recentEmailSignIns can still count them.
+  await db.delete(emailSignIns).where(lte(emailSignIns.expiresAt, new Date(Date.now() - 24 * 60 * 60_000)));
+  const token = EMAIL_LINK_PREFIX + randomBytes(32).toString("base64url");
+  await db.insert(emailSignIns).values({ tokenHash: hashToken(token), email: normalizeEmail(email), source, expiresAt: new Date(Date.now() + EMAIL_LINK_TTL_MS) });
+  return token;
+}
+
+/** Uses up a sign-in link's token: the address it proves and the visit's source, or null if unknown, used or expired. */
+export async function redeemEmailSignIn(db: Db, token: string) {
+  if (!token.startsWith(EMAIL_LINK_PREFIX)) return null;
+  // Expiring the row instead of deleting it keeps it counted by recentEmailSignIns.
+  const [row] = await db
+    .update(emailSignIns)
+    .set({ expiresAt: new Date(0) })
+    .where(and(eq(emailSignIns.tokenHash, hashToken(token)), gte(emailSignIns.expiresAt, new Date())))
+    .returning();
+  return row ? { email: row.email, source: row.source } : null;
 }
 
 /** A one-time code the OAuth callback hands to the web app (so the session token never sits in a URL). */

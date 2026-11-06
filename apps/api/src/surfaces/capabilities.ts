@@ -54,7 +54,7 @@ export const CAPABILITIES: Capability[] = [
     id: "sign-in",
     summary: "Sign in",
     routes: [],
-    web: yes(action("login"), action("logout"), "app/login/page.tsx"),
+    web: yes(action("login"), action("logout"), "app/login/page.tsx", "app/login/actions.ts#requestEmailLink", "app/login/actions.ts#redeemEmailLink"),
     mcp: { deliberately_absent: "MCP clients sign in with OAuth when they connect" },
     cli: yes("login", "logout"),
     api: { deliberately_absent: "The API takes an API key; dashboard sign-in is /auth, outside /v1" },

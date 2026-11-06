@@ -117,6 +117,12 @@ export default function Page() {
           create a workspace.
         </p>
         <p>
+          <strong className="text-fg">Optional: sign-in links by email.</strong> To let people sign in without Google, give Meerko any
+          SMTP server to send from (your own mail provider, or a service such as Postmark or Resend). The login page then offers
+          &quot;Email me a sign-in link&quot;; each link works once and expires in 15 minutes:
+        </p>
+        {sh(["MEERKO_SMTP_URL=smtp://user:password@smtp.example.com:587", "MEERKO_MAIL_FROM=Meerko <noreply@example.com>"], ".env")}
+        <p>
           <strong className="text-fg">Optional: connect mailboxes through Google instead.</strong> The same client can connect Gmail
           through Google&apos;s consent page (the Gmail API) instead of app passwords. Enable the{" "}
           <L href={docsSources.enableApis.url}>Gmail API</L>, add <C>http://localhost:8787/oauth/google/callback</C> to the redirect URIs,
@@ -155,7 +161,8 @@ export default function Page() {
           ["MICROSOFT_CLIENT_ID · MICROSOFT_CLIENT_SECRET", "Your app in Microsoft Entra, for connecting Outlook and Microsoft 365 mailboxes (step 4). Without them, Outlook isn't offered."],
           ["SLACK_CLIENT_ID · SLACK_CLIENT_SECRET · SLACK_SIGNING_SECRET", <>Your Slack app, for replies and drafts in a channel with Approve buttons, and /meerko. Without them, Connections → Slack takes a pasted incoming webhook instead, which only posts. Setup in <L href="/docs/slack">Slack</L>.</>],
           ["MEERKO_ALLOW_PRIVATE_HOOKS", "1 lets agent hooks (Wake your agent) call private addresses such as localhost or your LAN. Self-hosting only; off by default."],
-          ["MEERKO_SIGNUP", "invite (default): only addresses added with pnpm db:invite can sign in with Google. open: anyone can."],
+          ["MEERKO_SIGNUP", "invite (default): only addresses added with pnpm db:invite can sign in. open: anyone can sign up, with Google or an email link."],
+          ["MEERKO_SMTP_URL · MEERKO_MAIL_FROM", "Any SMTP server (smtp://user:password@host:587, smtps:// for 465) and the sender address, for sign-in links by email. Needs MEERKO_APP_URL. Without them, the login page offers Google (or an API key) only."],
           ["ICYPEAS_API_KEY", "Lead search and email finding for every workspace on this server."],
           ["MEERKO_CREDITS", "off (default) when self-hosting. on meters search and enrichment in credits, as on Meerko Cloud. Setting up Stripe turns it on."],
           ["MEERKO_TICK_SECRET", "Meerko Cloud only, where a scheduler replaces the worker. Leave it empty."],

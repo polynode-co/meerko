@@ -134,6 +134,13 @@
       "when": 1793812452790,
       "tag": "0018_workspace_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793968567131,
+      "tag": "0019_email_sign_in",
+      "breakpoints": true
     }
   ]
 }
