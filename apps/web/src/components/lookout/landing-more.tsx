@@ -170,8 +170,13 @@ export function Problem({ n }: { n: string }) {
               ))}
             </ul>
             <div className="flex items-center justify-between border-t-[1.5px] border-lk-ink pt-4 font-plex">
-              <span className="bg-lk-ink px-2 py-1 text-[14px] font-semibold text-lk-lime">$0 self-hosted</span>
-              <span className="text-[13.5px] text-lk-gray">Cloud from $49/mo</span>
+              {/* The answer to the $282 stack: one paid plan, all of it hosted. Self-hosting is the alternative. */}
+              <a href={site.pricingUrl} className="bg-lk-ink px-2 py-1 text-[14px] font-semibold text-lk-lime hover:brightness-110">
+                $49/mo, all in one
+              </a>
+              <a href="/docs/self-hosting" className="text-[13.5px] text-lk-gray hover:text-lk-ink">
+                or $0 self-hosted
+              </a>
             </div>
           </Window>
         </div>
