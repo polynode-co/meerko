@@ -151,7 +151,7 @@ export default function DocsHub() {
 
         <section className={`${section} grid gap-x-6 pb-24 md:grid-cols-3`}>
           {[
-            { icon: KeyRound, title: "API keys", body: "For scripts and self-hosted servers without Google sign-in. Agents sign in with the browser.", href: "/docs/api-keys" },
+            { icon: KeyRound, title: "API keys", body: "For scripts and self-hosted servers without Google or email sign-in. Agents sign in with the browser.", href: "/docs/api-keys" },
             { icon: FileText, title: "Edit these docs", body: "Every page is in the repo. Spot something wrong? Open a pull request.", href: `${site.githubUrl}/tree/main/apps/web/src/app/docs` },
             { icon: Mail, title: "Ask on GitHub", body: "Questions and bugs go to GitHub issues, where the answers stay findable.", href: `${site.githubUrl}/issues`, github: true },
           ].map(({ icon: Icon, title, body, href, github }) => (

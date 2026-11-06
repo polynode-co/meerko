@@ -52,7 +52,7 @@ export default function Page() {
 
       <H2 id="api-key">With an API key instead</H2>
       <p>
-        On a <L href="/docs/self-hosting">self-hosted</L> server without Google sign-in, send an <L href="/docs/api-keys">API key</L> as a
+        On a <L href="/docs/self-hosting">self-hosted</L> server without Google or email sign-in, send an <L href="/docs/api-keys">API key</L> as a
         header. In Codex, set <C>bearer_token_env_var</C> to the name of an environment variable holding the key. In Cursor:
       </p>
       {block("~/.cursor/mcp.json", [

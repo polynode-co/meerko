@@ -28,7 +28,7 @@ export default function Page() {
 
       <Step n={1} id="sign-in" title="Sign in">
         <p>
-          Open <L href="/login">Sign in</L> and continue with your Google account: the first sign-in creates your workspace. New
+          Open <L href="/login">Sign in</L> and continue with Google, or get a sign-in link by email: the first sign-in creates your workspace. New
           workspaces start with 200 free credits: see <L href="/docs/credits">Credits</L> for what they pay for.
         </p>
       </Step>

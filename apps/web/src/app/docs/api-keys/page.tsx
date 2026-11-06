@@ -12,7 +12,7 @@ export default function Page() {
       lead={
         <p>
           Agents and the CLI sign in with your browser, so most people never need a key. Keys are for scripts, CI and self-hosted servers
-          without Google sign-in. Each key belongs to one workspace and can use everything in it.
+          without Google or email sign-in. Each key belongs to one workspace and can use everything in it.
         </p>
       }
       toc={[

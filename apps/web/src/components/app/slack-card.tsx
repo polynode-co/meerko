@@ -118,7 +118,7 @@ export function SlackCard({
       {result && (
         <p role="status" className={`border-b border-lk-line px-[18px] py-3 text-[15px] ${result.ok ? "text-lk-lime" : "text-[#e5795b]"}`}>{result.text}</p>
       )}
-      {!canManage && <p className="px-[18px] py-3 text-sm text-lk-dim">Sign in with Google to set this up.</p>}
+      {!canManage && <p className="px-[18px] py-3 text-sm text-lk-dim">Sign in with your account, not an API key, to set this up.</p>}
     </Card>
   );
 }

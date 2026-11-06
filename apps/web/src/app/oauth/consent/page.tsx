@@ -110,10 +110,10 @@ export default async function ConsentPage({ searchParams }: { searchParams: Prom
     if (err.status === 403) {
       return (
         <Problem
-          title="Sign in with Google to connect apps"
+          title="Sign in to connect apps"
           body={
             <>
-              You&apos;re logged in with an API key. Apps connect through a person&apos;s Google sign-in. On a server without Google, give your
+              You&apos;re logged in with an API key. Apps connect through a person&apos;s sign-in (Google or an email link). On a server without either, give your
               app the key in an <code className="font-plex">Authorization: Bearer mk_…</code> header instead (
               <a href="/docs/claude-code#other-ways">
                 how
