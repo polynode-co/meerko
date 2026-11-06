@@ -122,8 +122,8 @@ export function Problem({ n }: { n: string }) {
           <div className="flex w-full flex-1 flex-col">
             <div className="flex flex-col outline outline-1 -outline-offset-1 outline-lk-line">
               {stackPrices.map(({ tool, logo, job, plan, price, url }, i) => (
-                <div key={tool} className={`flex items-center gap-4 bg-lk-box px-5 py-4 ${i ? "border-t border-lk-line" : ""}`}>
-                  <span className="flex w-[132px] shrink-0 items-center gap-3 sm:w-40">
+                <div key={tool} className={`flex items-center gap-3 bg-lk-box px-4 py-4 sm:gap-4 sm:px-5 ${i ? "border-t border-lk-line" : ""}`}>
+                  <span className="flex shrink-0 items-center gap-3 sm:w-40">
                     <Tile src={logo} />
                     {/* Tools with a comparison page link to it (lib/content.ts) */}
                     {alternatives.some((a) => a.name === tool) ? (
@@ -134,12 +134,14 @@ export function Problem({ n }: { n: string }) {
                       <span className="text-[17px] font-semibold text-lk-fg line-through decoration-lk-dim">{tool}</span>
                     )}
                   </span>
-                  <span className="flex flex-1 flex-col text-[15px] text-lk-muted">
+                  <span className="flex min-w-0 flex-1 flex-col text-[15px] text-lk-muted">
                     {job}
                     <span className="font-plex text-[12px] tracking-[0.6px] text-lk-dim">{plan}</span>
                   </span>
-                  <a href={url} target="_blank" rel="noopener" className="font-plex text-[15px] text-lk-muted underline decoration-lk-gray underline-offset-4 hover:text-lk-fg">
-                    {usd(price)}/mo
+                  <a href={url} target="_blank" rel="noopener" className="shrink-0 font-plex text-[15px] whitespace-nowrap text-lk-muted underline decoration-lk-gray underline-offset-4 hover:text-lk-fg">
+                    {/* "/mo" drops on phones so the row fits; the caption below says monthly */}
+                    {usd(price)}
+                    <span className="hidden sm:inline">/mo</span>
                   </a>
                 </div>
               ))}
@@ -170,8 +172,13 @@ export function Problem({ n }: { n: string }) {
               ))}
             </ul>
             <div className="flex items-center justify-between border-t-[1.5px] border-lk-ink pt-4 font-plex">
-              <span className="bg-lk-ink px-2 py-1 text-[14px] font-semibold text-lk-lime">$0 self-hosted</span>
-              <span className="text-[13.5px] text-lk-gray">Cloud from $49/mo</span>
+              {/* The answer to the $282 stack: one paid plan, all of it hosted. Self-hosting is the alternative. */}
+              <a href={site.pricingUrl} className="bg-lk-ink px-2 py-1 text-[14px] font-semibold text-lk-lime hover:brightness-110">
+                $49/mo, all in one
+              </a>
+              <a href="/docs/self-hosting" className="text-[13.5px] text-lk-gray hover:text-lk-ink">
+                or $0 self-hosted
+              </a>
             </div>
           </Window>
         </div>
