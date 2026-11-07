@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { parse as parseCsv } from "csv-parse/sync";
 import { MAIL_PROVIDERS, MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type MailProviderId, type MailServers, type ReplyIntent, type SequenceStep, type Stage } from "@meerko/sdk";
 import { apiUrl, meerko, safeNext, SESSION_COOKIE, setSessionCookie } from "@/lib/meerko";
-import { buildLeadQuery } from "@/lib/lead-query";
+import { buildLeadQuery, defaultTableName } from "@/lib/lead-query";
 import { site } from "@/lib/site";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
@@ -501,8 +501,8 @@ export async function findLeads(_: FindLeadsResult | null, form: FormData): Prom
   const limit = Number(form.get("limit"));
   if (!Number.isInteger(limit) || limit < 1 || limit > 1000) return { ok: false, error: "Add between 1 and 1,000 at a time" };
   const tableId = String(form.get("tableId") ?? "") || undefined;
-  const tableName = String(form.get("tableName") ?? "").trim() || undefined;
-  if (!tableId && !tableName) return { ok: false, error: "Name the new table, or pick one to add to" };
+  // An empty name is easy to miss (the placeholder looks filled in), so name the table after the search instead.
+  const tableName = tableId ? undefined : String(form.get("tableName") ?? "").trim() || defaultTableName(kind, Object.fromEntries(form.entries()));
 
   let result;
   try {
