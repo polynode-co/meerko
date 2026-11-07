@@ -41,6 +41,8 @@ export const workspaces = pgTable("workspaces", {
   subscriptionStatus: text("subscription_status"),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
   cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  /** Who this brand sells to (core/icp.ts): written by the person's agent, used to score every lead. */
+  icp: jsonb("icp").$type<object>(),
   createdAt: createdAt(),
 });
 
@@ -151,6 +153,9 @@ export const tableRows = pgTable(
     data: jsonb("data").$type<Record<string, unknown>>().notNull(),
     stage: text("stage").$type<Stage>().notNull().default("new"),
     stageChangedAt: timestamp("stage_changed_at", { withTimezone: true }),
+    // The agent's judgement on top of the rules-based ICP score: -30 to 30, and why (core/icp.ts).
+    icpAdjust: integer("icp_adjust"),
+    icpNote: text("icp_note"),
     createdAt: createdAt(),
   },
   (t) => [

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import type { Row } from "@meerko/sdk";
 import { STAGES } from "@meerko/sdk/constants";
 import { deleteRows, moveStage } from "@/app/app/actions";
+import { ScoreRing } from "./score-ring";
 import { buttonClass, Pill, stageTone, thText } from "./ui";
 
 export interface LeadColumn {
@@ -94,6 +95,8 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
   const [message, setMessage] = useState<string | null>(null);
   const toggle = (id: string) => setSelected((s) => (s.has(id) ? new Set([...s].filter((x) => x !== id)) : new Set(s).add(id)));
   const all = rows.length > 0 && selected.size === rows.length;
+  // The Fit column appears once the workspace has an ICP (any row with a score).
+  const scored = rows.some((r) => r.icp?.score !== null && r.icp?.score !== undefined);
 
   // Deleting asks once more inline (no browser dialog), since it can't be undone.
   const [confirming, setConfirming] = useState(false);
@@ -156,6 +159,11 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
                   className="size-3.5 accent-lk-lime"
                 />
               </th>
+              {scored && (
+                <th className={`py-2.5 pr-1 pl-2 ${thText}`} title="How well each lead fits your ICP (Settings → ICP)">
+                  Fit
+                </th>
+              )}
               {columns.map((c) => (
                 <th key={c.key} title={c.prompt} className={`px-3 py-2.5 whitespace-nowrap ${thText} ${c.kind === "ai" ? "!text-lk-lime" : ""}`}>
                   <span className="inline-flex items-center gap-1.5">
@@ -170,7 +178,7 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={columns.length + 2} className="px-3 py-14 text-center text-lk-dim">
+                <td colSpan={columns.length + (scored ? 3 : 2)} className="px-3 py-14 text-center text-lk-dim">
                   No rows at this stage.
                 </td>
               </tr>
@@ -180,6 +188,11 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
                 <td className="py-3 pr-2 pl-[18px] align-middle">
                   <input type="checkbox" aria-label="Select row" checked={selected.has(r.id)} onChange={() => toggle(r.id)} className="size-3.5 accent-lk-lime" />
                 </td>
+                {scored && (
+                  <td className="py-3 pr-1 pl-2 align-middle">
+                    <ScoreRing fit={r.icp} />
+                  </td>
+                )}
                 {columns.map((c) => (
                   <td key={c.key} className="max-w-[280px] px-3 py-3 align-middle">
                     <Cell col={c} data={r.data} />

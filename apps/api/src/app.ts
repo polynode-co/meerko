@@ -77,6 +77,12 @@ import {
   getProviderKey,
   FirecrawlClient,
   readWebsite,
+  clearIcp,
+  getIcp,
+  rowsAtLeast,
+  scoreRow,
+  setIcp,
+  setIcpReview,
   WebsiteError,
   firecrawlProvider,
   GenerectClient,
@@ -168,6 +174,8 @@ import {
   columnInput,
   countInput,
   websiteInput,
+  icpInput,
+  icpReviewInput,
   createApiKeyInput,
   createSequenceInput,
   createTableInput,
@@ -1109,7 +1117,8 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.get("/tables/:id/rows", async (c) => {
     const opts = await parse(queryInput, c.req.query());
-    return c.json({ rows: await queryRows(db, c.var.workspaceId, c.req.param("id"), opts) });
+    const [rows, icp] = await Promise.all([queryRows(db, c.var.workspaceId, c.req.param("id"), opts), getIcp(db, c.var.workspaceId)]);
+    return c.json({ rows: rows.map(({ icpAdjust, icpNote, ...row }) => ({ ...row, icp: scoreRow(icp, row.data, { adjust: icpAdjust, note: icpNote }) })) });
   });
 
   v1.get("/credits", async (c) =>
@@ -1173,9 +1182,34 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       }
       if (deps.billing && !enrichment.generectOwnKey) await assertPhonesAllowed(db, c.var.workspaceId);
     }
-    const result = await enrichRows(db, c.var.workspaceId, c.req.param("id"), enrichment.providers, input, enrichment.credits);
+    // "Only good fits": score the table's rows against the ICP and enrich the ones at or above the bar.
+    let rowIds = input.row_ids;
+    if (input.min_icp_score !== undefined) {
+      const icp = await getIcp(db, c.var.workspaceId);
+      if (!icp) throw new HTTPException(400, { message: "Set an ICP first (set_icp), so rows have a score to filter on" });
+      const candidates = await queryRows(db, c.var.workspaceId, c.req.param("id"), { filter: input.filter, limit: 1000 });
+      const fits = rowsAtLeast(icp, candidates, input.min_icp_score);
+      rowIds = rowIds ? fits.filter((id) => rowIds!.includes(id)) : fits;
+    }
+    const result = await enrichRows(db, c.var.workspaceId, c.req.param("id"), enrichment.providers, { ...input, rowIds }, enrichment.credits);
     await analytics.capture({ distinctId: actor(c), event: EVENTS.rowsEnriched, workspaceId: c.var.workspaceId, properties: { fields: input.fields, limit: input.limit } });
     return c.json(result);
+  });
+
+  // --- Ideal customer profile: written by the person's agent, scored by Meerko (core/icp.ts) ---
+  v1.get("/icp", async (c) => c.json({ icp: await getIcp(db, c.var.workspaceId) }));
+  v1.put("/icp", async (c) => {
+    const icp = await setIcp(db, c.var.workspaceId, await parse(icpInput, await c.req.json()));
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.icpSet, workspaceId: c.var.workspaceId, properties: { criteria: Object.keys(icp) } });
+    return c.json({ icp });
+  });
+  v1.delete("/icp", async (c) => {
+    await clearIcp(db, c.var.workspaceId);
+    return c.json({ cleared: true });
+  });
+  v1.post("/tables/:id/icp-review", async (c) => {
+    const { rows } = await parse(icpReviewInput, await c.req.json());
+    return c.json(await setIcpReview(db, c.var.workspaceId, c.req.param("id"), rows.map((r) => ({ rowId: r.row_id, adjust: r.adjust, note: r.note }))));
   });
 
   // The "first customers" onboarding: the agent reads the person's site and decides who they sell to. Free, so

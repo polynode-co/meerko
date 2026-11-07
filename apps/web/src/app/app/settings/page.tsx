@@ -12,6 +12,7 @@ import { SlackCard } from "@/components/app/slack-card";
 import { ProviderKeysCard } from "@/components/app/provider-keys-card";
 import { MailboxConnect } from "@/components/app/mailbox-connect";
 import { WorkspaceCard } from "@/components/app/workspace-card";
+import { IcpCard } from "@/components/app/icp-card";
 import { load, publicApiUrl } from "@/lib/meerko";
 
 type Search = { gmail_connected?: string; gmail_error?: string; billing?: string; billing_error?: string; connect?: string; email?: string; slack?: string };
@@ -20,7 +21,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   // The API's Gmail OAuth callback, and Stripe Checkout, redirect back here with the outcome.
   // `?connect=gmail` (from an agent's connect_gmail, or Reconnect) opens the mailbox form.
   const { gmail_connected, gmail_error, billing: paid, billing_error, connect, email, slack } = await searchParams;
-  const [mailboxes, credits, keys, apiKeys, apps, me, billing, hook, connectOptions, slackState] = await load((c) =>
+  const [mailboxes, credits, keys, apiKeys, apps, me, billing, hook, connectOptions, slackState, icp] = await load((c) =>
     Promise.all([
       c.listMailboxes(),
       c.getCredits(),
@@ -32,6 +33,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       c.getAgentHook(),
       c.mailboxConnectOptions(),
       c.getSlack(),
+      c.getIcp(),
     ]),
   );
   return (
@@ -76,6 +78,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       </Card>
 
       {me.user && <WorkspaceCard id={me.workspace.id} name={me.workspace.name} canManage={me.user.role === "owner"} />}
+      <IcpCard icp={icp} />
 
       {billing.enabled && <BillingCard billing={billing} canManage={me.user?.role === "owner"} paid={paid} error={billing_error} />}
 

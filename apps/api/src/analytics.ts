@@ -12,6 +12,7 @@ export const EVENTS = {
   mailboxConnected: "mailbox_connected",
   leadsSearched: "leads_searched",
   websiteRead: "website_read",
+  icpSet: "icp_set",
   rowsEnriched: "rows_enriched",
   sequenceStarted: "sequence_started",
   checkoutStarted: "checkout_started",

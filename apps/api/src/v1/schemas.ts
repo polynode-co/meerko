@@ -104,6 +104,8 @@ export const enrichInput = z.object({
     .default(["email", "email_verification"])
     .describe("phone is opt-in (80 credits per number found, Pro on Meerko Cloud); the default finds and verifies emails"),
   filter: jsonObject.optional(),
+  row_ids: z.array(z.string()).max(1000).optional().describe("Only these rows"),
+  min_icp_score: z.number().int().min(0).max(100).optional().describe("Only rows whose ICP fit is at least this (0-100); needs an ICP"),
   // Rows are enriched synchronously, one at a time (~3s each), so keep calls small.
   limit: z.number().int().min(1).max(50).default(25),
   overwrite: z.boolean().default(false),
@@ -172,7 +174,14 @@ export const ApiError = z.object({ error: z.string() });
 
 export const Column = z.object({ key: z.string(), name: z.string(), type: columnType, prompt: z.string().optional() });
 export const Table = z.object({ id: z.string(), name: z.string(), columns: z.array(Column), rowCount: z.number(), createdAt: ts });
-export const Row = z.object({ id: z.string(), data: jsonObject, stage, stageChangedAt: nts, createdAt: ts });
+export const IcpFit = z.object({
+  score: z.number().nullable().describe("0-100; null without an ICP or data to compare"),
+  base: z.number().nullable().describe("The rules-only score, before the agent's adjustment"),
+  checks: z.array(z.object({ criterion: z.enum(["industry", "headcount", "country", "title", "keywords", "exclude"]), matched: z.boolean(), detail: z.string() })),
+  adjust: z.number().nullable(),
+  note: z.string().nullable(),
+});
+export const Row = z.object({ id: z.string(), data: jsonObject, stage, stageChangedAt: nts, createdAt: ts, icp: IcpFit.describe("How well the lead fits the workspace ICP") });
 export const PendingCells = z.object({
   column: z.string(),
   prompt: z.string(),
@@ -384,4 +393,23 @@ export const Website = z.object({
   headings: z.array(z.string()),
   text: z.string().describe("Visible text, capped at 6,000 characters"),
   truncated: z.boolean(),
+});
+
+const icpList = z.array(z.string().trim().min(1).max(120)).max(50);
+export const icpInput = z.object({
+  summary: z.string().trim().max(500).optional().describe("One line: who you sell to, e.g. 'Owner-run consumer brands that sell on Instagram'"),
+  industries: icpList.optional().describe("LinkedIn industry names, e.g. 'Software Development'"),
+  countries: z.array(z.string().trim().regex(/^[A-Za-z]{2}$/)).max(50).optional().describe("Alpha-2 country codes, e.g. ES, US"),
+  headcount: z.object({ min: z.number().int().min(0).optional(), max: z.number().int().min(0).optional() }).optional().describe("Company size range"),
+  titles: icpList.optional().describe("Buyer job titles, in every language you sell in"),
+  keywords: icpList.optional().describe("Words a good fit's description or title mentions"),
+  exclude: icpList.optional().describe("Words that rule a lead out, e.g. 'agency', 'Intern'"),
+});
+export const Icp = icpInput;
+
+export const icpReviewInput = z.object({
+  rows: z
+    .array(z.object({ row_id: z.string(), adjust: z.number().int().min(-30).max(30).nullable().describe("Move the score by up to ±30; null clears it"), note: z.string().max(300).optional().describe("Why, in one line") }))
+    .min(1)
+    .max(200),
 });

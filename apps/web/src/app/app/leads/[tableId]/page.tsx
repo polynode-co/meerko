@@ -17,7 +17,7 @@ export default async function TablePage({
   searchParams,
 }: {
   params: Promise<{ tableId: string }>;
-  searchParams: Promise<{ stage?: string; page?: string }>;
+  searchParams: Promise<{ stage?: string; page?: string; sort?: string }>;
 }) {
   const { tableId } = await params;
   const sp = await searchParams;
@@ -32,6 +32,10 @@ export default async function TablePage({
     ]),
   );
 
+  // "Best fit first" sorts this page by ICP score (scores are computed per page, from the workspace ICP).
+  const byFit = sp.sort === "fit";
+  if (byFit) rows.sort((a, b) => (b.icp?.score ?? -1) - (a.icp?.score ?? -1));
+  const scored = rows.some((r) => r.icp?.score !== null && r.icp?.score !== undefined);
   const keys = new Set(table.columns.map((c) => c.key));
   const columns: LeadColumn[] = [
     ...(keys.has("first_name") || keys.has("last_name") ? [{ key: "name", name: "Name", kind: "person" as const }] : []),
@@ -47,7 +51,8 @@ export default async function TablePage({
     .filter((c) => c.n > 0);
   const total = stage ? pipeline.stages[stage] : pipeline.total;
   const pages = Math.max(1, Math.ceil(total / PAGE));
-  const pageHref = (n: number) => `?${new URLSearchParams({ ...(stage ? { stage } : {}), page: String(n) })}`;
+  const pageHref = (n: number) => `?${new URLSearchParams({ ...(stage ? { stage } : {}), ...(byFit ? { sort: "fit" } : {}), page: String(n) })}`;
+  const sortHref = `?${new URLSearchParams({ ...(stage ? { stage } : {}), ...(byFit ? {} : { sort: "fit" }), page: String(page) })}`;
   const tab = (s: Stage | undefined, n: number) => (
     <Link
       key={s ?? "all"}
@@ -69,7 +74,7 @@ export default async function TablePage({
         meta={`${table.rowCount.toLocaleString("en")} rows · ${table.columns.length} columns`}
         actions={
           <>
-            {(keys.has("first_name") || keys.has("email")) && <EnrichButton tableId={tableId} />}
+            {(keys.has("first_name") || keys.has("email")) && <EnrichButton tableId={tableId} scored={scored} />}
             {(keys.has("first_name") || keys.has("linkedin_url")) && <PhoneButton tableId={tableId} />}
             <AddLead floating tableId={tableId} extraColumns={table.columns.filter((c) => !MERGED.has(c.key) && !c.prompt).map((c) => ({ key: c.key, name: c.name }))} />
             <Link href={`/app/sequences/new?table=${tableId}`} className={buttonClass("primary")}>
@@ -84,8 +89,15 @@ export default async function TablePage({
           {tab(undefined, pipeline.total)}
           {STAGES.map((s) => tab(s, pipeline.stages[s]))}
         </nav>
-        <span className={monoLabel}>
+        <span className="flex items-center gap-4">
+          {scored && (
+            <Link href={sortHref} className={`${monoLabel} hover:text-lk-lime ${byFit ? "!text-lk-lime" : ""}`}>
+              {byFit ? "✓ Best fit first" : "Sort by fit"}
+            </Link>
+          )}
+          <span className={monoLabel}>
           {total ? `Rows ${(page - 1) * PAGE + 1}–${Math.min(page * PAGE, total)} of ${total}` : "No rows"}
+          </span>
         </span>
       </div>
 

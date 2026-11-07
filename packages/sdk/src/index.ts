@@ -14,7 +14,26 @@ export interface PendingCells {
   rows: { id: string; instruction: string; data: Record<string, unknown> }[];
 }
 export interface Table { id: string; name: string; columns: Column[]; rowCount: number; createdAt: string }
-export interface Row { id: string; data: Record<string, unknown>; stage: Stage; stageChangedAt: string | null; createdAt: string }
+/** How well a lead fits the workspace's ideal customer profile: a 0-100 score from rules, plus the agent's adjustment. */
+export interface IcpFit {
+  score: number | null;
+  base: number | null;
+  checks: { criterion: "industry" | "headcount" | "country" | "title" | "keywords" | "exclude"; matched: boolean; detail: string }[];
+  adjust: number | null;
+  note: string | null;
+}
+export interface Row { id: string; data: Record<string, unknown>; stage: Stage; stageChangedAt: string | null; createdAt: string; icp?: IcpFit }
+
+/** Who a brand sells to. Every lead is scored against it. */
+export interface Icp {
+  summary?: string;
+  industries?: string[];
+  countries?: string[];
+  headcount?: { min?: number; max?: number };
+  titles?: string[];
+  keywords?: string[];
+  exclude?: string[];
+}
 
 export type LeadKind = "people" | "companies";
 /** Icypeas filters, e.g. { currentJobTitle: { include: ["CTO"] }, "currentCompany.headcount": { ">=": 20 } }. */
@@ -338,6 +357,25 @@ export class MeerkoClient {
     return this.request<{ url: string; title: string | null; description: string | null; headings: string[]; text: string; truncated: boolean }>("POST", "/websites/read", { url });
   }
 
+  /** The workspace's ideal customer profile, or null. */
+  getIcp() {
+    return this.request<{ icp: Icp | null }>("GET", "/icp").then((r) => r.icp);
+  }
+
+  /** Replaces the ideal customer profile; every lead is rescored against it. */
+  setIcp(icp: Icp) {
+    return this.request<{ icp: Icp }>("PUT", "/icp", icp).then((r) => r.icp);
+  }
+
+  clearIcp() {
+    return this.request<{ cleared: boolean }>("DELETE", "/icp");
+  }
+
+  /** Moves rows' ICP scores by up to ±30 with a reason; `adjust: null` clears it. */
+  reviewIcpFit(tableId: string, rows: { row_id: string; adjust: number | null; note?: string }[]) {
+    return this.request<{ updated: number }>("POST", `/tables/${tableId}/icp-review`, { rows });
+  }
+
   /** Emails a sign-in link to `email` (public; the server needs MEERKO_SMTP_URL). `source` is the visit's attribution. */
   requestEmailSignIn(email: string, source?: Record<string, string>) {
     return this.call<void>("POST", "/auth/email/start", { email, source });
@@ -498,7 +536,7 @@ export class MeerkoClient {
   /** Finds and/or verifies emails for rows that don't have them yet. Call again while `remaining > 0`. */
   enrichRows(
     tableId: string,
-    input: { fields?: EnrichField[]; filter?: Record<string, unknown>; limit?: number; overwrite?: boolean } = {},
+    input: { fields?: EnrichField[]; filter?: Record<string, unknown>; row_ids?: string[]; min_icp_score?: number; limit?: number; overwrite?: boolean } = {},
   ) {
     return this.request<EnrichResult>("POST", `/tables/${tableId}/enrich`, input);
   }
