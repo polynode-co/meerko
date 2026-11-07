@@ -7,7 +7,7 @@ import { MeerkoApiError } from "@meerko/sdk";
 import { CopyPromptButton } from "@/components/lookout/copy-command";
 import { CopyText } from "@/components/lookout/docs/toc";
 import { buttonClass, Card, CardHead, field, fieldLabel, Notice, Page, PageHeader } from "@/components/app/ui";
-import { SiteIcon } from "@/components/app/site-badge";
+import { SiteChip } from "@/components/app/site-badge";
 import { mcpUrl, meerko, SESSION_COOKIE } from "@/lib/meerko";
 import { siteHost, siteName } from "@/lib/site-hint";
 
@@ -51,14 +51,10 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
       <PageHeader
         eyebrow="Welcome"
         title={
-          host ? (
-            <span className="flex items-center gap-3">
-              <SiteIcon host={host} name={siteName(host)} size={30} />
-              First customers for {siteName(host)}
-            </span>
-          ) : (
-            "Your first customers"
-          )
+          <span className="flex flex-col items-start gap-3">
+            {host && <SiteChip host={host} name={siteName(host)} />}
+            Your first customers
+          </span>
         }
         meta="Meerko reads your site, your AI works out who buys from you, and Meerko finds 10 of those companies with the person to talk to at each. About two minutes."
       />

@@ -19,3 +19,13 @@ export function SiteIcon({ host, name, size = 28 }: { host: string; name: string
     <img src={`/favicon-for?domain=${encodeURIComponent(host)}`} alt="" style={box} className="shrink-0 bg-lk-fg/95 p-[3px] [image-rendering:auto]" onError={() => setFailed(true)} />
   );
 }
+
+/** The site as a small chip (icon + domain) that never wraps: long domains are cut with an ellipsis. */
+export function SiteChip({ host, name }: { host: string; name: string }) {
+  return (
+    <span title={host} className="inline-flex max-w-full items-center gap-2 self-start bg-lk-box px-2 py-1.5 outline outline-1 -outline-offset-1 outline-lk-line">
+      <SiteIcon host={host} name={name} size={20} />
+      <span className="truncate font-plex text-[13px] tracking-[0.4px] text-lk-fg">{host}</span>
+    </span>
+  );
+}

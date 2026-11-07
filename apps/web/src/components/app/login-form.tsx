@@ -6,7 +6,7 @@ import { useActionState } from "react";
 import { LogoMark } from "@/components/ui/brand";
 import { login } from "@/app/app/actions";
 import { requestEmailLink } from "@/app/login/actions";
-import { SiteIcon } from "@/components/app/site-badge";
+import { SiteChip } from "@/components/app/site-badge";
 import { siteName } from "@/lib/site-hint";
 
 function GoogleIcon() {
@@ -120,21 +120,12 @@ export function LoginForm({
             <p className="inline-flex items-center gap-2.5 font-plex text-[14px] tracking-[0.8px] text-lk-fg/80 uppercase before:size-2 before:bg-lk-lime before:content-['']">
               Sign in
             </p>
-            {site ? (
-              <h1 className="flex flex-col gap-3 text-[34px] leading-[1.1] font-semibold tracking-[-1.2px] sm:text-[40px] sm:tracking-[-1.4px]">
-                <span>Find the first customers for</span>
-                <span className="flex items-center gap-3">
-                  <SiteIcon host={site} name={siteName(site)} size={36} />
-                  <span className="min-w-0 break-words">{siteName(site)}</span>
-                </span>
-              </h1>
-            ) : (
-              <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-1.2px] sm:text-[40px] sm:tracking-[-1.4px]">Open your workspace</h1>
-            )}
+            {site && <SiteChip host={site} name={siteName(site)} />}
+            <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-1.2px] sm:text-[40px] sm:tracking-[-1.4px]">{site ? "Find your first customers" : "Open your workspace"}</h1>
             <p className="text-[15.5px] leading-[1.6] text-lk-muted">
               {site ? (
                 <>
-                  Sign in or create your free account. Then Meerko reads <span className="text-lk-fg">{site}</span>, and your AI finds 10
+                  Sign in or create your free account. Then Meerko reads your site, and your AI finds 10
                   companies that could buy from you, with the person to talk to at each.
                 </>
               ) : googleUrl && emailLinks ? (
