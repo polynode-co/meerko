@@ -37,6 +37,8 @@ export interface IcpFit {
   checks: IcpCheck[];
   adjust: number | null;
   note: string | null;
+  /** One line on why: the agent's note when it adjusted the score, else what matched and what didn't. */
+  reason: string | null;
 }
 
 const WEIGHTS = { industry: 30, title: 25, headcount: 20, country: 15, keywords: 10 } as const;
@@ -78,7 +80,7 @@ const num = (v: unknown) => {
 export function scoreRow(icp: Icp | null, data: Record<string, unknown>, review?: { adjust: number | null; note: string | null }): IcpFit {
   const adjust = review?.adjust ?? null;
   const note = review?.note ?? null;
-  if (!icp) return { score: null, base: null, checks: [], adjust, note };
+  if (!icp) return { score: null, base: null, checks: [], adjust, note, reason: null };
 
   const industry = text(data.industry);
   const title = text(data.title);
@@ -118,7 +120,7 @@ export function scoreRow(icp: Icp | null, data: Record<string, unknown>, review?
     add("keywords", hits.length > 0, hits.length ? hits.join(", ") : "no keyword mentioned");
   }
 
-  if (possible === 0) return { score: null, base: null, checks, adjust, note };
+  if (possible === 0) return { score: null, base: null, checks, adjust, note, reason: "Nothing to compare: the lead has no industry, title, size or location" };
   let base = Math.round((earned / possible) * 100);
   const excluded = (icp.exclude ?? []).find((x) => has(about, x));
   if (excluded) {
@@ -126,7 +128,25 @@ export function scoreRow(icp: Icp | null, data: Record<string, unknown>, review?
     base = Math.min(base, 10);
   }
   const score = Math.max(0, Math.min(100, base + (adjust ?? 0)));
-  return { score, base, checks, adjust, note };
+  return { score, base, checks, adjust, note, reason: reasonFor(checks, note) };
+}
+
+const SHORT: Record<IcpCheck["criterion"], string> = { industry: "industry", title: "title", headcount: "size", country: "country", keywords: "keywords", exclude: "" };
+
+/** "Matches industry, title, size · not country (Berlin, Germany)", or the agent's note, or the exclusion. */
+export function reasonFor(checks: IcpCheck[], note: string | null) {
+  const ruledOut = checks.find((c) => c.criterion === "exclude");
+  if (note) return note;
+  if (ruledOut) return `Ruled out: ${ruledOut.detail}`;
+  const hits = checks.filter((c) => c.matched).map((c) => SHORT[c.criterion]);
+  // Industry and title misses already name the value in their detail; size and country show what the lead has.
+  const misses = checks
+    .filter((c) => !c.matched)
+    .map((c) => (c.criterion === "headcount" || c.criterion === "country" ? `${SHORT[c.criterion]} (${c.detail})` : SHORT[c.criterion]));
+  const join = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : (xs[0] ?? ""));
+  if (misses.length === 0) return `Matches ${join(hits)}`;
+  if (hits.length === 0) return `Doesn't match ${join(misses)}`;
+  return `Matches ${join(hits)} · not ${join(misses)}`;
 }
 
 /** The workspace's ICP, or null if none was set. */

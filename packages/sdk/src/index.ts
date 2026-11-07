@@ -21,6 +21,8 @@ export interface IcpFit {
   checks: { criterion: "industry" | "headcount" | "country" | "title" | "keywords" | "exclude"; matched: boolean; detail: string }[];
   adjust: number | null;
   note: string | null;
+  /** One line on why: the agent's note, else what matched and what didn't. */
+  reason: string | null;
 }
 export interface Row { id: string; data: Record<string, unknown>; stage: Stage; stageChangedAt: string | null; createdAt: string; icp?: IcpFit }
 
