@@ -82,7 +82,7 @@ export async function queryRows(
   if (opts.stage) conds.push(eq(tableRows.stage, opts.stage));
   const where = and(...conds);
   return db
-    .select({ id: tableRows.id, data: tableRows.data, stage: tableRows.stage, stageChangedAt: tableRows.stageChangedAt, createdAt: tableRows.createdAt })
+    .select({ id: tableRows.id, data: tableRows.data, stage: tableRows.stage, stageChangedAt: tableRows.stageChangedAt, createdAt: tableRows.createdAt, icpAdjust: tableRows.icpAdjust, icpNote: tableRows.icpNote })
     .from(tableRows)
     .where(where)
     .orderBy(tableRows.seq)

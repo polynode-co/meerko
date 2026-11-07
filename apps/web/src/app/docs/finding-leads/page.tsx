@@ -17,13 +17,14 @@ export default function Page() {
       }
       toc={[
         ["first-customers", "Start from your website"],
+        ["fit", "Fit scores"],
         ["people-companies", "People and companies"],
         ["dashboard", "In the dashboard"],
         ["filters", "Filters"],
         ["saved", "What gets saved"],
         ["limits", "Limits and cost"],
       ]}
-      tools={["read_website", "find_people", "find_companies", "enrich_rows"]}
+      tools={["read_website", "get_icp", "set_icp", "review_icp_fit", "find_people", "find_companies", "enrich_rows"]}
     >
       <H2 id="first-customers">Start from your website</H2>
       <p>
@@ -34,6 +35,21 @@ export default function Page() {
         through it.
       </p>
       <AskAgent>Use Meerko to find my first customers. My website is acme.com.</AskAgent>
+
+      <H2 id="fit">Fit scores</H2>
+      <p>
+        Tell Meerko who you sell to, your ideal customer profile (ICP), and every lead in every table gets a fit score from 0 to 100. Set
+        it in <L href="/app/settings#icp">Settings → Ideal customer</L>, or let your agent save it with <Tool name="set_icp" /> after
+        reading your website. The score is plain rules, so it&apos;s instant and free: industry 30, job title 25, company size 20,
+        country 15 and keywords 10, counting only what your ICP sets and the lead has; anything you rule out caps a lead at 10. Hover a
+        score to see why.
+      </p>
+      <p>
+        Rules can&apos;t tell a denim factory from a fashion brand, so your agent can move a score by up to 30 points with a one-line
+        reason (<Tool name="review_icp_fit" />). Then spend credits where they count: Find &amp; verify emails offers <strong className="text-fg">Fit 70+ only</strong>,
+        and agents pass <C>min_icp_score</C> to <Tool name="enrich_rows" />.
+      </p>
+      <AskAgent>Score the leads in my &quot;First customers&quot; table against my ICP, fix any score that looks wrong, then find emails for the ones at 70 or more.</AskAgent>
 
       <H2 id="people-companies">People and companies</H2>
       <p>

@@ -366,13 +366,15 @@ program
   .option("-l, --limit <n>", "rows per batch (max 50)", "25")
   .option("--all", "keep going in batches until no rows remain")
   .option("--overwrite", "re-run rows that already have a result")
-  .action(async (tableId: string, opts: { fields: string; filter?: string; limit: string; all?: boolean; overwrite?: boolean }) => {
+  .option("--min-score <n>", "only rows whose ICP fit is at least n (0-100)")
+  .action(async (tableId: string, opts: { fields: string; filter?: string; limit: string; all?: boolean; overwrite?: boolean; minScore?: string }) => {
     const client = MeerkoClient.fromEnv();
     const input = {
       fields: opts.fields.split(",").map((f) => f.trim()) as ("email" | "email_verification" | "phone")[],
       filter: opts.filter ? JSON.parse(opts.filter) : undefined,
       limit: Number(opts.limit),
       overwrite: opts.overwrite,
+      min_icp_score: opts.minScore !== undefined ? Number(opts.minScore) : undefined,
     };
     while (true) {
       const res = await client.enrichRows(tableId, input);
@@ -686,6 +688,43 @@ drafts
   .action(async (id: string) => {
     await MeerkoClient.fromEnv().discardDraft(id);
     console.log("Draft discarded.");
+  });
+
+const icp = program.command("icp").description("who this brand sells to; every lead is scored 0-100 against it");
+
+icp
+  .command("show")
+  .description("print the ideal customer profile")
+  .action(async () => {
+    const profile = await MeerkoClient.fromEnv().getIcp();
+    if (json()) return console.log(JSON.stringify(profile, null, 2));
+    console.log(profile ? JSON.stringify(profile, null, 2) : "No ICP yet. Set one with `meerko icp set '{\"industries\":[...],\"countries\":[\"ES\"]}'`.");
+  });
+
+icp
+  .command("set <json>")
+  .description('replace it, e.g. \'{"industries":["Software Development"],"countries":["ES"],"headcount":{"min":10,"max":200},"titles":["CTO"]}\'')
+  .action(async (raw: string) => {
+    const saved = await MeerkoClient.fromEnv().setIcp(JSON.parse(raw));
+    console.log(json() ? JSON.stringify(saved, null, 2) : "Saved. Every lead is rescored against it.");
+  });
+
+icp
+  .command("clear")
+  .description("remove it (scores go blank)")
+  .action(async () => {
+    await MeerkoClient.fromEnv().clearIcp();
+    console.log("Cleared.");
+  });
+
+icp
+  .command("review <tableId> <rowId> <adjust> [note...]")
+  .description("move one row's score by -30 to 30 with a reason; adjust 'clear' removes it")
+  .action(async (tableId: string, rowId: string, adjust: string, note: string[]) => {
+    const n = adjust === "clear" ? null : Number(adjust);
+    if (n !== null && (!Number.isInteger(n) || n < -30 || n > 30)) throw new Error("adjust must be a whole number from -30 to 30, or `clear`");
+    const res = await MeerkoClient.fromEnv().reviewIcpFit(tableId, [{ row_id: rowId, adjust: n, note: note.join(" ") || undefined }]);
+    console.log(json() ? JSON.stringify(res) : `Updated ${res.updated} row.`);
   });
 
 const keys = program.command("keys").description("bring your own provider keys (calls through them cost no credits)");

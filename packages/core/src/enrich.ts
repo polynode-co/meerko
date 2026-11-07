@@ -1,4 +1,4 @@
-import { and, enrichmentRuns, eq, sql, tableRows, type ColumnDef, type Db, type SQL } from "@meerko/db";
+import { and, enrichmentRuns, eq, inArray, sql, tableRows, type ColumnDef, type Db, type SQL } from "@meerko/db";
 import { chargeCredits, CREDIT_PRICES, getBalance, type CreditPolicy } from "./credits.ts";
 import type { EnrichField, EnrichmentProvider } from "./enrichment/types.ts";
 import { runWaterfall } from "./enrichment/waterfall.ts";
@@ -32,6 +32,8 @@ export interface EnrichRowsInput {
   fields: EnrichField[];
   /** Exact-match filter on row data, like queryRows. */
   filter?: Record<string, unknown>;
+  /** Only these rows (e.g. the ones that fit the ICP best). */
+  rowIds?: string[];
   limit: number;
   /** Re-run fields on rows that already have a value. */
   overwrite?: boolean;
@@ -68,6 +70,7 @@ export async function enrichRows(
   const selection = (needsOnly: boolean) => {
     const conds: SQL[] = [eq(tableRows.tableId, tableId)];
     if (input.filter && Object.keys(input.filter).length > 0) conds.push(sql`${tableRows.data} @> ${JSON.stringify(input.filter)}::jsonb`);
+    if (input.rowIds) conds.push(input.rowIds.length ? inArray(tableRows.id, input.rowIds) : sql`false`);
     if (needsOnly) conds.push(sql`(${sql.join(input.fields.map((f) => sql`(${NEEDS[f]})`), sql` or `)})`);
     return and(...conds);
   };

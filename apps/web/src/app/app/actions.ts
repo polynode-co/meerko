@@ -261,9 +261,10 @@ export async function setSequenceRunning(sequenceId: string, running: boolean) {
   );
 }
 
-export async function enrichEmails(tableId: string) {
+/** `minScore`: only leads whose ICP fit is at least this, so credits go to good fits. */
+export async function enrichEmails(tableId: string, minScore?: number) {
   return run(async (c) => {
-    const r = await c.enrichRows(tableId, { limit: 25 });
+    const r = await c.enrichRows(tableId, { limit: 25, ...(minScore !== undefined ? { min_icp_score: minScore } : {}) });
     if (r.stoppedReason === "insufficient_credits") return `Out of credits after ${r.processed} rows`;
     return `${r.found.email} emails found, ${r.found.email_verification} verified, ${r.notFound} not found · ${r.remaining} rows left`;
   }, [`/app/leads/${tableId}`, "/app"]);
@@ -275,6 +276,46 @@ export async function findPhones(tableId: string) {
     if (r.stoppedReason === "insufficient_credits") return `Out of credits after ${r.processed} rows`;
     return `${r.found.phone} phone numbers found, ${r.notFound} not found · ${r.remaining} rows left`;
   }, [`/app/leads/${tableId}`, "/app"]);
+}
+
+// --- Ideal customer profile (Settings). Lists are comma- or newline-separated in the form.
+
+const icpList = (v: FormDataEntryValue | null) =>
+  String(v ?? "")
+    .split(/[,\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+export async function saveIcp(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const n = (k: string) => {
+    const v = String(form.get(k) ?? "").trim();
+    return v === "" ? undefined : Number(v);
+  };
+  const min = n("minHeadcount");
+  const max = n("maxHeadcount");
+  if ((min !== undefined && !(min >= 0)) || (max !== undefined && !(max >= 0))) return { ok: false, error: "Company size must be whole numbers" };
+  if (min !== undefined && max !== undefined && min > max) return { ok: false, error: "The minimum company size is above the maximum" };
+  const countries = icpList(form.get("countries")).map((c) => c.toUpperCase());
+  if (countries.some((c) => !/^[A-Z]{2}$/.test(c))) return { ok: false, error: "Countries are two-letter codes: ES, US, GB" };
+  return run(
+    (c) =>
+      c
+        .setIcp({
+          summary: String(form.get("summary") ?? "").trim() || undefined,
+          industries: icpList(form.get("industries")),
+          countries,
+          headcount: min !== undefined || max !== undefined ? { min, max } : undefined,
+          titles: icpList(form.get("titles")),
+          keywords: icpList(form.get("keywords")),
+          exclude: icpList(form.get("exclude")),
+        })
+        .then(() => "Saved. Every lead is rescored."),
+    ["/app/settings", "/app/leads", "/app"],
+  );
+}
+
+export async function clearIcp() {
+  return run((c) => c.clearIcp().then(() => "ICP removed."), ["/app/settings", "/app/leads"]);
 }
 
 /** Connects an inbox with an app password: Gmail, a preset provider or any IMAP/SMTP server. A refusal comes back as the form's error. */

@@ -141,6 +141,13 @@
       "when": 1793968567131,
       "tag": "0019_email_sign_in",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794051936738,
+      "tag": "0020_icp",
+      "breakpoints": true
     }
   ]
 }

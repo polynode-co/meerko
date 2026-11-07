@@ -31,6 +31,9 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   add_column: write("Add a column"),
   get_pending_cells: read("Get cells waiting for the agent"),
   read_website: read("Read a website"),
+  get_icp: read("Get the ideal customer profile"),
+  set_icp: write("Set the ideal customer profile"),
+  review_icp_fit: write("Adjust ICP fit scores"),
   update_rows: destructive("Update rows"), // overwrites cell values
   import_rows: write("Import rows"),
   query_rows: read("Query rows"),
