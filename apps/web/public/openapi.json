@@ -1216,6 +1216,59 @@
         }
       }
     },
+    "/v1/websites/read": {
+      "post": {
+        "operationId": "readWebsite",
+        "tags": [
+          "leads"
+        ],
+        "summary": "Read a website's text, to work out who it sells to (free)",
+        "description": "Meerko fetches the home page and returns its text; your agent decides the ideal customer from it. Public sites only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "The website, e.g. acme.com"
+                  }
+                },
+                "required": [
+                  "url"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Read a website's text, to work out who it sells to (free)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Website"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/search/companies": {
       "post": {
         "operationId": "searchCompanies",
@@ -4601,6 +4654,9 @@
       },
       "Url": {
         "$ref": "#/components/schemas/Url"
+      },
+      "Website": {
+        "$ref": "#/components/schemas/Website"
       },
       "WorkspaceListItem": {
         "type": "object",

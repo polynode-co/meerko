@@ -217,6 +217,15 @@ export const CAPABILITIES: Capability[] = [
     api: API,
   },
   {
+    id: "read-website",
+    summary: "Read a website, to work out who it sells to (first customers)",
+    routes: ["readWebsite"],
+    web: yes(page("welcome/page.tsx")),
+    mcp: yes("read_website"),
+    cli: yes("website"),
+    api: API,
+  },
+  {
     id: "search-leads",
     summary: "Find people or companies and add them to a table",
     routes: ["searchPeople", "searchCompanies"],

@@ -57,6 +57,7 @@ export const searchInput = z.object({
   table_name: z.string().min(1).optional().describe("Or create a table with this name"),
 });
 export const countInput = z.object({ query: leadQuery });
+export const websiteInput = z.object({ url: z.string().min(1).max(500).describe("The website, e.g. acme.com") });
 const stepInput = z.object({
   subject: z.string().max(300).nullable().optional(),
   body: z.string().min(1).max(20_000),
@@ -375,3 +376,12 @@ export const Credits = z.object({
 export const Pipeline = z.object({ tableId: z.string().nullable(), stages: z.record(stage, z.number()), total: z.number() });
 export const ProviderKey = z.object({ provider: z.string(), last4: z.string(), createdAt: ts });
 export const Url = z.object({ url: z.string() });
+
+export const Website = z.object({
+  url: z.string().describe("The page read, after redirects"),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  headings: z.array(z.string()),
+  text: z.string().describe("Visible text, capped at 6,000 characters"),
+  truncated: z.boolean(),
+});

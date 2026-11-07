@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Callout, citer, GuideShell, H2, Sample } from "@/components/lookout/docs/guide";
 import { mcpUrl } from "@/lib/meerko";
+import { mcp } from "@/lib/docs";
 
 // Targets "chatgpt connectors" (720/mo, KD 6), "chatgpt mcp" (720, KD 6) and "chatgpt for sales" (140) (DataForSEO, US, Nov 2026).
 export const metadata: Metadata = {
@@ -115,7 +116,7 @@ export default function Page() {
 
       <H2 id="use-cases">ChatGPT for sales: use cases</H2>
       <p>
-        Meerko gives ChatGPT 39 tools for outbound: people and company search, work emails found and verified through Icypeas, sequences
+        Meerko gives ChatGPT {mcp.tools.length} tools for outbound: people and company search, work emails found and verified through Icypeas, sequences
         sent from your own Gmail, Outlook or IMAP mailbox, reply detection, reply drafts and a pipeline. In a new conversation, type{" "}
         <code className="font-mono text-fg">@</code>, pick Meerko and ask:
       </p>

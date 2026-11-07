@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Callout, citer, GuideShell, H2 } from "@/components/lookout/docs/guide";
 import type { Source } from "@/components/lookout/docs/guide";
 import { mcpUrl } from "@/lib/meerko";
+import { mcp } from "@/lib/docs";
 
 // Targets "claude mcp" (5.4k/mo, KD 5), "claude mcp servers" (1.3k, KD 20), "best mcp servers" (720, KD 14),
 // "hubspot mcp" (1k), "apollo mcp" (480) and "clay mcp" (320) (DataForSEO, US, Nov 2026).
@@ -172,7 +173,7 @@ export default function Page() {
         <code className="font-mono text-fg">{mcpUrl()}</code>, with Google sign-in over OAuth. Its niche is the part the others leave to
         you: sending multi-step sequences from your own Gmail, Outlook or IMAP mailbox within daily limits, then watching for replies around
         the clock, classifying them and drafting answers you approve. It also finds leads and finds and verifies work emails (through
-        Icypeas), and tracks a pipeline: 39 tools in all.
+        Icypeas), and tracks a pipeline: {mcp.tools.length} tools in all.
       </p>
       <p>
         It doesn&apos;t replace a CRM like HubSpot or Clay&apos;s data depth. The Free plan has 200 credits and one mailbox; Pro is $49 a

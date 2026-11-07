@@ -333,6 +333,11 @@ export class MeerkoClient {
     return this.call<{ google: boolean; email?: boolean; signup: "open" | "invite" }>("GET", "/auth/config");
   }
 
+  /** Reads a public website's home page (title, description, headings, text), for working out who it sells to. Free. */
+  readWebsite(url: string) {
+    return this.request<{ url: string; title: string | null; description: string | null; headings: string[]; text: string; truncated: boolean }>("POST", "/websites/read", { url });
+  }
+
   /** Emails a sign-in link to `email` (public; the server needs MEERKO_SMTP_URL). `source` is the visit's attribution. */
   requestEmailSignIn(email: string, source?: Record<string, string>) {
     return this.call<void>("POST", "/auth/email/start", { email, source });

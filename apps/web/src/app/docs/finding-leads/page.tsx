@@ -16,14 +16,25 @@ export default function Page() {
         </p>
       }
       toc={[
+        ["first-customers", "Start from your website"],
         ["people-companies", "People and companies"],
         ["dashboard", "In the dashboard"],
         ["filters", "Filters"],
         ["saved", "What gets saved"],
         ["limits", "Limits and cost"],
       ]}
-      tools={["find_people", "find_companies", "enrich_rows"]}
+      tools={["read_website", "find_people", "find_companies", "enrich_rows"]}
     >
+      <H2 id="first-customers">Start from your website</H2>
+      <p>
+        Not sure how to describe who you sell to? Give your agent your website. <Tool name="read_website" /> reads your home page (Meerko
+        runs no AI of its own), your agent works out your customers from it and tells you, and once you agree it saves 10 matching
+        companies and a decision-maker at each. That costs about 20 credits; emails come later, for the ones you pick. In agents that
+        support prompts, it&apos;s the <C>first-customers</C> prompt; in the dashboard, <L href="/app/welcome">Welcome</L> walks you
+        through it.
+      </p>
+      <AskAgent>Use Meerko to find my first customers. My website is acme.com.</AskAgent>
+
       <H2 id="people-companies">People and companies</H2>
       <p>
         <Tool name="find_people" /> searches for people, <Tool name="find_companies" /> for companies. Both run on{" "}

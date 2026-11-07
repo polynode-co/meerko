@@ -6,6 +6,8 @@ import { useActionState } from "react";
 import { LogoMark } from "@/components/ui/brand";
 import { login } from "@/app/app/actions";
 import { requestEmailLink } from "@/app/login/actions";
+import { SiteChip } from "@/components/app/site-badge";
+import { siteName } from "@/lib/site-hint";
 
 function GoogleIcon() {
   return (
@@ -88,6 +90,7 @@ export function LoginForm({
   notice,
   next,
   attribution = {},
+  site = null,
 }: {
   googleUrl: string | null;
   emailLinks?: boolean;
@@ -95,6 +98,8 @@ export function LoginForm({
   notice?: string;
   next?: string | null;
   attribution?: Record<string, string>;
+  /** The website typed into the landing hero: the page greets them with its name and icon. */
+  site?: string | null;
 }) {
   const [state, action, pending] = useActionState(login, null);
   const error = state && !state.ok ? state.error : notice;
@@ -115,9 +120,15 @@ export function LoginForm({
             <p className="inline-flex items-center gap-2.5 font-plex text-[14px] tracking-[0.8px] text-lk-fg/80 uppercase before:size-2 before:bg-lk-lime before:content-['']">
               Sign in
             </p>
-            <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-1.2px] sm:text-[40px] sm:tracking-[-1.4px]">Open your workspace</h1>
+            {site && <SiteChip host={site} name={siteName(site)} />}
+            <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-1.2px] sm:text-[40px] sm:tracking-[-1.4px]">{site ? "Find your first customers" : "Open your workspace"}</h1>
             <p className="text-[15.5px] leading-[1.6] text-lk-muted">
-              {googleUrl && emailLinks ? (
+              {site ? (
+                <>
+                  Sign in or create your free account. Then Meerko reads your site, and your AI finds 10
+                  companies that could buy from you, with the person to talk to at each.
+                </>
+              ) : googleUrl && emailLinks ? (
                 "Continue with Google, or get a sign-in link by email."
               ) : googleUrl ? (
                 "Sign in with the Google account Meerko knows you by."

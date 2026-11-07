@@ -76,6 +76,8 @@ import {
   getBalance,
   getProviderKey,
   FirecrawlClient,
+  readWebsite,
+  WebsiteError,
   firecrawlProvider,
   GenerectClient,
   generectProvider,
@@ -165,6 +167,7 @@ import {
   classifyInput,
   columnInput,
   countInput,
+  websiteInput,
   createApiKeyInput,
   createSequenceInput,
   createTableInput,
@@ -238,6 +241,8 @@ export interface AppDeps {
   slack?: SlackAppConfig;
   /** Overrides fetch for Slack calls (tests). */
   slackFetch?: typeof fetch;
+  /** Overrides fetch and DNS for /v1/websites/read (tests). */
+  websiteFetch?: { fetch?: typeof fetch; resolve?: (host: string) => Promise<string[]> };
   /** Builds a Firecrawl client for a workspace's own key (overridable in tests). */
   firecrawlForKey?: (apiKey: string) => FirecrawlClient;
   /** Meerko's Generect key (GENERECT_API_KEY): the paid fallback for emails and the source of phone numbers. */
@@ -1171,6 +1176,30 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const result = await enrichRows(db, c.var.workspaceId, c.req.param("id"), enrichment.providers, input, enrichment.credits);
     await analytics.capture({ distinctId: actor(c), event: EVENTS.rowsEnriched, workspaceId: c.var.workspaceId, properties: { fields: input.fields, limit: input.limit } });
     return c.json(result);
+  });
+
+  // The "first customers" onboarding: the agent reads the person's site and decides who they sell to. Free, so
+  // limited per workspace to keep Meerko from being used as a fetch proxy.
+  // A page that's re-rendered or re-asked for (the welcome page, an agent retrying) is served from an hour's cache
+  // and doesn't count against the limit.
+  const websiteReads = attemptLimiter(30, 60 * 60_000);
+  const websiteCache = new Map<string, { site: Awaited<ReturnType<typeof readWebsite>>; at: number }>();
+  v1.post("/websites/read", async (c) => {
+    const { url } = await parse(websiteInput, await c.req.json());
+    const cacheKey = url.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    const cached = websiteCache.get(cacheKey);
+    if (cached && Date.now() - cached.at < 60 * 60_000) return c.json(cached.site);
+    if (!websiteReads.allow(c.var.workspaceId)) throw new HTTPException(429, { message: "Too many websites read this hour. Try again later." });
+    try {
+      const site = await readWebsite(url, deps.websiteFetch);
+      if (websiteCache.size > 500) websiteCache.delete(websiteCache.keys().next().value!);
+      websiteCache.set(cacheKey, { site, at: Date.now() });
+      await analytics.capture({ distinctId: actor(c), event: EVENTS.websiteRead, workspaceId: c.var.workspaceId, properties: { host: new URL(site.url).hostname } });
+      return c.json(site);
+    } catch (err) {
+      if (err instanceof WebsiteError) throw new HTTPException(422, { message: err.message });
+      throw err;
+    }
   });
 
   for (const kind of ["people", "companies"] as const) {

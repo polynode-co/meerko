@@ -350,6 +350,15 @@ program
   });
 
 program
+  .command("website <url>")
+  .description("read a website's home page (title, description, headings, text) to work out who it sells to; free")
+  .action(async (url: string) => {
+    const site = await MeerkoClient.fromEnv().readWebsite(url);
+    if (json()) return console.log(JSON.stringify(site, null, 2));
+    console.log([site.title ?? site.url, site.description, site.headings.length ? `Headings: ${site.headings.join(" · ")}` : null, "", site.text].filter((l) => l !== null).join("\n"));
+  });
+
+program
   .command("enrich <tableId>")
   .description("find and verify emails (or, with --fields phone, phone numbers) for rows that don't have them yet")
   .option("--fields <list>", "comma-separated: email, email_verification, phone (80 credits each, Pro)", "email,email_verification")

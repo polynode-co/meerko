@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Callout, citer, GuideShell, H2, Sample } from "@/components/lookout/docs/guide";
 import { mcpUrl } from "@/lib/meerko";
+import { mcp } from "@/lib/docs";
 
 // Targets "claude connectors" (3.6k/mo, KD 13), "claude sales" (260) and "claude for sales" (210) (DataForSEO, US, Nov 2026).
 export const metadata: Metadata = {
@@ -106,7 +107,7 @@ export default function Page() {
 
       <H2 id="use-cases">Claude for sales: use cases</H2>
       <p>
-        With Meerko connected, Claude gets 39 tools for outbound: people and company search, finding and verifying work emails,
+        With Meerko connected, Claude gets {mcp.tools.length} tools for outbound: people and company search, finding and verifying work emails,
         sequences that send from your own mailbox, reply detection, reply drafts and a pipeline. You ask in plain language:
       </p>
       {useCases.map(([title, prompt]) => (
