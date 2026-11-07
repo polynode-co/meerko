@@ -20,7 +20,7 @@ describe("ICP fit", () => {
     expect(fit.score).toBe(100);
     expect(fit.checks.map((c) => c.criterion)).toEqual(["industry", "title", "headcount", "country", "keywords"]);
     expect(fit.checks.every((c) => c.matched)).toBe(true);
-    expect(fit.reason).toBe("Matches industry, title, size, country and keywords");
+    expect(fit.reason).toBe("Founder - CEO · Wellness and Fitness Services · 2 people · US · mentions instagram");
   });
 
   it("only counts what the row has: a company row isn't marked down for having no title", () => {
@@ -40,7 +40,7 @@ describe("ICP fit", () => {
     const fit = scoreRow(icp, { title: "Influencer Marketing", industry: "Retail Apparel and Fashion", company_size: 40, location: "Madrid, Spain" });
     // industry 30 + country 15 of industry 30, title 25, size 20, country 15 = 45/90
     expect(fit.score).toBe(50);
-    expect(fit.reason).toBe("Matches industry and country · not title and size (40 people)");
+    expect(fit.reason).toBe('Retail Apparel and Fashion · ES · "Influencer Marketing" isn\'t a buyer title · 40 people, you want 1–10');
   });
 
   it("caps an excluded lead at 10, and the agent's adjustment moves it within 0-100", () => {
