@@ -4295,6 +4295,13 @@
               "string",
               "null"
             ]
+          },
+          "reason": {
+            "description": "One line on why: the agent's note, else what matched and what didn't",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -4302,7 +4309,8 @@
           "base",
           "checks",
           "adjust",
-          "note"
+          "note",
+          "reason"
         ]
       },
       "Mailbox": {

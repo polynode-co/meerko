@@ -180,6 +180,7 @@ export const IcpFit = z.object({
   checks: z.array(z.object({ criterion: z.enum(["industry", "headcount", "country", "title", "keywords", "exclude"]), matched: z.boolean(), detail: z.string() })),
   adjust: z.number().nullable(),
   note: z.string().nullable(),
+  reason: z.string().nullable().describe("One line on why: the agent's note, else what matched and what didn't"),
 });
 export const Row = z.object({ id: z.string(), data: jsonObject, stage, stageChangedAt: nts, createdAt: ts, icp: IcpFit.describe("How well the lead fits the workspace ICP") });
 export const PendingCells = z.object({
