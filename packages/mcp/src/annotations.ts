@@ -30,6 +30,7 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   create_table: write("Create a lead table"),
   add_column: write("Add a column"),
   get_pending_cells: read("Get cells waiting for the agent"),
+  read_website: read("Read a website"),
   update_rows: destructive("Update rows"), // overwrites cell values
   import_rows: write("Import rows"),
   query_rows: read("Query rows"),

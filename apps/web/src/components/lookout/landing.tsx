@@ -28,15 +28,31 @@ function Hero() {
             Meerko is the outbound engine for your AI agent. Claude Code, Codex or Cursor does the thinking. Meerko finds the leads, sends
             from your own Gmail or Outlook and catches every reply, around the clock, even when your agent is closed.
           </p>
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            <LimeButton href={site.signupUrl}>Start free with 200 credits →</LimeButton>
-            <a
-              href="/docs/quick-start"
-              className={`${label} bg-lk-fg px-4 py-[13px] font-semibold text-lk-ink shadow-[4px_4px_0_var(--color-lk-lime)] transition hover:translate-x-px hover:translate-y-px hover:shadow-[3px_3px_0_var(--color-lk-lime)]`}
-            >
-              Connect your agent →
-            </a>
-          </div>
+          {/* Your site in, your first 10 customers out (/app/welcome, after sign-up). A plain GET form: no JS needed. */}
+          <form action="/app/welcome" method="get" className="flex w-full max-w-[560px] flex-col gap-3 pt-2 sm:flex-row sm:gap-0">
+            <label htmlFor="hero-site" className="sr-only">
+              Your website
+            </label>
+            <input
+              id="hero-site"
+              name="site"
+              required
+              inputMode="url"
+              autoComplete="url"
+              placeholder="yourcompany.com"
+              className="min-w-0 flex-1 bg-lk-bg/80 px-4 py-[13px] font-plex text-[14px] text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray backdrop-blur-sm placeholder:text-lk-dim focus:outline-lk-lime"
+            />
+            <button className={`${label} shrink-0 bg-lk-lime px-4 py-[13px] font-semibold text-lk-bg transition hover:brightness-110`}>
+              Find my first customers →
+            </button>
+          </form>
+          <p className="font-plex text-[13px] tracking-[0.5px] text-lk-muted [text-shadow:0_1px_8px_#000]">
+            Free, 200 credits to start. Or{" "}
+            <a href="/docs/quick-start" className="text-lk-fg underline-offset-4 hover:underline">
+              connect your agent
+            </a>{" "}
+            first.
+          </p>
           <p className="font-plex text-[13px] tracking-[0.5px] text-lk-muted [text-shadow:0_1px_8px_#000]">
             Cloud $49/mo, no seats · Free forever when self-hosted ·{" "}
             <a href="/docs/self-hosting" className="underline-offset-4 hover:text-lk-fg hover:underline">

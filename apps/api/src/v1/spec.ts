@@ -78,6 +78,7 @@ export const V1: Operation[] = [
   { method: "post", path: "/search/people/count", id: "countPeople", tag: "leads", summary: "Count people matching a search (free)", access: "any", body: s.countInput, response: obj({ total: z.number() }) },
   { method: "post", path: "/search/people", id: "searchPeople", tag: "leads", summary: "Find people and add them to a table (spends credits)", access: "any", body: s.searchInput, status: 201, response: s.SearchResult },
   { method: "post", path: "/search/companies/count", id: "countCompanies", tag: "leads", summary: "Count companies matching a search (free)", access: "any", body: s.countInput, response: obj({ total: z.number() }) },
+  { method: "post", path: "/websites/read", id: "readWebsite", tag: "leads", summary: "Read a website's text, to work out who it sells to (free)", description: "Meerko fetches the home page and returns its text; your agent decides the ideal customer from it. Public sites only.", access: "any", body: s.websiteInput, response: s.Website },
   { method: "post", path: "/search/companies", id: "searchCompanies", tag: "leads", summary: "Find companies and add them to a table (spends credits)", access: "any", body: s.searchInput, status: 201, response: s.SearchResult },
   { method: "post", path: "/tables/:id/enrich", id: "enrichRows", tag: "leads", summary: "Find and verify emails, or find phone numbers, for rows (spends credits)", access: "any", body: s.enrichInput, response: s.EnrichResult },
 
