@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { MeerkoClient } from "@meerko/sdk";
 import { LoginForm } from "@/components/app/login-form";
 import { attributionQuery } from "@/lib/attribution";
+import { siteFromNext } from "@/lib/site-hint";
 import { apiUrl, publicApiUrl, safeNext, SESSION_COOKIE } from "@/lib/meerko";
 
 export const metadata: Metadata = { title: "Sign in — Meerko", robots: { index: false } };
@@ -44,5 +45,5 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   // pass Google's new-location checks on a shared account.
   if (method === "key") Object.assign(options, { googleUrl: null, emailLinks: false });
   const attribution = Object.fromEntries(new URLSearchParams(attributionQuery(params)));
-  return <LoginForm {...options} attribution={attribution} next={next} notice={error ?? (expired ? "Your session expired. Sign in again." : undefined)} />;
+  return <LoginForm {...options} attribution={attribution} next={next} site={siteFromNext(next)} notice={error ?? (expired ? "Your session expired. Sign in again." : undefined)} />;
 }

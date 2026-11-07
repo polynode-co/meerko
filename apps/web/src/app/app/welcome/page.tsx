@@ -7,7 +7,9 @@ import { MeerkoApiError } from "@meerko/sdk";
 import { CopyPromptButton } from "@/components/lookout/copy-command";
 import { CopyText } from "@/components/lookout/docs/toc";
 import { buttonClass, Card, CardHead, field, fieldLabel, Notice, Page, PageHeader } from "@/components/app/ui";
+import { SiteIcon } from "@/components/app/site-badge";
 import { mcpUrl, meerko, SESSION_COOKIE } from "@/lib/meerko";
+import { siteHost, siteName } from "@/lib/site-hint";
 
 export const metadata: Metadata = { title: "Your first customers — Meerko", robots: { index: false } };
 
@@ -41,13 +43,23 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
   if (!(await cookies()).get(SESSION_COOKIE)?.value) redirect(`/login?next=${encodeURIComponent(site ? `/app/welcome?site=${encodeURIComponent(site)}` : "/app/welcome")}`);
 
   const read = site ? await readSite(site) : null;
+  const host = siteHost(site);
   const prompt = `Use Meerko to find my first customers. My website is ${site || "…"}.`;
 
   return (
     <Page>
       <PageHeader
         eyebrow="Welcome"
-        title="Your first customers"
+        title={
+          host ? (
+            <span className="flex items-center gap-3">
+              <SiteIcon host={host} name={siteName(host)} size={30} />
+              First customers for {siteName(host)}
+            </span>
+          ) : (
+            "Your first customers"
+          )
+        }
         meta="Meerko reads your site, your AI works out who buys from you, and Meerko finds 10 of those companies with the person to talk to at each. About two minutes."
       />
 
