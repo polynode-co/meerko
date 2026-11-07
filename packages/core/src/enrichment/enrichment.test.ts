@@ -109,6 +109,16 @@ describe("icypeasProvider", () => {
     expect(await icypeasProvider(client(miss.fn)).enrich("email", row)).toMatchObject({ value: null, providerCost: 0 });
   });
 
+  it("searches by company name when the domain is a platform like instagram.com", async () => {
+    const hit = fakeFetch({
+      "/email-search": [queued],
+      "/bulk-single-searchs/read": [readItem("DEBITED", [{ email: "nora@brightkitchen.example", certainty: "very_sure" }])],
+    });
+    const row = { first_name: "Nora", last_name: "Whitlock", domain: "instagram.com", company: "Bright Kitchen with Nora" };
+    await icypeasProvider(client(hit.fn)).enrich("email", row);
+    expect(hit.calls[0]!.body.domainOrCompany).toBe("Bright Kitchen with Nora");
+  });
+
   it("rejects rows without enough input", async () => {
     const { fn } = fakeFetch({});
     await expect(icypeasProvider(client(fn)).enrich("email", { first_name: "Ana" })).rejects.toBeInstanceOf(MissingInputError);
@@ -178,6 +188,14 @@ describe("row mapping", () => {
     expect(toDomain("slalom.example")).toBe("slalom.example");
     expect(toDomain("")).toBeNull();
     expect(toDomain("localhost")).toBeNull();
+  });
+
+  it("doesn't treat social, marketplace and link-in-bio hosts as the company's domain", () => {
+    for (const site of ["instagram.com", "https://www.etsy.com/shop/example-shop", "linktr.ee", "itunes.apple.com", "shop.myshopify.com", "acme.wixsite.com/home"]) {
+      expect(toDomain(site)).toBeNull();
+    }
+    expect(toDomain("brightkitchen.example")).toBe("brightkitchen.example");
+    expect(toDomain("apple.com")).toBe("apple.com");
   });
 
   it("maps people and companies to flat table rows", () => {

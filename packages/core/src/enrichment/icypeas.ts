@@ -187,6 +187,24 @@ export interface IcypeasCompany {
 }
 
 /** Strips scheme, `www.` and paths so "https://www.acme.com/es" becomes "acme.com". */
+/**
+ * Hosts that aren't the company's own: social networks, marketplaces, link-in-bio pages, app stores, webmail and
+ * site builders' shared domains. Small brands often list one as their "website"; nobody has a work email there, so
+ * email finding falls back to the company name instead.
+ */
+const PLATFORM_HOSTS = [
+  "instagram.com", "facebook.com", "fb.com", "linkedin.com", "twitter.com", "x.com", "tiktok.com", "youtube.com", "youtu.be",
+  "pinterest.com", "threads.net", "snapchat.com", "t.me", "wa.me", "whatsapp.com", "linktr.ee", "linktree.com", "beacons.ai",
+  "bio.link", "lnk.bio", "campsite.bio", "etsy.com", "amazon.com", "ebay.com", "depop.com", "vinted.com", "shopify.com",
+  "myshopify.com", "wixsite.com", "squarespace.com", "carrd.co", "wordpress.com", "blogspot.com", "medium.com", "substack.com",
+  "github.io", "sites.google.com", "play.google.com", "apps.apple.com", "itunes.apple.com", "gmail.com", "yahoo.com",
+  "hotmail.com", "outlook.com", "icloud.com", "calendly.com", "yelp.com", "tripadvisor.com", "booking.com", "airbnb.com",
+  "eventbrite.com", "patreon.com", "spotify.com", "soundcloud.com", "behance.net", "dribbble.com", "google.com",
+];
+
+export const isPlatformHost = (host: string) => PLATFORM_HOSTS.some((p) => host === p || host.endsWith(`.${p}`));
+
+/** The company's own domain from a website value, or null (no website, or a platform like instagram.com). */
 export function toDomain(website: string | undefined | null): string | null {
   if (!website) return null;
   const host = website
@@ -195,7 +213,7 @@ export function toDomain(website: string | undefined | null): string | null {
     .replace(/^www\./i, "")
     .split(/[/?#]/)[0]!
     .toLowerCase();
-  return host.includes(".") ? host : null;
+  return host.includes(".") && !isPlatformHost(host) ? host : null;
 }
 
 export function personToRow(p: IcypeasPerson): Record<string, unknown> {

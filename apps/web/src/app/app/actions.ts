@@ -261,13 +261,23 @@ export async function setSequenceRunning(sequenceId: string, running: boolean) {
   );
 }
 
-/** `minScore`: only leads whose ICP fit is at least this, so credits go to good fits. */
-export async function enrichEmails(tableId: string, minScore?: number) {
-  return run(async (c) => {
-    const r = await c.enrichRows(tableId, { limit: 25, ...(minScore !== undefined ? { min_icp_score: minScore } : {}) });
-    if (r.stoppedReason === "insufficient_credits") return `Out of credits after ${r.processed} rows`;
-    return `${r.found.email} emails found, ${r.found.email_verification} verified, ${r.notFound} not found · ${r.remaining} rows left`;
-  }, [`/app/leads/${tableId}`, "/app"]);
+export type EnrichBatchResult =
+  | { ok: true; processed: number; found: number; notFound: number; remaining: number; outOfCredits: boolean }
+  | { ok: false; error: string };
+
+/**
+ * One small batch of email finding, for the button's progress loop: it calls this until nothing remains, refreshing
+ * the table between batches so emails appear as they're found.
+ */
+export async function enrichEmailsBatch(tableId: string, minScore?: number, limit = 5): Promise<EnrichBatchResult> {
+  try {
+    const r = await (await meerko()).enrichRows(tableId, { limit, ...(minScore !== undefined ? { min_icp_score: minScore } : {}) });
+    revalidatePath(`/app/leads/${tableId}`);
+    return { ok: true, processed: r.processed, found: r.found.email, notFound: r.notFound, remaining: r.remaining, outOfCredits: r.stoppedReason === "insufficient_credits" };
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
 }
 
 export async function findPhones(tableId: string) {

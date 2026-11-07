@@ -256,7 +256,7 @@ export const CAPABILITIES: Capability[] = [
     id: "enrich",
     summary: "Find and verify emails, and find phone numbers",
     routes: ["enrichRows"],
-    web: yes(action("enrichEmails"), action("findPhones")),
+    web: yes(action("enrichEmailsBatch"), action("findPhones")),
     mcp: yes("enrich_rows"),
     cli: yes("enrich"),
     api: API,
