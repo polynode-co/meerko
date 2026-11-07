@@ -46,18 +46,19 @@ function Hero() {
               Find my first customers →
             </button>
           </form>
-          <p className="font-plex text-[13px] tracking-[0.5px] text-lk-muted [text-shadow:0_1px_8px_#000]">
-            Free, 200 credits to start. Or{" "}
-            <a href="/docs/quick-start" className="text-lk-fg underline-offset-4 hover:underline">
-              connect your agent
-            </a>{" "}
-            first.
-          </p>
-          <p className="font-plex text-[13px] tracking-[0.5px] text-lk-muted [text-shadow:0_1px_8px_#000]">
-            Cloud $49/mo, no seats · Free forever when self-hosted ·{" "}
-            <a href="/docs/self-hosting" className="underline-offset-4 hover:text-lk-fg hover:underline">
-              AGPL-3.0
-            </a>
+          {/* Small print over the dithered horizon: one line, on a dark highlight that hugs the text, so it reads
+              clearly without making the hero (and its cover image) taller. */}
+          <p className="font-plex text-[13px] leading-5 tracking-[0.5px] text-lk-fg/90">
+            <span className="bg-lk-bg/85 box-decoration-clone px-1.5 py-[2px]">
+              200 free credits · Cloud $49/mo ·{" "}
+              <a href="/docs/self-hosting" className="underline-offset-4 hover:text-lk-lime hover:underline">
+                Free self-hosted
+              </a>{" "}
+              ·{" "}
+              <a href="/docs/quick-start" className="text-lk-fg underline underline-offset-4 hover:text-lk-lime">
+                Connect your agent →
+              </a>
+            </span>
           </p>
         </div>
         <div className="px-6 pt-16 pb-16 lg:px-[150px] lg:pt-[84px] lg:pb-[72px]">
