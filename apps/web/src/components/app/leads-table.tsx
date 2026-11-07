@@ -160,8 +160,8 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
                 />
               </th>
               {scored && (
-                <th className={`py-2.5 pr-3 pl-2 ${thText}`} title="How well each lead fits your ICP (Settings → Ideal customer)">
-                  Fit · why
+                <th className={`py-2.5 pr-1 pl-2 ${thText}`} title="How well each lead fits your ideal customer. Hover a score for why.">
+                  Fit
                 </th>
               )}
               {columns.map((c) => (
@@ -189,15 +189,8 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
                   <input type="checkbox" aria-label="Select row" checked={selected.has(r.id)} onChange={() => toggle(r.id)} className="size-3.5 accent-lk-lime" />
                 </td>
                 {scored && (
-                  <td className="py-3 pr-3 pl-2 align-middle">
-                    <span className="flex w-[260px] items-center gap-3">
-                      <ScoreRing fit={r.icp} />
-                      {r.icp?.reason && (
-                        <span className={`line-clamp-2 text-[13px] leading-snug ${r.icp.note ? "text-lk-fg" : "text-lk-dim"}`} title={r.icp.note ? "Your agent's judgement" : undefined}>
-                          {r.icp.reason}
-                        </span>
-                      )}
-                    </span>
+                  <td className="py-3 pr-1 pl-2 align-middle">
+                    <ScoreRing fit={r.icp} />
                   </td>
                 )}
                 {columns.map((c) => (

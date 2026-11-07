@@ -101,23 +101,24 @@ export function scoreRow(icp: Icp | null, data: Record<string, unknown>, review?
 
   if (icp.industries?.length && industry) {
     const hit = icp.industries.find((i) => has(industry, i) || has(i, industry));
-    add("industry", !!hit, hit ? industry : `${industry} isn't one of yours`);
+    add("industry", !!hit, hit ? industry : `${industry}, not one of your industries`);
   }
   if (icp.titles?.length && title) {
     const hit = icp.titles.find((t) => has(title, t));
-    add("title", !!hit, hit ? title : `${title} isn't a buyer title`);
+    add("title", !!hit, hit ? title : `"${title}" isn't a buyer title`);
   }
   if (icp.headcount && (icp.headcount.min !== undefined || icp.headcount.max !== undefined) && size !== null) {
     const ok = (icp.headcount.min === undefined || size >= icp.headcount.min) && (icp.headcount.max === undefined || size <= icp.headcount.max);
-    add("headcount", ok, `${size} people`);
+    const range = icp.headcount.max === undefined ? `${icp.headcount.min}+` : `${icp.headcount.min ?? 0}–${icp.headcount.max}`;
+    add("headcount", ok, ok ? `${size} ${size === 1 ? "person" : "people"}` : `${size} people, you want ${range}`);
   }
   if (icp.countries?.length && location) {
     const hit = icp.countries.find((c) => countryNames(c).some((n) => has(location, n)) || new RegExp(`(^|[\\s,])${c}($|[\\s,])`, "i").test(location));
-    add("country", !!hit, hit ? hit.toUpperCase() : location);
+    add("country", !!hit, hit ? `${hit.toUpperCase()} · ${location}` : `${location}, not one of your countries`);
   }
   if (icp.keywords?.length && profile.trim()) {
     const hits = icp.keywords.filter((k) => has(profile, k));
-    add("keywords", hits.length > 0, hits.length ? hits.join(", ") : "no keyword mentioned");
+    add("keywords", hits.length > 0, hits.length ? `mentions ${hits.join(", ")}` : "mentions none of your keywords");
   }
 
   if (possible === 0) return { score: null, base: null, checks, adjust, note, reason: "Nothing to compare: the lead has no industry, title, size or location" };
@@ -128,25 +129,28 @@ export function scoreRow(icp: Icp | null, data: Record<string, unknown>, review?
     base = Math.min(base, 10);
   }
   const score = Math.max(0, Math.min(100, base + (adjust ?? 0)));
-  return { score, base, checks, adjust, note, reason: reasonFor(checks, note) };
+  return { score, base, checks, adjust, note, reason: note ?? reasonFor(checks, { title, industry, size }) };
 }
 
-const SHORT: Record<IcpCheck["criterion"], string> = { industry: "industry", title: "title", headcount: "size", country: "country", keywords: "keywords", exclude: "" };
-
-/** "Matches industry, title, size · not country (Berlin, Germany)", or the agent's note, or the exclusion. */
-export function reasonFor(checks: IcpCheck[], note: string | null) {
+/**
+ * The lead itself in one line, so reasons differ from row to row: "Founder · Food and Beverage Services · 4 people
+ * · US", then what's off ("· “Influencer Marketing” isn't a buyer title"), or why it's ruled out.
+ */
+export function reasonFor(checks: IcpCheck[], lead: { title: string; industry: string; size: number | null }) {
   const ruledOut = checks.find((c) => c.criterion === "exclude");
-  if (note) return note;
   if (ruledOut) return `Ruled out: ${ruledOut.detail}`;
-  const hits = checks.filter((c) => c.matched).map((c) => SHORT[c.criterion]);
-  // Industry and title misses already name the value in their detail; size and country show what the lead has.
-  const misses = checks
-    .filter((c) => !c.matched)
-    .map((c) => (c.criterion === "headcount" || c.criterion === "country" ? `${SHORT[c.criterion]} (${c.detail})` : SHORT[c.criterion]));
-  const join = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : (xs[0] ?? ""));
-  if (misses.length === 0) return `Matches ${join(hits)}`;
-  if (hits.length === 0) return `Doesn't match ${join(misses)}`;
-  return `Matches ${join(hits)} · not ${join(misses)}`;
+  const ok = (k: IcpCheck["criterion"]) => checks.find((c) => c.criterion === k)?.matched;
+  const country = checks.find((c) => c.criterion === "country" && c.matched)?.detail.split(" · ")[0];
+  const keywords = checks.find((c) => c.criterion === "keywords" && c.matched)?.detail;
+  const facts = [
+    ok("title") ? lead.title : null,
+    ok("industry") ? lead.industry : null,
+    ok("headcount") && lead.size !== null ? `${lead.size} ${lead.size === 1 ? "person" : "people"}` : null,
+    country,
+    keywords,
+  ].filter(Boolean);
+  const misses = checks.filter((c) => !c.matched).map((c) => c.detail);
+  return [...facts, ...misses].join(" · ");
 }
 
 /** The workspace's ICP, or null if none was set. */
