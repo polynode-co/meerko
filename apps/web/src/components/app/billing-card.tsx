@@ -94,7 +94,7 @@ export function BillingCard({
                 {billing.prices.year && (
                   <span className="text-sm text-lk-dim">
                     {billing.founding_offer
-                      ? `Founding offer: ${billing.founding_offer.percent_off}% off the first year, ${billing.founding_offer.left} of 50 places left, until ${day(billing.founding_offer.until)}. Then $${billing.prices.year}/year.`
+                      ? `Founding offer: ${billing.founding_offer.percent_off}% off the first year, ${billing.founding_offer.left} of 50 places left. Yours to claim until ${day(billing.founding_offer.until)}; then $${billing.prices.year}/year.`
                       : `Yearly works out at $${Math.round(billing.prices.year / 12)}/month, with the same monthly credits.`}
                   </span>
                 )}

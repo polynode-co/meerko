@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import Stripe from "stripe";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addMonths, createSession, getBalance, runAnnualCreditsTick, signInWithGoogle, STRIPE_API_VERSION, type BillingConfig } from "@meerko/core";
+import { addMonths, createSession, foundingOfferFor, getBalance, runAnnualCreditsTick, signInWithGoogle, STRIPE_API_VERSION, type BillingConfig } from "@meerko/core";
 import { createDb, eq, users, workspaces, type Db } from "@meerko/db";
 import { createApp } from "./app.ts";
 
@@ -59,8 +59,39 @@ describe.skipIf(!process.env.DATABASE_URL)("annual Pro and the founding offer (d
 
   it("shows both prices and the places left in the founding offer", async () => {
     objects.set("founding", coupon(true, 3));
+    const before = Date.now();
     const body = await (await authed("/v1/billing")).json();
-    expect(body).toMatchObject({ prices: { month: 49, year: 490 }, founding_offer: { percent_off: 50, left: 47, until: "2026-12-31T23:59:59.000Z" }, interval: null });
+    expect(body).toMatchObject({ prices: { month: 49, year: 490 }, founding_offer: { percent_off: 50, left: 47 }, interval: null });
+    // This workspace's own deadline: 30 days from now (when it was first shown), never past Dec 31.
+    const until = new Date(body.founding_offer.until).getTime();
+    expect(until).toBeLessThanOrEqual(Math.min(before + 30 * 86_400_000 + 60_000, Date.parse("2026-12-31T23:59:59Z")));
+    // Showing it again doesn't restart the window.
+    expect((await (await authed("/v1/billing")).json()).founding_offer.until).toBe(body.founding_offer.until);
+  });
+
+  it("gives each workspace 30 days from first seeing the offer, capped at the coupon's end", async () => {
+    objects.set("founding", coupon(true));
+    const [ws] = await db.select({ seenAt: workspaces.foundingOfferSeenAt }).from(workspaces).where(eq(workspaces.id, workspaceId));
+    const seen = ws!.seenAt!;
+    const day = 86_400_000;
+    expect(await foundingOfferFor(db, billing, workspaceId, new Date(seen.getTime() + 29 * day))).not.toBeNull();
+    expect(await foundingOfferFor(db, billing, workspaceId, new Date(seen.getTime() + 31 * day))).toBeNull();
+    // A workspace first shown it on Dec 20 only has until Dec 31.
+    await db.update(workspaces).set({ foundingOfferSeenAt: new Date("2026-12-20T00:00:00Z") }).where(eq(workspaces.id, workspaceId));
+    expect((await foundingOfferFor(db, billing, workspaceId, new Date("2026-12-21T00:00:00Z")))!.until.toISOString()).toBe("2026-12-31T23:59:59.000Z");
+    expect(await foundingOfferFor(db, billing, workspaceId, new Date("2027-01-01T00:00:00Z"))).toBeNull();
+    await db.update(workspaces).set({ foundingOfferSeenAt: seen }).where(eq(workspaces.id, workspaceId));
+  });
+
+  it("charges full price on an annual checkout after the workspace's 30 days", async () => {
+    objects.set("founding", coupon(true));
+    const [ws] = await db.select({ seenAt: workspaces.foundingOfferSeenAt }).from(workspaces).where(eq(workspaces.id, workspaceId));
+    await db.update(workspaces).set({ foundingOfferSeenAt: new Date(Date.now() - 31 * 86_400_000) }).where(eq(workspaces.id, workspaceId));
+    const annual = await checkout("year");
+    expect(annual).toContain("price_pro_annual");
+    expect(annual).not.toContain("discounts");
+    expect(annual).toContain("allow_promotion_codes=true");
+    await db.update(workspaces).set({ foundingOfferSeenAt: ws!.seenAt }).where(eq(workspaces.id, workspaceId));
   });
 
   it("puts the founding coupon on annual checkouts only", async () => {

@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { and, creditLedger, eq, inArray, isNotNull, mailboxes, workspaces, type Db, type Plan } from "@meerko/db";
+import { and, creditLedger, eq, inArray, isNotNull, isNull, mailboxes, workspaces, type Db, type Plan } from "@meerko/db";
 import { billingWorkspaceOf, sharesBilling } from "./workspaces.ts";
 
 /** Credits a Pro subscription adds on each paid month (the $49 plan at $1 = 100 credits). */
@@ -7,8 +7,11 @@ export const PRO_MONTHLY_CREDITS = 4900;
 /** Pro's prices, matching terraform/app/stripe.tf: $49 a month, or $490 a year ($41/month). */
 export const PRO_PRICES = { month: 49, year: 490 } as const;
 export type BillingInterval = keyof typeof PRO_PRICES;
-/** The founding offer, matching the coupon in stripe.tf: 50% off the first year of annual Pro, for the first 50, until the end of 2026. */
-export const FOUNDING_OFFER = { percentOff: 50, maxRedemptions: 50, redeemBy: new Date("2026-12-31T23:59:59Z") } as const;
+/**
+ * The founding offer, matching the coupon in stripe.tf: 50% off the first year of annual Pro, for the first 50, until
+ * the end of 2026. Each workspace has `claimDays` to take it from the first time it's shown the offer.
+ */
+export const FOUNDING_OFFER = { percentOff: 50, maxRedemptions: 50, redeemBy: new Date("2026-12-31T23:59:59Z"), claimDays: 30 } as const;
 /** Credits in one top-up pack ($10 at $1 = 100 credits). Checkout lets the buyer pick how many packs. */
 export const CREDIT_PACK_CREDITS = 1000;
 export const MAX_CREDIT_PACKS = 100;
@@ -152,6 +155,28 @@ export type CheckoutInput = { kind: "pro"; interval?: BillingInterval } | { kind
  * How many founding-offer places are left, or null when there's no offer (no coupon configured, sold out, expired,
  * or Stripe unreachable). Read from the coupon itself, so the count is Stripe's.
  */
+/**
+ * The founding offer as this workspace sees it: places left and its own deadline (30 days from when it was first
+ * shown the offer, and never past the coupon's end), or null when it's gone or the window has passed. The first call
+ * that finds the offer open starts the workspace's window. Pro workspaces get null and start nothing.
+ */
+export async function foundingOfferFor(db: Db, cfg: BillingConfig, workspaceId: string, now = new Date()) {
+  workspaceId = await billingWorkspaceOf(db, workspaceId);
+  const [ws] = await db.select({ plan: workspaces.plan, seenAt: workspaces.foundingOfferSeenAt }).from(workspaces).where(eq(workspaces.id, workspaceId));
+  if (!ws || ws.plan === "pro") return null;
+  if (now > FOUNDING_OFFER.redeemBy) return null;
+  if (ws.seenAt && now.getTime() > ws.seenAt.getTime() + FOUNDING_OFFER.claimDays * 86_400_000) return null;
+  const left = await foundingOfferLeft(cfg);
+  if (left === null) return null;
+  let seenAt = ws.seenAt;
+  if (!seenAt) {
+    seenAt = now;
+    await db.update(workspaces).set({ foundingOfferSeenAt: now }).where(and(eq(workspaces.id, workspaceId), isNull(workspaces.foundingOfferSeenAt)));
+  }
+  const until = new Date(Math.min(seenAt.getTime() + FOUNDING_OFFER.claimDays * 86_400_000, FOUNDING_OFFER.redeemBy.getTime()));
+  return { left, until };
+}
+
 export async function foundingOfferLeft(cfg: BillingConfig): Promise<number | null> {
   if (!cfg.foundingCoupon || !cfg.prices.proAnnual) return null;
   try {
@@ -175,7 +200,7 @@ export async function startCheckout(db: Db, cfg: BillingConfig, workspaceId: str
   if (annual && !cfg.prices.proAnnual) throw new BillingError("Annual Pro isn't available on this server yet. Pick monthly.");
   // The founding coupon goes on by itself while places are left. Stripe refuses `discounts` together with
   // promotion codes, so an annual checkout with the offer doesn't take codes.
-  const founding = annual && (await foundingOfferLeft(cfg)) !== null;
+  const founding = annual && (await foundingOfferFor(db, cfg, workspaceId)) !== null;
   const customer = await ensureCustomer(db, cfg, workspaceId, email);
   const settings = `${cfg.appUrl.replace(/\/$/, "")}/app/settings`;
   const metadata = { workspace_id: workspaceId, kind: input.kind };

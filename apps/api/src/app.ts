@@ -140,7 +140,7 @@ import {
   PRO_MONTHLY_CREDITS,
   PRO_PRICES,
   FOUNDING_OFFER,
-  foundingOfferLeft,
+  foundingOfferFor,
   CREDIT_PACK_CREDITS,
   startCheckout,
   verifyStripeEvent,
@@ -1196,8 +1196,8 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       credit_pack: CREDIT_PACK_CREDITS,
       interval: b.plan === "pro" ? (b.billingInterval ?? "month") : null,
       prices: { month: PRO_PRICES.month, year: deps.billing.prices.proAnnual ? PRO_PRICES.year : null },
-      founding_offer: await foundingOfferLeft(deps.billing).then((left) =>
-        left === null ? null : { percent_off: FOUNDING_OFFER.percentOff, left, until: FOUNDING_OFFER.redeemBy.toISOString() },
+      founding_offer: await foundingOfferFor(db, deps.billing, c.var.workspaceId).then((o) =>
+        o ? { percent_off: FOUNDING_OFFER.percentOff, left: o.left, until: o.until.toISOString() } : null,
       ),
     });
   });

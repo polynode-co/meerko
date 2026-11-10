@@ -341,7 +341,7 @@ export type Billing =
       interval: "month" | "year" | null;
       /** Pro in US dollars; `year` is null where annual Pro isn't sold. */
       prices: { month: number; year: number | null };
-      /** Off the first year of annual Pro, applied at checkout; null when sold out, expired or not offered. */
+      /** Off the first year of annual Pro, applied at checkout. `until`: this workspace's own deadline (30 days from first shown). Null when gone. */
       founding_offer: { percent_off: number; left: number; until: string } | null;
     };
 

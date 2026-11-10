@@ -406,7 +406,7 @@ export const Billing = z.union([
     founding_offer: z
       .object({ percent_off: z.number(), left: z.number(), until: ts })
       .nullable()
-      .describe("Off the first year of annual Pro, applied at checkout; null when sold out, expired or not offered"),
+      .describe("Off the first year of annual Pro, applied at checkout. `until` is this workspace's deadline: 30 days from when it was first shown the offer, at most Dec 31 2026. Null when sold out, past the deadline, on Pro, or not offered"),
   }),
 ]);
 export const Credits = z.object({
