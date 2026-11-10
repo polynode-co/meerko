@@ -12,7 +12,9 @@ import {
   sequences,
   sql,
   suppressions,
+  or,
   tableRows,
+  workspaces,
   type Db,
 } from "@meerko/db";
 import { mailClient, type MailClient, type SentIds } from "../mail/client.ts";
@@ -28,6 +30,20 @@ import { rampState } from "./ramp.ts";
 import { nextWindowStart, type SendWindow } from "./window.ts";
 
 const DAY_MS = 24 * 60 * 60_000;
+
+/**
+ * Due work the sender may take: in a workspace that approves sequence emails, only the step a person approved.
+ * Needs `sequences` and `workspaces` joined.
+ */
+export const sendable = () => or(eq(workspaces.approveSequenceEmails, false), sql`${enrollments.approvedStep} = ${enrollments.nextStep}`)!;
+
+/** The subject and body of an enrollment's next email, as the lead will get it. Follow-ups reply to the first subject. */
+export function renderEmail(steps: { subject: string | null; body: string }[], stepIndex: number, data: Record<string, unknown>) {
+  const step = steps[stepIndex];
+  if (!step) return null;
+  const firstSubject = renderTemplate(steps[0]!.subject ?? "", data);
+  return { subject: stepIndex === 0 ? firstSubject : `Re: ${firstSubject}`, body: renderTemplate(step.body, data) };
+}
 /** Sends from one mailbox are 3-7 minutes apart, so they don't look automated. */
 const MIN_GAP_MS = 3 * 60_000;
 const GAP_JITTER_MS = 4 * 60_000;
@@ -108,7 +124,8 @@ export async function runSendTick(db: Db, deps: SenderDeps): Promise<TickResult>
     .from(enrollments)
     .innerJoin(sequences, eq(enrollments.sequenceId, sequences.id))
     .innerJoin(mailboxes, eq(enrollments.mailboxId, mailboxes.id))
-    .where(and(eq(enrollments.state, "active"), lte(enrollments.nextSendAt, now), eq(sequences.status, "active"), eq(mailboxes.status, "active")));
+    .innerJoin(workspaces, eq(sequences.workspaceId, workspaces.id))
+    .where(and(eq(enrollments.state, "active"), lte(enrollments.nextSendAt, now), eq(sequences.status, "active"), eq(mailboxes.status, "active"), sendable()));
 
   for (const mb of due) {
     const [{ sentToday, lastSentAt }] = (await db
@@ -147,12 +164,14 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
       .select({ enrollment: enrollments, sequence: sequences })
       .from(enrollments)
       .innerJoin(sequences, eq(enrollments.sequenceId, sequences.id))
+      .innerJoin(workspaces, eq(sequences.workspaceId, workspaces.id))
       .where(
         and(
           eq(enrollments.mailboxId, mailboxId),
           eq(sequences.status, "active"),
           eq(enrollments.state, "active"),
           lte(enrollments.nextSendAt, now),
+          sendable(),
         ),
       )
       .orderBy(asc(enrollments.nextSendAt))
@@ -197,9 +216,7 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
     }
 
     const unsubUrl = new URL(`/u/${createUnsubscribeToken(deps.box!, seq.workspaceId, en.email)}`, deps.publicUrl).toString();
-    const firstSubject = renderTemplate(steps[0]!.subject ?? "", row.data);
-    const subject = en.nextStep === 0 ? firstSubject : `Re: ${firstSubject}`;
-    const body = renderTemplate(step.body, row.data);
+    const { subject, body } = renderEmail(steps, en.nextStep, row.data)!;
     const lastMessageId = en.messageIds.at(-1);
     const { raw, messageId } = buildMime({
       from: { email: mailbox.email, name: mailbox.displayName },

@@ -21,12 +21,12 @@ function Hero() {
         <div className="flex max-w-[688px] flex-col gap-6 px-6 pt-10 lg:max-w-[736px] lg:pt-[72px] lg:pr-0 lg:pl-24">
           <span className={`${label} text-lk-lime`}>● Open source · AGPL-3.0</span>
           <h1 className="font-sans text-[40px] leading-[1.05] font-semibold tracking-[-1.4px] text-lk-fg sm:text-[60px] sm:leading-[62px] sm:tracking-[-2.1px]">
-            Always on the lookout <br className="hidden sm:block" />
-            for your next customer.
+            The outbound engine <br className="hidden sm:block" />
+            for your AI agent.
           </h1>
           <p className="max-w-[540px] text-[17px] leading-[26px] text-lk-muted">
-            Meerko is the outbound engine for your AI agent. Claude Code, Codex or Cursor does the thinking. Meerko finds the leads, sends
-            from your own Gmail or Outlook and catches every reply, around the clock, even when your agent is closed.
+            Claude, ChatGPT, Claude Code, Codex or Cursor does the thinking. Meerko finds the leads, sends from your own Gmail or Outlook
+            and catches every reply, around the clock, even when your agent is closed.
           </p>
           {/* Your site in, your first 10 customers out (/app/welcome, after sign-up). A plain GET form: no JS needed. */}
           <form action="/app/welcome" method="get" className="flex w-full max-w-[560px] flex-col gap-3 pt-2 sm:flex-row sm:gap-0">
@@ -217,7 +217,7 @@ function Steps() {
 // ------------------------------------------------------------------ pricing
 
 const credits: [string, string, string, boolean?][] = [
-  ["612", "found work emails", "8 / each"],
+  ["980", "found work emails", "5 / each"],
   ["4,900", "leads from search", "1 / each"],
   ["4,900", "email verifications", "1 / each"],
   ["0", "credits to send, catch replies and draft", "always", true],
@@ -232,7 +232,7 @@ function Pricing() {
             <span className={kicker}>04 · Pricing</span>
             <h2 className={sectionTitle}>One flat plan. No seats, no per-mailbox fees.</h2>
           </div>
-          <p className="text-[16px] text-lk-muted">$1 = 100 credits. Misses are free. Credits don’t expire.</p>
+          <p className="text-[16px] text-lk-muted">$1 = 100 credits. Misses are free. Bought credits never expire.</p>
         </div>
         <div className="flex flex-col bg-lk-box outline outline-1 -outline-offset-1 outline-lk-line lg:flex-row">
           <div className="flex flex-col gap-[22px] border-b border-lk-line p-9 lg:w-[420px] lg:shrink-0 lg:border-r lg:border-b-0">

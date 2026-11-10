@@ -169,13 +169,17 @@ describe.skipIf(!process.env.DATABASE_URL)("billing (db)", () => {
     expect(await getBalance(db, workspaceId)).toBe(before + 2 * 4900);
   });
 
-  it("drops to Free when the subscription ends, keeping the credits", async () => {
+  it("drops to Free when the subscription ends; Pro's monthly credits lapse, bought ones stay", async () => {
     const before = await getBalance(db, workspaceId);
     objects.set("sub_1", subscription("canceled"));
     await deliver("customer.subscription.deleted", subscription("canceled"));
     const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, workspaceId));
     expect(ws!.plan).toBe("free");
-    expect(await getBalance(db, workspaceId)).toBe(before);
+    // The two unspent monthly grants (4,900 each) go; the 1,000 bought earlier stays.
+    expect(await getBalance(db, workspaceId)).toBe(before - 2 * 4900);
+    // A redelivered event expires nothing twice.
+    await deliver("customer.subscription.deleted", subscription("canceled"));
+    expect(await getBalance(db, workspaceId)).toBe(before - 2 * 4900);
   });
 
   it("caps Free at one mailbox, but always lets a mailbox reconnect", async () => {

@@ -133,7 +133,7 @@ function Credits() {
         ))}
       </div>
       <div className="flex flex-col gap-3 font-plex text-[13px] tracking-[0.6px] text-lk-muted uppercase sm:flex-row sm:justify-between">
-        <span>Credits don&apos;t expire.</span>
+        <span>Bought credits never expire.</span>
         <a href="/docs/credits" className="hover:text-lk-fg">
           Your own provider keys on Pro? 0 credits →
         </a>

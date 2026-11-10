@@ -128,6 +128,9 @@ export async function LkNav({ links, transparent = false, wide = false }: { link
   );
 }
 
+/** "Made by the Antwork team" (Polynode's other product), tagged so Antwork's analytics see where the visit came from. */
+const ANTWORK_URL = "https://antwork.io/?utm_source=meerko&utm_medium=referral&utm_campaign=footer";
+
 export function LkFooter() {
   const links: [string, string][] = [
     ["Docs", site.docsUrl],
@@ -140,7 +143,13 @@ export function LkFooter() {
   return (
     <footer className="border-t border-lk-line">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-6 py-[18px] font-plex text-[12.5px] tracking-[0.8px] text-lk-dim sm:flex-row sm:items-center sm:justify-between lg:px-12">
-        <span>MEERKO · A POLYNODE PROJECT · AGPL-3.0</span>
+        <span>
+          MEERKO · MADE BY THE{" "}
+          <a href={ANTWORK_URL} className="underline decoration-lk-gray underline-offset-4 hover:text-lk-fg hover:decoration-lk-lime">
+            ANTWORK
+          </a>{" "}
+          TEAM · AGPL-3.0
+        </span>
         <span className="flex flex-wrap items-center gap-x-7 gap-y-2">
           {links.map(([name, href]) => (
             <a key={name} href={href} className="uppercase hover:text-lk-fg">
@@ -192,7 +201,13 @@ export function LkLandscapeFooter() {
         </a>
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-lk-bg/0 via-lk-bg/85 to-lk-bg pt-16">
           <div className="mx-auto flex max-w-[1440px] flex-col gap-2 px-6 pb-5 font-plex text-[12.5px] tracking-[0.8px] text-lk-muted sm:flex-row sm:items-center sm:justify-between lg:px-12">
-            <span>MEERKO · A POLYNODE PROJECT · AGPL-3.0</span>
+            <span>
+          MEERKO · MADE BY THE{" "}
+          <a href={ANTWORK_URL} className="underline decoration-lk-gray underline-offset-4 hover:text-lk-fg hover:decoration-lk-lime">
+            ANTWORK
+          </a>{" "}
+          TEAM · AGPL-3.0
+        </span>
             <span className="flex items-center gap-2.5">
               <CookieSettingsButton className="uppercase hover:text-lk-fg" /> ·
               © {new Date().getFullYear()} POLYNODE TECHNOLOGIES S.L. <span className="size-2 bg-lk-lime" />

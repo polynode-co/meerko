@@ -59,7 +59,7 @@ export function BillingCard({
           </span>
           {renewal && <span className={billing.status === "past_due" ? "text-[#e5795b]" : "text-lk-dim"}>{renewal}</span>}
         </div>
-        <p className="text-lk-dim">Found emails cost 8 credits, verifications 1, search results 1, phone numbers 80 (on Pro). Misses are free, and credits don&apos;t expire.</p>
+        <p className="text-lk-dim">Found emails cost 5 credits, verifications 1, search results 1, phone numbers 80 (on Pro). Misses are free. Bought credits never expire; Pro&apos;s monthly credits roll over one month.</p>
 
         {!canManage && <p className="text-lk-dim">Only a workspace owner can change the plan or buy credits.</p>}
 

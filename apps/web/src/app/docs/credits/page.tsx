@@ -32,7 +32,7 @@ export default function Page() {
         head={["Action", "Credits"]}
         rows={[
           ["Search result saved", "1 per result"],
-          ["Email found", "8"],
+          ["Email found", "5"],
           ["Email verified", "1"],
           ["Phone number found", "80, on Pro"],
           ["Counting search results", "Free"],
@@ -54,8 +54,9 @@ export default function Page() {
       <H2 id="buying">Buying credits</H2>
       <p>
         A workspace owner buys credits in the dashboard&apos;s Connections, under Plan &amp; credits, on any plan: packs of 1,000 credits for
-        $10, paid with Stripe. Pro ($49 a month) adds 4,900 credits when you subscribe and each time it renews, lets you connect more than one mailbox, and lets you use your own provider keys with no credits charged. Credits
-        don&apos;t expire, and you keep them if you cancel Pro. Cancel or change your card from Manage billing.
+        $10, paid with Stripe. Pro ($49 a month) adds 4,900 credits when you subscribe and each time it renews, lets you connect more than one mailbox, and lets you use your own provider keys with no credits charged. Bought and free
+        credits never expire. Pro&apos;s monthly credits roll over one month, then lapse, and lapse when Pro ends; spending uses the credits that
+        lapse soonest first. Cancel or change your card from Manage billing.
       </p>
       <p>
         <Tool name="get_credits" /> shows your agent the balance, so it can warn you before a large search. Plans and
@@ -91,7 +92,7 @@ export default function Page() {
       <H2 id="generect">Phone numbers and Generect</H2>
       <p>
         Meerko finds phone numbers through <L href={docsSources.generect.url}>Generect</L>, and asks it for the emails Icypeas (and
-        Firecrawl, if you added a key) didn&apos;t find. A missed email found this way costs the usual 8 credits. A phone number costs 80
+        Firecrawl, if you added a key) didn&apos;t find. A missed email found this way costs the usual 5 credits. A phone number costs 80
         credits, only when one is found, and only when you ask for phones: email finding never looks them up. On Meerko Cloud, phones
         are part of Pro. Rows need a LinkedIn URL, or a first and last name plus a company or domain.
       </p>

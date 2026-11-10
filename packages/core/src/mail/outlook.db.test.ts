@@ -20,7 +20,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Outlook mailboxes (db)", () => {
   let ws: string;
 
   beforeEach(async () => {
-    ws = (await db.insert(workspaces).values({ name: "outlook-test" }).returning())[0]!.id;
+    ws = (await db.insert(workspaces).values({ name: "outlook-test", approveSequenceEmails: false }).returning())[0]!.id;
   });
   afterEach(async () => {
     await db.delete(workspaces).where(eq(workspaces.id, ws));

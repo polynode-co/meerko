@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import Stripe from "stripe";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addMonths, createSession, foundingOfferFor, getBalance, runAnnualCreditsTick, signInWithGoogle, STRIPE_API_VERSION, type BillingConfig } from "@meerko/core";
-import { createDb, eq, users, workspaces, type Db } from "@meerko/db";
+import { and, createDb, creditLedger, eq, sql, users, workspaces, type Db } from "@meerko/db";
 import { createApp } from "./app.ts";
 
 describe.skipIf(!process.env.DATABASE_URL)("annual Pro and the founding offer (db)", () => {
@@ -138,14 +138,28 @@ describe.skipIf(!process.env.DATABASE_URL)("annual Pro and the founding offer (d
     expect(ws).toMatchObject({ plan: "pro", billingInterval: "year" });
     expect((await (await authed("/v1/billing")).json()).interval).toBe("year");
 
-    const before = await getBalance(db, workspaceId);
+    // Count the grants, not the balance: these months are in the past, so a credit-expiry pass elsewhere may lapse them.
+    const grants = async () =>
+      (
+        await db
+          .select({ n: sql<number>`count(*)::int`, credits: sql<number>`coalesce(sum(${creditLedger.delta}), 0)::int` })
+          .from(creditLedger)
+          .where(and(eq(creditLedger.workspaceId, workspaceId), eq(creditLedger.reason, "pro_monthly"), sql`${creditLedger.delta} > 0`))
+      )[0]!;
+    const before = await grants();
     // 31 Jan + 1 month is 28 Feb; by 1 Apr, months 2 and 3 (Feb 28, Mar 31) are due. Month 1 came with the invoice.
     await runAnnualCreditsTick(db, new Date("2026-04-01T00:00:00Z"));
     await runAnnualCreditsTick(db, new Date("2026-04-01T00:00:00Z"));
-    expect(await getBalance(db, workspaceId)).toBe(before + 2 * 4900);
+    expect((await grants()).n).toBe(before.n + 2);
+    // Each month's credits follow monthly Pro's rule: they roll over one month, then lapse.
+    const [feb] = await db
+      .select({ expiresAt: creditLedger.expiresAt })
+      .from(creditLedger)
+      .where(and(eq(creditLedger.workspaceId, workspaceId), sql`${creditLedger.externalRef} like ${"%:m2"}`));
+    expect(feb!.expiresAt?.toISOString().slice(0, 10)).toBe("2026-04-28");
     // By the end of the year, all 11 later months, never a 12th.
     await runAnnualCreditsTick(db, new Date(addMonths(start, 11).getTime() + 86_400_000));
     await runAnnualCreditsTick(db, new Date(end.getTime() - 1000));
-    expect(await getBalance(db, workspaceId)).toBe(before + 11 * 4900);
+    expect(await grants()).toEqual({ n: before.n + 11, credits: before.credits + 11 * 4900 });
   });
 });

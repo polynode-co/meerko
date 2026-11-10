@@ -7,9 +7,10 @@ import { BillingCard } from "@/components/app/billing-card";
 import { DisconnectMailbox } from "@/components/app/disconnect-mailbox";
 import { TestEmail } from "@/components/app/test-email";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
-import { AgentHookCard } from "@/components/app/agent-hook-card";
 import { SlackCard } from "@/components/app/slack-card";
 import { CrmCard } from "@/components/app/crm-card";
+import { SendingModeCard } from "@/components/app/sending-mode-card";
+import { DigestCard } from "@/components/app/digest-card";
 import { ProviderKeysCard } from "@/components/app/provider-keys-card";
 import { MailboxConnect } from "@/components/app/mailbox-connect";
 import { WorkspaceCard } from "@/components/app/workspace-card";
@@ -22,7 +23,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   // The API's Gmail OAuth callback, and Stripe Checkout, redirect back here with the outcome.
   // `?connect=gmail` (from an agent's connect_gmail, or Reconnect) opens the mailbox form.
   const { gmail_connected, gmail_error, billing: paid, billing_error, connect, email, slack } = await searchParams;
-  const [mailboxes, credits, keys, apiKeys, apps, me, billing, hook, connectOptions, slackState, icp, crm] = await load((c) =>
+  const [mailboxes, credits, keys, apiKeys, apps, me, billing, connectOptions, slackState, icp, sendingMode, crm] = await load((c) =>
     Promise.all([
       c.listMailboxes(),
       c.getCredits(),
@@ -31,13 +32,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       c.listConnectedApps(),
       c.me(),
       c.getBilling(),
-      c.getAgentHook(),
       c.mailboxConnectOptions(),
       c.getSlack(),
       c.getIcp(),
+      c.getSendingMode(),
       c.getCrm(),
     ]),
   );
+  // Each owner's own setting, so only for a signed-in person.
+  const digest = me.user ? await load((c) => c.getDigest()) : null;
   return (
     <Page className="max-w-[1200px]">
       <PageHeader eyebrow="Connections" title="Mailboxes & keys" />
@@ -79,14 +82,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         ))}
       </Card>
 
+      <SendingModeCard mode={sendingMode} canManage={!!me.user} />
+
       {me.user && <WorkspaceCard id={me.workspace.id} name={me.workspace.name} canManage={me.user.role === "owner"} />}
       <IcpCard icp={icp} />
 
       {billing.enabled && <BillingCard billing={billing} canManage={me.user?.role === "owner"} paid={paid} error={billing_error} />}
 
       <ConnectedAppsCard apps={apps} canManage={!!me.user} />
-
-      <AgentHookCard hook={hook} drafterUrl={new URL("/mcp/drafter", publicApiUrl()).toString()} canManage={!!me.user} />
 
       <SlackCard
         connection={slackState.connection}
@@ -102,6 +105,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 : undefined
         }
       />
+
+      {digest?.eligible && <DigestCard enabled={digest.enabled} lastSentAt={digest.last_sent_at} />}
 
       <CrmCard connection={crm} canManage={!!me.user} />
 
@@ -120,7 +125,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         ) : billing.enabled ? (
           "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged. Add a Firecrawl key and email finding tries it when Icypeas misses, also free. Add a Generect key and phone numbers and missed emails run on your Generect account."
         ) : credits.enabled ? (
-          <>Balance: <span className="font-plex text-lk-lime">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 8, verifications 1, search results 1, phone numbers 80. Misses are free. Add your own Icypeas key to skip credits, or a Firecrawl or Generect key to find more.</>
+          <>Balance: <span className="font-plex text-lk-lime">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 5, verifications 1, search results 1, phone numbers 80. Misses are free. Add your own Icypeas key to skip credits, or a Firecrawl or Generect key to find more.</>
         ) : (
           "Credits are off on this install: searches and enrichment use your own provider keys."
         )}

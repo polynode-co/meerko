@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { and, eq, providerKeys, sql, type Db } from "@meerko/db";
 
 export const BYOK_PROVIDERS = ["icypeas", "firecrawl", "generect"] as const;
@@ -29,6 +29,18 @@ export class SecretBox {
     const cipher = createCipheriv("aes-256-gcm", this.key, iv);
     const body = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
     return Buffer.concat([iv, cipher.getAuthTag(), body]).toString("base64");
+  }
+
+  /** A tamper-proof tag for `data` (links that act without signing in, like unsubscribing). Keyed apart from encryption. */
+  sign(data: string): string {
+    const key = createHmac("sha256", this.key).update("meerko-sign-v1").digest();
+    return createHmac("sha256", key).update(data).digest("base64url");
+  }
+
+  verify(data: string, tag: string): boolean {
+    const want = Buffer.from(this.sign(data));
+    const got = Buffer.from(tag);
+    return want.length === got.length && timingSafeEqual(want, got);
   }
 
   decrypt(stored: string): string {

@@ -1,6 +1,6 @@
 {
-  "id": "a8dc49db-d675-4884-a137-34c7550192f2",
-  "prevId": "d4b42e9a-81fc-4a53-8842-0a6efb2c9f89",
+  "id": "39af77fa-d8d2-46ca-bdff-f14e9f7540ac",
+  "prevId": "a71b650c-bfc2-4114-bdd1-a673c3078db1",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -359,104 +359,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.crm_connections": {
-      "name": "crm_connections",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "provider": {
-          "name": "provider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "encrypted_token": {
-          "name": "encrypted_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last4": {
-          "name": "last4",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "account_name": {
-          "name": "account_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "auto_sync": {
-          "name": "auto_sync",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "last_synced_at": {
-          "name": "last_synced_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_error": {
-          "name": "last_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "crm_connections_workspace_id_workspaces_id_fk": {
-          "name": "crm_connections_workspace_id_workspaces_id_fk",
-          "tableFrom": "crm_connections",
-          "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "crm_connections_workspace_id_unique": {
-          "name": "crm_connections_workspace_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.data_tables": {
       "name": "data_tables",
       "schema": "",
@@ -722,6 +624,12 @@
         "next_send_at": {
           "name": "next_send_at",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approved_step": {
+          "name": "approved_step",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -1076,6 +984,19 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "digest_enabled": {
+          "name": "digest_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "digest_sent_at": {
+          "name": "digest_sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -2544,18 +2465,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "crm_synced_at": {
-          "name": "crm_synced_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crm_record_id": {
-          "name": "crm_record_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -2758,24 +2667,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "current_period_start": {
-          "name": "current_period_start",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "billing_interval": {
-          "name": "billing_interval",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "founding_offer_seen_at": {
-          "name": "founding_offer_seen_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "cancel_at_period_end": {
           "name": "cancel_at_period_end",
           "type": "boolean",
@@ -2788,6 +2679,20 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
+        },
+        "approve_sequence_emails": {
+          "name": "approve_sequence_emails",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "approve_reply_drafts": {
+          "name": "approve_reply_drafts",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "created_at": {
           "name": "created_at",

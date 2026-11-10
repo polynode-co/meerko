@@ -22,5 +22,7 @@ export async function GET(request: NextRequest) {
   const store = await cookies();
   const next = safeNext(store.get(NEXT_COOKIE)?.value);
   store.delete(NEXT_COOKIE);
+  // Someone who just signed up first gets the optional questions, then goes where they were heading.
+  if (request.nextUrl.searchParams.get("new") === "1") redirect(`/app/about-you?next=${encodeURIComponent(next ?? "/app")}`);
   redirect(next ?? "/app");
 }

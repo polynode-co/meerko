@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { and, creditLedger, eq, inArray, isNotNull, isNull, mailboxes, workspaces, type Db, type Plan } from "@meerko/db";
+import { lapseMonthlyCredits, monthlyCreditsExpiry } from "./credits.ts";
 import { billingWorkspaceOf, sharesBilling } from "./workspaces.ts";
 
 /** Credits a Pro subscription adds on each paid month (the $49 plan at $1 = 100 credits). */
@@ -44,6 +45,8 @@ export async function assertOwnKeysAllowed(db: Db, workspaceId: string) {
 
 /** Stripe statuses that keep Pro. `past_due` keeps it while Stripe retries the card. */
 const PRO_STATUSES = new Set<Stripe.Subscription.Status>(["active", "trialing", "past_due"]);
+/** A subscription that is over for good, so Pro's monthly credits lapse. */
+const ENDED_STATUSES = new Set<Stripe.Subscription.Status>(["canceled", "unpaid", "incomplete_expired"]);
 
 /** Meerko Cloud's Stripe setup. Unset (self-hosting) means no billing routes and no plan limits. */
 export interface BillingConfig {
@@ -255,11 +258,11 @@ export async function openPortal(db: Db, cfg: BillingConfig, workspaceId: string
 }
 
 /** Adds credits once per Stripe object: a redelivered webhook hits the unique `external_ref` and does nothing. */
-async function grantOnce(db: Db, workspaceId: string, amount: number, reason: string, externalRef: string) {
+async function grantOnce(db: Db, workspaceId: string, amount: number, reason: string, externalRef: string, expiresAt?: Date) {
   workspaceId = await billingWorkspaceOf(db, workspaceId);
   const inserted = await db
     .insert(creditLedger)
-    .values({ workspaceId, delta: amount, reason, externalRef })
+    .values({ workspaceId, delta: amount, reason, externalRef, ...(expiresAt ? { expiresAt, remaining: amount } : {}) })
     .onConflictDoNothing({ target: creditLedger.externalRef })
     .returning({ id: creditLedger.id });
   return inserted.length > 0;
@@ -303,6 +306,8 @@ async function syncSubscription(db: Db, cfg: BillingConfig, subscriptionId: stri
       cancelAtPeriodEnd: sub.cancel_at_period_end || !!sub.cancel_at,
     })
     .where(eq(workspaces.id, workspaceId));
+  // Pro is over (not just set to cancel at period end): its monthly credits go with it.
+  if (!pro && ENDED_STATUSES.has(sub.status)) await lapseMonthlyCredits(db, workspaceId);
   return { workspaceId, plan: pro ? ("pro" as const) : ("free" as const) };
 }
 
@@ -327,7 +332,8 @@ async function grantMonthlyCredits(db: Db, cfg: BillingConfig, invoiceId: string
   if (!subscriptionId || invoice.status !== "paid") return null;
   const workspaceId = await workspaceForCustomer(db, idOf(invoice.customer), invoice.parent?.subscription_details?.metadata?.workspace_id);
   if (!workspaceId) return null;
-  const granted = await grantOnce(db, workspaceId, PRO_MONTHLY_CREDITS, "pro_monthly", `stripe:${invoice.id}`);
+  // They roll over one month, then lapse (and lapse at once if Pro ends).
+  const granted = await grantOnce(db, workspaceId, PRO_MONTHLY_CREDITS, "pro_monthly", `stripe:${invoice.id}`, monthlyCreditsExpiry(new Date()));
   return { workspaceId, credits: PRO_MONTHLY_CREDITS, granted };
 }
 
@@ -349,7 +355,8 @@ export async function runAnnualCreditsTick(db: Db, now = new Date()) {
       const due = addMonths(s.start, month);
       if (due > now) break;
       const ref = `stripe:${s.subscriptionId}:${s.start.toISOString().slice(0, 10)}:m${month + 1}`;
-      if (await grantOnce(db, s.id, PRO_MONTHLY_CREDITS, "pro_monthly", ref)) granted++;
+      // Same rule as monthly Pro: each month's credits roll over one month, then lapse.
+      if (await grantOnce(db, s.id, PRO_MONTHLY_CREDITS, "pro_monthly", ref, monthlyCreditsExpiry(due))) granted++;
     }
   }
   return { granted };

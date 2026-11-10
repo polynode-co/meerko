@@ -35,7 +35,7 @@ describe.skipIf(!process.env.DATABASE_URL)("mailbox rotation (db)", () => {
 
   beforeEach(async () => {
     sent = [];
-    ws = (await db.insert(workspaces).values({ name: "rotation-test" }).returning())[0]!.id;
+    ws = (await db.insert(workspaces).values({ name: "rotation-test", approveSequenceEmails: false }).returning())[0]!.id;
     const add = async (email: string, extra: Partial<typeof mailboxes.$inferInsert> = {}) =>
       (await db.insert(mailboxes).values({ workspaceId: ws, provider: "gmail", email, encryptedRefreshToken: box.encrypt(email), dailyLimit: 50, ...extra }).returning())[0]!.id;
     mb.ana = await add("ana@tryacme.com");

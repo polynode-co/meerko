@@ -1,6 +1,6 @@
 "use client";
 
-import { Inbox, LayoutDashboard, LogOut, Menu, PanelsTopLeft, Plug, Send, X } from "lucide-react";
+import { Bot, Inbox, LayoutDashboard, LogOut, Menu, PanelsTopLeft, Plug, Send, X } from "lucide-react";
 import Link from "next/link";
 import posthog from "posthog-js";
 import { usePathname } from "next/navigation";
@@ -17,6 +17,7 @@ const nav = [
   { href: "/app/leads", label: "Leads", icon: PanelsTopLeft },
   { href: "/app/sequences", label: "Sequences", icon: Send },
   { href: "/app/inbox", label: "Inbox", icon: Inbox, badge: "inbox" as const },
+  { href: "/app/autopilot", label: "Autopilot", icon: Bot },
   { href: "/app/settings", label: "Connections", icon: Plug },
 ];
 

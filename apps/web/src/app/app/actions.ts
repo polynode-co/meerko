@@ -91,40 +91,95 @@ export async function createApiKey(_: unknown, form: FormData): Promise<ActionRe
   }
 }
 
-/** Saves where Meerko rings your agent. A webhook's signing secret comes back once, for the card to show. */
-export async function saveAgentHook(_: unknown, form: FormData): Promise<ActionResult & { secret?: string }> {
-  const kind = form.get("kind") === "webhook" ? "webhook" : "claude_routine";
+const AUTOPILOT = ["/app/autopilot"];
+
+/** The routine form's fields; `cadence` only for a scheduled routine. */
+function routineFields(form: FormData) {
+  const when = form.get("when") === "replies" ? ("replies" as const) : ("schedule" as const);
+  return {
+    name: String(form.get("name") ?? "").trim(),
+    brief: String(form.get("brief") ?? "").trim(),
+    when,
+    cadence:
+      when === "schedule"
+        ? { days: form.getAll("days").map(Number), time: String(form.get("time") ?? ""), timezone: String(form.get("timezone") ?? "") }
+        : undefined,
+  };
+}
+
+export async function createRoutine(_: unknown, form: FormData): Promise<ActionResult> {
+  return run((c) => c.createRoutine(routineFields(form)).then(() => "Created. Choose how it runs below."), AUTOPILOT);
+}
+
+export async function updateRoutine(_: unknown, form: FormData): Promise<ActionResult> {
+  const id = String(form.get("id") ?? "");
+  return run((c) => c.updateRoutine(id, routineFields(form)).then(() => "Saved"), AUTOPILOT);
+}
+
+export async function setRoutineStatus(id: string, status: "active" | "paused") {
+  return run((c) => c.updateRoutine(id, { status }).then(() => (status === "active" ? "Resumed, from now" : "Paused")), AUTOPILOT);
+}
+
+export async function deleteRoutine(id: string) {
+  return run((c) => c.deleteRoutine(id).then(() => "Deleted"), AUTOPILOT);
+}
+
+export async function runRoutine(id: string): Promise<ActionResult> {
+  try {
+    const res = await (await meerko()).runRoutine(id);
+    revalidatePath("/app/autopilot");
+    if (res.started) return { ok: true, message: "Started" };
+    if (res.error) return { ok: false, error: res.error };
+    return { ok: false, error: "This routine runs on your AI's own schedule, so Meerko can't start it. Run its prompt in your AI." };
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+/** Sets what starts a routine. A webhook's signing secret comes back once, for the page to show. */
+export async function setRoutineTrigger(_: unknown, form: FormData): Promise<ActionResult & { secret?: string }> {
+  const id = String(form.get("id") ?? "");
+  const kind = String(form.get("kind") ?? "");
+  if (kind !== "own_scheduler" && kind !== "claude_routine" && kind !== "webhook") return { ok: false, error: "Choose what starts it" };
   const url = String(form.get("url") ?? "").trim();
   const token = String(form.get("token") ?? "").trim();
-  if (!url) return { ok: false, error: kind === "webhook" ? "Enter the URL Meerko should call" : "Paste the routine's API trigger URL" };
-  if (kind === "claude_routine" && !token) return { ok: false, error: "Paste the routine's API trigger token" };
+  if (kind !== "own_scheduler" && !url) return { ok: false, error: kind === "webhook" ? "Enter the URL Meerko should call" : "Paste the routine's API trigger URL" };
   try {
-    const { secret } = await (await meerko()).setAgentHook({ kind, url, token: kind === "claude_routine" ? token : undefined });
-    revalidatePath("/app/settings");
-    return { ok: true, message: "Saved. Send a test to check it.", secret };
+    const { secret } = await (await meerko()).setRoutineTrigger(id, { kind, url: url || undefined, token: token || undefined });
+    revalidatePath("/app/autopilot");
+    return { ok: true, message: kind === "own_scheduler" ? "Saved" : "Saved. Run it now to check it.", secret };
   } catch (err) {
     if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
     throw err;
   }
 }
 
-export async function testAgentHook(): Promise<ActionResult> {
+export async function approveEmails(input: { enrollmentIds?: string[]; sequenceId?: string }) {
+  return run((c) => c.approveEmails(input).then((r) => `Approved ${r.approved} ${r.approved === 1 ? "email" : "emails"}`), ["/app"]);
+}
+
+export async function setSendingMode(mode: { sequence_emails?: "approve" | "auto"; reply_drafts?: "approve" | "auto" }) {
+  return run((c) => c.setSendingMode(mode).then(() => "Saved"), ["/app"]);
+}
+
+export async function setDigest(enabled: boolean) {
+  return run((c) => c.setDigest(enabled).then(() => (enabled ? "Turned on" : "Turned off")), ["/app/settings"]);
+}
+
+/** The optional questions after sign-up. Saving with nothing picked counts as a skip; either way, carry on. */
+export async function saveProfile(form: FormData) {
+  const pick = (k: string) => {
+    const v = String(form.get(k) ?? "");
+    return v || undefined;
+  };
   try {
-    const res = await (await meerko()).testAgentHook();
-    revalidatePath("/app/settings");
-    return res.ok ? { ok: true, message: `Test delivered (HTTP ${res.status})` } : { ok: false, error: res.error ?? "The test failed" };
+    await (await meerko()).saveProfile({ role: pick("role") as never, company_size: pick("company_size") as never, agent: pick("agent") as never });
   } catch (err) {
-    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
-    throw err;
+    // Never block someone on an optional screen.
+    if (!(err instanceof MeerkoApiError)) throw err;
   }
-}
-
-export async function enableAgentHook() {
-  return run((c) => c.enableAgentHook().then(() => "Turned back on"), ["/app/settings"]);
-}
-
-export async function removeAgentHook() {
-  return run((c) => c.deleteAgentHook().then(() => "Removed"), ["/app/settings"]);
+  redirect(safeNext(String(form.get("next") ?? "")) ?? "/app");
 }
 
 export async function saveSlackWebhook(_: unknown, form: FormData): Promise<ActionResult> {

@@ -20,6 +20,7 @@ import {
   type MailProviderId,
   type MailServers,
   type ReplyIntent,
+  type Routine,
   type Row,
   type Stage,
 } from "@meerko/sdk";
@@ -575,8 +576,49 @@ seqs
   .command("start <sequenceId>")
   .description("start sending (within the send window, respecting mailbox limits)")
   .action(async (id: string) => {
-    const s = await MeerkoClient.fromEnv().startSequence(id);
+    const client = MeerkoClient.fromEnv();
+    const s = await client.startSequence(id);
     console.log(`"${s.name}" is active. Emails go out ${s.windowStartHour}:00-${s.windowEndHour}:00 ${s.timezone}, weekdays.`);
+    if ((await client.getSendingMode()).sequence_emails === "approve") console.log(`Each email waits for your approval: \`meerko seq pending ${id}\`, then \`meerko seq approve ${id}\`.`);
+  });
+
+seqs
+  .command("pending [sequenceId]")
+  .description("emails waiting for your approval, as each lead will get them")
+  .option("-n, --limit <n>", "how many", "20")
+  .action(async (id: string | undefined, opts: { limit: string }) => {
+    const client = MeerkoClient.fromEnv();
+    const list = await client.listPendingEmails({ sequenceId: id, limit: Number(opts.limit) });
+    if (json()) return console.log(JSON.stringify(list, null, 2));
+    if (list.length === 0) {
+      const mode = await client.getSendingMode();
+      return console.log(mode.sequence_emails === "auto" ? "Sequence emails send on their own here (no approval needed)." : "No emails waiting for approval.");
+    }
+    for (const e of list) {
+      console.log(`\n[${e.enrollment_id}] ${e.sequence_name} · email ${e.step} to ${e.to}${e.send_at ? ` · due ${e.send_at}` : ""}`);
+      console.log(`  Subject: ${e.subject}`);
+      console.log(e.body.split("\n").map((l) => `    ${l}`).join("\n"));
+    }
+  });
+
+seqs
+  .command("approve [sequenceId]")
+  .description("approve the next email of every lead waiting in a sequence, or of the leads given with --lead")
+  .option("-l, --lead <enrollmentId...>", "only these leads (ids from `meerko seq pending`)")
+  .action(async (id: string | undefined, opts: { lead?: string[] }) => {
+    if (!id && !opts.lead?.length) throw new Error("Pass a sequence id, or --lead <enrollmentId...>");
+    const res = await MeerkoClient.fromEnv().approveEmails({ sequenceId: opts.lead?.length ? undefined : id, enrollmentIds: opts.lead });
+    console.log(`Approved ${res.approved} ${res.approved === 1 ? "email" : "emails"}. Each goes when it's due.`);
+  });
+
+seqs
+  .command("mode")
+  .description("whether you approve each email first, or Meerko sends on its own (change it in the dashboard)")
+  .action(async () => {
+    const m = await MeerkoClient.fromEnv().getSendingMode();
+    if (json()) return console.log(JSON.stringify(m, null, 2));
+    console.log(`Sequence emails: ${m.sequence_emails === "approve" ? "you approve each one" : "sent on their own"}`);
+    console.log(`Reply drafts: ${m.reply_drafts === "approve" ? "you approve each one" : "sent as soon as they're written"}`);
   });
 
 seqs
@@ -654,6 +696,8 @@ replies
   .description("save a draft answer to a reply from a text file (nothing is sent until approved)")
   .action(async (id: string, file: string) => {
     const d = await MeerkoClient.fromEnv().draftReply(id, readFileSync(file, "utf8"));
+    if (d.sent) return console.log(`Sent to ${d.sent.to} (this workspace sends reply drafts on its own).`);
+    if (d.send_error) console.log(`Couldn't send it on its own: ${d.send_error}`);
     console.log(`Draft ${d.id} saved. Review with \`meerko drafts\`, send with \`meerko drafts approve ${d.id}\`.`);
   });
 
@@ -725,6 +769,94 @@ icp
     if (n !== null && (!Number.isInteger(n) || n < -30 || n > 30)) throw new Error("adjust must be a whole number from -30 to 30, or `clear`");
     const res = await MeerkoClient.fromEnv().reviewIcpFit(tableId, [{ row_id: rowId, adjust: n, note: note.join(" ") || undefined }]);
     console.log(json() ? JSON.stringify(res) : `Updated ${res.updated} row.`);
+  });
+
+const routinesCmd = program.command("routines").description("Autopilot: routines your own AI runs, when replies arrive or on a schedule");
+
+const printRoutine = (r: Routine) => {
+  console.log(`${r.name}  (${r.id})`);
+  console.log(`  ${r.schedule} · ${r.status}${r.statusReason ? ` (${r.statusReason})` : ""} · started by ${r.trigger === "own_scheduler" ? "your AI's own schedule" : r.trigger === "claude_routine" ? "Meerko, through a Claude routine" : "Meerko, through a webhook"}`);
+  if (r.nextDueAt) console.log(`  next run ${new Date(r.nextDueAt).toLocaleString()}`);
+  if (r.lastError) console.log(`  last error: ${r.lastError}`);
+};
+
+routinesCmd
+  .command("ls", { isDefault: true })
+  .description("list routines and how their latest runs went")
+  .action(async () => {
+    const list = await MeerkoClient.fromEnv().listRoutines();
+    if (json()) return console.log(JSON.stringify(list, null, 2));
+    if (!list.length) return console.log("No routines yet. Create one with `meerko routines create`.");
+    for (const r of list) {
+      printRoutine(r);
+      if (r.runs.length) console.log(`  runs: ${r.runs.map((run) => run.outcome).join(", ")}`);
+    }
+  });
+
+routinesCmd
+  .command("show <routineId>")
+  .description("a routine's brief, how it runs, the prompt for your AI and its latest runs")
+  .action(async (id: string) => {
+    const r = await MeerkoClient.fromEnv().getRoutine(id);
+    if (json()) return console.log(JSON.stringify(r, null, 2));
+    printRoutine(r);
+    console.log(`\nBrief:\n${r.brief}\n\nHow it runs: ${r.setup.howItRuns}`);
+    if (r.setup.prompt) console.log(`\nPrompt:\n${r.setup.prompt}`);
+    for (const step of r.setup.steps ?? []) console.log(`- ${step.client}: ${step.text}`);
+    if (r.runs.length) console.table(r.runs.map((run) => ({ when: run.createdAt, reason: run.reason, outcome: run.outcome, error: run.error ?? "" })));
+  });
+
+routinesCmd
+  .command("create <name> <briefFile>")
+  .description("create a routine from a brief in a text file: --replies, or --days 1,2,3,4,5 --time 09:00 [--timezone Europe/Madrid]")
+  .option("--replies", "run when new replies arrive (Meerko starts it: connect a Claude routine or webhook in the dashboard)")
+  .option("--days <days>", "ISO weekdays, 1 = Monday … 7 = Sunday", "1,2,3,4,5")
+  .option("--time <HH:MM>", "local time")
+  .option("--timezone <zone>", "IANA zone (default: this computer's)")
+  .action(async (name: string, file: string, opts: { replies?: boolean; days: string; time?: string; timezone?: string }) => {
+    const brief = readFileSync(file, "utf8");
+    if (!opts.replies && !opts.time) throw new Error("Pass --replies, or --time HH:MM (with --days) for a schedule");
+    const r = await MeerkoClient.fromEnv().createRoutine(
+      opts.replies
+        ? { name, brief, when: "replies" }
+        : { name, brief, when: "schedule", cadence: { days: opts.days.split(",").map(Number), time: opts.time!, timezone: opts.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone } },
+    );
+    if (json()) return console.log(JSON.stringify(r, null, 2));
+    printRoutine(r);
+    console.log(`\n${r.setup.howItRuns}`);
+    if (r.setup.prompt) console.log(`\nPrompt:\n${r.setup.prompt}`);
+  });
+
+for (const [cmd, status, done] of [
+  ["pause", "paused", "is paused"],
+  ["resume", "active", "is running again, from now"],
+] as const) {
+  routinesCmd
+    .command(`${cmd} <routineId>`)
+    .description(cmd === "pause" ? "stop running it until resumed" : "start running it again")
+    .action(async (id: string) => {
+      const r = await MeerkoClient.fromEnv().updateRoutine(id, { status });
+      console.log(json() ? JSON.stringify(r, null, 2) : `"${r.name}" ${done}.`);
+    });
+}
+
+routinesCmd
+  .command("run <routineId>")
+  .description("run it now (Meerko starts it; on your AI's own schedule, prints the prompt to run)")
+  .action(async (id: string) => {
+    const res = await MeerkoClient.fromEnv().runRoutine(id);
+    if (json()) return console.log(JSON.stringify(res, null, 2));
+    if (res.started) return console.log(`Started "${res.routine.name}".${res.run?.sessionUrl ? ` Watch it: ${res.run.sessionUrl}` : ""}`);
+    if (res.error) throw new Error(res.error);
+    console.log(`"${res.routine.name}" runs on your AI's own schedule. To run it now, give your AI this prompt:\n\n${res.routine.setup.prompt ?? ""}`);
+  });
+
+routinesCmd
+  .command("rm <routineId>")
+  .description("delete a routine")
+  .action(async (id: string) => {
+    await MeerkoClient.fromEnv().deleteRoutine(id);
+    console.log("Deleted.");
   });
 
 const keys = program.command("keys").description("bring your own provider keys (calls through them cost no credits)");

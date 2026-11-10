@@ -26,6 +26,10 @@ import {
   connectOutlook,
   listReplies,
   ReplyError,
+  approveEmails,
+  getSendingMode,
+  listPendingEmails,
+  setSendingMode,
   createSequence,
   enrollRows as enrollSequenceRows,
   getSequence,
@@ -47,12 +51,20 @@ import {
   OAuthStateError,
   readOAuthReturnTo,
   createApiKey,
-  AgentHookError,
-  deleteAgentHook,
-  enableAgentHook,
-  getAgentHook,
-  setAgentHook,
-  testAgentHook,
+  RoutineError,
+  createRoutine,
+  deleteRoutine,
+  getRoutine,
+  listRoutines,
+  routineSetup,
+  runRoutineNow,
+  setRoutineTrigger,
+  startRoutineRun,
+  updateRoutine,
+  type RoutineView,
+  getDigest,
+  setDigest,
+  unsubscribeDigest,
   createAuthCode,
   createEmailSignIn,
   createSession,
@@ -176,7 +188,11 @@ import {
 import type { ApiKeyScope, Db } from "@meerko/db";
 import { createAnalytics, EVENTS, signupSource, type Analytics } from "./analytics.ts";
 import {
-  agentHookInput,
+  createRoutineInput,
+  routineTriggerInput,
+  updateRoutineInput,
+  digestInput,
+  profileInput,
   approveDraftInput,
   byokProvider,
   checkoutInput,
@@ -191,6 +207,9 @@ import {
   createTableInput,
   deleteRowsInput,
   draftInput,
+  sendingModeInput,
+  pendingEmailsQuery,
+  approveEmailsInput,
   enrichInput,
   enrollInput,
   gmailAppPasswordInput,
@@ -296,9 +315,9 @@ export interface AppDeps {
   tick?: { secret: string; publicUrl: string };
   /** The web dashboard's URL (MEERKO_APP_URL). Gmail connect may only send the browser back to this origin. */
   appUrl?: string;
-  /** Lets agent hooks call private addresses (MEERKO_ALLOW_PRIVATE_HOOKS=1, self-hosting only). */
+  /** Lets Autopilot webhooks call private addresses (MEERKO_ALLOW_PRIVATE_HOOKS=1, self-hosting only). */
   allowPrivateHooks?: boolean;
-  /** Overrides fetch for agent hook calls (tests). */
+  /** Overrides fetch for Autopilot's calls (tests). */
   hookFetch?: typeof fetch;
   /**
    * "Sign in with Google" for the dashboard: an OAuth client whose redirect is /auth/google/callback.
@@ -428,22 +447,53 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.tick || given.length !== expected.length || !timingSafeEqual(given, expected)) return c.json({ error: "Not found" }, 404);
     const result = await runWorkerTick(
       db,
-      { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, imap: deps.imap, ...hookDeps() },
+      { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, imap: deps.imap, mailer: deps.mailer, ...hookDeps() },
       { replies: c.req.query("replies") !== "0" },
     );
     if (result.replyError) {
       console.error("reply scan failed:", result.replyError);
       await analytics.captureException(result.replyError, undefined, { $exception_fingerprint: "api.tick.replies" });
     }
-    if (result.hookError) {
-      console.error("agent hooks failed:", result.hookError);
-      await analytics.captureException(result.hookError, undefined, { $exception_fingerprint: "api.tick.agent_hooks" });
+    if (result.routineError) {
+      console.error("autopilot failed:", result.routineError);
+      await analytics.captureException(result.routineError, undefined, { $exception_fingerprint: "api.tick.routines" });
+    }
+    if (result.digestError) {
+      console.error("digest failed:", result.digestError);
+      await analytics.captureException(result.digestError, undefined, { $exception_fingerprint: "api.tick.digest" });
+    }
+    if (result.expireError) {
+      console.error("credit expiry failed:", result.expireError);
+      await analytics.captureException(result.expireError, undefined, { $exception_fingerprint: "api.tick.expire_credits" });
     }
     if (result.slackError) {
       console.error("slack notify failed:", result.slackError);
       await analytics.captureException(result.slackError, undefined, { $exception_fingerprint: "api.tick.slack" });
     }
     return c.json(result);
+  });
+
+  // --- The digest's unsubscribe link. GET shows a button (so link scanners can't unsubscribe anyone); POST is the
+  // one-click unsubscribe mail apps send (List-Unsubscribe-Post) and the button's form. ---
+  const unsubscribeForm = (token: string) =>
+    `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Stop the daily digest</title>
+<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;line-height:1.5">
+<h1 style="font-size:1.4rem">Stop the daily digest?</h1><p>You won't get the daily email of replies waiting for this workspace. You can turn it back on in Settings.</p>
+<form method="post"><input type="hidden" name="t" value="${escapeHtml(token)}"><button style="font:inherit;padding:.6rem 1rem;background:#0b0b0c;color:#fff;border:0;cursor:pointer">Stop these emails</button></form></body>`;
+
+  app.get("/digest/unsubscribe", (c) => {
+    const token = c.req.query("t") ?? "";
+    if (!box || !token) return c.html(resultPage("Link not valid", "This unsubscribe link is incomplete."), 400);
+    return c.html(unsubscribeForm(token));
+  });
+
+  app.post("/digest/unsubscribe", async (c) => {
+    const form = await c.req.parseBody().catch(() => ({}) as Record<string, unknown>);
+    const token = c.req.query("t") ?? (typeof form.t === "string" ? form.t : "");
+    if (!box || !token || !(await unsubscribeDigest(db, box, token))) return c.html(resultPage("Link not valid", "This unsubscribe link isn't one of ours, or it's incomplete."), 400);
+    const [userId, workspaceId] = token.split(".");
+    await analytics.capture({ distinctId: userId!, event: EVENTS.digestToggled, workspaceId, properties: { enabled: false, via: "unsubscribe_link" } });
+    return c.html(resultPage("Unsubscribed", "You won't get the daily digest for this workspace any more. Turn it back on any time in Settings."));
   });
 
   // --- Slack: the app's install callback, button clicks and /meerko. Clicks and commands are signed by Slack. ---
@@ -642,7 +692,8 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       }
       await analytics.capture({ distinctId: userId, event: EVENTS.signInCompleted, workspaceId, properties: { method: "email" }, set: person });
       const session = await createSession(db, userId, workspaceId);
-      return c.json({ token: session.token, expires_at: session.expiresAt });
+      // new_user: the dashboard then asks the optional sign-up questions (role, company size, agent).
+      return c.json({ token: session.token, expires_at: session.expiresAt, new_user: newUser });
     } catch (err) {
       if (err instanceof SignInError) throw new HTTPException(403, { message: err.message });
       throw err;
@@ -690,7 +741,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       }
       await analytics.capture({ distinctId: userId, event: EVENTS.signInCompleted, workspaceId, properties: { method: "google" }, set: person });
       const authCode = await createAuthCode(db, userId, workspaceId);
-      return c.redirect(backToApp(new URL("/auth/callback", deps.appUrl).toString(), { code: authCode }));
+      return c.redirect(backToApp(new URL("/auth/callback", deps.appUrl).toString(), { code: authCode, ...(newUser ? { new: "1" } : {}) }));
     } catch (err) {
       if (err instanceof SignInError) return c.redirect(toLogin(err.message));
       console.error(err);
@@ -863,7 +914,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   // --- Hosted MCP server (Streamable HTTP, stateless) ---
   // Remote clients sign in with OAuth; an API key in the Authorization header also works.
-  // `drafter` serves only the reply tools, for an agent woken by an agent hook (a Claude Code routine adds this URL
+  // `drafter` serves only the reply tools, for an agent woken by a replies routine (a Claude Code routine adds this URL
   // as its connector). The API enforces the same limit on every call it makes.
   const serveMcp = async (c: Context, drafter: boolean) => {
     const token = bearer(c);
@@ -1043,36 +1094,76 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.body(null, 204);
   });
 
-  // Agent hook: rings the user's own agent when replies arrive. Managed by a signed-in person, like keys.
-  v1.get("/agent-hook", async (c) => c.json({ hook: await getAgentHook(db, c.var.workspaceId) }));
-
-  v1.put("/agent-hook", async (c) => {
-    requireUser(c, "Sign in to the dashboard to set up your agent");
-    const input = await parse(agentHookInput, await c.req.json().catch(() => ({})));
-    const { hook, secret } = await setAgentHook(db, box, c.var.workspaceId, input, { allowPrivate: deps.allowPrivateHooks });
-    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.agentHookConfigured, workspaceId: c.var.workspaceId, properties: { kind: input.kind } });
-    return c.json(secret ? { hook, secret } : { hook });
+  // The daily digest email of replies waiting: each owner's own, so a signed-in person only.
+  v1.get("/digest", async (c) => {
+    requireUser(c, "Sign in to the dashboard to manage your emails");
+    return c.json({ digest: await getDigest(db, c.var.user!.id, c.var.workspaceId) });
   });
 
-  v1.delete("/agent-hook", async (c) => {
-    requireUser(c, "Sign in to the dashboard to set up your agent");
-    await deleteAgentHook(db, c.var.workspaceId);
+  v1.put("/digest", async (c) => {
+    requireUser(c, "Sign in to the dashboard to manage your emails");
+    const { enabled } = await parse(digestInput, await c.req.json().catch(() => ({})));
+    const digest = await setDigest(db, c.var.user!.id, c.var.workspaceId, enabled);
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.digestToggled, workspaceId: c.var.workspaceId, properties: { enabled, via: "settings" } });
+    return c.json({ digest });
+  });
+
+  // The optional questions after sign-up. Kept only as PostHog person properties, for segmenting who signs up.
+  v1.post("/me/profile", async (c) => {
+    requireUser(c, "Sign in to the dashboard to answer");
+    const answers = await parse(profileInput, await c.req.json().catch(() => ({})));
+    const set = Object.fromEntries(Object.entries(answers).filter(([, v]) => v !== undefined));
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.profileAnswered, workspaceId: c.var.workspaceId, properties: { ...set, skipped: Object.keys(set).length === 0 }, set });
     return c.body(null, 204);
   });
 
-  v1.post("/agent-hook/enable", async (c) => {
-    requireUser(c, "Sign in to the dashboard to set up your agent");
-    await enableAgentHook(db, c.var.workspaceId);
-    return c.json({ hook: await getAgentHook(db, c.var.workspaceId) });
+  // Autopilot: routines the user's own AI runs. Anyone with the workspace may edit them; only a signed-in person
+  // sets what starts them, so a leaked key or a prompt-injected agent can't send replies to a URL of its choosing.
+  const withSetup = (c: Context, r: RoutineView) => ({ ...r, setup: routineSetup(r, { mcpUrl: `${issuer(c)}/mcp`, drafterUrl: `${issuer(c)}/mcp/drafter` }) });
+  const routineDeps = () => ({ box, appUrl: deps.appUrl, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
+
+  v1.get("/routines", async (c) => c.json({ routines: (await listRoutines(db, c.var.workspaceId)).map((r) => withSetup(c, r)) }));
+
+  v1.post("/routines", async (c) => {
+    const input = await parse(createRoutineInput, await c.req.json().catch(() => ({})));
+    const routine = await createRoutine(db, c.var.workspaceId, input);
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.routineCreated, workspaceId: c.var.workspaceId, properties: { when: input.when } });
+    return c.json({ routine: withSetup(c, routine) }, 201);
   });
 
-  v1.post("/agent-hook/test", async (c) => {
-    requireUser(c, "Sign in to the dashboard to set up your agent");
-    const result = await testAgentHook(db, c.var.workspaceId, { box, appUrl: deps.appUrl, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
-    return c.json(result);
+  v1.get("/routines/:id", async (c) => c.json({ routine: withSetup(c, await getRoutine(db, c.var.workspaceId, c.req.param("id"))) }));
+
+  v1.patch("/routines/:id", async (c) => {
+    const input = await parse(updateRoutineInput, await c.req.json().catch(() => ({})));
+    return c.json({ routine: withSetup(c, await updateRoutine(db, c.var.workspaceId, c.req.param("id"), input)) });
   });
 
-  // Slack: where replies and drafts are posted. Managed by a signed-in person, like the agent hook.
+  v1.delete("/routines/:id", async (c) => {
+    await deleteRoutine(db, c.var.workspaceId, c.req.param("id"));
+    return c.body(null, 204);
+  });
+
+  v1.post("/routines/:id/run", async (c) => {
+    const result = await runRoutineNow(db, c.var.workspaceId, c.req.param("id"), routineDeps());
+    return c.json({ ...result, routine: withSetup(c, await getRoutine(db, c.var.workspaceId, c.req.param("id"))) });
+  });
+
+  v1.post("/routines/:id/start", async (c) => {
+    const start = await startRoutineRun(db, c.var.workspaceId, c.req.param("id"));
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.routineRunStarted, workspaceId: c.var.workspaceId, properties: { when: start.routine.when } });
+    return c.json(start);
+  });
+
+  v1.put("/routines/:id/trigger", async (c) => {
+    requireUser(c, "Sign in to the dashboard to choose what starts a routine");
+    const input = await parse(routineTriggerInput, await c.req.json().catch(() => ({})));
+    const { routine, secret } = await setRoutineTrigger(db, box, c.var.workspaceId, c.req.param("id"), input, { allowPrivate: deps.allowPrivateHooks });
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.routineTriggerSet, workspaceId: c.var.workspaceId, properties: { kind: input.kind, when: routine.when } });
+    const body = { routine: withSetup(c, routine) };
+    return c.json(secret ? { ...body, secret } : body);
+  });
+
+  // Slack: where replies and drafts are posted. Managed by a signed-in person, like a routine's trigger.
   v1.get("/slack", async (c) => c.json({ connection: await getSlackConnection(db, c.var.workspaceId), app_available: !!deps.slack }));
 
   v1.get("/slack/install", async (c) => {
@@ -1450,9 +1541,45 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.json({ reply: await classifyReply(db, c.var.workspaceId, c.req.param("id"), intent, handled) });
   });
 
+  const approveDeps = () => ({ box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, fetch: deps.gmailFetch, imap: deps.imap });
+
   v1.post("/replies/:id/draft", async (c) => {
     const { body } = await parse(draftInput, await c.req.json());
-    return c.json({ draft: await draftReply(db, c.var.workspaceId, c.req.param("id"), body) }, 201);
+    const draft = await draftReply(db, c.var.workspaceId, c.req.param("id"), body);
+    // A workspace that sends reply drafts on its own: send it now. If that fails, it waits as a normal draft.
+    if ((await getSendingMode(db, c.var.workspaceId)).reply_drafts === "auto") {
+      try {
+        const sent = await approveDraft(db, c.var.workspaceId, draft.id, approveDeps());
+        await syncSlackDraft(db, slackDeps(), draft.id, "sent", "Meerko (auto-send)");
+        return c.json({ draft, sent }, 201);
+      } catch (err) {
+        return c.json({ draft, send_error: err instanceof Error ? err.message : String(err) }, 201);
+      }
+    }
+    return c.json({ draft }, 201);
+  });
+
+  // Approval before sending: the workspace's choice, and the sequence emails waiting for a person.
+  v1.get("/sending-mode", async (c) => c.json({ mode: await getSendingMode(db, c.var.workspaceId) }));
+
+  v1.put("/sending-mode", async (c) => {
+    requireUser(c, "Sign in to the dashboard to choose how emails are sent");
+    const input = await parse(sendingModeInput, await c.req.json().catch(() => ({})));
+    const mode = await setSendingMode(db, c.var.workspaceId, input);
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.sendingModeSet, workspaceId: c.var.workspaceId, properties: { ...mode } });
+    return c.json({ mode });
+  });
+
+  v1.get("/pending-emails", async (c) => {
+    const { sequence_id, limit } = await parse(pendingEmailsQuery, c.req.query());
+    return c.json({ emails: await listPendingEmails(db, c.var.workspaceId, { sequenceId: sequence_id, limit }) });
+  });
+
+  v1.post("/pending-emails/approve", async (c) => {
+    const { enrollment_ids, sequence_id } = await parse(approveEmailsInput, await c.req.json().catch(() => ({})));
+    const res = await approveEmails(db, c.var.workspaceId, { enrollmentIds: enrollment_ids, sequenceId: sequence_id });
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.emailsApproved, workspaceId: c.var.workspaceId, properties: { count: res.approved, whole_sequence: !!sequence_id } });
+    return c.json(res);
   });
 
   v1.get("/drafts", async (c) => {
@@ -1462,7 +1589,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/drafts/:id/approve", async (c) => {
     const { body } = await parse(approveDraftInput, await c.req.json().catch(() => ({})));
-    const sent = await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, fetch: deps.gmailFetch, imap: deps.imap }, body);
+    const sent = await approveDraft(db, c.var.workspaceId, c.req.param("id"), approveDeps(), body);
     await syncSlackDraft(db, slackDeps(), c.req.param("id"), "sent", c.var.user ? (c.var.user.name ?? c.var.user.email) : undefined);
     return c.json(sent);
   });
@@ -1520,7 +1647,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof WorkspaceError) return c.json({ error: err.message }, err.status);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
-    if (err instanceof SequenceError || err instanceof ReplyError || err instanceof AgentHookError || err instanceof SlackError || err instanceof CrmError) return c.json({ error: err.message }, 400);
+    if (err instanceof SequenceError || err instanceof ReplyError || err instanceof RoutineError || err instanceof SlackError || err instanceof CrmError) return c.json({ error: err.message }, 400);
     if (err instanceof MailboxInUseError || err instanceof TableInUseError) return c.json({ error: err.message }, 409);
     if (err instanceof MailboxConnectError) return c.json({ error: err.message }, 400);
     if (err instanceof PlanLimitError) return c.json({ error: err.message }, 402);

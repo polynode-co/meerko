@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MeerkoApiError } from "@meerko/sdk";
 import { EnrollButton } from "@/components/app/enroll-button";
 import { MailboxPoolCard } from "@/components/app/mailbox-pool";
+import { PendingEmails } from "@/components/app/pending-emails";
 import { SequenceToggle } from "@/components/app/sequence-toggle";
 import { Card, CardHead, formatWhen, monoLabel, Page, PageHeader, PaperWindow, Pill, td, th, type PillTone } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
@@ -46,8 +47,17 @@ function personStatus(r: Recipient, totalSteps: number, sending: boolean): { tex
 export default async function SequencePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ row?: string }> }) {
   const { id } = await params;
   const { row } = await searchParams;
-  const [seq, stats, mailboxes, recipients, pool, domains] = await load((c) =>
-    Promise.all([c.getSequence(id), c.sequenceStats(id), c.listMailboxes(), c.sequenceRecipients(id), c.sequencePool(id), c.mailboxHealth()]),
+  const [seq, stats, mailboxes, recipients, pool, domains, waiting] = await load((c) =>
+    Promise.all([
+      c.getSequence(id),
+      c.sequenceStats(id),
+      c.listMailboxes(),
+      c.sequenceRecipients(id),
+      c.sequencePool(id),
+      c.mailboxHealth(),
+      // Empty when the workspace sends sequence emails on its own.
+      c.listPendingEmails({ sequenceId: id, limit: 200 }),
+    ]),
   );
   const table = await load((c) => c.getTable(seq.tableId));
   // The table may have no rows yet; the preview is optional.
@@ -74,6 +84,12 @@ export default async function SequencePage({ params, searchParams }: { params: P
               title: pool.mailboxes.length === 1 ? "Stopped: the mailbox lost access" : "Stopped: every mailbox lost access",
               text: "Reconnect them in Connections and sending picks up where it left off.",
             }
+          : seq.status === "active" && waiting.length > 0
+            ? {
+                tone: "outline-lk-lime/50 bg-lk-lime/[0.07]",
+                title: `${waiting.length >= 200 ? "200+" : waiting.length} ${waiting.length === 1 ? "email waits" : "emails wait"} for your approval`,
+                text: "Read them below and approve. Each goes when it's due, inside the send window. Choose automatic sending in Connections.",
+              }
           : stats.remaining === 0
             ? {
                 tone: "outline-lk-line bg-lk-box",
@@ -120,6 +136,8 @@ export default async function SequencePage({ params, searchParams }: { params: P
         </div>
         <SequenceToggle id={id} status={seq.status} />
       </section>
+
+      {seq.status !== "draft" && waiting.length > 0 && <PendingEmails sequenceId={id} emails={waiting.slice(0, 20)} total={waiting.length} />}
 
       <div className="grid grid-cols-2 gap-px border border-lk-line bg-lk-line sm:grid-cols-3 xl:grid-cols-6">
         {results.map((r) => (
