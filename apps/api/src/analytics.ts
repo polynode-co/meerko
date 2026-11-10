@@ -11,6 +11,7 @@ export const EVENTS = {
   aiClientConnected: "ai_client_connected",
   mailboxConnected: "mailbox_connected",
   leadsSearched: "leads_searched",
+  profileAnswered: "profile_answered",
   websiteRead: "website_read",
   icpSet: "icp_set",
   rowsEnriched: "rows_enriched",

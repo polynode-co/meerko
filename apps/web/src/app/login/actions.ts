@@ -34,7 +34,7 @@ export async function requestEmailLink(_: EmailLinkState, form: FormData): Promi
 
 /** The button on the link's page: trades its token for a session. */
 export async function redeemEmailLink(_: EmailLinkState, form: FormData): Promise<EmailLinkState> {
-  let session: { token: string; expires_at: string };
+  let session: { token: string; expires_at: string; new_user?: boolean };
   try {
     session = await api().verifyEmailSignIn(String(form.get("token") ?? ""));
   } catch (err) {
@@ -44,5 +44,6 @@ export async function redeemEmailLink(_: EmailLinkState, form: FormData): Promis
   const store = await cookies();
   const next = safeNext(store.get(NEXT_COOKIE)?.value);
   store.delete(NEXT_COOKIE);
+  if (session.new_user) redirect(`/app/about-you?next=${encodeURIComponent(next ?? "/app")}`);
   redirect(next ?? "/app");
 }
