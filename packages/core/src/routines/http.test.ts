@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { AgentHookError, assertSafeHookUrl, isPrivateAddress, signWebhook } from "./agent-hooks.ts";
+import { RoutineError, assertSafeHookUrl, isPrivateAddress, signWebhook } from "./http.ts";
 
 const resolveTo = (...addresses: string[]) => async () => addresses;
 
@@ -19,7 +19,7 @@ describe("assertSafeHookUrl", () => {
 
   it("rejects http, private targets, cloud metadata and credentials in the URL", async () => {
     await expect(assertSafeHookUrl("http://hooks.example.com", { resolve: resolveTo("93.184.216.34") })).rejects.toThrow(/https/);
-    await expect(assertSafeHookUrl("https://intranet.example.com", { resolve: resolveTo("10.1.2.3") })).rejects.toThrow(AgentHookError);
+    await expect(assertSafeHookUrl("https://intranet.example.com", { resolve: resolveTo("10.1.2.3") })).rejects.toThrow(RoutineError);
     await expect(assertSafeHookUrl("https://169.254.169.254/computeMetadata/v1/")).rejects.toThrow(/public/);
     await expect(assertSafeHookUrl("https://[::1]:8080/")).rejects.toThrow(/public/);
     // One private address among several is enough to refuse (DNS could hand out either).
@@ -30,7 +30,7 @@ describe("assertSafeHookUrl", () => {
 
   it("allows private and http targets when the install opts in", async () => {
     await expect(assertSafeHookUrl("http://localhost:5678/webhook/meerko", { allowPrivate: true })).resolves.toBeInstanceOf(URL);
-    await expect(assertSafeHookUrl("ftp://localhost/x", { allowPrivate: true })).rejects.toThrow(AgentHookError);
+    await expect(assertSafeHookUrl("ftp://localhost/x", { allowPrivate: true })).rejects.toThrow(RoutineError);
   });
 });
 

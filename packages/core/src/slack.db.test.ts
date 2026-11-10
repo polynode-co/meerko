@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { agentHooks, createDb, eq, memberships, messages, replyDrafts, slackConnections, users, workspaces, type Db } from "@meerko/db";
+import { createDb, eq, memberships, messages, replyDrafts, routines, slackConnections, users, workspaces, type Db } from "@meerko/db";
 import { SecretBox } from "./provider-keys.ts";
 import { draftReply } from "./replies/drafts.ts";
 import { completeSlackInstall, handleSlackCommand, handleSlackInteraction, runSlackNotifyTick, setSlackWebhook, slackInstallUrl, SlackError, SLACK_DRAFT_GRACE_MS } from "./slack.ts";
@@ -74,8 +74,8 @@ describe.skipIf(!process.env.DATABASE_URL)("Slack (db)", () => {
     expect(await runSlackNotifyTick(db, { box, fetch, now: later(10 * 60_000) })).toEqual({ drafts: 0, replies: 0, failed: 0 });
   });
 
-  it("gives the agent time to draft when an agent hook is on", async () => {
-    await db.insert(agentHooks).values({ workspaceId: ws, kind: "webhook", url: "https://x.example", encryptedSecret: box.encrypt("s"), secretLast4: "s" });
+  it("gives the agent time to draft when a replies routine is on", async () => {
+    await db.insert(routines).values({ workspaceId: ws, name: "Replies", brief: "Draft answers", when: "replies", trigger: "webhook", triggerUrl: "https://x.example", encryptedSecret: box.encrypt("s"), secretLast4: "s" });
     await reply("ana@acme.es", "Pricing?");
     expect((await runSlackNotifyTick(db, { box, fetch, now: later(5 * 60_000) })).replies).toBe(0);
     expect((await runSlackNotifyTick(db, { box, fetch, now: later(SLACK_DRAFT_GRACE_MS + 60_000) })).replies).toBe(1);

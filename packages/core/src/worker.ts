@@ -1,5 +1,5 @@
 import type { Db } from "@meerko/db";
-import { runAgentNotifyTick, type AgentNotifyResult } from "./agent-hooks.ts";
+import { runRoutinesTick, type RoutinesTickResult } from "./routines/routines.ts";
 import { runReplyTick, type ReplyTickResult } from "./replies/replies.ts";
 import { runSendTick, type SenderDeps, type TickResult } from "./sending/sender.ts";
 import { runSlackNotifyTick, type SlackNotifyResult } from "./slack.ts";
@@ -8,9 +8,9 @@ export interface WorkerTickResult {
   replies?: ReplyTickResult;
   /** A failed reply scan (e.g. Gmail down) is reported but doesn't stop sending. */
   replyError?: string;
-  /** Agent hooks rung for replies still waiting for the user's agent. */
-  hooks?: AgentNotifyResult;
-  hookError?: string;
+  /** Autopilot: routines started, missed and never checked in to. */
+  routines?: RoutinesTickResult;
+  routineError?: string;
   /** Replies and drafts posted to Slack. */
   slack?: SlackNotifyResult;
   slackError?: string;
@@ -31,18 +31,18 @@ export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string
     } catch (err) {
       result.replyError = err instanceof Error ? err.message : String(err);
     }
-    // Then ring the user's agent about replies waiting for it (including ones from earlier passes).
-    try {
-      result.hooks = await runAgentNotifyTick(db, { box: deps.box, appUrl: deps.appUrl, now: deps.now, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
-    } catch (err) {
-      result.hookError = err instanceof Error ? err.message : String(err);
-    }
     // And post new replies and the drafts written so far to Slack.
     try {
       result.slack = await runSlackNotifyTick(db, { box: deps.box, appUrl: deps.appUrl, now: deps.now, fetch: deps.slackFetch });
     } catch (err) {
       result.slackError = err instanceof Error ? err.message : String(err);
     }
+  }
+  // Autopilot runs every pass, after the reply scan so a replies routine sees what just arrived.
+  try {
+    result.routines = await runRoutinesTick(db, { box: deps.box, appUrl: deps.appUrl, now: deps.now, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
+  } catch (err) {
+    result.routineError = err instanceof Error ? err.message : String(err);
   }
   return { ...result, send: await runSendTick(db, deps) };
 }

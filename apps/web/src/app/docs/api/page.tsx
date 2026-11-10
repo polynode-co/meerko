@@ -58,7 +58,7 @@ function OperationEntry({ op }: { op: ApiOperation }) {
         {op.description && <p className="text-[15px] leading-[1.55]">{op.description}</p>}
         {op.repliesScope && (
           <p className="text-[15px]">
-            Also callable with a <C>replies</C> key, the kind an agent woken by an <L href="/docs/wake-your-agent">agent hook</L> gets.
+            Also callable with a <C>replies</C> key, the kind an agent woken by an <L href="/docs/wake-your-agent">Autopilot</L> replies routine gets.
           </p>
         )}
         <FieldTable title="Parameters" fields={op.params} />
@@ -99,7 +99,7 @@ export default function Page() {
       <Callout>
         <p>
           The OpenAPI 3.1 document is at <L href="/openapi.json">/openapi.json</L>, for generating a client or importing into Postman.
-          Managing API keys, apps, Slack, the agent hook and billing needs you signed in to the dashboard, so those endpoints aren&apos;t
+          Managing API keys, apps, Slack, what starts a routine, and billing needs you signed in to the dashboard, so those endpoints aren&apos;t
           listed here.
         </p>
       </Callout>

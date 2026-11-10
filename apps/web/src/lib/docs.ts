@@ -32,7 +32,7 @@ export const docPages: DocPage[] = [
   { slug: "mailboxes", group: "Concepts", title: "Mailboxes", description: "Connect the Gmail, Outlook or IMAP inboxes Meerko sends from, and set their daily limits." },
   { slug: "sequences", group: "Concepts", title: "Sequences", description: "Multi-step emails sent from your own mailbox, in the same thread, inside a send window." },
   { slug: "replies", group: "Concepts", title: "Replies & drafts", description: "Sort replies by intent and approve the answers your agent drafts." },
-  { slug: "wake-your-agent", group: "Concepts", title: "Wake your agent", description: "Have Meerko call your own agent when replies arrive, so drafts are ready when you are." },
+  { slug: "wake-your-agent", group: "Concepts", title: "Autopilot", description: "Have Meerko run your own agent when replies arrive or on a schedule, and show how every run went." },
   { slug: "slack", group: "Concepts", title: "Slack", description: "Get replies and your agent's drafts in Slack, and approve them there." },
   { slug: "pipeline", group: "Concepts", title: "Pipeline", description: "Lead stages from new to won, and which moves happen on their own." },
   { slug: "workspaces", group: "Concepts", title: "Workspaces", description: "One workspace per brand, switching between them, and the plan they share." },

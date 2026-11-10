@@ -49,7 +49,7 @@ ChatGPT, Grok, Codex and Cursor connect the same way, by URL. Without Google or 
 - **Tools:** tables and rows, lead search and enrichment, mailboxes, sequences, replies and drafts, pipeline and credits (32 in all; your agent lists them).
 - **Commands (MCP prompts):** `find-leads`, `write-sequence`, `triage-replies`, `pipeline`. In Claude Code they appear as `/mcp__meerko__find-leads` and so on. Anything that emails someone waits for your OK.
 - **Slack:** Meerko posts new replies and your agent's drafts to a channel. With the Meerko Slack app each draft has Approve and Discard buttons (only workspace members can press them) and `/meerko` shows what's waiting; a pasted incoming webhook works too, posts only. See the [docs](https://meerko.ai/docs/slack).
-- **Wake your agent:** when replies arrive, Meerko can call a Claude Code routine or any webhook so your agent drafts the answers while you're away. The woken agent connects to `/mcp/drafter` (or uses a drafts-only API key), which can read replies and save drafts but never send. Set it up under Connections → Wake your agent; see the [docs](https://meerko.ai/docs/wake-your-agent).
+- **Autopilot:** routines your own AI runs, when replies arrive or on a schedule. Meerko starts each run through a Claude Code routine or any webhook (or checks your AI's own scheduler did), hands the AI its brief through `start_routine_run`, and shows every run, including the ones that didn't happen. An agent woken for replies connects to `/mcp/drafter` (or uses a drafts-only API key), which can read replies and save drafts but never send. See the [docs](https://meerko.ai/docs/wake-your-agent).
 
 ## Analytics
 

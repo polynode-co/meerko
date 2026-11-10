@@ -56,7 +56,7 @@ export const apiKeys = pgTable("api_keys", {
   // Only the SHA-256 hash is stored; the raw key is shown once at creation.
   keyHash: text("key_hash").notNull().unique(),
   prefix: text("prefix").notNull(),
-  /** `full`, or `replies`: read replies and write drafts only, for an agent Meerko wakes up (see agent_hooks). */
+  /** `full`, or `replies`: read replies and write drafts only, for an agent Meerko wakes up (see routines). */
   scope: text("scope").$type<ApiKeyScope>().notNull().default("full"),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   createdAt: createdAt(),
@@ -348,7 +348,7 @@ export const messages = pgTable(
     intent: text("intent"),
     /** When the user (or their agent) dealt with an inbound reply. */
     handledAt: timestamp("handled_at", { withTimezone: true }),
-    /** When the workspace's agent hook was told about this reply, so it is announced once. */
+    /** When the workspace's replies routine was told about this reply, so it is announced once. */
     agentNotifiedAt: timestamp("agent_notified_at", { withTimezone: true }),
     /** When the reply was posted to the workspace's Slack channel, so it is posted once. */
     slackNotifiedAt: timestamp("slack_notified_at", { withTimezone: true }),
@@ -359,7 +359,7 @@ export const messages = pgTable(
     index("messages_thread_idx").on(t.gmailThreadId),
     // Each Gmail message is stored once, however many times the inbox is scanned.
     uniqueIndex("messages_mailbox_gmail_id_idx").on(t.mailboxId, t.gmailId),
-    // Replies still waiting for the user's agent (see agent_hooks).
+    // Replies still waiting for the user's agent (see routines).
     index("messages_agent_pending_idx")
       .on(t.workspaceId)
       .where(sql`${t.direction} = 'in' and ${t.intent} is null and ${t.agentNotifiedAt} is null`),
@@ -383,7 +383,8 @@ export const AGENT_HOOK_KINDS = ["claude_routine", "webhook"] as const;
 export type AgentHookKind = (typeof AGENT_HOOK_KINDS)[number];
 
 /**
- * Where Meerko rings the user's own agent when new replies arrive: a Claude Code routine's fire URL or any
+ * Replaced by `routines` (0021 copied every row into a replies routine). Kept until a later migration drops it.
+ * Where Meerko rang the user's own agent when new replies arrived: a Claude Code routine's fire URL or any
  * webhook. Meerko makes the call; the agent does the thinking. The secret is the routine's bearer token or the
  * webhook's signing secret, encrypted with MEERKO_ENCRYPTION_KEY.
  */
@@ -405,6 +406,108 @@ export const agentHooks = pgTable("agent_hooks", {
   failingSince: timestamp("failing_since", { withTimezone: true }),
   createdAt: createdAt(),
 });
+
+/** `replies`: runs when new replies wait for the agent. `schedule`: runs on weekdays at a local time. */
+export const ROUTINE_WHENS = ["replies", "schedule"] as const;
+export type RoutineWhen = (typeof ROUTINE_WHENS)[number];
+
+/**
+ * What starts a run. `own_scheduler`: the user's AI, from its own scheduled task (Meerko only checks it ran).
+ * `claude_routine` and `webhook`: Meerko, by calling the Claude routine's API trigger or a signed webhook.
+ */
+export const ROUTINE_TRIGGERS = ["own_scheduler", "claude_routine", "webhook"] as const;
+export type RoutineTrigger = (typeof ROUTINE_TRIGGERS)[number];
+
+export const ROUTINE_STATUSES = ["active", "paused"] as const;
+export type RoutineStatus = (typeof ROUTINE_STATUSES)[number];
+
+/** On ISO weekdays (1 = Monday … 7 = Sunday) at a wall-clock time in an IANA zone. */
+export interface RoutineCadence {
+  days: number[];
+  time: string;
+  timezone: string;
+}
+
+/**
+ * Autopilot: a brief the user's own AI follows, started by new replies or on a schedule. Meerko never thinks: it
+ * keeps the brief, starts the run (or checks the AI's own scheduler did), and records how each run went.
+ * The secret is the Claude routine's bearer token or the webhook's signing secret, encrypted with MEERKO_ENCRYPTION_KEY.
+ */
+export const routines = pgTable(
+  "routines",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    brief: text("brief").notNull(),
+    when: text("when").$type<RoutineWhen>().notNull(),
+    /** Only for `schedule`. */
+    cadence: jsonb("cadence").$type<RoutineCadence>(),
+    status: text("status").$type<RoutineStatus>().notNull().default("active"),
+    /** Why Meerko paused it itself, e.g. a trigger that failed for a day. */
+    statusReason: text("status_reason"),
+    trigger: text("trigger").$type<RoutineTrigger>().notNull().default("own_scheduler"),
+    triggerUrl: text("trigger_url"),
+    encryptedSecret: text("encrypted_secret"),
+    secretLast4: text("secret_last4"),
+    /** The latest due time the tick has settled (fired, or marked missed). */
+    lastDueAt: timestamp("last_due_at", { withTimezone: true }),
+    lastFiredAt: timestamp("last_fired_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    /** The first failed start since the last good one; Meerko pauses the routine after a day of them. */
+    failingSince: timestamp("failing_since", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("routines_workspace_idx").on(t.workspaceId),
+    // Replies are announced once (messages.agent_notified_at), so a workspace has one routine for them.
+    uniqueIndex("routines_one_replies_idx").on(t.workspaceId).where(sql`${t.when} = 'replies'`),
+  ],
+);
+
+/**
+ * `firing`: claimed, being sent. `fired`: Meerko started it and the AI hasn't checked in yet. `fire_failed`: Meerko
+ * couldn't start it (see `error`). `ran`: the AI checked in (start_routine_run). `missed`: a due time on the AI's own
+ * scheduler nobody ran. `no_callback`: started, but the AI never checked in.
+ */
+export const ROUTINE_RUN_OUTCOMES = ["firing", "fired", "fire_failed", "ran", "missed", "no_callback"] as const;
+export type RoutineRunOutcome = (typeof ROUTINE_RUN_OUTCOMES)[number];
+
+export const routineRuns = pgTable(
+  "routine_runs",
+  {
+    id: id(),
+    routineId: uuid("routine_id")
+      .notNull()
+      .references(() => routines.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** The scheduled time it ran for; null for replies and Run it now. */
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    /** `schedule`, `replies`, `manual` (Run it now) or `ai` (the AI started it without Meerko). */
+    reason: text("reason").notNull(),
+    outcome: text("outcome").$type<RoutineRunOutcome>().notNull(),
+    firedAt: timestamp("fired_at", { withTimezone: true }),
+    /** When the AI checked in. */
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    httpStatus: integer("http_status"),
+    error: text("error"),
+    /** Replies announced by this run. */
+    replies: integer("replies"),
+    /** The Claude Code session the run opened, when Claude says. */
+    sessionUrl: text("session_url"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("routine_runs_routine_idx").on(t.routineId, t.createdAt),
+    // One run per due time: a due time is claimed by inserting it, so two ticks can't start it twice.
+    uniqueIndex("routine_runs_due_idx").on(t.routineId, t.dueAt).where(sql`${t.dueAt} is not null`),
+  ],
+);
 
 export const SLACK_CONNECTION_KINDS = ["app", "webhook"] as const;
 export type SlackConnectionKind = (typeof SLACK_CONNECTION_KINDS)[number];

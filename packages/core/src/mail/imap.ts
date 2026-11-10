@@ -4,7 +4,7 @@
 // by the Message-IDs they reference (InboundRef.refs).
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { isPrivateAddress } from "../agent-hooks.ts";
+import { isPrivateAddress } from "../routines/http.ts";
 import type { InboundRef, MailClient, OutgoingRaw, SentIds } from "./client.ts";
 import { GmailError, type GmailMessage } from "./gmail.ts";
 import { defaultConnectors, guardMail, parseHeaders, toPayload, type ImapConnectors, type ImapSession, type MailServer, type SmtpTransport } from "./imap-common.ts";

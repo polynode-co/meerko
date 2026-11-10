@@ -47,12 +47,17 @@ import {
   OAuthStateError,
   readOAuthReturnTo,
   createApiKey,
-  AgentHookError,
-  deleteAgentHook,
-  enableAgentHook,
-  getAgentHook,
-  setAgentHook,
-  testAgentHook,
+  RoutineError,
+  createRoutine,
+  deleteRoutine,
+  getRoutine,
+  listRoutines,
+  routineSetup,
+  runRoutineNow,
+  setRoutineTrigger,
+  startRoutineRun,
+  updateRoutine,
+  type RoutineView,
   createAuthCode,
   createEmailSignIn,
   createSession,
@@ -166,7 +171,9 @@ import {
 import type { ApiKeyScope, Db } from "@meerko/db";
 import { createAnalytics, EVENTS, signupSource, type Analytics } from "./analytics.ts";
 import {
-  agentHookInput,
+  createRoutineInput,
+  routineTriggerInput,
+  updateRoutineInput,
   approveDraftInput,
   byokProvider,
   checkoutInput,
@@ -281,9 +288,9 @@ export interface AppDeps {
   tick?: { secret: string; publicUrl: string };
   /** The web dashboard's URL (MEERKO_APP_URL). Gmail connect may only send the browser back to this origin. */
   appUrl?: string;
-  /** Lets agent hooks call private addresses (MEERKO_ALLOW_PRIVATE_HOOKS=1, self-hosting only). */
+  /** Lets Autopilot webhooks call private addresses (MEERKO_ALLOW_PRIVATE_HOOKS=1, self-hosting only). */
   allowPrivateHooks?: boolean;
-  /** Overrides fetch for agent hook calls (tests). */
+  /** Overrides fetch for Autopilot's calls (tests). */
   hookFetch?: typeof fetch;
   /**
    * "Sign in with Google" for the dashboard: an OAuth client whose redirect is /auth/google/callback.
@@ -420,9 +427,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       console.error("reply scan failed:", result.replyError);
       await analytics.captureException(result.replyError, undefined, { $exception_fingerprint: "api.tick.replies" });
     }
-    if (result.hookError) {
-      console.error("agent hooks failed:", result.hookError);
-      await analytics.captureException(result.hookError, undefined, { $exception_fingerprint: "api.tick.agent_hooks" });
+    if (result.routineError) {
+      console.error("autopilot failed:", result.routineError);
+      await analytics.captureException(result.routineError, undefined, { $exception_fingerprint: "api.tick.routines" });
     }
     if (result.slackError) {
       console.error("slack notify failed:", result.slackError);
@@ -848,7 +855,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   // --- Hosted MCP server (Streamable HTTP, stateless) ---
   // Remote clients sign in with OAuth; an API key in the Authorization header also works.
-  // `drafter` serves only the reply tools, for an agent woken by an agent hook (a Claude Code routine adds this URL
+  // `drafter` serves only the reply tools, for an agent woken by a replies routine (a Claude Code routine adds this URL
   // as its connector). The API enforces the same limit on every call it makes.
   const serveMcp = async (c: Context, drafter: boolean) => {
     const token = bearer(c);
@@ -1028,36 +1035,53 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.body(null, 204);
   });
 
-  // Agent hook: rings the user's own agent when replies arrive. Managed by a signed-in person, like keys.
-  v1.get("/agent-hook", async (c) => c.json({ hook: await getAgentHook(db, c.var.workspaceId) }));
+  // Autopilot: routines the user's own AI runs. Anyone with the workspace may edit them; only a signed-in person
+  // sets what starts them, so a leaked key or a prompt-injected agent can't send replies to a URL of its choosing.
+  const withSetup = (c: Context, r: RoutineView) => ({ ...r, setup: routineSetup(r, { mcpUrl: `${issuer(c)}/mcp`, drafterUrl: `${issuer(c)}/mcp/drafter` }) });
+  const routineDeps = () => ({ box, appUrl: deps.appUrl, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
 
-  v1.put("/agent-hook", async (c) => {
-    requireUser(c, "Sign in to the dashboard to set up your agent");
-    const input = await parse(agentHookInput, await c.req.json().catch(() => ({})));
-    const { hook, secret } = await setAgentHook(db, box, c.var.workspaceId, input, { allowPrivate: deps.allowPrivateHooks });
-    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.agentHookConfigured, workspaceId: c.var.workspaceId, properties: { kind: input.kind } });
-    return c.json(secret ? { hook, secret } : { hook });
+  v1.get("/routines", async (c) => c.json({ routines: (await listRoutines(db, c.var.workspaceId)).map((r) => withSetup(c, r)) }));
+
+  v1.post("/routines", async (c) => {
+    const input = await parse(createRoutineInput, await c.req.json().catch(() => ({})));
+    const routine = await createRoutine(db, c.var.workspaceId, input);
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.routineCreated, workspaceId: c.var.workspaceId, properties: { when: input.when } });
+    return c.json({ routine: withSetup(c, routine) }, 201);
   });
 
-  v1.delete("/agent-hook", async (c) => {
-    requireUser(c, "Sign in to the dashboard to set up your agent");
-    await deleteAgentHook(db, c.var.workspaceId);
+  v1.get("/routines/:id", async (c) => c.json({ routine: withSetup(c, await getRoutine(db, c.var.workspaceId, c.req.param("id"))) }));
+
+  v1.patch("/routines/:id", async (c) => {
+    const input = await parse(updateRoutineInput, await c.req.json().catch(() => ({})));
+    return c.json({ routine: withSetup(c, await updateRoutine(db, c.var.workspaceId, c.req.param("id"), input)) });
+  });
+
+  v1.delete("/routines/:id", async (c) => {
+    await deleteRoutine(db, c.var.workspaceId, c.req.param("id"));
     return c.body(null, 204);
   });
 
-  v1.post("/agent-hook/enable", async (c) => {
-    requireUser(c, "Sign in to the dashboard to set up your agent");
-    await enableAgentHook(db, c.var.workspaceId);
-    return c.json({ hook: await getAgentHook(db, c.var.workspaceId) });
+  v1.post("/routines/:id/run", async (c) => {
+    const result = await runRoutineNow(db, c.var.workspaceId, c.req.param("id"), routineDeps());
+    return c.json({ ...result, routine: withSetup(c, await getRoutine(db, c.var.workspaceId, c.req.param("id"))) });
   });
 
-  v1.post("/agent-hook/test", async (c) => {
-    requireUser(c, "Sign in to the dashboard to set up your agent");
-    const result = await testAgentHook(db, c.var.workspaceId, { box, appUrl: deps.appUrl, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
-    return c.json(result);
+  v1.post("/routines/:id/start", async (c) => {
+    const start = await startRoutineRun(db, c.var.workspaceId, c.req.param("id"));
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.routineRunStarted, workspaceId: c.var.workspaceId, properties: { when: start.routine.when } });
+    return c.json(start);
   });
 
-  // Slack: where replies and drafts are posted. Managed by a signed-in person, like the agent hook.
+  v1.put("/routines/:id/trigger", async (c) => {
+    requireUser(c, "Sign in to the dashboard to choose what starts a routine");
+    const input = await parse(routineTriggerInput, await c.req.json().catch(() => ({})));
+    const { routine, secret } = await setRoutineTrigger(db, box, c.var.workspaceId, c.req.param("id"), input, { allowPrivate: deps.allowPrivateHooks });
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.routineTriggerSet, workspaceId: c.var.workspaceId, properties: { kind: input.kind, when: routine.when } });
+    const body = { routine: withSetup(c, routine) };
+    return c.json(secret ? { ...body, secret } : body);
+  });
+
+  // Slack: where replies and drafts are posted. Managed by a signed-in person, like a routine's trigger.
   v1.get("/slack", async (c) => c.json({ connection: await getSlackConnection(db, c.var.workspaceId), app_available: !!deps.slack }));
 
   v1.get("/slack/install", async (c) => {
@@ -1475,7 +1499,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof WorkspaceError) return c.json({ error: err.message }, err.status);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
-    if (err instanceof SequenceError || err instanceof ReplyError || err instanceof AgentHookError || err instanceof SlackError) return c.json({ error: err.message }, 400);
+    if (err instanceof SequenceError || err instanceof ReplyError || err instanceof RoutineError || err instanceof SlackError) return c.json({ error: err.message }, 400);
     if (err instanceof MailboxInUseError || err instanceof TableInUseError) return c.json({ error: err.message }, 409);
     if (err instanceof MailboxConnectError) return c.json({ error: err.message }, 400);
     if (err instanceof PlanLimitError) return c.json({ error: err.message }, 402);

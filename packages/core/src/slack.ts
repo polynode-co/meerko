@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import {
-  agentHooks,
+  routines,
   and,
   asc,
   eq,
@@ -34,7 +34,7 @@ export const SLACK_SCOPES = ["chat:write", "chat:write.public", "commands", "inc
 const WEBHOOK_URL = /^https:\/\/hooks\.slack\.com\/(services|workflows|triggers)\/[A-Za-z0-9/_-]+$/;
 /** Replies wait this long before they're posted, so a burst becomes one message. */
 export const SLACK_REPLY_DELAY_MS = 2 * 60_000;
-/** With an agent hook on, a reply waits this long for its draft, so it shows up once, with the draft. */
+/** With an Autopilot replies routine on, a reply waits this long for its draft, so it shows up once, with the draft. */
 export const SLACK_DRAFT_GRACE_MS = 15 * 60_000;
 /** A connection that has failed for this long is switched off. */
 const DISABLE_AFTER_MS = 24 * 60 * 60_000;
@@ -388,7 +388,7 @@ const humanReply = () =>
 
 /**
  * One pass over every enabled Slack connection. Pending drafts are posted one message each (with buttons on the app);
- * replies without a draft are posted together once they're a couple of minutes old, or, when an agent hook is on,
+ * replies without a draft are posted together once they're a couple of minutes old, or, when a replies routine is on,
  * once the agent has had time to draft them. Something is marked posted only after Slack accepts it.
  */
 export async function runSlackNotifyTick(db: Db, deps: SlackDeps): Promise<SlackNotifyResult> {
@@ -408,11 +408,15 @@ export async function runSlackNotifyTick(db: Db, deps: SlackDeps): Promise<Slack
       channelId: slackConnections.channelId,
       createdAt: slackConnections.createdAt,
       failingSince: slackConnections.failingSince,
-      hookEnabled: agentHooks.enabled,
+      // A replies routine Meerko starts: the agent gets time to draft before the reply is posted.
+      hookEnabled: sql<boolean>`${routines.id} is not null`,
     })
     .from(slackConnections)
     .innerJoin(workspaces, eq(slackConnections.workspaceId, workspaces.id))
-    .leftJoin(agentHooks, eq(agentHooks.workspaceId, slackConnections.workspaceId))
+    .leftJoin(
+      routines,
+      and(eq(routines.workspaceId, slackConnections.workspaceId), eq(routines.when, "replies"), eq(routines.status, "active"), sql`${routines.trigger} <> 'own_scheduler'`),
+    )
     .where(eq(slackConnections.enabled, true));
 
   for (const conn of conns) {

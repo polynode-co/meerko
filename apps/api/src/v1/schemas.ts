@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import { AGENT_INTENTS, BYOK_PROVIDERS, MAX_CREDIT_PACKS } from "@meerko/core";
-import { AGENT_HOOK_KINDS, API_KEY_SCOPES, STAGES } from "@meerko/db";
+import { API_KEY_SCOPES, ROUTINE_RUN_OUTCOMES, ROUTINE_STATUSES, ROUTINE_TRIGGERS, ROUTINE_WHENS, STAGES } from "@meerko/db";
 
 // --- Requests ---
 
@@ -115,10 +115,30 @@ export const switchWorkspaceInput = z.object({ workspace_id: z.string().describe
 export const oauthRequestInput = z.object({ request: z.string().min(1) });
 export const oauthDecideInput = oauthRequestInput.extend({ approve: z.boolean() });
 export const createApiKeyInput = z.object({ name: z.string().trim().min(1).max(100), scope: z.enum(API_KEY_SCOPES).default("full") });
-export const agentHookInput = z.object({
-  kind: z.enum(AGENT_HOOK_KINDS),
-  url: z.string().trim().min(1).max(2000),
-  token: z.string().trim().max(2000).optional(),
+const cadence = z
+  .object({
+    days: z.array(z.number().int().min(1).max(7)).min(1).describe("ISO weekdays: 1 = Monday … 7 = Sunday"),
+    time: z.string().describe("HH:MM, 24-hour, in `timezone`"),
+    timezone: z.string().describe("IANA zone, e.g. Europe/Madrid"),
+  })
+  .describe("When a scheduled routine is due");
+export const createRoutineInput = z.object({
+  name: z.string().trim().min(1).max(80),
+  brief: z.string().trim().min(1).max(4000).describe("What the AI does on each run, in plain words"),
+  when: z.enum(ROUTINE_WHENS).describe("`replies`: when new replies wait (one per workspace). `schedule`: on `cadence`"),
+  cadence: cadence.optional().describe("Required for `schedule`"),
+});
+export const updateRoutineInput = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  brief: z.string().trim().min(1).max(4000).optional(),
+  when: z.enum(ROUTINE_WHENS).optional(),
+  cadence: cadence.optional(),
+  status: z.enum(ROUTINE_STATUSES).optional().describe("`paused` stops it; `active` resumes it from now"),
+});
+export const routineTriggerInput = z.object({
+  kind: z.enum(ROUTINE_TRIGGERS).describe("`own_scheduler`: your AI's scheduled task starts it. `claude_routine`, `webhook`: Meerko does"),
+  url: z.string().trim().max(2000).optional().describe("The Claude routine's API trigger URL, or your webhook's URL"),
+  token: z.string().trim().max(2000).optional().describe("The Claude routine's API trigger token. Leave out to keep the saved one for the same URL"),
 });
 export const slackWebhookInput = z.object({ url: z.string().trim().min(1).max(2000) });
 export const checkoutInput = z.discriminatedUnion("kind", [
@@ -227,15 +247,51 @@ export const ApiKey = z.object({
   lastUsedAt: nts,
   createdAt: ts,
 });
-export const AgentHook = z.object({
-  kind: z.enum(AGENT_HOOK_KINDS),
-  url: z.string(),
-  secretLast4: z.string(),
-  enabled: z.boolean(),
+export const RoutineRun = z.object({
+  id: z.string(),
+  dueAt: nts.describe("The scheduled time it ran for; null for replies, Run it now and runs the AI started itself"),
+  reason: z.string().describe("`schedule`, `replies`, `manual` (Run it now) or `ai`"),
+  outcome: z.enum(ROUTINE_RUN_OUTCOMES),
+  firedAt: nts,
+  startedAt: nts.describe("When the AI checked in with start_routine_run"),
+  httpStatus: z.number().nullable(),
+  error: z.string().nullable(),
+  replies: z.number().nullable(),
+  sessionUrl: z.string().nullable(),
+  createdAt: ts,
+});
+export const RoutineSetup = z.object({
+  howItRuns: z.string(),
+  prompt: z.string().optional(),
+  setupPrompt: z.string().optional(),
+  steps: z.array(z.object({ client: z.string(), text: z.string() })).optional(),
+});
+export const Routine = z.object({
+  id: z.string(),
+  name: z.string(),
+  brief: z.string(),
+  when: z.enum(ROUTINE_WHENS),
+  cadence: cadence.nullable(),
+  schedule: z.string().describe("In words: \"Weekdays at 09:00 (Europe/Madrid)\""),
+  status: z.enum(ROUTINE_STATUSES),
+  statusReason: z.string().nullable(),
+  trigger: z.enum(ROUTINE_TRIGGERS),
+  triggerUrl: z.string().nullable(),
+  secretLast4: z.string().nullable(),
+  needsSetup: z.boolean(),
+  nextDueAt: nts,
   lastFiredAt: nts,
-  lastStatus: z.number().nullable(),
   lastError: z.string().nullable(),
   createdAt: ts,
+  updatedAt: ts,
+  runs: z.array(RoutineRun).describe("The latest runs, newest first"),
+  setup: RoutineSetup,
+});
+export const RoutineStart = z.object({
+  run_id: z.string(),
+  routine: z.object({ id: z.string(), name: z.string(), when: z.enum(ROUTINE_WHENS), schedule: z.string() }),
+  brief: z.string(),
+  instructions: z.string(),
 });
 export const SlackConnection = z.object({
   kind: z.enum(["app", "webhook"]),

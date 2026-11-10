@@ -27,7 +27,7 @@ export interface Operation {
    * in the public document; the rest exist for the dashboard.
    */
   access: "any" | "person" | "user" | "owner";
-  /** `replies`: also callable by a replies-scoped key (an agent woken by an agent hook). */
+  /** `replies`: also callable by a replies-scoped key (an agent woken by an Autopilot replies routine). */
   scope?: "replies";
   query?: z.ZodObject;
   body?: z.ZodType;
@@ -45,7 +45,8 @@ export const TAGS = {
   sequences: "Multi-step email sequences",
   replies: "Replies to sequences, and the drafts answering them",
   credits: "Credits and the BYOK provider keys that bypass them",
-  settings: "API keys, connected apps, agent hook, Slack and billing",
+  autopilot: "Routines your own AI runs, started by new replies or on a schedule",
+  settings: "API keys, connected apps, Slack and billing",
 } as const;
 export type Tag = keyof typeof TAGS;
 
@@ -133,11 +134,14 @@ export const V1: Operation[] = [
   { method: "delete", path: "/connected-apps/:id", id: "revokeConnectedApp", tag: "settings", summary: "Disconnect an OAuth app", access: "user", response: null },
   { method: "post", path: "/oauth/requests/describe", id: "describeOAuthRequest", tag: "settings", summary: "Describe an app's pending connection request (consent page)", access: "user", body: s.oauthRequestInput, response: obj({ client_name: z.string(), redirect_to: z.string(), workspace: z.string() }) },
   { method: "post", path: "/oauth/requests/decide", id: "decideOAuthRequest", tag: "settings", summary: "Approve or decline an app's connection request (consent page)", access: "user", body: s.oauthDecideInput, response: obj({ redirect_to: z.string() }) },
-  { method: "get", path: "/agent-hook", id: "getAgentHook", tag: "settings", summary: "Where Meerko rings your agent when replies arrive", access: "any", response: obj({ hook: s.AgentHook.nullable() }) },
-  { method: "put", path: "/agent-hook", id: "setAgentHook", tag: "settings", summary: "Set the agent hook", access: "user", body: s.agentHookInput, response: obj({ hook: s.AgentHook, secret: z.string().optional() }) },
-  { method: "delete", path: "/agent-hook", id: "deleteAgentHook", tag: "settings", summary: "Remove the agent hook", access: "user", response: null },
-  { method: "post", path: "/agent-hook/enable", id: "enableAgentHook", tag: "settings", summary: "Re-enable an agent hook switched off after failures", access: "user", response: obj({ hook: s.AgentHook }) },
-  { method: "post", path: "/agent-hook/test", id: "testAgentHook", tag: "settings", summary: "Ring the agent hook once", access: "user", response: obj({ ok: z.boolean(), status: z.number().nullable(), error: z.string().nullable() }) },
+  { method: "get", path: "/routines", id: "listRoutines", tag: "autopilot", summary: "List the workspace's Autopilot routines, with their latest runs", access: "any", response: obj({ routines: z.array(s.Routine) }) },
+  { method: "post", path: "/routines", id: "createRoutine", tag: "autopilot", summary: "Create a routine", description: "It starts on your AI's own scheduler; a person connects a Claude routine or a webhook in the dashboard so Meerko starts it.", access: "any", body: s.createRoutineInput, status: 201, response: obj({ routine: s.Routine }) },
+  { method: "get", path: "/routines/:id", id: "getRoutine", tag: "autopilot", summary: "Get a routine, how it runs and its latest runs", access: "any", response: obj({ routine: s.Routine }) },
+  { method: "patch", path: "/routines/:id", id: "updateRoutine", tag: "autopilot", summary: "Edit, pause or resume a routine", access: "any", body: s.updateRoutineInput, response: obj({ routine: s.Routine }) },
+  { method: "delete", path: "/routines/:id", id: "deleteRoutine", tag: "autopilot", summary: "Delete a routine", access: "any", response: null },
+  { method: "post", path: "/routines/:id/run", id: "runRoutine", tag: "autopilot", summary: "Run it now", description: "Meerko starts it through its Claude routine or webhook. A routine on your AI's own scheduler isn't started: `started` is false and `routine.setup.prompt` is what to run.", access: "any", response: obj({ started: z.boolean(), run: s.RoutineRun.nullable(), error: z.string().nullable(), routine: s.Routine }) },
+  { method: "post", path: "/routines/:id/start", id: "startRoutineRun", tag: "autopilot", summary: "Check in at the start of a run and get the brief", description: "Call it first on every run: it records that the run happened and returns what to do.", access: "any", scope: "replies", response: s.RoutineStart },
+  { method: "put", path: "/routines/:id/trigger", id: "setRoutineTrigger", tag: "autopilot", summary: "Set what starts a routine", description: "A webhook's signing secret is returned once.", access: "user", body: s.routineTriggerInput, response: obj({ routine: s.Routine, secret: z.string().optional() }) },
   { method: "get", path: "/slack", id: "getSlack", tag: "settings", summary: "Where replies and drafts are posted in Slack", access: "any", response: obj({ connection: s.SlackConnection.nullable(), app_available: z.boolean() }) },
   { method: "get", path: "/slack/install", id: "slackInstallUrl", tag: "settings", summary: "Install the Meerko Slack app", access: "user", response: s.Url },
   { method: "put", path: "/slack/webhook", id: "setSlackWebhook", tag: "settings", summary: "Post to Slack through an incoming webhook", access: "user", body: s.slackWebhookInput, response: obj({ connection: s.SlackConnection }) },

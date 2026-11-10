@@ -2,7 +2,7 @@
 // onboarding). Meerko doesn't run a model itself: it fetches the page and hands the text over.
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { isPrivateAddress } from "./agent-hooks.ts";
+import { isPrivateAddress } from "./routines/http.ts";
 
 /** A website that can't be read; the message is safe to show. */
 export class WebsiteError extends Error {}

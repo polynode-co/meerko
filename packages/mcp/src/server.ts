@@ -36,8 +36,8 @@ const stepSchema = z.object({
 // short recipe over the tools; anything that emails someone waits for the user's OK.
 const ask = (text: string) => ({ messages: [{ role: "user" as const, content: { type: "text" as const, text } }] });
 
-/** The tools and prompt an agent woken by an agent hook gets: it reads replies and drafts answers, nothing else. */
-export const DRAFTER_TOOLS = ["list_replies", "classify_reply", "draft_reply", "list_drafts"];
+/** The tools and prompt an agent woken for replies gets (/mcp/drafter): it checks in, reads replies and drafts answers, nothing else. */
+export const DRAFTER_TOOLS = ["list_replies", "classify_reply", "draft_reply", "list_drafts", "start_routine_run"];
 export const DRAFTER_PROMPTS = ["triage-replies"];
 
 /**
@@ -584,6 +584,70 @@ Write like a person answering an email: short, specific to what they said, in th
       const { enabled, balance } = await client().getCredits();
       return { enabled, balance };
     }),
+  );
+
+  const cadence = z.object({
+    days: z.array(z.number().int().min(1).max(7)).describe("ISO weekdays: 1 = Monday … 7 = Sunday, e.g. [1,2,3,4,5] for weekdays"),
+    time: z.string().describe("HH:MM, 24-hour"),
+    timezone: z.string().describe("IANA zone, e.g. Europe/Madrid. Ask the user if you don't know theirs"),
+  });
+
+  tool(
+    "manage_routine",
+    {
+      description: `Autopilot: routines the user's own AI runs, each a brief plus when it runs (when new replies arrive, or on weekdays at a time).
+- list / get: routines with their latest runs, and \`setup\`: how each one runs and the exact prompt to give the AI.
+- create: name, brief, when ("replies" or "schedule" with cadence). It starts on the AI's own scheduler: show the user \`setup.prompt\` and \`setup.steps\` so they create the scheduled task. A "replies" routine needs Meerko to start it: the user connects a Claude routine or a webhook in the dashboard's Autopilot page (you can't; it holds a secret).
+- update (name, brief, when, cadence), pause, resume, delete.
+- run_now: Meerko starts it through its Claude routine or webhook; on the AI's own scheduler it returns the prompt to run instead.
+Write the brief as instructions for a later run with no one to ask. Confirm the brief and schedule with the user before creating it.`,
+      inputSchema: {
+        action: z.enum(["list", "get", "create", "update", "pause", "resume", "delete", "run_now"]),
+        routine_id: z.string().optional().describe("For every action except list and create"),
+        name: z.string().optional(),
+        brief: z.string().optional().describe("What the AI does on each run, e.g. 'Find 20 new leads matching my ICP, enrich them, and add the ones with verified emails to the Q4 sequence'"),
+        when: z.enum(["replies", "schedule"]).optional(),
+        cadence: cadence.optional().describe("Required when `when` is schedule"),
+      },
+    },
+    ({ action, routine_id, name, brief, when, cadence }) =>
+      run(async () => {
+        const c = client();
+        const id = () => {
+          if (!routine_id) throw new Error("routine_id is required for this action (get it from action: list)");
+          return routine_id;
+        };
+        switch (action) {
+          case "list":
+            return { routines: await c.listRoutines() };
+          case "get":
+            return { routine: await c.getRoutine(id()) };
+          case "create":
+            if (!name || !brief || !when) throw new Error("create needs name, brief and when");
+            return { routine: await c.createRoutine({ name, brief, when, cadence }) };
+          case "update":
+            return { routine: await c.updateRoutine(id(), { name, brief, when, cadence }) };
+          case "pause":
+            return { routine: await c.updateRoutine(id(), { status: "paused" }) };
+          case "resume":
+            return { routine: await c.updateRoutine(id(), { status: "active" }) };
+          case "delete":
+            await c.deleteRoutine(id());
+            return { deleted: true };
+          case "run_now":
+            return c.runRoutine(id());
+        }
+      }),
+  );
+
+  tool(
+    "start_routine_run",
+    {
+      description:
+        "Call this first whenever you run a Meerko Autopilot routine (your scheduled task's prompt or Meerko's start message names its routine_id). It records the run and returns the brief: follow it, without asking the user, using the Meerko tools.",
+      inputSchema: { routine_id: z.string() },
+    },
+    ({ routine_id }) => run(() => client().startRoutineRun(routine_id)),
   );
 
   prompt(

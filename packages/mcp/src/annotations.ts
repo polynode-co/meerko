@@ -18,6 +18,10 @@ const write = (title: string, openWorld = false): Entry => ({ title, readOnlyHin
 const destructive = (title: string, openWorld = false): Entry => ({ title, readOnlyHint: false, destructiveHint: true, openWorldHint: openWorld });
 
 export const TOOL_ANNOTATIONS: Record<string, Entry> = {
+  // Autopilot
+  manage_routine: destructive("Manage Autopilot routines"), // delete
+  start_routine_run: write("Start an Autopilot run"),
+
   // Workspaces
   whoami: read("Show the current workspace"),
   list_workspaces: read("List workspaces"),
