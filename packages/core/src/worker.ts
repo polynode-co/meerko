@@ -1,5 +1,6 @@
 import type { Db } from "@meerko/db";
 import { runAgentNotifyTick, type AgentNotifyResult } from "./agent-hooks.ts";
+import { expireCredits } from "./credits.ts";
 import { runReplyTick, type ReplyTickResult } from "./replies/replies.ts";
 import { runSendTick, type SenderDeps, type TickResult } from "./sending/sender.ts";
 import { runSlackNotifyTick, type SlackNotifyResult } from "./slack.ts";
@@ -14,6 +15,9 @@ export interface WorkerTickResult {
   /** Replies and drafts posted to Slack. */
   slack?: SlackNotifyResult;
   slackError?: string;
+  /** Pro monthly credits that lapsed this pass. */
+  expired?: { grants: number; credits: number };
+  expireError?: string;
   send: TickResult;
 }
 
@@ -43,6 +47,12 @@ export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string
     } catch (err) {
       result.slackError = err instanceof Error ? err.message : String(err);
     }
+  }
+  // Monthly credits past their rollover month.
+  try {
+    result.expired = await expireCredits(db, deps.now?.());
+  } catch (err) {
+    result.expireError = err instanceof Error ? err.message : String(err);
   }
   return { ...result, send: await runSendTick(db, deps) };
 }

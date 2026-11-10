@@ -177,9 +177,19 @@ export const creditLedger = pgTable(
     refId: uuid("ref_id"),
     /** The Stripe object a grant came from (`stripe:cs_…`, `stripe:in_…`); unique, so a redelivered webhook grants once. */
     externalRef: text("external_ref").unique(),
+    /**
+     * Grants that lapse (Pro's monthly credits): when what's left of them goes. Null for credits that never expire
+     * (the free credits, bought packs, and monthly grants made before rollover existed).
+     */
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** For a grant with expiresAt: how much of it is still unspent. Spending uses the soonest-expiring credits first. */
+    remaining: integer("remaining"),
     createdAt: createdAt(),
   },
-  (t) => [index("credit_ledger_workspace_id_idx").on(t.workspaceId)],
+  (t) => [
+    index("credit_ledger_workspace_id_idx").on(t.workspaceId),
+    index("credit_ledger_expiring_idx").on(t.expiresAt).where(sql`${t.remaining} > 0`),
+  ],
 );
 
 /** One row per provider call during enrichment, kept for auditing and margin tracking. */
