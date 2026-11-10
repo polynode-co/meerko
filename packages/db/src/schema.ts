@@ -40,6 +40,9 @@ export const workspaces = pgTable("workspaces", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   subscriptionStatus: text("subscription_status"),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  // Annual Pro is invoiced once a year, so its monthly credits are granted from the period start (core/billing.ts).
+  currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
+  billingInterval: text("billing_interval").$type<"month" | "year">(),
   cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
   /** Who this brand sells to (core/icp.ts): written by the person's agent, used to score every lead. */
   icp: jsonb("icp").$type<object>(),

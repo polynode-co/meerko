@@ -337,6 +337,12 @@ export type Billing =
       pro_monthly_credits: number;
       /** Credits in one top-up pack. */
       credit_pack: number;
+      /** How the current Pro subscription is billed; null on Free. */
+      interval: "month" | "year" | null;
+      /** Pro in US dollars; `year` is null where annual Pro isn't sold. */
+      prices: { month: number; year: number | null };
+      /** Off the first year of annual Pro, applied at checkout; null when sold out, expired or not offered. */
+      founding_offer: { percent_off: number; left: number; until: string } | null;
     };
 
 export class MeerkoClient {
@@ -828,7 +834,7 @@ export class MeerkoClient {
   }
 
   /** A Stripe Checkout URL for Pro or for credit packs (dashboard session, workspace owner). */
-  startCheckout(input: { kind: "pro" } | { kind: "credits"; packs?: number }) {
+  startCheckout(input: { kind: "pro"; interval?: "month" | "year" } | { kind: "credits"; packs?: number }) {
     return this.request<{ url: string }>("POST", "/billing/checkout", input).then((r) => r.url);
   }
 

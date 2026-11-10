@@ -1,9 +1,14 @@
 import Stripe from "stripe";
-import { creditLedger, eq, inArray, mailboxes, workspaces, type Db, type Plan } from "@meerko/db";
+import { and, creditLedger, eq, inArray, isNotNull, mailboxes, workspaces, type Db, type Plan } from "@meerko/db";
 import { billingWorkspaceOf, sharesBilling } from "./workspaces.ts";
 
 /** Credits a Pro subscription adds on each paid month (the $49 plan at $1 = 100 credits). */
 export const PRO_MONTHLY_CREDITS = 4900;
+/** Pro's prices, matching terraform/app/stripe.tf: $49 a month, or $490 a year ($41/month). */
+export const PRO_PRICES = { month: 49, year: 490 } as const;
+export type BillingInterval = keyof typeof PRO_PRICES;
+/** The founding offer, matching the coupon in stripe.tf: 50% off the first year of annual Pro, for the first 50, until the end of 2026. */
+export const FOUNDING_OFFER = { percentOff: 50, maxRedemptions: 50, redeemBy: new Date("2026-12-31T23:59:59Z") } as const;
 /** Credits in one top-up pack ($10 at $1 = 100 credits). Checkout lets the buyer pick how many packs. */
 export const CREDIT_PACK_CREDITS = 1000;
 export const MAX_CREDIT_PACKS = 100;
@@ -41,7 +46,10 @@ const PRO_STATUSES = new Set<Stripe.Subscription.Status>(["active", "trialing", 
 export interface BillingConfig {
   stripe: Stripe;
   webhookSecret: string;
-  prices: { pro: string; credits: string };
+  /** `proAnnual` is optional, so a deployment without the annual price still sells monthly Pro. */
+  prices: { pro: string; credits: string; proAnnual?: string };
+  /** The founding-offer coupon, applied on its own to annual checkouts while Stripe says it's still valid. */
+  foundingCoupon?: string;
   /** The dashboard's URL; Checkout and the portal send the browser back to its Connections page. */
   appUrl: string;
   /** A billing portal configuration (bpc_…); the account's default when unset. */
@@ -59,7 +67,8 @@ export function stripeFromEnv(env: NodeJS.ProcessEnv = process.env): BillingConf
   return {
     stripe: new Stripe(STRIPE_SECRET_KEY, { apiVersion: STRIPE_API_VERSION }),
     webhookSecret: STRIPE_WEBHOOK_SECRET,
-    prices: { pro: STRIPE_PRICE_PRO, credits: STRIPE_PRICE_CREDITS },
+    prices: { pro: STRIPE_PRICE_PRO, credits: STRIPE_PRICE_CREDITS, proAnnual: env.STRIPE_PRICE_PRO_ANNUAL || undefined },
+    foundingCoupon: env.STRIPE_COUPON_FOUNDING || undefined,
     appUrl: MEERKO_APP_URL,
     portalConfiguration: env.STRIPE_PORTAL_CONFIGURATION || undefined,
     automaticTax: env.STRIPE_AUTOMATIC_TAX === "on",
@@ -83,6 +92,7 @@ export async function getBilling(db: Db, workspaceId: string) {
       plan: workspaces.plan,
       status: workspaces.subscriptionStatus,
       currentPeriodEnd: workspaces.currentPeriodEnd,
+      billingInterval: workspaces.billingInterval,
       cancelAtPeriodEnd: workspaces.cancelAtPeriodEnd,
       customerId: workspaces.stripeCustomerId,
       subscriptionId: workspaces.stripeSubscriptionId,
@@ -136,7 +146,24 @@ async function ensureCustomer(db: Db, cfg: BillingConfig, workspaceId: string, e
   return customer.id;
 }
 
-export type CheckoutInput = { kind: "pro" } | { kind: "credits"; packs: number };
+export type CheckoutInput = { kind: "pro"; interval?: BillingInterval } | { kind: "credits"; packs: number };
+
+/**
+ * How many founding-offer places are left, or null when there's no offer (no coupon configured, sold out, expired,
+ * or Stripe unreachable). Read from the coupon itself, so the count is Stripe's.
+ */
+export async function foundingOfferLeft(cfg: BillingConfig): Promise<number | null> {
+  if (!cfg.foundingCoupon || !cfg.prices.proAnnual) return null;
+  try {
+    const coupon = await cfg.stripe.coupons.retrieve(cfg.foundingCoupon);
+    if (!coupon.valid) return null;
+    const left = (coupon.max_redemptions ?? FOUNDING_OFFER.maxRedemptions) - coupon.times_redeemed;
+    return left > 0 ? left : null;
+  } catch (err) {
+    if (isStripeError(err)) return null;
+    throw err;
+  }
+}
 
 /** A Stripe Checkout page for Pro or for credit packs. Returns its URL. */
 export async function startCheckout(db: Db, cfg: BillingConfig, workspaceId: string, email: string, input: CheckoutInput) {
@@ -144,6 +171,11 @@ export async function startCheckout(db: Db, cfg: BillingConfig, workspaceId: str
   workspaceId = await billingWorkspaceOf(db, workspaceId);
   const billing = await getBilling(db, workspaceId);
   if (input.kind === "pro" && billing.plan === "pro") throw new BillingError("This workspace is already on Pro (your workspaces share one plan). Manage it from Connections → Manage billing.");
+  const annual = input.kind === "pro" && input.interval === "year";
+  if (annual && !cfg.prices.proAnnual) throw new BillingError("Annual Pro isn't available on this server yet. Pick monthly.");
+  // The founding coupon goes on by itself while places are left. Stripe refuses `discounts` together with
+  // promotion codes, so an annual checkout with the offer doesn't take codes.
+  const founding = annual && (await foundingOfferLeft(cfg)) !== null;
   const customer = await ensureCustomer(db, cfg, workspaceId, email);
   const settings = `${cfg.appUrl.replace(/\/$/, "")}/app/settings`;
   const metadata = { workspace_id: workspaceId, kind: input.kind };
@@ -155,14 +187,14 @@ export async function startCheckout(db: Db, cfg: BillingConfig, workspaceId: str
     // With Stripe Tax on, the address typed at checkout is the one tax is worked out from.
     ...(cfg.automaticTax ? { automatic_tax: { enabled: true }, customer_update: { address: "auto" as const, name: "auto" as const } } : {}),
     tax_id_collection: { enabled: true },
-    allow_promotion_codes: true,
+    ...(founding ? { discounts: [{ coupon: cfg.foundingCoupon! }] } : { allow_promotion_codes: true }),
   };
   const session =
     input.kind === "pro"
       ? await cfg.stripe.checkout.sessions.create({
           ...common,
           mode: "subscription",
-          line_items: [{ price: cfg.prices.pro, quantity: 1 }],
+          line_items: [{ price: annual ? cfg.prices.proAnnual! : cfg.prices.pro, quantity: 1 }],
           subscription_data: { metadata },
           success_url: `${settings}?billing=pro`,
         })
@@ -229,7 +261,10 @@ async function syncSubscription(db: Db, cfg: BillingConfig, subscriptionId: stri
   // A workspace that cancelled one subscription and started another must not be downgraded by the old one's events.
   const [ws] = await db.select({ subscriptionId: workspaces.stripeSubscriptionId }).from(workspaces).where(eq(workspaces.id, workspaceId));
   if (!pro && ws?.subscriptionId && ws.subscriptionId !== sub.id) return { workspaceId, plan: null };
-  const periodEnd = sub.items.data[0]?.current_period_end;
+  const item = sub.items.data[0];
+  const periodEnd = item?.current_period_end;
+  const periodStart = item?.current_period_start;
+  const interval = item?.price?.recurring?.interval === "year" ? ("year" as const) : ("month" as const);
   await db
     .update(workspaces)
     .set({
@@ -238,6 +273,8 @@ async function syncSubscription(db: Db, cfg: BillingConfig, subscriptionId: stri
       stripeSubscriptionId: sub.id,
       subscriptionStatus: sub.status,
       currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
+      currentPeriodStart: periodStart ? new Date(periodStart * 1000) : null,
+      billingInterval: interval,
       cancelAtPeriodEnd: sub.cancel_at_period_end || !!sub.cancel_at,
     })
     .where(eq(workspaces.id, workspaceId));
@@ -267,6 +304,41 @@ async function grantMonthlyCredits(db: Db, cfg: BillingConfig, invoiceId: string
   if (!workspaceId) return null;
   const granted = await grantOnce(db, workspaceId, PRO_MONTHLY_CREDITS, "pro_monthly", `stripe:${invoice.id}`);
   return { workspaceId, credits: PRO_MONTHLY_CREDITS, granted };
+}
+
+/**
+ * Annual Pro's monthly credits after the first month. Stripe invoices once a year and that invoice grants month 1
+ * (grantMonthlyCredits); this grants each later month of the paid year on its date, once (keyed by subscription,
+ * period and month). Runs on the worker tick and needs no Stripe call. A cancelled subscription keeps its months
+ * until the period it paid for ends, when syncSubscription moves the workspace back to Free.
+ */
+export async function runAnnualCreditsTick(db: Db, now = new Date()) {
+  const subs = await db
+    .select({ id: workspaces.id, subscriptionId: workspaces.stripeSubscriptionId, start: workspaces.currentPeriodStart, end: workspaces.currentPeriodEnd })
+    .from(workspaces)
+    .where(and(eq(workspaces.plan, "pro"), eq(workspaces.billingInterval, "year"), isNotNull(workspaces.stripeSubscriptionId), isNotNull(workspaces.currentPeriodStart)));
+  let granted = 0;
+  for (const s of subs) {
+    if (!s.start || !s.subscriptionId || (s.end && s.end <= now)) continue;
+    for (let month = 1; month < 12; month++) {
+      const due = addMonths(s.start, month);
+      if (due > now) break;
+      const ref = `stripe:${s.subscriptionId}:${s.start.toISOString().slice(0, 10)}:m${month + 1}`;
+      if (await grantOnce(db, s.id, PRO_MONTHLY_CREDITS, "pro_monthly", ref)) granted++;
+    }
+  }
+  return { granted };
+}
+
+/** `date` plus `n` calendar months, clamped to the month's last day (31 Jan + 1 month = 28/29 Feb), in UTC. */
+export function addMonths(date: Date, n: number) {
+  const d = new Date(date);
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + n);
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, last));
+  return d;
 }
 
 /** What a webhook did, for analytics. `null` when the event needed nothing. */

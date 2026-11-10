@@ -1,6 +1,7 @@
 import type { Db } from "@meerko/db";
 import { runAgentNotifyTick, type AgentNotifyResult } from "./agent-hooks.ts";
 import { runCrmSyncTick, type CrmTickResult } from "./crm.ts";
+import { runAnnualCreditsTick } from "./billing.ts";
 import { runReplyTick, type ReplyTickResult } from "./replies/replies.ts";
 import { runSendTick, type SenderDeps, type TickResult } from "./sending/sender.ts";
 import { runSlackNotifyTick, type SlackNotifyResult } from "./slack.ts";
@@ -18,6 +19,9 @@ export interface WorkerTickResult {
   /** Contacted leads pushed to the workspace's CRM. */
   crm?: CrmTickResult;
   crmError?: string;
+  /** Annual Pro months whose credits came due. */
+  annualCredits?: { granted: number };
+  annualCreditsError?: string;
   send: TickResult;
 }
 
@@ -52,6 +56,11 @@ export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string
       result.crm = await runCrmSyncTick(db, { box: deps.box ?? null, fetch: deps.crmFetch });
     } catch (err) {
       result.crmError = err instanceof Error ? err.message : String(err);
+    // Annual Pro is invoiced yearly; its later months' credits are granted here as they come due.
+    try {
+      result.annualCredits = await runAnnualCreditsTick(db, deps.now?.());
+    } catch (err) {
+      result.annualCreditsError = err instanceof Error ? err.message : String(err);
     }
   }
   return { ...result, send: await runSendTick(db, deps) };

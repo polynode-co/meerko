@@ -138,6 +138,9 @@ import {
   switchWorkspace,
   type SwitchableCredential,
   PRO_MONTHLY_CREDITS,
+  PRO_PRICES,
+  FOUNDING_OFFER,
+  foundingOfferLeft,
   CREDIT_PACK_CREDITS,
   startCheckout,
   verifyStripeEvent,
@@ -1191,6 +1194,11 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       balance: await getBalance(db, c.var.workspaceId),
       pro_monthly_credits: PRO_MONTHLY_CREDITS,
       credit_pack: CREDIT_PACK_CREDITS,
+      interval: b.plan === "pro" ? (b.billingInterval ?? "month") : null,
+      prices: { month: PRO_PRICES.month, year: deps.billing.prices.proAnnual ? PRO_PRICES.year : null },
+      founding_offer: await foundingOfferLeft(deps.billing).then((left) =>
+        left === null ? null : { percent_off: FOUNDING_OFFER.percentOff, left, until: FOUNDING_OFFER.redeemBy.toISOString() },
+      ),
     });
   });
 
@@ -1199,7 +1207,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     requireOwner(c);
     const input = await parse(checkoutInput, await c.req.json().catch(() => ({})));
     const url = await startCheckout(db, cfg, c.var.workspaceId, c.var.user!.email, input);
-    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.checkoutStarted, workspaceId: c.var.workspaceId, properties: { kind: input.kind } });
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.checkoutStarted, workspaceId: c.var.workspaceId, properties: input.kind === "pro" ? { kind: input.kind, interval: input.interval } : { kind: input.kind } });
     return c.json({ url });
   });
 
