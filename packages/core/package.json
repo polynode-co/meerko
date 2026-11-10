@@ -9,6 +9,7 @@
   "scripts": {
     "seed": "tsx --env-file=../../.env src/seed.ts",
     "invite": "tsx --env-file=../../.env src/invite.ts",
+    "seed-reviewer": "tsx --env-file=../../.env src/seed-reviewer.ts",
     "test": "vitest run",
     "typecheck": "tsc -p ."
   },
