@@ -166,6 +166,35 @@ export const listRepliesQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 export const classifyInput = z.object({ intent: z.enum(AGENT_INTENTS), handled: z.boolean().optional() });
+const approvalMode = z.enum(["approve", "auto"]);
+export const sendingModeInput = z
+  .object({
+    sequence_emails: approvalMode.optional().describe("approve: a person approves each sequence email before it goes. auto: Meerko sends them on schedule"),
+    reply_drafts: approvalMode.optional().describe("approve: drafts wait for a person. auto: a draft is sent as soon as it's saved"),
+  })
+  .refine((v) => v.sequence_emails || v.reply_drafts, { message: "Set sequence_emails, reply_drafts or both" });
+export const SendingMode = z.object({ sequence_emails: approvalMode, reply_drafts: approvalMode });
+export const pendingEmailsQuery = z.object({
+  sequence_id: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+});
+export const approveEmailsInput = z
+  .object({
+    enrollment_ids: z.array(z.string()).max(1000).optional().describe("Approve these leads' next email"),
+    sequence_id: z.string().optional().describe("Approve the next email of every lead waiting in this sequence"),
+  })
+  .refine((v) => v.enrollment_ids?.length || v.sequence_id, { message: "Pass enrollment_ids or sequence_id" });
+export const PendingEmail = z.object({
+  enrollment_id: z.string(),
+  sequence_id: z.string(),
+  sequence_name: z.string(),
+  to: z.string(),
+  step: z.number(),
+  subject: z.string(),
+  body: z.string(),
+  send_at: z.string().nullable(),
+});
+
 export const draftInput = z.object({ body: z.string().min(1).max(20_000) });
 export const listDraftsQuery = z.object({ status: z.enum(["pending", "sent", "discarded"]).optional() });
 export const approveDraftInput = z.object({ body: z.string().min(1).max(20_000).optional().describe("Send this instead of the saved draft") });

@@ -155,6 +155,13 @@
       "when": 1794312639781,
       "tag": "0021_reply_digest",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794318338247,
+      "tag": "0022_approval_mode",
+      "breakpoints": true
     }
   ]
 }

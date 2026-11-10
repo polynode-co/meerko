@@ -43,6 +43,13 @@ export const workspaces = pgTable("workspaces", {
   cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
   /** Who this brand sells to (core/icp.ts): written by the person's agent, used to score every lead. */
   icp: jsonb("icp").$type<object>(),
+  /**
+   * Whether a person approves each email before it goes (core/approvals.ts). Approval is the default for new
+   * workspaces; workspaces made before the setting existed keep sequences sending on their own.
+   */
+  approveSequenceEmails: boolean("approve_sequence_emails").notNull().default(true),
+  /** Whether the agent's reply drafts wait for a person, or are sent as soon as they're written. */
+  approveReplyDrafts: boolean("approve_reply_drafts").notNull().default(true),
   createdAt: createdAt(),
 });
 
@@ -317,6 +324,8 @@ export const enrollments = pgTable(
     /** Position of the next step to send. */
     nextStep: integer("next_step").notNull().default(0),
     nextSendAt: timestamp("next_send_at", { withTimezone: true }),
+    /** The step a person approved to send, when the workspace approves sequence emails. Sent only when it equals nextStep. */
+    approvedStep: integer("approved_step"),
     gmailThreadId: text("gmail_thread_id"),
     /** RFC Message-IDs sent so far, for In-Reply-To/References threading. */
     messageIds: jsonb("message_ids").$type<string[]>().notNull().default(sql`'[]'::jsonb`),

@@ -40,3 +40,4 @@ export * from "./agent-hooks.ts";
 export * from "./slack.ts";
 export * from "./digest.ts";
 export * from "./workspaces.ts";
+export * from "./approvals.ts";

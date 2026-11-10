@@ -83,6 +83,25 @@ export interface ApiKey {
   createdAt: string;
 }
 
+export type ApprovalMode = "approve" | "auto";
+export interface SendingMode {
+  sequence_emails: ApprovalMode;
+  reply_drafts: ApprovalMode;
+}
+
+/** A sequence email waiting for a person to approve it, as the lead will get it. */
+export interface PendingEmail {
+  enrollment_id: string;
+  sequence_id: string;
+  sequence_name: string;
+  to: string;
+  /** 1 is the first email, 2 the first follow-up… */
+  step: number;
+  subject: string;
+  body: string;
+  send_at: string | null;
+}
+
 /** The daily email of replies waiting. Workspace owners get it unless they turn it off. */
 export interface Digest {
   eligible: boolean;
@@ -741,9 +760,37 @@ export class MeerkoClient {
     return this.request<{ reply: { id: string; intent: string; handledAt: string | null } }>("POST", `/replies/${id}/classify`, { intent, handled });
   }
 
-  /** Saves a draft answer to a reply (replaces an earlier pending draft). Nothing is sent until approved. */
+  /**
+   * Saves a draft answer to a reply (replaces an earlier pending draft). Nothing is sent until approved, unless the
+   * workspace sends reply drafts on its own: then `sent` is set, or `send_error` if it couldn't go and still waits.
+   */
   draftReply(replyId: string, body: string) {
-    return this.request<{ draft: { id: string; body: string } }>("POST", `/replies/${replyId}/draft`, { body }).then((r) => r.draft);
+    return this.request<{ draft: { id: string; body: string }; sent?: { sent: boolean; to: string; subject: string }; send_error?: string }>("POST", `/replies/${replyId}/draft`, { body }).then(
+      (r) => ({ ...r.draft, ...(r.sent ? { sent: r.sent } : {}), ...(r.send_error ? { send_error: r.send_error } : {}) }),
+    );
+  }
+
+  /** Whether a person approves each email first ("approve") or Meerko sends on its own ("auto"). */
+  getSendingMode() {
+    return this.request<{ mode: SendingMode }>("GET", "/sending-mode").then((r) => r.mode);
+  }
+
+  /** A signed-in person only. */
+  setSendingMode(mode: Partial<SendingMode>) {
+    return this.request<{ mode: SendingMode }>("PUT", "/sending-mode", mode).then((r) => r.mode);
+  }
+
+  /** Sequence emails waiting for approval, soonest first. */
+  listPendingEmails(opts: { sequenceId?: string; limit?: number } = {}) {
+    const q = new URLSearchParams();
+    if (opts.sequenceId) q.set("sequence_id", opts.sequenceId);
+    if (opts.limit) q.set("limit", String(opts.limit));
+    return this.request<{ emails: PendingEmail[] }>("GET", `/pending-emails${q.size ? `?${q}` : ""}`).then((r) => r.emails);
+  }
+
+  /** Approve some leads' next email, or every lead waiting in a sequence. Each goes when it's due. */
+  approveEmails(input: { enrollmentIds?: string[]; sequenceId?: string }) {
+    return this.request<{ approved: number }>("POST", "/pending-emails/approve", { enrollment_ids: input.enrollmentIds, sequence_id: input.sequenceId });
   }
 
   listDrafts(status?: Draft["status"]) {
