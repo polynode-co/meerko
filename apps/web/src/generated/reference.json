@@ -1492,6 +1492,106 @@
           "properties": {},
           "$schema": "http://json-schema.org/draft-07/schema#"
         }
+      },
+      {
+        "name": "manage_routine",
+        "title": "Manage Autopilot routines",
+        "description": "Autopilot: routines the user's own AI runs, each a brief plus when it runs (when new replies arrive, or on weekdays at a time).\n- list / get: routines with their latest runs, and `setup`: how each one runs and the exact prompt to give the AI.\n- create: name, brief, when (\"replies\" or \"schedule\" with cadence). It starts on the AI's own scheduler: show the user `setup.prompt` and `setup.steps` so they create the scheduled task. A \"replies\" routine needs Meerko to start it: the user connects a Claude routine or a webhook in the dashboard's Autopilot page (you can't; it holds a secret).\n- update (name, brief, when, cadence), pause, resume, delete.\n- run_now: Meerko starts it through its Claude routine or webhook; on the AI's own scheduler it returns the prompt to run instead.\nWrite the brief as instructions for a later run with no one to ask. Confirm the brief and schedule with the user before creating it.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "list",
+                "get",
+                "create",
+                "update",
+                "pause",
+                "resume",
+                "delete",
+                "run_now"
+              ]
+            },
+            "routine_id": {
+              "description": "For every action except list and create",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "description": "What the AI does on each run, e.g. 'Find 20 new leads matching my ICP, enrich them, and add the ones with verified emails to the Q4 sequence'",
+              "type": "string"
+            },
+            "when": {
+              "type": "string",
+              "enum": [
+                "replies",
+                "schedule"
+              ]
+            },
+            "cadence": {
+              "description": "Required when `when` is schedule",
+              "type": "object",
+              "properties": {
+                "days": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 7
+                  },
+                  "description": "ISO weekdays: 1 = Monday … 7 = Sunday, e.g. [1,2,3,4,5] for weekdays"
+                },
+                "time": {
+                  "type": "string",
+                  "description": "HH:MM, 24-hour"
+                },
+                "timezone": {
+                  "type": "string",
+                  "description": "IANA zone, e.g. Europe/Madrid. Ask the user if you don't know theirs"
+                }
+              },
+              "required": [
+                "days",
+                "time",
+                "timezone"
+              ]
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "start_routine_run",
+        "title": "Start an Autopilot run",
+        "description": "Call this first whenever you run a Meerko Autopilot routine (your scheduled task's prompt or Meerko's start message names its routine_id). It records the run and returns the brief: follow it, without asking the user, using the Meerko tools.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "routine_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "routine_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
       }
     ],
     "prompts": [
@@ -1577,6 +1677,7 @@
       "replies": "replies to your sequences",
       "drafts": "answers to replies, waiting for your approval",
       "icp": "who this brand sells to; every lead is scored 0-100 against it",
+      "routines": "Autopilot: routines your own AI runs, when replies arrive or on a schedule",
       "keys": "bring your own provider keys (calls through them cost no credits)",
       "credits": "show the workspace credit balance"
     },
@@ -2127,6 +2228,70 @@
         "usage": "meerko icp review <tableId> <rowId> <adjust> [note]",
         "group": "icp",
         "description": "move one row's score by -30 to 30 with a reason; adjust 'clear' removes it",
+        "options": []
+      },
+      {
+        "usage": "meerko routines ls",
+        "group": "routines",
+        "description": "list routines and how their latest runs went",
+        "options": []
+      },
+      {
+        "usage": "meerko routines show <routineId>",
+        "group": "routines",
+        "description": "a routine's brief, how it runs, the prompt for your AI and its latest runs",
+        "options": []
+      },
+      {
+        "usage": "meerko routines create <name> <briefFile>",
+        "group": "routines",
+        "description": "create a routine from a brief in a text file: --replies, or --days 1,2,3,4,5 --time 09:00 [--timezone Europe/Madrid]",
+        "options": [
+          {
+            "flags": "--replies",
+            "description": "run when new replies arrive (Meerko starts it: connect a Claude routine or webhook in the dashboard)",
+            "required": false
+          },
+          {
+            "flags": "--days <days>",
+            "description": "ISO weekdays, 1 = Monday … 7 = Sunday",
+            "default": "1,2,3,4,5",
+            "required": false
+          },
+          {
+            "flags": "--time <HH:MM>",
+            "description": "local time",
+            "required": false
+          },
+          {
+            "flags": "--timezone <zone>",
+            "description": "IANA zone (default: this computer's)",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko routines pause <routineId>",
+        "group": "routines",
+        "description": "stop running it until resumed",
+        "options": []
+      },
+      {
+        "usage": "meerko routines resume <routineId>",
+        "group": "routines",
+        "description": "start running it again",
+        "options": []
+      },
+      {
+        "usage": "meerko routines run <routineId>",
+        "group": "routines",
+        "description": "run it now (Meerko starts it; on your AI's own schedule, prints the prompt to run)",
+        "options": []
+      },
+      {
+        "usage": "meerko routines rm <routineId>",
+        "group": "routines",
+        "description": "delete a routine",
         "options": []
       },
       {

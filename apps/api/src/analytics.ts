@@ -22,7 +22,9 @@ export const EVENTS = {
   checkoutStarted: "checkout_started",
   subscriptionChanged: "subscription_changed",
   creditsPurchased: "credits_purchased",
-  agentHookConfigured: "agent_hook_configured",
+  routineCreated: "routine_created",
+  routineTriggerSet: "routine_trigger_set",
+  routineRunStarted: "routine_run_started",
   slackConnected: "slack_connected",
   workspaceCreated: "workspace_created",
 } as const;

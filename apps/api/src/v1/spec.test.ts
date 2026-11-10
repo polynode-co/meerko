@@ -35,6 +35,8 @@ describe("/v1 spec", () => {
       "POST ^\\/v1\\/replies\\/[^/]+\\/classify$",
       "POST ^\\/v1\\/replies\\/[^/]+\\/draft$",
       "GET ^\\/v1\\/drafts$",
+      // Checking in to an Autopilot run: it records the run and returns the brief, nothing more.
+      "POST ^\\/v1\\/routines\\/[^/]+\\/start$",
     ]);
   });
 

@@ -9,7 +9,7 @@ export function hashApiKey(key: string): string {
 }
 
 /**
- * `replies` keys can only read replies, classify them and save drafts: for an agent woken by an agent hook, which
+ * `replies` keys can only read replies, classify them and save drafts: for an agent woken by an Autopilot replies routine, which
  * reads email from strangers and so must not be able to approve or send anything.
  */
 export async function createApiKey(db: Db, workspaceId: string, name: string, scope: ApiKeyScope = "full") {
