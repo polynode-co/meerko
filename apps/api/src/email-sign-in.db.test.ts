@@ -41,7 +41,8 @@ describe.skipIf(!process.env.DATABASE_URL)("sign-in links by email (db)", () => 
 
     const verified = await post(open, "/auth/email/verify", { token: tokenFrom(mail) });
     expect(verified.status).toBe(200);
-    const { token } = (await verified.json()) as { token: string };
+    const { token, new_user } = (await verified.json()) as { token: string; new_user: boolean };
+    expect(new_user).toBe(true); // the dashboard then asks the optional sign-up questions
     const me = await open.request("/v1/me", { headers: { authorization: `Bearer ${token}` } });
     expect(me.status).toBe(200);
     const [user] = await db.select().from(users).where(eq(users.email, addr("ana")));

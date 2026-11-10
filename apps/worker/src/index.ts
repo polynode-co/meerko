@@ -1,6 +1,6 @@
 // Background jobs for self-hosting: the email sender every 30s and the reply scan every 2 minutes.
 // Meerko Cloud doesn't run this process; Cloud Scheduler calls POST /internal/tick on the API instead.
-import { GoogleOAuth, MicrosoftOAuth, runWorkerTick, SecretBox } from "@meerko/core";
+import { GoogleOAuth, MicrosoftOAuth, runWorkerTick, SecretBox, smtpMailer } from "@meerko/core";
 import { createDb } from "@meerko/db";
 
 const TICK_MS = 30_000;
@@ -8,6 +8,8 @@ const REPLY_EVERY_TICKS = 4;
 const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MEERKO_PUBLIC_URL, MEERKO_APP_URL, MEERKO_ALLOW_PRIVATE_HOOKS } = process.env;
 const publicUrl = MEERKO_PUBLIC_URL ?? "http://localhost:8787";
 const box = SecretBox.fromEnv();
+// Meerko's own email (the daily digest of replies); off unless SMTP is set, as for sign-in links.
+const mailer = smtpMailer(process.env.MEERKO_SMTP_URL, process.env.MEERKO_MAIL_FROM);
 
 if (!box) {
   console.log("Sender idle: set MEERKO_ENCRYPTION_KEY to send email.");
@@ -40,14 +42,16 @@ if (!box) {
   const tick = async () => {
     busy = true;
     try {
-      const { replies: r, replyError, routines, routineError, slack, slackError, send: res } = await runWorkerTick(
+      const { replies: r, replyError, routines, routineError, slack, slackError, digest, digestError, send: res } = await runWorkerTick(
         db,
-        { box, oauth, microsoft, publicUrl, appUrl: MEERKO_APP_URL, allowPrivateHooks: MEERKO_ALLOW_PRIVATE_HOOKS === "1" },
+        { box, oauth, microsoft, publicUrl, appUrl: MEERKO_APP_URL, mailer, allowPrivateHooks: MEERKO_ALLOW_PRIVATE_HOOKS === "1" },
         { replies: ticks++ % REPLY_EVERY_TICKS === 0 },
       );
       if (replyError) console.error("reply scan failed:", replyError);
       if (routineError) console.error("autopilot failed:", routineError);
       if (slackError) console.error("slack notify failed:", slackError);
+      if (digestError) console.error("digest failed:", digestError);
+      if (digest && (digest.sent || digest.failed)) console.log(`digest: ${digest.sent} sent, ${digest.failed} failed`);
       if (slack && (slack.drafts || slack.replies || slack.failed)) console.log(`slack: ${slack.drafts} drafts and ${slack.replies} replies posted, ${slack.failed} failed`);
       if (routines && (routines.started || routines.failed || routines.missed || routines.noCallback))
         console.log(`autopilot: ${routines.started} started (${routines.replies} replies), ${routines.failed} failed, ${routines.missed} missed, ${routines.noCallback} never checked in`);

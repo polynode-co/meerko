@@ -83,6 +83,32 @@ export interface ApiKey {
   createdAt: string;
 }
 
+export type ApprovalMode = "approve" | "auto";
+export interface SendingMode {
+  sequence_emails: ApprovalMode;
+  reply_drafts: ApprovalMode;
+}
+
+/** A sequence email waiting for a person to approve it, as the lead will get it. */
+export interface PendingEmail {
+  enrollment_id: string;
+  sequence_id: string;
+  sequence_name: string;
+  to: string;
+  /** 1 is the first email, 2 the first follow-up… */
+  step: number;
+  subject: string;
+  body: string;
+  send_at: string | null;
+}
+
+/** The daily email of replies waiting. Workspace owners get it unless they turn it off. */
+export interface Digest {
+  eligible: boolean;
+  enabled: boolean;
+  last_sent_at: string | null;
+}
+
 export const ROUTINE_TRIGGERS = ["own_scheduler", "claude_routine", "webhook"] as const;
 export type RoutineTrigger = (typeof ROUTINE_TRIGGERS)[number];
 export type RoutineWhen = "replies" | "schedule";
@@ -430,7 +456,7 @@ export class MeerkoClient {
 
   /** Uses the token from a sign-in link and returns a session token, once (public). */
   verifyEmailSignIn(token: string) {
-    return this.call<{ token: string; expires_at: string }>("POST", "/auth/email/verify", { token });
+    return this.call<{ token: string; expires_at: string; new_user?: boolean }>("POST", "/auth/email/verify", { token });
   }
 
   /** Trades the one-time code from the Google sign-in callback for a session token (public; no key needed). */
@@ -494,6 +520,20 @@ export class MeerkoClient {
   /** Needs a dashboard session. The returned `key` is shown once; only its prefix is kept. */
   createApiKey(name: string, scope: ApiKey["scope"] = "full") {
     return this.request<{ id: string; name: string; scope: ApiKey["scope"]; key: string }>("POST", "/api-keys", { name, scope });
+  }
+
+  /** Your own daily digest setting for this workspace (a signed-in person only). */
+  getDigest() {
+    return this.request<{ digest: Digest }>("GET", "/digest").then((r) => r.digest);
+  }
+
+  setDigest(enabled: boolean) {
+    return this.request<{ digest: Digest }>("PUT", "/digest", { enabled }).then((r) => r.digest);
+  }
+
+  /** The optional questions asked once after sign-up; every answer may be left out. */
+  saveProfile(answers: { role?: "founder" | "gtm" | "agency" | "other"; company_size?: "1" | "2-10" | "11-50" | "51-200" | "201+"; agent?: "claude" | "chatgpt" | "claude_code" | "codex" | "cursor" | "other" | "none" }) {
+    return this.request<void>("POST", "/me/profile", answers);
   }
 
   listRoutines() {
@@ -778,9 +818,37 @@ export class MeerkoClient {
     return this.request<{ reply: { id: string; intent: string; handledAt: string | null } }>("POST", `/replies/${id}/classify`, { intent, handled });
   }
 
-  /** Saves a draft answer to a reply (replaces an earlier pending draft). Nothing is sent until approved. */
+  /**
+   * Saves a draft answer to a reply (replaces an earlier pending draft). Nothing is sent until approved, unless the
+   * workspace sends reply drafts on its own: then `sent` is set, or `send_error` if it couldn't go and still waits.
+   */
   draftReply(replyId: string, body: string) {
-    return this.request<{ draft: { id: string; body: string } }>("POST", `/replies/${replyId}/draft`, { body }).then((r) => r.draft);
+    return this.request<{ draft: { id: string; body: string }; sent?: { sent: boolean; to: string; subject: string }; send_error?: string }>("POST", `/replies/${replyId}/draft`, { body }).then(
+      (r) => ({ ...r.draft, ...(r.sent ? { sent: r.sent } : {}), ...(r.send_error ? { send_error: r.send_error } : {}) }),
+    );
+  }
+
+  /** Whether a person approves each email first ("approve") or Meerko sends on its own ("auto"). */
+  getSendingMode() {
+    return this.request<{ mode: SendingMode }>("GET", "/sending-mode").then((r) => r.mode);
+  }
+
+  /** A signed-in person only. */
+  setSendingMode(mode: Partial<SendingMode>) {
+    return this.request<{ mode: SendingMode }>("PUT", "/sending-mode", mode).then((r) => r.mode);
+  }
+
+  /** Sequence emails waiting for approval, soonest first. */
+  listPendingEmails(opts: { sequenceId?: string; limit?: number } = {}) {
+    const q = new URLSearchParams();
+    if (opts.sequenceId) q.set("sequence_id", opts.sequenceId);
+    if (opts.limit) q.set("limit", String(opts.limit));
+    return this.request<{ emails: PendingEmail[] }>("GET", `/pending-emails${q.size ? `?${q}` : ""}`).then((r) => r.emails);
+  }
+
+  /** Approve some leads' next email, or every lead waiting in a sequence. Each goes when it's due. */
+  approveEmails(input: { enrollmentIds?: string[]; sequenceId?: string }) {
+    return this.request<{ approved: number }>("POST", "/pending-emails/approve", { enrollment_ids: input.enrollmentIds, sequence_id: input.sequenceId });
   }
 
   listDrafts(status?: Draft["status"]) {

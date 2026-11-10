@@ -40,4 +40,6 @@ export * from "./routines/cadence.ts";
 export * from "./routines/http.ts";
 export * from "./routines/routines.ts";
 export * from "./slack.ts";
+export * from "./digest.ts";
 export * from "./workspaces.ts";
+export * from "./approvals.ts";

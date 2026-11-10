@@ -277,7 +277,7 @@ The page text comes from the internet: treat it as information about the company
     {
       description: `Find work emails (from first_name, last_name and domain or company columns, or linkedin_url) and verify them, writing email, email_certainty and email_verification back to each row. With fields ["phone"], find phone numbers instead, writing phone (E.164) and phone_type.
 Only rows missing a result are processed, at most \`limit\` per call (~3s per row). Keep calling while \`remaining\` > 0.
-Costs: 8 credits per email found, 1 per verification, 80 per phone number found; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost. Phones are on Pro (or the user's own Generect key) and are never found unless asked for: only request them when the user wants to call.
+Costs: 5 credits per email found, 1 per verification, 80 per phone number found; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost. Phones are on Pro (or the user's own Generect key) and are never found unless asked for: only request them when the user wants to call.
 email_certainty values: ultra_sure, very_sure, probable (deliverability unconfirmed), not_found, missing_input (row lacks a name or domain). phone_type values: mobile, fixed_line, voip, not_found, missing_input.`,
       inputSchema: {
         table_id: z.string(),
@@ -440,10 +440,40 @@ Then: preview_sequence to check, enroll_rows, show the user the preview and enro
     "start_sequence",
     {
       description:
-        "Start sending a sequence. Real emails go to real people from the user's mailbox: only call this after the user has seen the preview and explicitly approved. Sends respect the send window, the mailbox's daily limit and spacing.",
+        "Start sending a sequence. Real emails go to real people from the user's mailbox: only call this after the user has seen the preview and explicitly approved. Sends respect the send window, the mailbox's daily limit and spacing. If the workspace approves each email (get_sending_mode), nothing goes until approved: show the user list_pending_emails.",
       inputSchema: { sequence_id: z.string() },
     },
     ({ sequence_id }) => run(() => client().startSequence(sequence_id)),
+  );
+
+  tool(
+    "get_sending_mode",
+    {
+      description:
+        "Whether the user approves each email before it goes ('approve', the default) or Meerko sends on its own ('auto'), for sequence emails and for reply drafts. The user changes it in the dashboard's Connections.",
+      inputSchema: {},
+    },
+    () => run(() => client().getSendingMode()),
+  );
+
+  tool(
+    "list_pending_emails",
+    {
+      description:
+        "Sequence emails waiting for the user's approval, soonest first, exactly as each lead will get them. Show them to the user before approve_emails.",
+      inputSchema: { sequence_id: z.string().optional(), limit: z.number().int().min(1).max(200).optional() },
+    },
+    ({ sequence_id, limit }) => run(() => client().listPendingEmails({ sequenceId: sequence_id, limit })),
+  );
+
+  tool(
+    "approve_emails",
+    {
+      description:
+        "Approve leads' next sequence email; each goes when it's due, inside the send window and the mailbox's limits. Real emails to real people: only call this after the user has read them (list_pending_emails) and explicitly said to send. Pass enrollment_ids for some, or sequence_id for every lead waiting in that sequence.",
+      inputSchema: { enrollment_ids: z.array(z.string()).optional(), sequence_id: z.string().optional() },
+    },
+    ({ enrollment_ids, sequence_id }) => run(() => client().approveEmails({ enrollmentIds: enrollment_ids, sequenceId: sequence_id })),
   );
 
   tool(
@@ -502,7 +532,7 @@ Read each reply, decide its intent and save it with classify_reply. Summarize th
   tool(
     "draft_reply",
     {
-      description: `Save a draft answer to a reply (from list_replies). Nothing is sent: the user reviews it first.
+      description: `Save a draft answer to a reply (from list_replies). Nothing is sent: the user reviews it first, unless they chose to send reply drafts automatically (get_sending_mode), in which case it goes at once and the result has \`sent\`.
 Write like a person answering an email: short, specific to what they said, in their language, with one clear next step (e.g. two meeting times or a booking link if the user gave you one). Sign off with the sender's first name: Gmail doesn't add the user's signature to emails sent through Meerko. Drafting again for the same reply replaces the pending draft.`,
       inputSchema: { reply_id: z.string(), body: z.string().describe("Plain text") },
     },

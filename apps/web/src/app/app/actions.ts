@@ -155,6 +155,33 @@ export async function setRoutineTrigger(_: unknown, form: FormData): Promise<Act
   }
 }
 
+export async function approveEmails(input: { enrollmentIds?: string[]; sequenceId?: string }) {
+  return run((c) => c.approveEmails(input).then((r) => `Approved ${r.approved} ${r.approved === 1 ? "email" : "emails"}`), ["/app"]);
+}
+
+export async function setSendingMode(mode: { sequence_emails?: "approve" | "auto"; reply_drafts?: "approve" | "auto" }) {
+  return run((c) => c.setSendingMode(mode).then(() => "Saved"), ["/app"]);
+}
+
+export async function setDigest(enabled: boolean) {
+  return run((c) => c.setDigest(enabled).then(() => (enabled ? "Turned on" : "Turned off")), ["/app/settings"]);
+}
+
+/** The optional questions after sign-up. Saving with nothing picked counts as a skip; either way, carry on. */
+export async function saveProfile(form: FormData) {
+  const pick = (k: string) => {
+    const v = String(form.get(k) ?? "");
+    return v || undefined;
+  };
+  try {
+    await (await meerko()).saveProfile({ role: pick("role") as never, company_size: pick("company_size") as never, agent: pick("agent") as never });
+  } catch (err) {
+    // Never block someone on an optional screen.
+    if (!(err instanceof MeerkoApiError)) throw err;
+  }
+  redirect(safeNext(String(form.get("next") ?? "")) ?? "/app");
+}
+
 export async function saveSlackWebhook(_: unknown, form: FormData): Promise<ActionResult> {
   const url = String(form.get("url") ?? "").trim();
   if (!url) return { ok: false, error: "Paste the incoming webhook URL from Slack" };

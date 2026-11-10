@@ -576,8 +576,49 @@ seqs
   .command("start <sequenceId>")
   .description("start sending (within the send window, respecting mailbox limits)")
   .action(async (id: string) => {
-    const s = await MeerkoClient.fromEnv().startSequence(id);
+    const client = MeerkoClient.fromEnv();
+    const s = await client.startSequence(id);
     console.log(`"${s.name}" is active. Emails go out ${s.windowStartHour}:00-${s.windowEndHour}:00 ${s.timezone}, weekdays.`);
+    if ((await client.getSendingMode()).sequence_emails === "approve") console.log(`Each email waits for your approval: \`meerko seq pending ${id}\`, then \`meerko seq approve ${id}\`.`);
+  });
+
+seqs
+  .command("pending [sequenceId]")
+  .description("emails waiting for your approval, as each lead will get them")
+  .option("-n, --limit <n>", "how many", "20")
+  .action(async (id: string | undefined, opts: { limit: string }) => {
+    const client = MeerkoClient.fromEnv();
+    const list = await client.listPendingEmails({ sequenceId: id, limit: Number(opts.limit) });
+    if (json()) return console.log(JSON.stringify(list, null, 2));
+    if (list.length === 0) {
+      const mode = await client.getSendingMode();
+      return console.log(mode.sequence_emails === "auto" ? "Sequence emails send on their own here (no approval needed)." : "No emails waiting for approval.");
+    }
+    for (const e of list) {
+      console.log(`\n[${e.enrollment_id}] ${e.sequence_name} · email ${e.step} to ${e.to}${e.send_at ? ` · due ${e.send_at}` : ""}`);
+      console.log(`  Subject: ${e.subject}`);
+      console.log(e.body.split("\n").map((l) => `    ${l}`).join("\n"));
+    }
+  });
+
+seqs
+  .command("approve [sequenceId]")
+  .description("approve the next email of every lead waiting in a sequence, or of the leads given with --lead")
+  .option("-l, --lead <enrollmentId...>", "only these leads (ids from `meerko seq pending`)")
+  .action(async (id: string | undefined, opts: { lead?: string[] }) => {
+    if (!id && !opts.lead?.length) throw new Error("Pass a sequence id, or --lead <enrollmentId...>");
+    const res = await MeerkoClient.fromEnv().approveEmails({ sequenceId: opts.lead?.length ? undefined : id, enrollmentIds: opts.lead });
+    console.log(`Approved ${res.approved} ${res.approved === 1 ? "email" : "emails"}. Each goes when it's due.`);
+  });
+
+seqs
+  .command("mode")
+  .description("whether you approve each email first, or Meerko sends on its own (change it in the dashboard)")
+  .action(async () => {
+    const m = await MeerkoClient.fromEnv().getSendingMode();
+    if (json()) return console.log(JSON.stringify(m, null, 2));
+    console.log(`Sequence emails: ${m.sequence_emails === "approve" ? "you approve each one" : "sent on their own"}`);
+    console.log(`Reply drafts: ${m.reply_drafts === "approve" ? "you approve each one" : "sent as soon as they're written"}`);
   });
 
 seqs
@@ -655,6 +696,8 @@ replies
   .description("save a draft answer to a reply from a text file (nothing is sent until approved)")
   .action(async (id: string, file: string) => {
     const d = await MeerkoClient.fromEnv().draftReply(id, readFileSync(file, "utf8"));
+    if (d.sent) return console.log(`Sent to ${d.sent.to} (this workspace sends reply drafts on its own).`);
+    if (d.send_error) console.log(`Couldn't send it on its own: ${d.send_error}`);
     console.log(`Draft ${d.id} saved. Review with \`meerko drafts\`, send with \`meerko drafts approve ${d.id}\`.`);
   });
 

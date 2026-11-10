@@ -4,6 +4,8 @@
 import nodemailer from "nodemailer";
 
 export interface SystemMail {
+  /** Extra headers, e.g. List-Unsubscribe. */
+  headers?: Record<string, string>;
   to: string;
   subject: string;
   text: string;

@@ -274,7 +274,7 @@ export default function Page() {
       </p>
       <Callout>
         <p>
-          A found email costs 8 credits and a verification 1; sending, reply detection and drafts are free, and lookups that
+          A found email costs 5 credits and a verification 1; sending, reply detection and drafts are free, and lookups that
           find nothing cost nothing. On Pro you can use your own provider keys for 0 credits.
         </p>
       </Callout>

@@ -383,7 +383,8 @@ export interface SlackNotifyResult {
 }
 
 /** A human reply that nobody has dealt with yet: not a bounce, out-of-office or unsubscribe. */
-const humanReply = () =>
+/** Inbound replies from a person (not a bounce, auto-reply or unsubscribe) that nobody has dealt with yet. */
+export const humanReply = () =>
   and(eq(messages.direction, "in"), sql`${messages.handledAt} is null`, sql`(${messages.intent} is null or ${messages.intent} not in ${RULE_INTENTS})`)!;
 
 /**

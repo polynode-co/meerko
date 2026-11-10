@@ -19,7 +19,7 @@ describe.skipIf(!process.env.DATABASE_URL)("app-password mailboxes (db)", () => 
   let mailboxId: string;
 
   beforeEach(async () => {
-    ws = (await db.insert(workspaces).values({ name: "app-password-test" }).returning())[0]!.id;
+    ws = (await db.insert(workspaces).values({ name: "app-password-test", approveSequenceEmails: false }).returning())[0]!.id;
     const [mb] = await db
       .insert(mailboxes)
       .values({ workspaceId: ws, provider: "gmail_imap", email: "iker@meerko.ai", login: "iker@polynode.co", encryptedPassword: box.encrypt("abcdabcdabcdabcd") })
