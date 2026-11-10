@@ -18,6 +18,8 @@ export default function Page() {
       }
       toc={[
         ["connect", "Connecting a mailbox"],
+        ["no-app-password", "When App passwords isn't there"],
+        ["why", "Why not Sign in with Google"],
         ["limits", "Daily limit and spacing"],
         ["ramp", "Ramp-up for new mailboxes"],
         ["domains", "Domain health"],
@@ -74,6 +76,46 @@ export default function Page() {
       <p>
         On Meerko Cloud, the Free plan connects one mailbox and <L href="/pricing">Pro</L> connects as many as you like. Reconnecting a
         mailbox you already have always works. Self-hosted installs have no limit.
+      </p>
+
+      <H2 id="no-app-password">When App passwords isn&apos;t there</H2>
+      <p>
+        If the App passwords page says the setting isn&apos;t available, or Meerko can&apos;t log in with the password, it&apos;s one of
+        these (<L href={googleSources.appPasswords.url}>Google&apos;s list</L>):
+      </p>
+      <ul className="flex list-disc flex-col gap-1.5 pl-6">
+        <li>
+          <strong className="text-fg">2-Step Verification is off.</strong> Turn it on first; App passwords appears after.
+        </li>
+        <li>
+          <strong className="text-fg">2-Step Verification uses only security keys, or the account has Advanced Protection.</strong> Add
+          another second step (such as Google prompts or an authenticator app), or connect a different mailbox.
+        </li>
+        <li>
+          <strong className="text-fg">It&apos;s a Google Workspace account and the admin restricts it.</strong> If you&apos;re the
+          admin, in the <L href="https://admin.google.com">Admin console</L>: under Security → Authentication → 2-Step Verification,
+          let users turn it on; under Apps → Google Workspace → Gmail → End user access, turn IMAP on and allow any IMAP client, not
+          only OAuth clients (<L href={googleSources.imapAdmin.url}>Google&apos;s steps</L>). Changes can take a while to apply. If
+          you&apos;re not the admin, send them this section.
+        </li>
+        <li>
+          <strong className="text-fg">You used your normal Google password.</strong> Gmail only accepts the 16-letter app password
+          here.
+        </li>
+      </ul>
+      <p>
+        Still stuck? An Outlook or Microsoft 365 mailbox connects with Sign in with Microsoft and needs no app password, and Zoho or
+        Fastmail connect like Gmail.
+      </p>
+
+      <H2 id="why">Why not Sign in with Google</H2>
+      <p>
+        To spot replies, Meerko has to read your inbox. Reading Gmail through Google&apos;s API needs a scope Google classes as
+        restricted (<L href={googleSources.gmailScopes.url}>Gmail API scopes</L>), and an app using one must pass a paid security
+        assessment every year (<L href={googleSources.restrictedScopes.url}>Google&apos;s requirement</L>). An app password gives
+        Meerko the same access a mail app has, over IMAP and SMTP, and you can revoke it any time. Self-hosting? Your own Google
+        OAuth client can connect Gmail through Google instead; see{" "}
+        <L href="/docs/self-hosting">self-hosting</L>.
       </p>
 
       <H2 id="limits">Daily limit and spacing</H2>

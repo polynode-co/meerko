@@ -20,7 +20,7 @@ const hunter: Comparison = {
   rows: [
     { label: "Paid plans from", meerko: "$49/mo (Pro, 4,900 credits)", them: "€49/mo (Starter, 2,000 credits)", source: hunterSources.pricing },
     { label: "Free plan", meerko: "200 credits once, 1 mailbox", them: "50 credits a month, 1 email account", source: hunterSources.pricing },
-    { label: "Email found", meerko: "8 credits; misses are free", them: "1 credit; misses are free", source: hunterSources.pricing },
+    { label: "Email found", meerko: "5 credits; misses are free", them: "1 credit; misses are free", source: hunterSources.pricing },
     { label: "Email verified", meerko: "1 credit", them: "0.5 credit", source: hunterSources.pricing },
     { label: "Sequences", meerko: "Unlimited mailboxes on Pro, replies drafted by your assistant", them: "3 email accounts on Starter, 10 on Growth, 20 on Scale", source: hunterSources.pricing },
     { label: "Credits", meerko: "Monthly on Pro; packs at $10 per 1,000", them: "Reset monthly and don't roll over", source: hunterSources.pricing },
@@ -42,7 +42,7 @@ const hunter: Comparison = {
     ],
     [
       "How does Hunter count credits?",
-      "Hunter charges 1 credit per email found and 0.5 credit per email verified; searches that find nothing cost nothing. Meerko charges 8 credits per found email and 1 per verification, and misses are free too.",
+      "Hunter charges 1 credit per email found and 0.5 credit per email verified; searches that find nothing cost nothing. Meerko charges 5 credits per found email and 1 per verification, and misses are free too.",
     ],
     [
       "Is there an open-source alternative to Hunter.io?",

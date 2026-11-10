@@ -30,9 +30,12 @@ puts a merge commit on `main` that `dev` doesn't have, and every later fast-forw
 `verify.yml` fails such PRs. If `main` has diverged anyway: `git checkout dev && git merge origin/main
 && git push origin dev`, confirm `git rev-parse dev^{tree}` didn't change, then promote.
 
-Migrations don't run on deploy. Run them against the dev or prd database before deploying a commit
-that adds one, and against prd **before merging it to `dev`**, since the 20:00 promote ships it unattended (docs/DEPLOY.md); a migration that drops something goes after the code that stops
-using it.
+Migrations run on deploy: the api build (`terraform/app/build.tf`) applies pending ones after the tests pass and
+before the new revision takes traffic, so merging a PR with a migration needs no manual step, and the 20:00 promote
+migrates prd. A failed migration fails the deploy and the old revision keeps serving. Keep migrations
+backwards-compatible with the code still running (add columns with defaults, backfill in SQL); one that drops
+something goes after the code that stops using it. The web app deploys separately, so it must not need a column the
+API hasn't migrated yet.
 
 ## Making a change
 

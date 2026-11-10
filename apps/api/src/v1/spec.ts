@@ -45,7 +45,7 @@ export const TAGS = {
   sequences: "Multi-step email sequences",
   replies: "Replies to sequences, and the drafts answering them",
   credits: "Credits and the BYOK provider keys that bypass them",
-  settings: "API keys, connected apps, agent hook, Slack and billing",
+  settings: "API keys, connected apps, agent hook, Slack, the daily digest and billing",
 } as const;
 export type Tag = keyof typeof TAGS;
 
@@ -55,6 +55,7 @@ const deleted = obj({ deleted: z.boolean() });
 export const V1: Operation[] = [
   // --- workspace ---
   { method: "get", path: "/me", id: "getMe", tag: "workspace", summary: "The workspace (and person, for a session) this credential acts as", access: "any", scope: "replies", response: s.Me },
+  { method: "post", path: "/me/profile", id: "saveProfile", tag: "workspace", summary: "Answer the optional sign-up questions (role, company size, agent)", access: "user", body: s.profileInput, response: null },
   { method: "get", path: "/workspaces", id: "listWorkspaces", tag: "workspace", summary: "List your workspaces, marking the current one", description: "An API key sees only its own workspace.", access: "any", response: obj({ workspaces: z.array(s.WorkspaceListItem) }) },
   { method: "post", path: "/workspaces", id: "createWorkspace", tag: "workspace", summary: "Create a workspace for another brand", description: "It shares the plan and credits of the workspaces you already own. It doesn't switch to it.", access: "person", body: s.workspaceNameInput, status: 201, response: obj({ workspace: s.Workspace }) },
   { method: "patch", path: "/workspaces/:id", id: "renameWorkspace", tag: "workspace", summary: "Rename a workspace (owners)", access: "person", body: s.workspaceNameInput, response: obj({ workspace: s.Workspace }) },
@@ -137,6 +138,8 @@ export const V1: Operation[] = [
   { method: "delete", path: "/connected-apps/:id", id: "revokeConnectedApp", tag: "settings", summary: "Disconnect an OAuth app", access: "user", response: null },
   { method: "post", path: "/oauth/requests/describe", id: "describeOAuthRequest", tag: "settings", summary: "Describe an app's pending connection request (consent page)", access: "user", body: s.oauthRequestInput, response: obj({ client_name: z.string(), redirect_to: z.string(), workspace: z.string() }) },
   { method: "post", path: "/oauth/requests/decide", id: "decideOAuthRequest", tag: "settings", summary: "Approve or decline an app's connection request (consent page)", access: "user", body: s.oauthDecideInput, response: obj({ redirect_to: z.string() }) },
+  { method: "get", path: "/digest", id: "getDigest", tag: "settings", summary: "Whether you get the daily email of replies waiting", access: "user", response: obj({ digest: s.Digest }) },
+  { method: "put", path: "/digest", id: "setDigest", tag: "settings", summary: "Turn the daily email of replies waiting on or off", access: "user", body: s.digestInput, response: obj({ digest: s.Digest }) },
   { method: "get", path: "/agent-hook", id: "getAgentHook", tag: "settings", summary: "Where Meerko rings your agent when replies arrive", access: "any", response: obj({ hook: s.AgentHook.nullable() }) },
   { method: "put", path: "/agent-hook", id: "setAgentHook", tag: "settings", summary: "Set the agent hook", access: "user", body: s.agentHookInput, response: obj({ hook: s.AgentHook, secret: z.string().optional() }) },
   { method: "delete", path: "/agent-hook", id: "deleteAgentHook", tag: "settings", summary: "Remove the agent hook", access: "user", response: null },

@@ -13,6 +13,8 @@ export const EVENTS = {
   leadsSearched: "leads_searched",
   sendingModeSet: "sending_mode_set",
   emailsApproved: "emails_approved",
+  digestToggled: "digest_toggled",
+  profileAnswered: "profile_answered",
   websiteRead: "website_read",
   icpSet: "icp_set",
   rowsEnriched: "rows_enriched",

@@ -1,5 +1,5 @@
 {
-  "id": "eb662b0a-a11b-4868-9f5b-db58a9cfa89b",
+  "id": "a71b650c-bfc2-4114-bdd1-a673c3078db1",
   "prevId": "8d44c149-cf77-46a6-bea9-146afb39f8da",
   "version": "7",
   "dialect": "postgresql",
@@ -627,12 +627,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "approved_step": {
-          "name": "approved_step",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "gmail_thread_id": {
           "name": "gmail_thread_id",
           "type": "text",
@@ -984,6 +978,19 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "digest_enabled": {
+          "name": "digest_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "digest_sent_at": {
+          "name": "digest_sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -2666,20 +2673,6 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
-        },
-        "approve_sequence_emails": {
-          "name": "approve_sequence_emails",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "approve_reply_drafts": {
-          "name": "approve_reply_drafts",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         },
         "created_at": {
           "name": "created_at",

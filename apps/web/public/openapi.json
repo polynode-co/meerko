@@ -46,7 +46,7 @@
     },
     {
       "name": "settings",
-      "description": "API keys, connected apps, agent hook, Slack and billing"
+      "description": "API keys, connected apps, agent hook, Slack, the daily digest and billing"
     }
   ],
   "paths": {

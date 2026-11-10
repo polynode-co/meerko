@@ -10,6 +10,7 @@ import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
 import { AgentHookCard } from "@/components/app/agent-hook-card";
 import { SlackCard } from "@/components/app/slack-card";
 import { SendingModeCard } from "@/components/app/sending-mode-card";
+import { DigestCard } from "@/components/app/digest-card";
 import { ProviderKeysCard } from "@/components/app/provider-keys-card";
 import { MailboxConnect } from "@/components/app/mailbox-connect";
 import { WorkspaceCard } from "@/components/app/workspace-card";
@@ -38,6 +39,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       c.getSendingMode(),
     ]),
   );
+  // Each owner's own setting, so only for a signed-in person.
+  const digest = me.user ? await load((c) => c.getDigest()) : null;
   return (
     <Page className="max-w-[1200px]">
       <PageHeader eyebrow="Connections" title="Mailboxes & keys" />
@@ -105,6 +108,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         }
       />
 
+      {digest?.eligible && <DigestCard enabled={digest.enabled} lastSentAt={digest.last_sent_at} />}
+
       <ApiKeysCard keys={apiKeys} apiUrl={publicApiUrl()} canManage={!!me.user} />
 
       <ProviderKeysCard
@@ -120,7 +125,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         ) : billing.enabled ? (
           "Bring your own Icypeas key and searches and email finding run on it, with no Meerko credits charged. Add a Firecrawl key and email finding tries it when Icypeas misses, also free. Add a Generect key and phone numbers and missed emails run on your Generect account."
         ) : credits.enabled ? (
-          <>Balance: <span className="font-plex text-lk-lime">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 8, verifications 1, search results 1, phone numbers 80. Misses are free. Add your own Icypeas key to skip credits, or a Firecrawl or Generect key to find more.</>
+          <>Balance: <span className="font-plex text-lk-lime">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 5, verifications 1, search results 1, phone numbers 80. Misses are free. Add your own Icypeas key to skip credits, or a Firecrawl or Generect key to find more.</>
         ) : (
           "Credits are off on this install: searches and enrichment use your own provider keys."
         )}

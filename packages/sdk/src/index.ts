@@ -102,6 +102,13 @@ export interface PendingEmail {
   send_at: string | null;
 }
 
+/** The daily email of replies waiting. Workspace owners get it unless they turn it off. */
+export interface Digest {
+  eligible: boolean;
+  enabled: boolean;
+  last_sent_at: string | null;
+}
+
 /** Where Meerko rings your own agent when replies arrive. The token or signing secret is never returned. */
 export interface AgentHook {
   kind: "claude_routine" | "webhook";
@@ -404,7 +411,7 @@ export class MeerkoClient {
 
   /** Uses the token from a sign-in link and returns a session token, once (public). */
   verifyEmailSignIn(token: string) {
-    return this.call<{ token: string; expires_at: string }>("POST", "/auth/email/verify", { token });
+    return this.call<{ token: string; expires_at: string; new_user?: boolean }>("POST", "/auth/email/verify", { token });
   }
 
   /** Trades the one-time code from the Google sign-in callback for a session token (public; no key needed). */
@@ -468,6 +475,20 @@ export class MeerkoClient {
   /** Needs a dashboard session. The returned `key` is shown once; only its prefix is kept. */
   createApiKey(name: string, scope: ApiKey["scope"] = "full") {
     return this.request<{ id: string; name: string; scope: ApiKey["scope"]; key: string }>("POST", "/api-keys", { name, scope });
+  }
+
+  /** Your own daily digest setting for this workspace (a signed-in person only). */
+  getDigest() {
+    return this.request<{ digest: Digest }>("GET", "/digest").then((r) => r.digest);
+  }
+
+  setDigest(enabled: boolean) {
+    return this.request<{ digest: Digest }>("PUT", "/digest", { enabled }).then((r) => r.digest);
+  }
+
+  /** The optional questions asked once after sign-up; every answer may be left out. */
+  saveProfile(answers: { role?: "founder" | "gtm" | "agency" | "other"; company_size?: "1" | "2-10" | "11-50" | "51-200" | "201+"; agent?: "claude" | "chatgpt" | "claude_code" | "codex" | "cursor" | "other" | "none" }) {
+    return this.request<void>("POST", "/me/profile", answers);
   }
 
   getAgentHook() {

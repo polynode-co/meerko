@@ -96,7 +96,7 @@ export default function Page() {
         {"› Find and verify work emails for everyone in \"RevOps DE\". Skip anyone whose email can't be verified and tell me how many credits that used."}
       </Sample>
       <p>
-        In Meerko a found email costs 8 credits and a verification 1; lookups that find nothing are free. More in{" "}
+        In Meerko a found email costs 5 credits and a verification 1; lookups that find nothing are free. More in{" "}
         <a href="/docs/emails" className={link}>emails</a> and <a href="/pricing" className={link}>pricing</a>.
       </p>
 

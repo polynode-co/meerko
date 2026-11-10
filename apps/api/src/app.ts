@@ -55,6 +55,9 @@ import {
   deleteAgentHook,
   enableAgentHook,
   getAgentHook,
+  getDigest,
+  setDigest,
+  unsubscribeDigest,
   setAgentHook,
   testAgentHook,
   createAuthCode,
@@ -171,6 +174,8 @@ import type { ApiKeyScope, Db } from "@meerko/db";
 import { createAnalytics, EVENTS, signupSource, type Analytics } from "./analytics.ts";
 import {
   agentHookInput,
+  digestInput,
+  profileInput,
   approveDraftInput,
   byokProvider,
   checkoutInput,
@@ -420,7 +425,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.tick || given.length !== expected.length || !timingSafeEqual(given, expected)) return c.json({ error: "Not found" }, 404);
     const result = await runWorkerTick(
       db,
-      { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, imap: deps.imap, ...hookDeps() },
+      { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, imap: deps.imap, mailer: deps.mailer, ...hookDeps() },
       { replies: c.req.query("replies") !== "0" },
     );
     if (result.replyError) {
@@ -431,11 +436,38 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       console.error("agent hooks failed:", result.hookError);
       await analytics.captureException(result.hookError, undefined, { $exception_fingerprint: "api.tick.agent_hooks" });
     }
+    if (result.digestError) {
+      console.error("digest failed:", result.digestError);
+      await analytics.captureException(result.digestError, undefined, { $exception_fingerprint: "api.tick.digest" });
+    }
     if (result.slackError) {
       console.error("slack notify failed:", result.slackError);
       await analytics.captureException(result.slackError, undefined, { $exception_fingerprint: "api.tick.slack" });
     }
     return c.json(result);
+  });
+
+  // --- The digest's unsubscribe link. GET shows a button (so link scanners can't unsubscribe anyone); POST is the
+  // one-click unsubscribe mail apps send (List-Unsubscribe-Post) and the button's form. ---
+  const unsubscribeForm = (token: string) =>
+    `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Stop the daily digest</title>
+<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;line-height:1.5">
+<h1 style="font-size:1.4rem">Stop the daily digest?</h1><p>You won't get the daily email of replies waiting for this workspace. You can turn it back on in Settings.</p>
+<form method="post"><input type="hidden" name="t" value="${escapeHtml(token)}"><button style="font:inherit;padding:.6rem 1rem;background:#0b0b0c;color:#fff;border:0;cursor:pointer">Stop these emails</button></form></body>`;
+
+  app.get("/digest/unsubscribe", (c) => {
+    const token = c.req.query("t") ?? "";
+    if (!box || !token) return c.html(resultPage("Link not valid", "This unsubscribe link is incomplete."), 400);
+    return c.html(unsubscribeForm(token));
+  });
+
+  app.post("/digest/unsubscribe", async (c) => {
+    const form = await c.req.parseBody().catch(() => ({}) as Record<string, unknown>);
+    const token = c.req.query("t") ?? (typeof form.t === "string" ? form.t : "");
+    if (!box || !token || !(await unsubscribeDigest(db, box, token))) return c.html(resultPage("Link not valid", "This unsubscribe link isn't one of ours, or it's incomplete."), 400);
+    const [userId, workspaceId] = token.split(".");
+    await analytics.capture({ distinctId: userId!, event: EVENTS.digestToggled, workspaceId, properties: { enabled: false, via: "unsubscribe_link" } });
+    return c.html(resultPage("Unsubscribed", "You won't get the daily digest for this workspace any more. Turn it back on any time in Settings."));
   });
 
   // --- Slack: the app's install callback, button clicks and /meerko. Clicks and commands are signed by Slack. ---
@@ -634,7 +666,8 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       }
       await analytics.capture({ distinctId: userId, event: EVENTS.signInCompleted, workspaceId, properties: { method: "email" }, set: person });
       const session = await createSession(db, userId, workspaceId);
-      return c.json({ token: session.token, expires_at: session.expiresAt });
+      // new_user: the dashboard then asks the optional sign-up questions (role, company size, agent).
+      return c.json({ token: session.token, expires_at: session.expiresAt, new_user: newUser });
     } catch (err) {
       if (err instanceof SignInError) throw new HTTPException(403, { message: err.message });
       throw err;
@@ -682,7 +715,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       }
       await analytics.capture({ distinctId: userId, event: EVENTS.signInCompleted, workspaceId, properties: { method: "google" }, set: person });
       const authCode = await createAuthCode(db, userId, workspaceId);
-      return c.redirect(backToApp(new URL("/auth/callback", deps.appUrl).toString(), { code: authCode }));
+      return c.redirect(backToApp(new URL("/auth/callback", deps.appUrl).toString(), { code: authCode, ...(newUser ? { new: "1" } : {}) }));
     } catch (err) {
       if (err instanceof SignInError) return c.redirect(toLogin(err.message));
       console.error(err);
@@ -1032,6 +1065,29 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   v1.delete("/api-keys/:id", async (c) => {
     requireUser(c);
     await revokeApiKey(db, c.var.workspaceId, c.req.param("id"));
+    return c.body(null, 204);
+  });
+
+  // The daily digest email of replies waiting: each owner's own, so a signed-in person only.
+  v1.get("/digest", async (c) => {
+    requireUser(c, "Sign in to the dashboard to manage your emails");
+    return c.json({ digest: await getDigest(db, c.var.user!.id, c.var.workspaceId) });
+  });
+
+  v1.put("/digest", async (c) => {
+    requireUser(c, "Sign in to the dashboard to manage your emails");
+    const { enabled } = await parse(digestInput, await c.req.json().catch(() => ({})));
+    const digest = await setDigest(db, c.var.user!.id, c.var.workspaceId, enabled);
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.digestToggled, workspaceId: c.var.workspaceId, properties: { enabled, via: "settings" } });
+    return c.json({ digest });
+  });
+
+  // The optional questions after sign-up. Kept only as PostHog person properties, for segmenting who signs up.
+  v1.post("/me/profile", async (c) => {
+    requireUser(c, "Sign in to the dashboard to answer");
+    const answers = await parse(profileInput, await c.req.json().catch(() => ({})));
+    const set = Object.fromEntries(Object.entries(answers).filter(([, v]) => v !== undefined));
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.profileAnswered, workspaceId: c.var.workspaceId, properties: { ...set, skipped: Object.keys(set).length === 0 }, set });
     return c.body(null, 204);
   });
 

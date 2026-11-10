@@ -49,9 +49,9 @@ describe.skipIf(!process.env.DATABASE_URL)("enrichRows (db)", () => {
     await grantCredits(db, workspaceId, 100, "test");
     const res = await enrichRows(db, workspaceId, tableId, [provider], { fields: ["email", "email_verification"], limit: 25 }, { enabled: true });
 
-    // Pia: email (8) + reused verdict (0). Paula: email (8) + verification (1). Nobody: miss (0).
-    expect(res).toMatchObject({ processed: 3, found: { email: 2, email_verification: 1 }, notFound: 1, creditsSpent: 17, remaining: 0, balance: 83 });
-    expect(await getBalance(db, workspaceId)).toBe(83);
+    // Pia: email (5) + reused verdict (0). Paula: email (5) + verification (1). Nobody: miss (0).
+    expect(res).toMatchObject({ processed: 3, found: { email: 2, email_verification: 1 }, notFound: 1, creditsSpent: 11, remaining: 0, balance: 89 });
+    expect(await getBalance(db, workspaceId)).toBe(89);
     expect(calls).toEqual(["email:Pia", "email:Paula", "email_verification:Paula", "email:Nobody"]);
 
     const rows = await rowsByName();
@@ -63,14 +63,14 @@ describe.skipIf(!process.env.DATABASE_URL)("enrichRows (db)", () => {
     // A second call has nothing left to do and costs nothing.
     calls = [];
     const again = await enrichRows(db, workspaceId, tableId, [provider], { fields: ["email", "email_verification"], limit: 25 }, { enabled: true });
-    expect(again).toMatchObject({ processed: 0, creditsSpent: 0, balance: 83 });
+    expect(again).toMatchObject({ processed: 0, creditsSpent: 0, balance: 89 });
     expect(calls).toEqual([]);
   });
 
   it("stops before a paid call it can't afford, and leaves the rest for later", async () => {
-    await grantCredits(db, workspaceId, 10, "test");
+    await grantCredits(db, workspaceId, 7, "test");
     const res = await enrichRows(db, workspaceId, tableId, [provider], { fields: ["email"], limit: 25 }, { enabled: true });
-    expect(res).toMatchObject({ processed: 1, creditsSpent: 8, balance: 2, stoppedReason: "insufficient_credits", remaining: 2 });
+    expect(res).toMatchObject({ processed: 1, creditsSpent: 5, balance: 2, stoppedReason: "insufficient_credits", remaining: 2 });
   });
 
   it("doesn't charge for what a provider on the workspace's own key finds, even with no credits left", async () => {
