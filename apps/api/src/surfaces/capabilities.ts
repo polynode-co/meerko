@@ -533,6 +533,15 @@ export const CAPABILITIES: Capability[] = [
     api: PERSON_ONLY,
   },
   {
+    id: "signup-questions",
+    summary: "Answer the optional questions after sign-up",
+    routes: ["saveProfile"],
+    web: yes(page("about-you/page.tsx"), action("saveProfile")),
+    mcp: { deliberately_absent: "Asked once in the dashboard right after sign-up" },
+    cli: { deliberately_absent: "Asked once in the dashboard right after sign-up" },
+    api: { deliberately_absent: "Asked once in the dashboard right after sign-up" },
+  },
+  {
     id: "agent-hook",
     summary: "See the agent hook",
     routes: ["getAgentHook"],

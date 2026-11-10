@@ -115,6 +115,15 @@ export const switchWorkspaceInput = z.object({ workspace_id: z.string().describe
 export const oauthRequestInput = z.object({ request: z.string().min(1) });
 export const oauthDecideInput = oauthRequestInput.extend({ approve: z.boolean() });
 export const createApiKeyInput = z.object({ name: z.string().trim().min(1).max(100), scope: z.enum(API_KEY_SCOPES).default("full") });
+export const SIGNUP_ROLES = ["founder", "gtm", "agency", "other"] as const;
+export const COMPANY_SIZES = ["1", "2-10", "11-50", "51-200", "201+"] as const;
+export const SIGNUP_AGENTS = ["claude", "chatgpt", "claude_code", "codex", "cursor", "other", "none"] as const;
+export const profileInput = z.object({
+  role: z.enum(SIGNUP_ROLES).optional(),
+  company_size: z.enum(COMPANY_SIZES).optional(),
+  agent: z.enum(SIGNUP_AGENTS).optional(),
+});
+
 export const agentHookInput = z.object({
   kind: z.enum(AGENT_HOOK_KINDS),
   url: z.string().trim().min(1).max(2000),
