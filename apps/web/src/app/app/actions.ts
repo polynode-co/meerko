@@ -119,6 +119,10 @@ export async function testAgentHook(): Promise<ActionResult> {
   }
 }
 
+export async function setDigest(enabled: boolean) {
+  return run((c) => c.setDigest(enabled).then(() => (enabled ? "Turned on" : "Turned off")), ["/app/settings"]);
+}
+
 export async function enableAgentHook() {
   return run((c) => c.enableAgentHook().then(() => "Turned back on"), ["/app/settings"]);
 }

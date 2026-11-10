@@ -81,6 +81,10 @@ export const memberships = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
     role: text("role").$type<Role>().notNull(),
+    /** The daily email of replies waiting (core/digest.ts). Owners get it unless they unsubscribe. */
+    digestEnabled: boolean("digest_enabled").notNull().default(true),
+    /** When the last digest went out, so it goes at most once a day and counts only replies since. */
+    digestSentAt: timestamp("digest_sent_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.workspaceId] }), index("memberships_workspace_idx").on(t.workspaceId)],

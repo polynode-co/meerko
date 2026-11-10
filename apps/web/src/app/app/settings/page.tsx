@@ -9,6 +9,7 @@ import { TestEmail } from "@/components/app/test-email";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
 import { AgentHookCard } from "@/components/app/agent-hook-card";
 import { SlackCard } from "@/components/app/slack-card";
+import { DigestCard } from "@/components/app/digest-card";
 import { ProviderKeysCard } from "@/components/app/provider-keys-card";
 import { MailboxConnect } from "@/components/app/mailbox-connect";
 import { WorkspaceCard } from "@/components/app/workspace-card";
@@ -36,6 +37,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       c.getIcp(),
     ]),
   );
+  // Each owner's own setting, so only for a signed-in person.
+  const digest = me.user ? await load((c) => c.getDigest()) : null;
   return (
     <Page className="max-w-[1200px]">
       <PageHeader eyebrow="Connections" title="Mailboxes & keys" />
@@ -100,6 +103,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 : undefined
         }
       />
+
+      {digest?.eligible && <DigestCard enabled={digest.enabled} lastSentAt={digest.last_sent_at} />}
 
       <ApiKeysCard keys={apiKeys} apiUrl={publicApiUrl()} canManage={!!me.user} />
 

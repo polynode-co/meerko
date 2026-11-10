@@ -533,6 +533,15 @@ export const CAPABILITIES: Capability[] = [
     api: PERSON_ONLY,
   },
   {
+    id: "digest",
+    summary: "Turn the daily email of replies waiting on or off",
+    routes: ["getDigest", "setDigest"],
+    web: yes("app/app/settings/page.tsx", action("setDigest")),
+    mcp: { deliberately_absent: "Each owner's own email setting: changed in the dashboard or from the email's unsubscribe link" },
+    cli: { deliberately_absent: "Each owner's own email setting: changed in the dashboard or from the email's unsubscribe link" },
+    api: { deliberately_absent: "Each owner's own email setting: changed in the dashboard or from the email's unsubscribe link" },
+  },
+  {
     id: "agent-hook",
     summary: "See the agent hook",
     routes: ["getAgentHook"],

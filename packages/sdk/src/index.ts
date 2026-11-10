@@ -83,6 +83,13 @@ export interface ApiKey {
   createdAt: string;
 }
 
+/** The daily email of replies waiting. Workspace owners get it unless they turn it off. */
+export interface Digest {
+  eligible: boolean;
+  enabled: boolean;
+  last_sent_at: string | null;
+}
+
 /** Where Meerko rings your own agent when replies arrive. The token or signing secret is never returned. */
 export interface AgentHook {
   kind: "claude_routine" | "webhook";
@@ -449,6 +456,15 @@ export class MeerkoClient {
   /** Needs a dashboard session. The returned `key` is shown once; only its prefix is kept. */
   createApiKey(name: string, scope: ApiKey["scope"] = "full") {
     return this.request<{ id: string; name: string; scope: ApiKey["scope"]; key: string }>("POST", "/api-keys", { name, scope });
+  }
+
+  /** Your own daily digest setting for this workspace (a signed-in person only). */
+  getDigest() {
+    return this.request<{ digest: Digest }>("GET", "/digest").then((r) => r.digest);
+  }
+
+  setDigest(enabled: boolean) {
+    return this.request<{ digest: Digest }>("PUT", "/digest", { enabled }).then((r) => r.digest);
   }
 
   getAgentHook() {

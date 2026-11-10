@@ -45,7 +45,7 @@ export const TAGS = {
   sequences: "Multi-step email sequences",
   replies: "Replies to sequences, and the drafts answering them",
   credits: "Credits and the BYOK provider keys that bypass them",
-  settings: "API keys, connected apps, agent hook, Slack and billing",
+  settings: "API keys, connected apps, agent hook, Slack, the daily digest and billing",
 } as const;
 export type Tag = keyof typeof TAGS;
 
@@ -133,6 +133,8 @@ export const V1: Operation[] = [
   { method: "delete", path: "/connected-apps/:id", id: "revokeConnectedApp", tag: "settings", summary: "Disconnect an OAuth app", access: "user", response: null },
   { method: "post", path: "/oauth/requests/describe", id: "describeOAuthRequest", tag: "settings", summary: "Describe an app's pending connection request (consent page)", access: "user", body: s.oauthRequestInput, response: obj({ client_name: z.string(), redirect_to: z.string(), workspace: z.string() }) },
   { method: "post", path: "/oauth/requests/decide", id: "decideOAuthRequest", tag: "settings", summary: "Approve or decline an app's connection request (consent page)", access: "user", body: s.oauthDecideInput, response: obj({ redirect_to: z.string() }) },
+  { method: "get", path: "/digest", id: "getDigest", tag: "settings", summary: "Whether you get the daily email of replies waiting", access: "user", response: obj({ digest: s.Digest }) },
+  { method: "put", path: "/digest", id: "setDigest", tag: "settings", summary: "Turn the daily email of replies waiting on or off", access: "user", body: s.digestInput, response: obj({ digest: s.Digest }) },
   { method: "get", path: "/agent-hook", id: "getAgentHook", tag: "settings", summary: "Where Meerko rings your agent when replies arrive", access: "any", response: obj({ hook: s.AgentHook.nullable() }) },
   { method: "put", path: "/agent-hook", id: "setAgentHook", tag: "settings", summary: "Set the agent hook", access: "user", body: s.agentHookInput, response: obj({ hook: s.AgentHook, secret: z.string().optional() }) },
   { method: "delete", path: "/agent-hook", id: "deleteAgentHook", tag: "settings", summary: "Remove the agent hook", access: "user", response: null },
