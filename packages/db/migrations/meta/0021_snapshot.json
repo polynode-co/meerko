@@ -1,5 +1,5 @@
 {
-  "id": "7d2041f3-0ef3-44b3-b598-4a690c343070",
+  "id": "a71b650c-bfc2-4114-bdd1-a673c3078db1",
   "prevId": "8d44c149-cf77-46a6-bea9-146afb39f8da",
   "version": "7",
   "dialect": "postgresql",
@@ -305,18 +305,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "remaining": {
-          "name": "remaining",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -337,22 +325,6 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "credit_ledger_expiring_idx": {
-          "name": "credit_ledger_expiring_idx",
-          "columns": [
-            {
-              "expression": "expires_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"credit_ledger\".\"remaining\" > 0",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1006,6 +978,19 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "digest_enabled": {
+          "name": "digest_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "digest_sent_at": {
+          "name": "digest_sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",

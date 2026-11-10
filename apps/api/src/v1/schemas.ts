@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import { AGENT_INTENTS, BYOK_PROVIDERS, MAX_CREDIT_PACKS } from "@meerko/core";
-import { AGENT_HOOK_KINDS, API_KEY_SCOPES, STAGES } from "@meerko/db";
+import { API_KEY_SCOPES, CRM_PROVIDERS, ROUTINE_RUN_OUTCOMES, ROUTINE_STATUSES, ROUTINE_TRIGGERS, ROUTINE_WHENS, STAGES } from "@meerko/db";
 
 // --- Requests ---
 
@@ -115,10 +115,40 @@ export const switchWorkspaceInput = z.object({ workspace_id: z.string().describe
 export const oauthRequestInput = z.object({ request: z.string().min(1) });
 export const oauthDecideInput = oauthRequestInput.extend({ approve: z.boolean() });
 export const createApiKeyInput = z.object({ name: z.string().trim().min(1).max(100), scope: z.enum(API_KEY_SCOPES).default("full") });
-export const agentHookInput = z.object({
-  kind: z.enum(AGENT_HOOK_KINDS),
-  url: z.string().trim().min(1).max(2000),
-  token: z.string().trim().max(2000).optional(),
+export const digestInput = z.object({ enabled: z.boolean() });
+export const SIGNUP_ROLES = ["founder", "gtm", "agency", "other"] as const;
+export const COMPANY_SIZES = ["1", "2-10", "11-50", "51-200", "201+"] as const;
+export const SIGNUP_AGENTS = ["claude", "chatgpt", "claude_code", "codex", "cursor", "other", "none"] as const;
+export const profileInput = z.object({
+  role: z.enum(SIGNUP_ROLES).optional(),
+  company_size: z.enum(COMPANY_SIZES).optional(),
+  agent: z.enum(SIGNUP_AGENTS).optional(),
+});
+
+const cadence = z
+  .object({
+    days: z.array(z.number().int().min(1).max(7)).min(1).describe("ISO weekdays: 1 = Monday … 7 = Sunday"),
+    time: z.string().describe("HH:MM, 24-hour, in `timezone`"),
+    timezone: z.string().describe("IANA zone, e.g. Europe/Madrid"),
+  })
+  .describe("When a scheduled routine is due");
+export const createRoutineInput = z.object({
+  name: z.string().trim().min(1).max(80),
+  brief: z.string().trim().min(1).max(4000).describe("What the AI does on each run, in plain words"),
+  when: z.enum(ROUTINE_WHENS).describe("`replies`: when new replies wait (one per workspace). `schedule`: on `cadence`"),
+  cadence: cadence.optional().describe("Required for `schedule`"),
+});
+export const updateRoutineInput = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  brief: z.string().trim().min(1).max(4000).optional(),
+  when: z.enum(ROUTINE_WHENS).optional(),
+  cadence: cadence.optional(),
+  status: z.enum(ROUTINE_STATUSES).optional().describe("`paused` stops it; `active` resumes it from now"),
+});
+export const routineTriggerInput = z.object({
+  kind: z.enum(ROUTINE_TRIGGERS).describe("`own_scheduler`: your AI's scheduled task starts it. `claude_routine`, `webhook`: Meerko does"),
+  url: z.string().trim().max(2000).optional().describe("The Claude routine's API trigger URL, or your webhook's URL"),
+  token: z.string().trim().max(2000).optional().describe("The Claude routine's API trigger token. Leave out to keep the saved one for the same URL"),
 });
 export const slackWebhookInput = z.object({ url: z.string().trim().min(1).max(2000) });
 export const checkoutInput = z.discriminatedUnion("kind", [
@@ -156,12 +186,50 @@ export const listRepliesQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 export const classifyInput = z.object({ intent: z.enum(AGENT_INTENTS), handled: z.boolean().optional() });
+const approvalMode = z.enum(["approve", "auto"]);
+export const sendingModeInput = z
+  .object({
+    sequence_emails: approvalMode.optional().describe("approve: a person approves each sequence email before it goes. auto: Meerko sends them on schedule"),
+    reply_drafts: approvalMode.optional().describe("approve: drafts wait for a person. auto: a draft is sent as soon as it's saved"),
+  })
+  .refine((v) => v.sequence_emails || v.reply_drafts, { message: "Set sequence_emails, reply_drafts or both" });
+export const SendingMode = z.object({ sequence_emails: approvalMode, reply_drafts: approvalMode });
+export const pendingEmailsQuery = z.object({
+  sequence_id: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+});
+export const approveEmailsInput = z
+  .object({
+    enrollment_ids: z.array(z.string()).max(1000).optional().describe("Approve these leads' next email"),
+    sequence_id: z.string().optional().describe("Approve the next email of every lead waiting in this sequence"),
+  })
+  .refine((v) => v.enrollment_ids?.length || v.sequence_id, { message: "Pass enrollment_ids or sequence_id" });
+export const PendingEmail = z.object({
+  enrollment_id: z.string(),
+  sequence_id: z.string(),
+  sequence_name: z.string(),
+  to: z.string(),
+  step: z.number(),
+  subject: z.string(),
+  body: z.string(),
+  send_at: z.string().nullable(),
+});
+
 export const draftInput = z.object({ body: z.string().min(1).max(20_000) });
 export const listDraftsQuery = z.object({ status: z.enum(["pending", "sent", "discarded"]).optional() });
 export const approveDraftInput = z.object({ body: z.string().min(1).max(20_000).optional().describe("Send this instead of the saved draft") });
 export const pipelineQuery = z.object({ table_id: z.string().optional() });
 export const byokProvider = z.enum(BYOK_PROVIDERS);
 export const providerKeyInput = z.object({ key: z.string().min(8) });
+export const crmConnectInput = z.object({
+  provider: z.enum(CRM_PROVIDERS),
+  token: z.string().trim().min(8).max(500).describe("A HubSpot private app token or an Attio API key, entered by a person"),
+  auto_sync: z.boolean().optional().describe("Push leads automatically once Meerko has contacted them. Defaults to true"),
+});
+export const crmUpdateInput = z.object({ auto_sync: z.boolean() });
+export const crmSyncInput = z.object({
+  row_ids: z.array(z.string()).min(1).max(100).optional().describe("Only these rows (up to 100). Without it, every row not yet pushed or changed since, 100 per call"),
+});
 
 // --- Responses (mirroring @meerko/sdk) ---
 
@@ -227,15 +295,75 @@ export const ApiKey = z.object({
   lastUsedAt: nts,
   createdAt: ts,
 });
-export const AgentHook = z.object({
-  kind: z.enum(AGENT_HOOK_KINDS),
-  url: z.string(),
-  secretLast4: z.string(),
+export const Digest = z.object({
+  /** Only workspace owners get the digest. */
+  eligible: z.boolean(),
   enabled: z.boolean(),
+  last_sent_at: z.string().nullable(),
+});
+
+export const RoutineRun = z.object({
+  id: z.string(),
+  dueAt: nts.describe("The scheduled time it ran for; null for replies, Run it now and runs the AI started itself"),
+  reason: z.string().describe("`schedule`, `replies`, `manual` (Run it now) or `ai`"),
+  outcome: z.enum(ROUTINE_RUN_OUTCOMES),
+  firedAt: nts,
+  startedAt: nts.describe("When the AI checked in with start_routine_run"),
+  httpStatus: z.number().nullable(),
+  error: z.string().nullable(),
+  replies: z.number().nullable(),
+  sessionUrl: z.string().nullable(),
+  createdAt: ts,
+});
+export const RoutineSetup = z.object({
+  howItRuns: z.string(),
+  prompt: z.string().optional(),
+  setupPrompt: z.string().optional(),
+  steps: z.array(z.object({ client: z.string(), text: z.string() })).optional(),
+});
+export const Routine = z.object({
+  id: z.string(),
+  name: z.string(),
+  brief: z.string(),
+  when: z.enum(ROUTINE_WHENS),
+  cadence: cadence.nullable(),
+  schedule: z.string().describe("In words: \"Weekdays at 09:00 (Europe/Madrid)\""),
+  status: z.enum(ROUTINE_STATUSES),
+  statusReason: z.string().nullable(),
+  trigger: z.enum(ROUTINE_TRIGGERS),
+  triggerUrl: z.string().nullable(),
+  secretLast4: z.string().nullable(),
+  needsSetup: z.boolean(),
+  nextDueAt: nts,
   lastFiredAt: nts,
-  lastStatus: z.number().nullable(),
   lastError: z.string().nullable(),
   createdAt: ts,
+  updatedAt: ts,
+  runs: z.array(RoutineRun).describe("The latest runs, newest first"),
+  setup: RoutineSetup,
+});
+export const RoutineStart = z.object({
+  run_id: z.string(),
+  routine: z.object({ id: z.string(), name: z.string(), when: z.enum(ROUTINE_WHENS), schedule: z.string() }),
+  brief: z.string(),
+  instructions: z.string(),
+});
+export const CrmConnection = z.object({
+  provider: z.enum(CRM_PROVIDERS),
+  last4: z.string(),
+  accountName: z.string().nullable(),
+  autoSync: z.boolean(),
+  lastSyncedAt: nts,
+  lastError: z.string().nullable(),
+  createdAt: ts,
+});
+export const CrmSyncResult = z.object({
+  provider: z.enum(CRM_PROVIDERS),
+  synced: z.number().int(),
+  skipped: z.number().int().describe("Rows without a usable email: CRMs match contacts by email"),
+  failed: z.number().int(),
+  remaining: z.number().int().describe("Rows still waiting; call again to continue"),
+  errors: z.array(z.string()),
 });
 export const SlackConnection = z.object({
   kind: z.enum(["app", "webhook"]),

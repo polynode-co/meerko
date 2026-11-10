@@ -83,16 +83,110 @@ export interface ApiKey {
   createdAt: string;
 }
 
-/** Where Meerko rings your own agent when replies arrive. The token or signing secret is never returned. */
-export interface AgentHook {
-  kind: "claude_routine" | "webhook";
-  url: string;
-  secretLast4: string;
+export type ApprovalMode = "approve" | "auto";
+export interface SendingMode {
+  sequence_emails: ApprovalMode;
+  reply_drafts: ApprovalMode;
+}
+
+/** A sequence email waiting for a person to approve it, as the lead will get it. */
+export interface PendingEmail {
+  enrollment_id: string;
+  sequence_id: string;
+  sequence_name: string;
+  to: string;
+  /** 1 is the first email, 2 the first follow-up… */
+  step: number;
+  subject: string;
+  body: string;
+  send_at: string | null;
+}
+
+/** The daily email of replies waiting. Workspace owners get it unless they turn it off. */
+export interface Digest {
+  eligible: boolean;
   enabled: boolean;
+  last_sent_at: string | null;
+}
+
+export const ROUTINE_TRIGGERS = ["own_scheduler", "claude_routine", "webhook"] as const;
+export type RoutineTrigger = (typeof ROUTINE_TRIGGERS)[number];
+export type RoutineWhen = "replies" | "schedule";
+
+/** On ISO weekdays (1 = Monday … 7 = Sunday) at HH:MM in an IANA zone. */
+export interface RoutineCadence {
+  days: number[];
+  time: string;
+  timezone: string;
+}
+
+export interface RoutineRun {
+  id: string;
+  dueAt: string | null;
+  /** `schedule`, `replies`, `manual` (Run it now) or `ai` (started by the AI itself). */
+  reason: string;
+  outcome: "firing" | "fired" | "fire_failed" | "ran" | "missed" | "no_callback";
+  firedAt: string | null;
+  startedAt: string | null;
+  httpStatus: number | null;
+  error: string | null;
+  replies: number | null;
+  sessionUrl: string | null;
+  createdAt: string;
+}
+
+/** An Autopilot routine: a brief your own AI follows, started by new replies or on a schedule. Secrets are never returned. */
+export interface Routine {
+  id: string;
+  name: string;
+  brief: string;
+  when: RoutineWhen;
+  cadence: RoutineCadence | null;
+  /** In words: "Weekdays at 09:00 (Europe/Madrid)". */
+  schedule: string;
+  status: "active" | "paused";
+  statusReason: string | null;
+  trigger: RoutineTrigger;
+  triggerUrl: string | null;
+  secretLast4: string | null;
+  needsSetup: boolean;
+  nextDueAt: string | null;
   lastFiredAt: string | null;
-  lastStatus: number | null;
   lastError: string | null;
   createdAt: string;
+  updatedAt: string;
+  runs: RoutineRun[];
+  setup: { howItRuns: string; prompt?: string; setupPrompt?: string; steps?: { client: string; text: string }[] };
+}
+
+export interface RoutineStart {
+  run_id: string;
+  routine: { id: string; name: string; when: RoutineWhen; schedule: string };
+  brief: string;
+  instructions: string;
+}
+
+/** The CRM contacted leads are pushed to. The token itself is never returned. */
+export interface CrmConnection {
+  provider: "hubspot" | "attio";
+  last4: string;
+  accountName: string | null;
+  /** On: leads go to the CRM once Meerko has contacted them, and again when their stage changes. */
+  autoSync: boolean;
+  lastSyncedAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+}
+
+export interface CrmSyncResult {
+  provider: "hubspot" | "attio";
+  synced: number;
+  /** Rows without a usable email: CRMs match contacts by email. */
+  skipped: number;
+  failed: number;
+  /** Rows still waiting; call again to continue. */
+  remaining: number;
+  errors: string[];
 }
 
 /** Where Meerko posts new replies and drafts in Slack: the Meerko Slack app (with buttons) or a pasted webhook. */
@@ -385,7 +479,7 @@ export class MeerkoClient {
 
   /** Uses the token from a sign-in link and returns a session token, once (public). */
   verifyEmailSignIn(token: string) {
-    return this.call<{ token: string; expires_at: string }>("POST", "/auth/email/verify", { token });
+    return this.call<{ token: string; expires_at: string; new_user?: boolean }>("POST", "/auth/email/verify", { token });
   }
 
   /** Trades the one-time code from the Google sign-in callback for a session token (public; no key needed). */
@@ -451,26 +545,53 @@ export class MeerkoClient {
     return this.request<{ id: string; name: string; scope: ApiKey["scope"]; key: string }>("POST", "/api-keys", { name, scope });
   }
 
-  getAgentHook() {
-    return this.request<{ hook: AgentHook | null }>("GET", "/agent-hook").then((r) => r.hook);
+  /** Your own daily digest setting for this workspace (a signed-in person only). */
+  getDigest() {
+    return this.request<{ digest: Digest }>("GET", "/digest").then((r) => r.digest);
+  }
+
+  setDigest(enabled: boolean) {
+    return this.request<{ digest: Digest }>("PUT", "/digest", { enabled }).then((r) => r.digest);
+  }
+
+  /** The optional questions asked once after sign-up; every answer may be left out. */
+  saveProfile(answers: { role?: "founder" | "gtm" | "agency" | "other"; company_size?: "1" | "2-10" | "11-50" | "51-200" | "201+"; agent?: "claude" | "chatgpt" | "claude_code" | "codex" | "cursor" | "other" | "none" }) {
+    return this.request<void>("POST", "/me/profile", answers);
+  }
+
+  listRoutines() {
+    return this.request<{ routines: Routine[] }>("GET", "/routines").then((r) => r.routines);
+  }
+
+  getRoutine(id: string) {
+    return this.request<{ routine: Routine }>("GET", `/routines/${id}`).then((r) => r.routine);
+  }
+
+  createRoutine(input: { name: string; brief: string; when: RoutineWhen; cadence?: RoutineCadence }) {
+    return this.request<{ routine: Routine }>("POST", "/routines", input).then((r) => r.routine);
+  }
+
+  updateRoutine(id: string, input: { name?: string; brief?: string; when?: RoutineWhen; cadence?: RoutineCadence; status?: Routine["status"] }) {
+    return this.request<{ routine: Routine }>("PATCH", `/routines/${id}`, input).then((r) => r.routine);
+  }
+
+  deleteRoutine(id: string) {
+    return this.request<void>("DELETE", `/routines/${id}`);
+  }
+
+  /** Meerko starts it now. On your AI's own scheduler it isn't started (`started: false`): run `routine.setup.prompt`. */
+  runRoutine(id: string) {
+    return this.request<{ started: boolean; run: RoutineRun | null; error: string | null; routine: Routine }>("POST", `/routines/${id}/run`);
+  }
+
+  /** The AI's check-in at the start of a run: records it and returns the brief. */
+  startRoutineRun(id: string) {
+    return this.request<RoutineStart>("POST", `/routines/${id}/start`);
   }
 
   /** Needs a dashboard session. A webhook's signing `secret` is returned once. */
-  setAgentHook(input: { kind: AgentHook["kind"]; url: string; token?: string }) {
-    return this.request<{ hook: AgentHook; secret?: string }>("PUT", "/agent-hook", input);
-  }
-
-  deleteAgentHook() {
-    return this.request<void>("DELETE", "/agent-hook");
-  }
-
-  enableAgentHook() {
-    return this.request<{ hook: AgentHook }>("POST", "/agent-hook/enable").then((r) => r.hook);
-  }
-
-  /** Sends a test call now and reports how the hook answered. */
-  testAgentHook() {
-    return this.request<{ ok: boolean; status: number | null; error: string | null }>("POST", "/agent-hook/test");
+  setRoutineTrigger(id: string, input: { kind: RoutineTrigger; url?: string; token?: string }) {
+    return this.request<{ routine: Routine; secret?: string }>("PUT", `/routines/${id}/trigger`, input);
   }
 
   /** The Slack connection, and whether this server has the Meerko Slack app (with Approve buttons) set up. */
@@ -494,6 +615,28 @@ export class MeerkoClient {
 
   deleteSlack() {
     return this.request<void>("DELETE", "/slack");
+  }
+
+  getCrm() {
+    return this.request<{ connection: CrmConnection | null }>("GET", "/crm").then((r) => r.connection);
+  }
+
+  /** Connects HubSpot (private app token) or Attio (API key). Checked with the CRM before it's stored. */
+  connectCrm(provider: "hubspot" | "attio", token: string, opts: { autoSync?: boolean } = {}) {
+    return this.request<{ connection: CrmConnection }>("PUT", "/crm", { provider, token, auto_sync: opts.autoSync }).then((r) => r.connection);
+  }
+
+  setCrmAutoSync(autoSync: boolean) {
+    return this.request<{ connection: CrmConnection }>("PATCH", "/crm", { auto_sync: autoSync }).then((r) => r.connection);
+  }
+
+  deleteCrm() {
+    return this.request<void>("DELETE", "/crm");
+  }
+
+  /** Pushes rows (or every row not yet pushed) to the CRM, up to 100 per call. */
+  syncCrm(tableId: string, rowIds?: string[]) {
+    return this.request<CrmSyncResult>("POST", `/tables/${tableId}/crm-sync`, rowIds ? { row_ids: rowIds } : {});
   }
 
   revokeApiKey(id: string) {
@@ -720,9 +863,37 @@ export class MeerkoClient {
     return this.request<{ reply: { id: string; intent: string; handledAt: string | null } }>("POST", `/replies/${id}/classify`, { intent, handled });
   }
 
-  /** Saves a draft answer to a reply (replaces an earlier pending draft). Nothing is sent until approved. */
+  /**
+   * Saves a draft answer to a reply (replaces an earlier pending draft). Nothing is sent until approved, unless the
+   * workspace sends reply drafts on its own: then `sent` is set, or `send_error` if it couldn't go and still waits.
+   */
   draftReply(replyId: string, body: string) {
-    return this.request<{ draft: { id: string; body: string } }>("POST", `/replies/${replyId}/draft`, { body }).then((r) => r.draft);
+    return this.request<{ draft: { id: string; body: string }; sent?: { sent: boolean; to: string; subject: string }; send_error?: string }>("POST", `/replies/${replyId}/draft`, { body }).then(
+      (r) => ({ ...r.draft, ...(r.sent ? { sent: r.sent } : {}), ...(r.send_error ? { send_error: r.send_error } : {}) }),
+    );
+  }
+
+  /** Whether a person approves each email first ("approve") or Meerko sends on its own ("auto"). */
+  getSendingMode() {
+    return this.request<{ mode: SendingMode }>("GET", "/sending-mode").then((r) => r.mode);
+  }
+
+  /** A signed-in person only. */
+  setSendingMode(mode: Partial<SendingMode>) {
+    return this.request<{ mode: SendingMode }>("PUT", "/sending-mode", mode).then((r) => r.mode);
+  }
+
+  /** Sequence emails waiting for approval, soonest first. */
+  listPendingEmails(opts: { sequenceId?: string; limit?: number } = {}) {
+    const q = new URLSearchParams();
+    if (opts.sequenceId) q.set("sequence_id", opts.sequenceId);
+    if (opts.limit) q.set("limit", String(opts.limit));
+    return this.request<{ emails: PendingEmail[] }>("GET", `/pending-emails${q.size ? `?${q}` : ""}`).then((r) => r.emails);
+  }
+
+  /** Approve some leads' next email, or every lead waiting in a sequence. Each goes when it's due. */
+  approveEmails(input: { enrollmentIds?: string[]; sequenceId?: string }) {
+    return this.request<{ approved: number }>("POST", "/pending-emails/approve", { enrollment_ids: input.enrollmentIds, sequence_id: input.sequenceId });
   }
 
   listDrafts(status?: Draft["status"]) {

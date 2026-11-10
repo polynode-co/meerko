@@ -11,6 +11,10 @@ export const EVENTS = {
   aiClientConnected: "ai_client_connected",
   mailboxConnected: "mailbox_connected",
   leadsSearched: "leads_searched",
+  sendingModeSet: "sending_mode_set",
+  emailsApproved: "emails_approved",
+  digestToggled: "digest_toggled",
+  profileAnswered: "profile_answered",
   websiteRead: "website_read",
   icpSet: "icp_set",
   rowsEnriched: "rows_enriched",
@@ -18,8 +22,11 @@ export const EVENTS = {
   checkoutStarted: "checkout_started",
   subscriptionChanged: "subscription_changed",
   creditsPurchased: "credits_purchased",
-  agentHookConfigured: "agent_hook_configured",
+  routineCreated: "routine_created",
+  routineTriggerSet: "routine_trigger_set",
+  routineRunStarted: "routine_run_started",
   slackConnected: "slack_connected",
+  crmConnected: "crm_connected",
   workspaceCreated: "workspace_created",
 } as const;
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

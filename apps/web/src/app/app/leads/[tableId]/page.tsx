@@ -2,6 +2,7 @@ import { Send } from "lucide-react";
 import Link from "next/link";
 import { STAGES, type Stage } from "@meerko/sdk";
 import { AddLead } from "@/components/app/add-lead";
+import { CrmSyncButton } from "@/components/app/crm-sync-button";
 import { DeleteTable } from "@/components/app/delete-table";
 import { EnrichButton, PhoneButton } from "@/components/app/enrich-button";
 import { LeadsTable, type LeadColumn } from "@/components/app/leads-table";
@@ -24,11 +25,12 @@ export default async function TablePage({
   const stage = STAGES.includes(sp.stage as Stage) ? (sp.stage as Stage) : undefined;
   const page = Math.max(1, Number(sp.page) || 1);
 
-  const [table, rows, pipeline] = await load((c) =>
+  const [table, rows, pipeline, crm] = await load((c) =>
     Promise.all([
       c.getTable(tableId),
       c.queryRows(tableId, { stage, limit: PAGE, offset: (page - 1) * PAGE }),
       c.pipeline(tableId),
+      c.getCrm(),
     ]),
   );
 
@@ -76,6 +78,7 @@ export default async function TablePage({
           <>
             {(keys.has("first_name") || keys.has("email")) && <EnrichButton tableId={tableId} scored={scored} />}
             {(keys.has("first_name") || keys.has("linkedin_url")) && <PhoneButton tableId={tableId} />}
+            {crm && keys.has("email") && <CrmSyncButton tableId={tableId} provider={crm.provider} />}
             <AddLead floating tableId={tableId} extraColumns={table.columns.filter((c) => !MERGED.has(c.key) && !c.prompt).map((c) => ({ key: c.key, name: c.name }))} />
             <Link href={`/app/sequences/new?table=${tableId}`} className={buttonClass("primary")}>
               <Send className="size-[15px]" /> New sequence
