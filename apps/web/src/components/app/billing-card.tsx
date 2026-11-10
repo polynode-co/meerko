@@ -2,8 +2,7 @@ import type { Billing } from "@meerko/sdk";
 import { buyCredits, manageBilling, upgradeToPro } from "@/app/app/actions";
 import { buttonClass, Card, Pill, cardTitle } from "@/components/app/ui";
 
-// The Pro price in terraform/app/stripe.tf; credits are always $1 = 100.
-const PRO_PRICE = "$49";
+// Credits are always $1 = 100. Pro's prices come from the API (core/billing.ts PRO_PRICES, as in stripe.tf).
 const PACK_OPTIONS = [1, 5, 10, 25];
 const dollars = (credits: number) => `$${(credits / 100).toLocaleString("en")}`;
 const day = (iso: string) => new Date(iso).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" });
@@ -27,7 +26,9 @@ export function BillingCard({
     billing.status === "past_due"
       ? "Your last payment failed. Update your card in Manage billing to keep Pro."
       : billing.current_period_end
-        ? `${billing.cancel_at_period_end ? "Ends" : "Renews"} ${day(billing.current_period_end)}${billing.cancel_at_period_end ? ", then back to Free" : `, adding ${billing.pro_monthly_credits.toLocaleString("en")} credits`}.`
+        ? billing.interval === "year"
+          ? `Annual plan: ${billing.pro_monthly_credits.toLocaleString("en")} credits added every month. ${billing.cancel_at_period_end ? "Ends" : "Renews"} ${day(billing.current_period_end)}${billing.cancel_at_period_end ? ", then back to Free" : ""}.`
+          : `${billing.cancel_at_period_end ? "Ends" : "Renews"} ${day(billing.current_period_end)}${billing.cancel_at_period_end ? ", then back to Free" : `, adding ${billing.pro_monthly_credits.toLocaleString("en")} credits`}.`
         : null;
 
   return (
@@ -65,12 +66,39 @@ export function BillingCard({
         {canManage && (
           <div className="flex flex-col gap-4 border-t border-lk-line pt-4 sm:flex-row sm:items-end sm:justify-between">
             {!pro && (
-              <form action={upgradeToPro} className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 <span className="text-lk-dim">
                   Pro: {billing.pro_monthly_credits.toLocaleString("en")} credits every month and unlimited mailboxes.
                 </span>
-                <button className={`${buttonClass("primary")} self-start`}>Upgrade to Pro · {PRO_PRICE}/month</button>
-              </form>
+                <span className="flex flex-wrap gap-2">
+                  <form action={upgradeToPro}>
+                    <input type="hidden" name="interval" value="month" />
+                    <button className={buttonClass(billing.prices.year ? "secondary" : "primary")}>Upgrade · ${billing.prices.month}/month</button>
+                  </form>
+                  {billing.prices.year && (
+                    <form action={upgradeToPro}>
+                      <input type="hidden" name="interval" value="year" />
+                      <button className={buttonClass("primary")}>
+                        Upgrade yearly ·{" "}
+                        {billing.founding_offer ? (
+                          <>
+                            <s className="opacity-60">${billing.prices.year}</s> ${Math.round((billing.prices.year * (100 - billing.founding_offer.percent_off)) / 100)} the first year
+                          </>
+                        ) : (
+                          <>${billing.prices.year}/year</>
+                        )}
+                      </button>
+                    </form>
+                  )}
+                </span>
+                {billing.prices.year && (
+                  <span className="text-sm text-lk-dim">
+                    {billing.founding_offer
+                      ? `Founding offer: ${billing.founding_offer.percent_off}% off the first year, ${billing.founding_offer.left} of 50 places left. Yours to claim until ${day(billing.founding_offer.until)}; then $${billing.prices.year}/year.`
+                      : `Yearly works out at $${Math.round(billing.prices.year / 12)}/month, with the same monthly credits.`}
+                  </span>
+                )}
+              </div>
             )}
             <form action={buyCredits} className="flex flex-col gap-2">
               <label htmlFor="packs" className="text-lk-dim">Top up any time, on any plan:</label>

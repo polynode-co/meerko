@@ -152,7 +152,7 @@ export const routineTriggerInput = z.object({
 });
 export const slackWebhookInput = z.object({ url: z.string().trim().min(1).max(2000) });
 export const checkoutInput = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("pro") }),
+  z.object({ kind: z.literal("pro"), interval: z.enum(["month", "year"]).default("month").describe("year: $490 a year, with the founding offer applied while places are left") }),
   z.object({ kind: z.literal("credits"), packs: z.number().int().min(1).max(MAX_CREDIT_PACKS).default(1) }),
 ]);
 export const gmailAppPasswordInput = z.object({
@@ -503,6 +503,12 @@ export const Billing = z.union([
     balance: z.number(),
     pro_monthly_credits: z.number(),
     credit_pack: z.number(),
+    interval: z.enum(["month", "year"]).nullable().describe("How the current Pro subscription is billed"),
+    prices: z.object({ month: z.number(), year: z.number().nullable().describe("Null when annual Pro isn't sold here") }).describe("Pro in US dollars"),
+    founding_offer: z
+      .object({ percent_off: z.number(), left: z.number(), until: ts })
+      .nullable()
+      .describe("Off the first year of annual Pro, applied at checkout. `until` is this workspace's deadline: 30 days from when it was first shown the offer, at most Dec 31 2026. Null when sold out, past the deadline, on Pro, or not offered"),
   }),
 ]);
 export const Credits = z.object({

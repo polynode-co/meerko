@@ -470,8 +470,9 @@ async function toStripe(fn: (c: MeerkoClient) => Promise<string>) {
   redirect(url);
 }
 
-export async function upgradeToPro() {
-  await toStripe((c) => c.startCheckout({ kind: "pro" }));
+export async function upgradeToPro(form: FormData) {
+  const interval = form.get("interval") === "year" ? "year" : "month";
+  await toStripe((c) => c.startCheckout({ kind: "pro", interval }));
 }
 
 export async function buyCredits(form: FormData) {

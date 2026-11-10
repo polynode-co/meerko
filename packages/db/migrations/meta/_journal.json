@@ -183,6 +183,13 @@
       "when": 1794318697198,
       "tag": "0025_credit_rollover",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794318818446,
+      "tag": "0026_annual_billing",
+      "breakpoints": true
     }
   ]
 }
