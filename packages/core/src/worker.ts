@@ -56,6 +56,7 @@ export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string
       result.crm = await runCrmSyncTick(db, { box: deps.box ?? null, fetch: deps.crmFetch });
     } catch (err) {
       result.crmError = err instanceof Error ? err.message : String(err);
+    }
     // Annual Pro is invoiced yearly; its later months' credits are granted here as they come due.
     try {
       result.annualCredits = await runAnnualCreditsTick(db, deps.now?.());
