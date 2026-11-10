@@ -217,7 +217,7 @@ function Steps() {
 // ------------------------------------------------------------------ pricing
 
 const credits: [string, string, string, boolean?][] = [
-  ["612", "found work emails", "8 / each"],
+  ["980", "found work emails", "5 / each"],
   ["4,900", "leads from search", "1 / each"],
   ["4,900", "email verifications", "1 / each"],
   ["0", "credits to send, catch replies and draft", "always", true],

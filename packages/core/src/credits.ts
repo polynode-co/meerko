@@ -4,10 +4,10 @@ import { billingWorkspaceOf } from "./workspaces.ts";
 
 /**
  * Meerko credits ($1 = 100) charged per successful result, whichever provider found it. Misses are free.
- * Margins at the providers' standard prices: an email costs us $0.009 on Icypeas and $0.02 on Generect (89% and 75% of
- * the 8 credits); a phone costs $0.40 on Generect, so 80 credits keeps about half after Stripe's fee.
+ * Margins at the providers' standard prices: an email costs us $0.009 on Icypeas and $0.02 on Generect (82% and 60% of
+ * the 5 credits); a phone costs $0.40 on Generect, so 80 credits keeps about half after Stripe's fee.
  */
-export const CREDIT_PRICES: Record<EnrichField, number> = { email: 8, email_verification: 1, phone: 80 };
+export const CREDIT_PRICES: Record<EnrichField, number> = { email: 5, email_verification: 1, phone: 80 };
 /** Per person/company returned by a lead search (Icypeas charges us per result too). Counts are free. */
 export const SEARCH_RESULT_CREDITS = 1;
 export const FREE_TIER_CREDITS = 200;
