@@ -459,6 +459,10 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       console.error("digest failed:", result.digestError);
       await analytics.captureException(result.digestError, undefined, { $exception_fingerprint: "api.tick.digest" });
     }
+    if (result.expireError) {
+      console.error("credit expiry failed:", result.expireError);
+      await analytics.captureException(result.expireError, undefined, { $exception_fingerprint: "api.tick.expire_credits" });
+    }
     if (result.slackError) {
       console.error("slack notify failed:", result.slackError);
       await analytics.captureException(result.slackError, undefined, { $exception_fingerprint: "api.tick.slack" });

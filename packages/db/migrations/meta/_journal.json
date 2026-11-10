@@ -176,6 +176,13 @@
       "when": 1794318593403,
       "tag": "0024_crm",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794318697198,
+      "tag": "0025_credit_rollover",
+      "breakpoints": true
     }
   ]
 }

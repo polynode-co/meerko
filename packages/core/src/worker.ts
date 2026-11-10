@@ -1,4 +1,5 @@
 import type { Db } from "@meerko/db";
+import { expireCredits } from "./credits.ts";
 import { runCrmSyncTick, type CrmTickResult } from "./crm.ts";
 import { runRoutinesTick, type RoutinesTickResult } from "./routines/routines.ts";
 import { runDigestTick, type DigestResult } from "./digest.ts";
@@ -17,6 +18,9 @@ export interface WorkerTickResult {
   /** Replies and drafts posted to Slack. */
   slack?: SlackNotifyResult;
   slackError?: string;
+  /** Pro monthly credits that lapsed this pass. */
+  expired?: { grants: number; credits: number };
+  expireError?: string;
   /** Contacted leads pushed to the workspace's CRM. */
   crm?: CrmTickResult;
   crmError?: string;
@@ -64,6 +68,12 @@ export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string
     result.routines = await runRoutinesTick(db, { box: deps.box, appUrl: deps.appUrl, now: deps.now, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
   } catch (err) {
     result.routineError = err instanceof Error ? err.message : String(err);
+  }
+  // Monthly credits past their rollover month.
+  try {
+    result.expired = await expireCredits(db, deps.now?.());
+  } catch (err) {
+    result.expireError = err instanceof Error ? err.message : String(err);
   }
   return { ...result, send: await runSendTick(db, deps) };
 }

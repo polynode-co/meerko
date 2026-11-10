@@ -232,7 +232,7 @@ function Pricing() {
             <span className={kicker}>04 · Pricing</span>
             <h2 className={sectionTitle}>One flat plan. No seats, no per-mailbox fees.</h2>
           </div>
-          <p className="text-[16px] text-lk-muted">$1 = 100 credits. Misses are free. Credits don’t expire.</p>
+          <p className="text-[16px] text-lk-muted">$1 = 100 credits. Misses are free. Bought credits never expire.</p>
         </div>
         <div className="flex flex-col bg-lk-box outline outline-1 -outline-offset-1 outline-lk-line lg:flex-row">
           <div className="flex flex-col gap-[22px] border-b border-lk-line p-9 lg:w-[420px] lg:shrink-0 lg:border-r lg:border-b-0">

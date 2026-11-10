@@ -17,7 +17,7 @@ const oxygen: Comparison = {
     "Oxygen is a credit-based GTM platform with tables, workflows, agents and sending across email, LinkedIn and WhatsApp. Meerko is an open-source outbound engine you run from Claude, ChatGPT or your coding agent: it finds and verifies emails, sends from your own mailboxes with no per-mailbox fee and drafts replies you approve. Self-host it for free or use Meerko Cloud from $49/mo.",
   rows: [
     { label: "Paid plans from", meerko: "$49/mo (Pro, 4,900 credits)", them: "$49/mo (4,900 credits)", source: oxygenSources.pricing },
-    { label: "Email found", meerko: "8 credits; misses are free", them: "8.5 credits on average; charged only when found", source: oxygenSources.pricing },
+    { label: "Email found", meerko: "5 credits; misses are free", them: "8.5 credits on average; charged only when found", source: oxygenSources.pricing },
     { label: "Your own mailbox", meerko: "No fee; unlimited on Pro", them: "$1 (100 credits) per mailbox a month", source: oxygenSources.pricing },
     { label: "Your own provider keys", meerko: "On Pro ($49), no credits charged", them: "On the $99 plan and above", source: oxygenSources.pricing },
     { label: "Extra credits", meerko: "$10 per 1,000", them: "$1.30 per 100 on demand", source: oxygenSources.pricing },

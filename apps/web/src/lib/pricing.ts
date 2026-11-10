@@ -33,7 +33,7 @@ export const pricingFaq = [
   ["Do misses cost anything?", "No. If no email is found, or the lookup fails, you aren't charged."],
   ["Can I use my own Icypeas key on Cloud?", "On Pro, yes. Add it in Connections (or with `meerko keys set icypeas`) and lookups run on your key, with no credits charged. On Free, lookups use Meerko's keys and your credits. Self-hosted, your own keys are always free."],
   ["What happens when I run out?", "Lookups stop until you add credits. Top up in Connections on any plan, in packs of 1,000 credits for $10. Sequences, reply detection and drafts keep running."],
-  ["Do credits expire?", "No. Free, bought and monthly Pro credits all stay in your balance, and you keep them if you cancel Pro."],
-  ["How do I cancel Pro?", "In Connections → Manage billing. Pro runs to the end of the month you paid for, then you're back on Free with the credits you have left."],
+  ["Do credits expire?", "Free and bought credits never expire. Pro's monthly credits roll over one month: what you don't use in the month they arrive is still yours the month after, then it lapses. Spending always uses the credits that lapse soonest first."],
+  ["How do I cancel Pro?", "In Connections → Manage billing. Pro runs to the end of the month you paid for, then you're back on Free. Pro's monthly credits end with it; credits you bought stay."],
   ["Can I move from Cloud to self-hosted?", "Any time. It's the same code: ask us for an export of your workspace and load it into your own Postgres."],
 ];

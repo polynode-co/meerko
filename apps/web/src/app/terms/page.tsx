@@ -105,7 +105,7 @@ export default function TermsPage() {
             </>,
             "Free credits have no cash value and can be withdrawn if they're abused.",
             "Pro is billed monthly in advance and renews until you cancel it in Connections → Manage billing. Cancelling stops the next renewal; Pro lasts until the end of the month you paid for.",
-            "Credits don't expire while your account is open, including Pro's monthly credits after you cancel.",
+            "Free and bought credits don't expire while your account is open. Pro's monthly credits can be used in the month they're added and the month after, then lapse; they also lapse when Pro ends. Spending uses the credits that lapse soonest first.",
             <>
               Payments are processed by Stripe. You can cancel Pro at any time; there are no refunds for part of a month. Other refunds,
               including for unused credit packs, are handled case by case: write to {site.contactEmail}. Prices can change with 30 days&apos;
