@@ -8,6 +8,7 @@ import { DisconnectMailbox } from "@/components/app/disconnect-mailbox";
 import { TestEmail } from "@/components/app/test-email";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
 import { SlackCard } from "@/components/app/slack-card";
+import { CrmCard } from "@/components/app/crm-card";
 import { SendingModeCard } from "@/components/app/sending-mode-card";
 import { DigestCard } from "@/components/app/digest-card";
 import { ProviderKeysCard } from "@/components/app/provider-keys-card";
@@ -22,7 +23,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   // The API's Gmail OAuth callback, and Stripe Checkout, redirect back here with the outcome.
   // `?connect=gmail` (from an agent's connect_gmail, or Reconnect) opens the mailbox form.
   const { gmail_connected, gmail_error, billing: paid, billing_error, connect, email, slack } = await searchParams;
-  const [mailboxes, credits, keys, apiKeys, apps, me, billing, connectOptions, slackState, icp, sendingMode] = await load((c) =>
+  const [mailboxes, credits, keys, apiKeys, apps, me, billing, connectOptions, slackState, icp, sendingMode, crm] = await load((c) =>
     Promise.all([
       c.listMailboxes(),
       c.getCredits(),
@@ -35,6 +36,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       c.getSlack(),
       c.getIcp(),
       c.getSendingMode(),
+      c.getCrm(),
     ]),
   );
   // Each owner's own setting, so only for a signed-in person.
@@ -105,6 +107,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       />
 
       {digest?.eligible && <DigestCard enabled={digest.enabled} lastSentAt={digest.last_sent_at} />}
+
+      <CrmCard connection={crm} canManage={!!me.user} />
 
       <ApiKeysCard keys={apiKeys} apiUrl={publicApiUrl()} canManage={!!me.user} />
 

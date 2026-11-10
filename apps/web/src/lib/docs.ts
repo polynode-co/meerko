@@ -34,6 +34,7 @@ export const docPages: DocPage[] = [
   { slug: "replies", group: "Concepts", title: "Replies & drafts", description: "Sort replies by intent and approve the answers your agent drafts." },
   { slug: "wake-your-agent", group: "Concepts", title: "Autopilot", description: "Have Meerko run your own agent when replies arrive or on a schedule, and show how every run went." },
   { slug: "slack", group: "Concepts", title: "Slack", description: "Get replies and your agent's drafts in Slack, and approve them there." },
+  { slug: "crm", group: "Concepts", title: "CRM sync", description: "Push the leads Meerko contacts to HubSpot or Attio, with their stage." },
   { slug: "pipeline", group: "Concepts", title: "Pipeline", description: "Lead stages from new to won, and which moves happen on their own." },
   { slug: "workspaces", group: "Concepts", title: "Workspaces", description: "One workspace per brand, switching between them, and the plan they share." },
   { slug: "credits", group: "Concepts", title: "Credits", description: "What costs credits on Meerko Cloud, and how to use your own provider keys." },
@@ -103,6 +104,7 @@ export const toolGroups: { id: string; label: string; page: string; tools: strin
   },
   { id: "replies", label: "Replies & drafts", page: "replies", tools: ["list_replies", "classify_reply", "draft_reply", "list_drafts", "approve_draft", "discard_draft"] },
   { id: "pipeline-tools", label: "Pipeline", page: "pipeline", tools: ["pipeline", "move_stage"] },
+  { id: "crm", label: "CRM", page: "crm", tools: ["sync_crm"] },
   { id: "credits", label: "Credits", page: "credits", tools: ["get_credits"] },
 ];
 

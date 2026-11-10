@@ -157,6 +157,13 @@ import {
   type CreditPolicy,
   type EnrichmentProvider,
   completeSlackInstall,
+  connectCrm,
+  CrmError,
+  deleteCrmConnection,
+  getCrmConnection,
+  setCrmAutoSync,
+  syncRowsToCrm,
+  type CrmDeps,
   deleteSlackConnection,
   getSlackConnection,
   handleSlackCommand,
@@ -217,6 +224,9 @@ import {
   queryInput,
   searchInput,
   slackWebhookInput,
+  crmConnectInput,
+  crmSyncInput,
+  crmUpdateInput,
   testEmailInput,
   toSequenceInput,
   updateMailboxInput,
@@ -268,6 +278,8 @@ export interface AppDeps {
   slack?: SlackAppConfig;
   /** Overrides fetch for Slack calls (tests). */
   slackFetch?: typeof fetch;
+  /** Overrides the HubSpot/Attio clients (tests). */
+  crm?: CrmDeps;
   /** Overrides fetch and DNS for /v1/websites/read (tests). */
   websiteFetch?: { fetch?: typeof fetch; resolve?: (host: string) => Promise<string[]> };
   /** Builds a Firecrawl client for a workspace's own key (overridable in tests). */
@@ -352,7 +364,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   const box = deps.secretBox ?? null;
   // App-password connects sign in to Google: 10 tries per workspace per 10 minutes.
   const connectAttempts = attemptLimiter(10, 10 * 60_000);
-  const hookDeps = () => ({ appUrl: deps.appUrl, hookFetch: deps.hookFetch, allowPrivateHooks: deps.allowPrivateHooks, slackFetch: deps.slackFetch });
+  const hookDeps = () => ({ appUrl: deps.appUrl, hookFetch: deps.hookFetch, allowPrivateHooks: deps.allowPrivateHooks, slackFetch: deps.slackFetch, crmFetch: deps.crm?.fetch });
   const slackDeps = () => ({ box, appUrl: deps.appUrl, fetch: deps.slackFetch });
   const icypeasForKey = deps.icypeasForKey ?? ((apiKey: string) => new IcypeasClient({ apiKey }));
 
@@ -1173,6 +1185,31 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.body(null, 204);
   });
 
+  // CRM: where contacted leads are pushed. Its token is a provider secret, set like provider keys (never via MCP).
+  v1.get("/crm", async (c) => c.json({ connection: await getCrmConnection(db, c.var.workspaceId) }));
+
+  v1.put("/crm", async (c) => {
+    const input = await parse(crmConnectInput, await c.req.json().catch(() => ({})));
+    const connection = await connectCrm(db, box, c.var.workspaceId, { provider: input.provider, token: input.token, autoSync: input.auto_sync }, deps.crm);
+    await analytics.capture({ distinctId: c.var.user?.id ?? c.var.workspaceId, event: EVENTS.crmConnected, workspaceId: c.var.workspaceId, properties: { provider: input.provider } });
+    return c.json({ connection });
+  });
+
+  v1.patch("/crm", async (c) => {
+    const { auto_sync } = await parse(crmUpdateInput, await c.req.json().catch(() => ({})));
+    return c.json({ connection: await setCrmAutoSync(db, c.var.workspaceId, auto_sync) });
+  });
+
+  v1.delete("/crm", async (c) => {
+    await deleteCrmConnection(db, c.var.workspaceId);
+    return c.body(null, 204);
+  });
+
+  v1.post("/tables/:id/crm-sync", async (c) => {
+    const { row_ids } = await parse(crmSyncInput, await c.req.json().catch(() => ({})));
+    return c.json(await syncRowsToCrm(db, box, c.var.workspaceId, { tableId: c.req.param("id"), rowIds: row_ids }, deps.crm));
+  });
+
   v1.get("/tables", async (c) => c.json({ tables: await listTables(db, c.var.workspaceId) }));
 
   v1.post("/tables", async (c) => {
@@ -1598,7 +1635,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
     if (err instanceof WorkspaceError) return c.json({ error: err.message }, err.status);
     if (err instanceof InsufficientCreditsError) return c.json({ error: err.message }, 402);
-    if (err instanceof SequenceError || err instanceof ReplyError || err instanceof RoutineError || err instanceof SlackError) return c.json({ error: err.message }, 400);
+    if (err instanceof SequenceError || err instanceof ReplyError || err instanceof RoutineError || err instanceof SlackError || err instanceof CrmError) return c.json({ error: err.message }, 400);
     if (err instanceof MailboxInUseError || err instanceof TableInUseError) return c.json({ error: err.message }, 409);
     if (err instanceof MailboxConnectError) return c.json({ error: err.message }, 400);
     if (err instanceof PlanLimitError) return c.json({ error: err.message }, 402);

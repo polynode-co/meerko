@@ -26,6 +26,7 @@ export const EVENTS = {
   routineTriggerSet: "routine_trigger_set",
   routineRunStarted: "routine_run_started",
   slackConnected: "slack_connected",
+  crmConnected: "crm_connected",
   workspaceCreated: "workspace_created",
 } as const;
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

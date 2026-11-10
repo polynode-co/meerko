@@ -167,6 +167,9 @@ export const tableRows = pgTable(
     // The agent's judgement on top of the rules-based ICP score: -30 to 30, and why (core/icp.ts).
     icpAdjust: integer("icp_adjust"),
     icpNote: text("icp_note"),
+    // CRM sync (core/crm.ts): when the row was last pushed, and the record it became there.
+    crmSyncedAt: timestamp("crm_synced_at", { withTimezone: true }),
+    crmRecordId: text("crm_record_id"),
     createdAt: createdAt(),
   },
   (t) => [
@@ -552,6 +555,29 @@ export const slackConnections = pgTable(
   },
   (t) => [index("slack_connections_team_idx").on(t.teamId)],
 );
+
+export const CRM_PROVIDERS = ["hubspot", "attio"] as const;
+export type CrmProvider = (typeof CRM_PROVIDERS)[number];
+
+/** One CRM per workspace. Leads Meerko has contacted are pushed to it as contacts, with their stage. */
+export const crmConnections = pgTable("crm_connections", {
+  id: id(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .unique()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  provider: text("provider").$type<CrmProvider>().notNull(),
+  /** HubSpot private app token or Attio API key, encrypted. */
+  encryptedToken: text("encrypted_token").notNull(),
+  last4: text("last4").notNull(),
+  /** The CRM account's name, from the token check, so the dashboard can say where leads go. */
+  accountName: text("account_name"),
+  /** Off: only manual syncs. */
+  autoSync: boolean("auto_sync").notNull().default(true),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+  lastError: text("last_error"),
+  createdAt: createdAt(),
+});
 
 /** An answer the user's agent drafted for an inbound reply. Sent only when a human approves it. */
 export const replyDrafts = pgTable(

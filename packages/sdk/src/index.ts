@@ -166,6 +166,29 @@ export interface RoutineStart {
   instructions: string;
 }
 
+/** The CRM contacted leads are pushed to. The token itself is never returned. */
+export interface CrmConnection {
+  provider: "hubspot" | "attio";
+  last4: string;
+  accountName: string | null;
+  /** On: leads go to the CRM once Meerko has contacted them, and again when their stage changes. */
+  autoSync: boolean;
+  lastSyncedAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+}
+
+export interface CrmSyncResult {
+  provider: "hubspot" | "attio";
+  synced: number;
+  /** Rows without a usable email: CRMs match contacts by email. */
+  skipped: number;
+  failed: number;
+  /** Rows still waiting; call again to continue. */
+  remaining: number;
+  errors: string[];
+}
+
 /** Where Meerko posts new replies and drafts in Slack: the Meerko Slack app (with buttons) or a pasted webhook. */
 export interface SlackConnection {
   kind: "app" | "webhook";
@@ -592,6 +615,28 @@ export class MeerkoClient {
 
   deleteSlack() {
     return this.request<void>("DELETE", "/slack");
+  }
+
+  getCrm() {
+    return this.request<{ connection: CrmConnection | null }>("GET", "/crm").then((r) => r.connection);
+  }
+
+  /** Connects HubSpot (private app token) or Attio (API key). Checked with the CRM before it's stored. */
+  connectCrm(provider: "hubspot" | "attio", token: string, opts: { autoSync?: boolean } = {}) {
+    return this.request<{ connection: CrmConnection }>("PUT", "/crm", { provider, token, auto_sync: opts.autoSync }).then((r) => r.connection);
+  }
+
+  setCrmAutoSync(autoSync: boolean) {
+    return this.request<{ connection: CrmConnection }>("PATCH", "/crm", { auto_sync: autoSync }).then((r) => r.connection);
+  }
+
+  deleteCrm() {
+    return this.request<void>("DELETE", "/crm");
+  }
+
+  /** Pushes rows (or every row not yet pushed) to the CRM, up to 100 per call. */
+  syncCrm(tableId: string, rowIds?: string[]) {
+    return this.request<CrmSyncResult>("POST", `/tables/${tableId}/crm-sync`, rowIds ? { row_ids: rowIds } : {});
   }
 
   revokeApiKey(id: string) {

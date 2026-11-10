@@ -583,6 +583,16 @@ Write like a person answering an email: short, specific to what they said, in th
   );
 
   tool(
+    "sync_crm",
+    {
+      description:
+        "Push leads (rows) to the workspace's CRM (HubSpot or Attio) as contacts, matched by email so nothing is duplicated; HubSpot also gets the stage as Lead status. Leads Meerko has contacted sync on their own when auto-sync is on, so use this for leads the user wants there now. Without row_ids it pushes every row not yet pushed or changed since, 100 per call: call again while `remaining` > 0 and `synced` > 0. Rows without an email are skipped. The user connects the CRM in the dashboard's Connections; never ask them for the token.",
+      inputSchema: { table_id: z.string(), row_ids: z.array(z.string()).min(1).max(100).optional() },
+    },
+    ({ table_id, row_ids }) => run(() => client().syncCrm(table_id, row_ids)),
+  );
+
+  tool(
     "delete_rows",
     {
       description:

@@ -169,6 +169,13 @@
       "when": 1794318479125,
       "tag": "0023_routines",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794318593403,
+      "tag": "0024_crm",
+      "breakpoints": true
     }
   ]
 }
