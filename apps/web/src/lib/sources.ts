@@ -40,6 +40,12 @@ export const googleSources = {
     url: "https://knowledge.workspace.google.com/admin/gmail/gmail-sending-limits-in-google-workspace",
   },
   senderGuidelines: { label: "Gmail Help: Email sender guidelines", url: "https://support.google.com/a/answer/81126" },
+  /** Checked 10 Nov 2026: why App passwords can be missing, and that a password change revokes them. */
+  appPasswords: { label: "Google Account Help: Sign in with app passwords", url: "https://support.google.com/accounts/answer/185833" },
+  imapAdmin: { label: "Google Workspace Admin Help: Turn POP & IMAP on or off for users", url: "https://support.google.com/a/answer/105694" },
+  /** Checked 10 Nov 2026: gmail.send is sensitive; gmail.readonly, gmail.metadata and gmail.modify are restricted. */
+  gmailScopes: { label: "Gmail API: Choose Gmail API scopes", url: "https://developers.google.com/workspace/gmail/api/auth/scopes" },
+  restrictedScopes: { label: "Google Cloud Help: Restricted scope verification", url: "https://support.google.com/cloud/answer/13465431" },
 };
 
 /** US law on commercial email. */
@@ -52,6 +58,8 @@ export const instantlySources = { pricing: { label: "Instantly pricing", url: "h
 /** Reply.io, lemlist, Smartlead and Hunter, for /alternatives and /compare. Each vendor's own pricing page, checked 5 Nov 2026. */
 export const replySources = { pricing: { label: "Reply.io pricing", url: "https://reply.io/pricing/" } };
 export const lemlistSources = { pricing: { label: "lemlist pricing", url: "https://www.lemlist.com/pricing" } };
+/** Oxygen, for /alternatives/oxygen. Oxygen's own pricing page (plans, credit table and FAQ), checked 10 Nov 2026. */
+export const oxygenSources = { pricing: { label: "Oxygen pricing", url: "https://www.oxygen-agent.com/pricing" } };
 export const smartleadSources = { pricing: { label: "Smartlead pricing", url: "https://www.smartlead.ai/pricing" } };
 export const hunterSources = { pricing: { label: "Hunter pricing", url: "https://hunter.io/pricing" } };
 

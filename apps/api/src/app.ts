@@ -171,6 +171,7 @@ import { createAnalytics, EVENTS, signupSource, type Analytics } from "./analyti
 import {
   agentHookInput,
   digestInput,
+  profileInput,
   approveDraftInput,
   byokProvider,
   checkoutInput,
@@ -658,7 +659,8 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       }
       await analytics.capture({ distinctId: userId, event: EVENTS.signInCompleted, workspaceId, properties: { method: "email" }, set: person });
       const session = await createSession(db, userId, workspaceId);
-      return c.json({ token: session.token, expires_at: session.expiresAt });
+      // new_user: the dashboard then asks the optional sign-up questions (role, company size, agent).
+      return c.json({ token: session.token, expires_at: session.expiresAt, new_user: newUser });
     } catch (err) {
       if (err instanceof SignInError) throw new HTTPException(403, { message: err.message });
       throw err;
@@ -706,7 +708,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       }
       await analytics.capture({ distinctId: userId, event: EVENTS.signInCompleted, workspaceId, properties: { method: "google" }, set: person });
       const authCode = await createAuthCode(db, userId, workspaceId);
-      return c.redirect(backToApp(new URL("/auth/callback", deps.appUrl).toString(), { code: authCode }));
+      return c.redirect(backToApp(new URL("/auth/callback", deps.appUrl).toString(), { code: authCode, ...(newUser ? { new: "1" } : {}) }));
     } catch (err) {
       if (err instanceof SignInError) return c.redirect(toLogin(err.message));
       console.error(err);
@@ -1071,6 +1073,15 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const digest = await setDigest(db, c.var.user!.id, c.var.workspaceId, enabled);
     await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.digestToggled, workspaceId: c.var.workspaceId, properties: { enabled, via: "settings" } });
     return c.json({ digest });
+  });
+
+  // The optional questions after sign-up. Kept only as PostHog person properties, for segmenting who signs up.
+  v1.post("/me/profile", async (c) => {
+    requireUser(c, "Sign in to the dashboard to answer");
+    const answers = await parse(profileInput, await c.req.json().catch(() => ({})));
+    const set = Object.fromEntries(Object.entries(answers).filter(([, v]) => v !== undefined));
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.profileAnswered, workspaceId: c.var.workspaceId, properties: { ...set, skipped: Object.keys(set).length === 0 }, set });
+    return c.body(null, 204);
   });
 
   // Agent hook: rings the user's own agent when replies arrive. Managed by a signed-in person, like keys.

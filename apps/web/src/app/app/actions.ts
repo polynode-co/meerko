@@ -123,6 +123,21 @@ export async function setDigest(enabled: boolean) {
   return run((c) => c.setDigest(enabled).then(() => (enabled ? "Turned on" : "Turned off")), ["/app/settings"]);
 }
 
+/** The optional questions after sign-up. Saving with nothing picked counts as a skip; either way, carry on. */
+export async function saveProfile(form: FormData) {
+  const pick = (k: string) => {
+    const v = String(form.get(k) ?? "");
+    return v || undefined;
+  };
+  try {
+    await (await meerko()).saveProfile({ role: pick("role") as never, company_size: pick("company_size") as never, agent: pick("agent") as never });
+  } catch (err) {
+    // Never block someone on an optional screen.
+    if (!(err instanceof MeerkoApiError)) throw err;
+  }
+  redirect(safeNext(String(form.get("next") ?? "")) ?? "/app");
+}
+
 export async function enableAgentHook() {
   return run((c) => c.enableAgentHook().then(() => "Turned back on"), ["/app/settings"]);
 }

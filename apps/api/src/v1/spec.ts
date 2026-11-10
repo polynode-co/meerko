@@ -55,6 +55,7 @@ const deleted = obj({ deleted: z.boolean() });
 export const V1: Operation[] = [
   // --- workspace ---
   { method: "get", path: "/me", id: "getMe", tag: "workspace", summary: "The workspace (and person, for a session) this credential acts as", access: "any", scope: "replies", response: s.Me },
+  { method: "post", path: "/me/profile", id: "saveProfile", tag: "workspace", summary: "Answer the optional sign-up questions (role, company size, agent)", access: "user", body: s.profileInput, response: null },
   { method: "get", path: "/workspaces", id: "listWorkspaces", tag: "workspace", summary: "List your workspaces, marking the current one", description: "An API key sees only its own workspace.", access: "any", response: obj({ workspaces: z.array(s.WorkspaceListItem) }) },
   { method: "post", path: "/workspaces", id: "createWorkspace", tag: "workspace", summary: "Create a workspace for another brand", description: "It shares the plan and credits of the workspaces you already own. It doesn't switch to it.", access: "person", body: s.workspaceNameInput, status: 201, response: obj({ workspace: s.Workspace }) },
   { method: "patch", path: "/workspaces/:id", id: "renameWorkspace", tag: "workspace", summary: "Rename a workspace (owners)", access: "person", body: s.workspaceNameInput, response: obj({ workspace: s.Workspace }) },

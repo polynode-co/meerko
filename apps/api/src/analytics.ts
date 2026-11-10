@@ -12,6 +12,7 @@ export const EVENTS = {
   mailboxConnected: "mailbox_connected",
   leadsSearched: "leads_searched",
   digestToggled: "digest_toggled",
+  profileAnswered: "profile_answered",
   websiteRead: "website_read",
   icpSet: "icp_set",
   rowsEnriched: "rows_enriched",
