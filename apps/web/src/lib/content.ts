@@ -1,7 +1,7 @@
 // The registry of content pages (docs/CONTENT.md). Hubs, related links, the footer and the sitemap read from it.
-import { Bot, Mail, ShieldCheck, Terminal, type LucideIcon } from "lucide-react";
+import { Bot, ListChecks, Mail, ShieldCheck, Terminal, type LucideIcon } from "lucide-react";
 
-export type Topic = "Cold email" | "Deliverability" | "GTM engineering" | "AI agents";
+export type Topic = "Cold email" | "Deliverability" | "GTM engineering" | "AI agents" | "Agent how-tos";
 
 export interface GuideEntry {
   slug: string;
@@ -14,7 +14,7 @@ export interface GuideEntry {
   crossLinks: string[];
 }
 
-export const TOPICS: Topic[] = ["AI agents", "Cold email", "Deliverability", "GTM engineering"];
+export const TOPICS: Topic[] = ["AI agents", "Agent how-tos", "Cold email", "Deliverability", "GTM engineering"];
 
 /** Icon and one-line pitch per topic, for hub sections, eyebrows and related cards. */
 export const topicMeta: Record<Topic, { icon: LucideIcon; tagline: string }> = {
@@ -22,6 +22,8 @@ export const topicMeta: Record<Topic, { icon: LucideIcon; tagline: string }> = {
   Deliverability: { icon: ShieldCheck, tagline: "Land in the inbox, not in spam." },
   "GTM engineering": { icon: Terminal, tagline: "Build the systems around outbound." },
   "AI agents": { icon: Bot, tagline: "Run outbound from the assistant you already use." },
+  // A weekly series: one outbound task done end to end from an assistant (docs/CONTENT.md).
+  "Agent how-tos": { icon: ListChecks, tagline: "One outbound task a week, done from your assistant." },
 };
 
 /** The guide featured at the top of /guides. */
@@ -125,6 +127,13 @@ export const guides: GuideEntry[] = [
     title: "AI lead generation",
     summary: "How to find, verify and reach B2B leads with an AI assistant, step by step.",
     crossLinks: ["cold-email-templates", "email-deliverability"],
+  },
+  {
+    slug: "find-ctos-with-claude",
+    topic: "Agent how-tos",
+    title: "Find 30 CTOs from Claude",
+    summary: "A list of 30 CTOs with verified work emails, built in one Claude chat.",
+    crossLinks: ["claude-for-sales", "ai-lead-generation"],
   },
 ];
 
