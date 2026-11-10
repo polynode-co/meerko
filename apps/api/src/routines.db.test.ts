@@ -4,7 +4,7 @@ import { createApiKey, createSession, SecretBox } from "@meerko/core";
 import { createDb, eq, memberships, messages, users, workspaces, type Db } from "@meerko/db";
 import { createApp } from "./app.ts";
 
-describe.skipIf(!process.env.DATABASE_URL)("agent hooks and drafts-only credentials (db)", () => {
+describe.skipIf(!process.env.DATABASE_URL)("Autopilot routines and drafts-only credentials (db)", () => {
   const db: Db = process.env.DATABASE_URL ? createDb() : (undefined as never);
   const run = randomBytes(4).toString("hex");
   const hookCalls: string[] = [];
@@ -59,7 +59,7 @@ describe.skipIf(!process.env.DATABASE_URL)("agent hooks and drafts-only credenti
       ["GET", "/v1/sequences"],
       ["GET", "/v1/tables"],
       ["GET", "/v1/api-keys"],
-      ["GET", "/v1/agent-hook"],
+      ["GET", "/v1/routines"],
     ];
     for (const [method, path] of forbidden) {
       const res = await call(path, repliesKey, { method });
@@ -83,7 +83,7 @@ describe.skipIf(!process.env.DATABASE_URL)("agent hooks and drafts-only credenti
       });
       return ((await res.json()).result.tools as { name: string }[]).map((t) => t.name).sort();
     };
-    expect(await list("/mcp/drafter")).toEqual(["classify_reply", "draft_reply", "list_drafts", "list_replies"]);
+    expect(await list("/mcp/drafter")).toEqual(["classify_reply", "draft_reply", "list_drafts", "list_replies", "start_routine_run"]);
     expect((await list("/mcp")).length).toBeGreaterThan(20);
 
     // Even through a tool, the drafter endpoint can't approve: the API refuses the call.
@@ -95,26 +95,35 @@ describe.skipIf(!process.env.DATABASE_URL)("agent hooks and drafts-only credenti
     expect(JSON.stringify(await res.json())).toMatch(/not found|isError/i);
   });
 
-  it("lets only a signed-in person manage the hook, and shows a webhook secret once", async () => {
+  it("lets any credential manage routines, but only a signed-in person choose what starts one", async () => {
+    const created = await call("/v1/routines", fullKey, { method: "POST", body: JSON.stringify({ name: "Answer replies", brief: "Draft answers", when: "replies" }) });
+    expect(created.status).toBe(201);
+    const { routine } = await created.json();
+    expect(routine).toMatchObject({ when: "replies", trigger: "own_scheduler", needsSetup: true, setup: { howItRuns: expect.stringMatching(/Meerko has to start this one/) } });
+
     const put = (token: string) =>
-      call("/v1/agent-hook", token, { method: "PUT", body: JSON.stringify({ kind: "webhook", url: "https://n8n.internal/webhook/meerko" }) });
+      call(`/v1/routines/${routine.id}/trigger`, token, { method: "PUT", body: JSON.stringify({ kind: "webhook", url: "https://n8n.internal/webhook/meerko" }) });
     expect((await put(fullKey)).status).toBe(403);
+    const set = await (await put(session)).json();
+    expect(set.secret).toMatch(/^whsec_/);
+    expect(set.routine).toMatchObject({ trigger: "webhook", triggerUrl: "https://n8n.internal/webhook/meerko", needsSetup: false });
+    expect(JSON.stringify(await (await call(`/v1/routines/${routine.id}`, fullKey)).json())).not.toContain(set.secret);
 
-    const created = await (await put(session)).json();
-    expect(created.secret).toMatch(/^whsec_/);
-    expect(created.hook).toMatchObject({ kind: "webhook", url: "https://n8n.internal/webhook/meerko", enabled: true });
-
-    const shown = await (await call("/v1/agent-hook", session)).json();
-    expect(JSON.stringify(shown)).not.toContain(created.secret);
-
-    expect(await (await call("/v1/agent-hook/test", session, { method: "POST" })).json()).toEqual({ ok: true, status: 200, error: null });
+    const ran = await (await call(`/v1/routines/${routine.id}/run`, fullKey, { method: "POST" })).json();
+    expect(ran).toMatchObject({ started: true, run: { reason: "manual", outcome: "fired" } });
     expect(hookCalls).toEqual(["https://n8n.internal/webhook/meerko"]);
 
-    const bad = await call("/v1/agent-hook", session, { method: "PUT", body: JSON.stringify({ kind: "claude_routine", url: "https://example.com", token: "t" }) });
-    expect(bad.status).toBe(400);
+    // The woken agent checks in with a drafts-only key and gets the brief.
+    const start = await call(`/v1/routines/${routine.id}/start`, repliesKey, { method: "POST" });
+    expect(start.status).toBe(200);
+    expect(await start.json()).toMatchObject({ brief: "Draft answers", routine: { id: routine.id } });
 
-    expect((await call("/v1/agent-hook", session, { method: "DELETE" })).status).toBe(204);
-    expect(await (await call("/v1/agent-hook", session)).json()).toEqual({ hook: null });
+    const bad = await call(`/v1/routines/${routine.id}/trigger`, session, { method: "PUT", body: JSON.stringify({ kind: "claude_routine", url: "https://example.com", token: "t" }) });
+    expect(bad.status).toBe(400);
+    expect((await call("/v1/routines", fullKey, { method: "POST", body: JSON.stringify({ name: "x", brief: "y", when: "replies" }) })).status).toBe(400);
+
+    expect((await call(`/v1/routines/${routine.id}`, fullKey, { method: "DELETE" })).status).toBe(204);
+    expect(await (await call("/v1/routines", fullKey)).json()).toEqual({ routines: [] });
   });
 
   it("creates replies-scoped keys from the dashboard", async () => {

@@ -127,7 +127,7 @@ describe.skipIf(!process.env.DATABASE_URL)("OAuth for MCP clients (db)", () => {
     );
     expect(init.status).toBe(200);
     const list = (await (await mcp({ jsonrpc: "2.0", id: 2, method: "tools/list" }, tokens.access_token)).json()) as { result: { tools: unknown[] } };
-    expect(list.result.tools).toHaveLength(44);
+    expect(list.result.tools).toHaveLength(49);
     const call = (await (
       await mcp({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "list_tables", arguments: {} } }, tokens.access_token)
     ).json()) as { result: { isError?: boolean; content: { text: string }[] } };

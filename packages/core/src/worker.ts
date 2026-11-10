@@ -1,6 +1,8 @@
 import type { Db } from "@meerko/db";
-import { runAgentNotifyTick, type AgentNotifyResult } from "./agent-hooks.ts";
 import { runCrmSyncTick, type CrmTickResult } from "./crm.ts";
+import { runRoutinesTick, type RoutinesTickResult } from "./routines/routines.ts";
+import { runDigestTick, type DigestResult } from "./digest.ts";
+import type { SystemMailer } from "./mail/system-mail.ts";
 import { runReplyTick, type ReplyTickResult } from "./replies/replies.ts";
 import { runSendTick, type SenderDeps, type TickResult } from "./sending/sender.ts";
 import { runSlackNotifyTick, type SlackNotifyResult } from "./slack.ts";
@@ -9,15 +11,18 @@ export interface WorkerTickResult {
   replies?: ReplyTickResult;
   /** A failed reply scan (e.g. Gmail down) is reported but doesn't stop sending. */
   replyError?: string;
-  /** Agent hooks rung for replies still waiting for the user's agent. */
-  hooks?: AgentNotifyResult;
-  hookError?: string;
+  /** Autopilot: routines started, missed and never checked in to. */
+  routines?: RoutinesTickResult;
+  routineError?: string;
   /** Replies and drafts posted to Slack. */
   slack?: SlackNotifyResult;
   slackError?: string;
   /** Contacted leads pushed to the workspace's CRM. */
   crm?: CrmTickResult;
   crmError?: string;
+  /** Daily digests emailed to workspace owners. */
+  digest?: DigestResult;
+  digestError?: string;
   send: TickResult;
 }
 
@@ -27,19 +32,13 @@ export interface WorkerTickResult {
  * `POST /internal/tick` (cloud, so nothing has to stay running). Overlapping passes are safe: sends are
  * claimed with SKIP LOCKED and each inbound Gmail message is stored once.
  */
-export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string; hookFetch?: typeof fetch; allowPrivateHooks?: boolean; slackFetch?: typeof fetch; crmFetch?: typeof fetch }, opts: { replies: boolean }): Promise<WorkerTickResult> {
+export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string; hookFetch?: typeof fetch; allowPrivateHooks?: boolean; slackFetch?: typeof fetch; mailer?: SystemMailer | null; crmFetch?: typeof fetch }, opts: { replies: boolean }): Promise<WorkerTickResult> {
   const result: Partial<WorkerTickResult> = {};
   if (opts.replies) {
     try {
       result.replies = await runReplyTick(db, { box: deps.box, oauth: deps.oauth, microsoft: deps.microsoft, imap: deps.imap, now: deps.now, fetch: deps.fetch });
     } catch (err) {
       result.replyError = err instanceof Error ? err.message : String(err);
-    }
-    // Then ring the user's agent about replies waiting for it (including ones from earlier passes).
-    try {
-      result.hooks = await runAgentNotifyTick(db, { box: deps.box, appUrl: deps.appUrl, now: deps.now, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
-    } catch (err) {
-      result.hookError = err instanceof Error ? err.message : String(err);
     }
     // And post new replies and the drafts written so far to Slack.
     try {
@@ -53,6 +52,18 @@ export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string
     } catch (err) {
       result.crmError = err instanceof Error ? err.message : String(err);
     }
+    // And email owners the daily digest of replies waiting, when it's due.
+    try {
+      result.digest = await runDigestTick(db, { mailer: deps.mailer, box: deps.box, appUrl: deps.appUrl, publicUrl: deps.publicUrl, now: deps.now });
+    } catch (err) {
+      result.digestError = err instanceof Error ? err.message : String(err);
+    }
+  }
+  // Autopilot runs every pass, after the reply scan so a replies routine sees what just arrived.
+  try {
+    result.routines = await runRoutinesTick(db, { box: deps.box, appUrl: deps.appUrl, now: deps.now, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
+  } catch (err) {
+    result.routineError = err instanceof Error ? err.message : String(err);
   }
   return { ...result, send: await runSendTick(db, deps) };
 }

@@ -646,7 +646,7 @@
       {
         "name": "enrich_rows",
         "title": "Find and verify emails",
-        "description": "Find work emails (from first_name, last_name and domain or company columns, or linkedin_url) and verify them, writing email, email_certainty and email_verification back to each row. With fields [\"phone\"], find phone numbers instead, writing phone (E.164) and phone_type.\nOnly rows missing a result are processed, at most `limit` per call (~3s per row). Keep calling while `remaining` > 0.\nCosts: 8 credits per email found, 1 per verification, 80 per phone number found; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost. Phones are on Pro (or the user's own Generect key) and are never found unless asked for: only request them when the user wants to call.\nemail_certainty values: ultra_sure, very_sure, probable (deliverability unconfirmed), not_found, missing_input (row lacks a name or domain). phone_type values: mobile, fixed_line, voip, not_found, missing_input.",
+        "description": "Find work emails (from first_name, last_name and domain or company columns, or linkedin_url) and verify them, writing email, email_certainty and email_verification back to each row. With fields [\"phone\"], find phone numbers instead, writing phone (E.164) and phone_type.\nOnly rows missing a result are processed, at most `limit` per call (~3s per row). Keep calling while `remaining` > 0.\nCosts: 5 credits per email found, 1 per verification, 80 per phone number found; misses are free. Emails found as ultra_sure/very_sure count as verified at no cost. Phones are on Pro (or the user's own Generect key) and are never found unless asked for: only request them when the user wants to call.\nemail_certainty values: ultra_sure, very_sure, probable (deliverability unconfirmed), not_found, missing_input (row lacks a name or domain). phone_type values: mobile, fixed_line, voip, not_found, missing_input.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -1064,7 +1064,7 @@
       {
         "name": "start_sequence",
         "title": "Start sending a sequence",
-        "description": "Start sending a sequence. Real emails go to real people from the user's mailbox: only call this after the user has seen the preview and explicitly approved. Sends respect the send window, the mailbox's daily limit and spacing.",
+        "description": "Start sending a sequence. Real emails go to real people from the user's mailbox: only call this after the user has seen the preview and explicitly approved. Sends respect the send window, the mailbox's daily limit and spacing. If the workspace approves each email (get_sending_mode), nothing goes until approved: show the user list_pending_emails.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": true,
@@ -1080,6 +1080,70 @@
           "required": [
             "sequence_id"
           ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "get_sending_mode",
+        "title": "Get the sending mode",
+        "description": "Whether the user approves each email before it goes ('approve', the default) or Meerko sends on its own ('auto'), for sequence emails and for reply drafts. The user changes it in the dashboard's Connections.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "list_pending_emails",
+        "title": "List emails waiting for approval",
+        "description": "Sequence emails waiting for the user's approval, soonest first, exactly as each lead will get them. Show them to the user before approve_emails.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sequence_id": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "approve_emails",
+        "title": "Approve emails to send",
+        "description": "Approve leads' next sequence email; each goes when it's due, inside the send window and the mailbox's limits. Real emails to real people: only call this after the user has read them (list_pending_emails) and explicitly said to send. Pass enrollment_ids for some, or sequence_id for every lead waiting in that sequence.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "enrollment_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "sequence_id": {
+              "type": "string"
+            }
+          },
           "$schema": "http://json-schema.org/draft-07/schema#"
         }
       },
@@ -1214,7 +1278,7 @@
       {
         "name": "draft_reply",
         "title": "Draft a reply",
-        "description": "Save a draft answer to a reply (from list_replies). Nothing is sent: the user reviews it first.\nWrite like a person answering an email: short, specific to what they said, in their language, with one clear next step (e.g. two meeting times or a booking link if the user gave you one). Sign off with the sender's first name: Gmail doesn't add the user's signature to emails sent through Meerko. Drafting again for the same reply replaces the pending draft.",
+        "description": "Save a draft answer to a reply (from list_replies). Nothing is sent: the user reviews it first, unless they chose to send reply drafts automatically (get_sending_mode), in which case it goes at once and the result has `sent`.\nWrite like a person answering an email: short, specific to what they said, in their language, with one clear next step (e.g. two meeting times or a booking link if the user gave you one). Sign off with the sender's first name: Gmail doesn't add the user's signature to emails sent through Meerko. Drafting again for the same reply replaces the pending draft.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -1458,6 +1522,106 @@
           "properties": {},
           "$schema": "http://json-schema.org/draft-07/schema#"
         }
+      },
+      {
+        "name": "manage_routine",
+        "title": "Manage Autopilot routines",
+        "description": "Autopilot: routines the user's own AI runs, each a brief plus when it runs (when new replies arrive, or on weekdays at a time).\n- list / get: routines with their latest runs, and `setup`: how each one runs and the exact prompt to give the AI.\n- create: name, brief, when (\"replies\" or \"schedule\" with cadence). It starts on the AI's own scheduler: show the user `setup.prompt` and `setup.steps` so they create the scheduled task. A \"replies\" routine needs Meerko to start it: the user connects a Claude routine or a webhook in the dashboard's Autopilot page (you can't; it holds a secret).\n- update (name, brief, when, cadence), pause, resume, delete.\n- run_now: Meerko starts it through its Claude routine or webhook; on the AI's own scheduler it returns the prompt to run instead.\nWrite the brief as instructions for a later run with no one to ask. Confirm the brief and schedule with the user before creating it.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "list",
+                "get",
+                "create",
+                "update",
+                "pause",
+                "resume",
+                "delete",
+                "run_now"
+              ]
+            },
+            "routine_id": {
+              "description": "For every action except list and create",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "description": "What the AI does on each run, e.g. 'Find 20 new leads matching my ICP, enrich them, and add the ones with verified emails to the Q4 sequence'",
+              "type": "string"
+            },
+            "when": {
+              "type": "string",
+              "enum": [
+                "replies",
+                "schedule"
+              ]
+            },
+            "cadence": {
+              "description": "Required when `when` is schedule",
+              "type": "object",
+              "properties": {
+                "days": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 7
+                  },
+                  "description": "ISO weekdays: 1 = Monday … 7 = Sunday, e.g. [1,2,3,4,5] for weekdays"
+                },
+                "time": {
+                  "type": "string",
+                  "description": "HH:MM, 24-hour"
+                },
+                "timezone": {
+                  "type": "string",
+                  "description": "IANA zone, e.g. Europe/Madrid. Ask the user if you don't know theirs"
+                }
+              },
+              "required": [
+                "days",
+                "time",
+                "timezone"
+              ]
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "start_routine_run",
+        "title": "Start an Autopilot run",
+        "description": "Call this first whenever you run a Meerko Autopilot routine (your scheduled task's prompt or Meerko's start message names its routine_id). It records the run and returns the brief: follow it, without asking the user, using the Meerko tools.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "routine_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "routine_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
       }
     ],
     "prompts": [
@@ -1543,6 +1707,7 @@
       "replies": "replies to your sequences",
       "drafts": "answers to replies, waiting for your approval",
       "icp": "who this brand sells to; every lead is scored 0-100 against it",
+      "routines": "Autopilot: routines your own AI runs, when replies arrive or on a schedule",
       "keys": "bring your own provider keys (calls through them cost no credits)",
       "crm": "push contacted leads to HubSpot or Attio",
       "credits": "show the workspace credit balance"
@@ -1954,6 +2119,37 @@
         "options": []
       },
       {
+        "usage": "meerko sequences pending [sequenceId]",
+        "group": "sequences",
+        "description": "emails waiting for your approval, as each lead will get them",
+        "options": [
+          {
+            "flags": "-n, --limit <n>",
+            "description": "how many",
+            "default": "20",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko sequences approve [sequenceId]",
+        "group": "sequences",
+        "description": "approve the next email of every lead waiting in a sequence, or of the leads given with --lead",
+        "options": [
+          {
+            "flags": "-l, --lead <enrollmentId...>",
+            "description": "only these leads (ids from `meerko seq pending`)",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko sequences mode",
+        "group": "sequences",
+        "description": "whether you approve each email first, or Meerko sends on its own (change it in the dashboard)",
+        "options": []
+      },
+      {
         "usage": "meerko sequences pause <sequenceId>",
         "group": "sequences",
         "description": "stop sending until started again",
@@ -2063,6 +2259,70 @@
         "usage": "meerko icp review <tableId> <rowId> <adjust> [note]",
         "group": "icp",
         "description": "move one row's score by -30 to 30 with a reason; adjust 'clear' removes it",
+        "options": []
+      },
+      {
+        "usage": "meerko routines ls",
+        "group": "routines",
+        "description": "list routines and how their latest runs went",
+        "options": []
+      },
+      {
+        "usage": "meerko routines show <routineId>",
+        "group": "routines",
+        "description": "a routine's brief, how it runs, the prompt for your AI and its latest runs",
+        "options": []
+      },
+      {
+        "usage": "meerko routines create <name> <briefFile>",
+        "group": "routines",
+        "description": "create a routine from a brief in a text file: --replies, or --days 1,2,3,4,5 --time 09:00 [--timezone Europe/Madrid]",
+        "options": [
+          {
+            "flags": "--replies",
+            "description": "run when new replies arrive (Meerko starts it: connect a Claude routine or webhook in the dashboard)",
+            "required": false
+          },
+          {
+            "flags": "--days <days>",
+            "description": "ISO weekdays, 1 = Monday … 7 = Sunday",
+            "default": "1,2,3,4,5",
+            "required": false
+          },
+          {
+            "flags": "--time <HH:MM>",
+            "description": "local time",
+            "required": false
+          },
+          {
+            "flags": "--timezone <zone>",
+            "description": "IANA zone (default: this computer's)",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko routines pause <routineId>",
+        "group": "routines",
+        "description": "stop running it until resumed",
+        "options": []
+      },
+      {
+        "usage": "meerko routines resume <routineId>",
+        "group": "routines",
+        "description": "start running it again",
+        "options": []
+      },
+      {
+        "usage": "meerko routines run <routineId>",
+        "group": "routines",
+        "description": "run it now (Meerko starts it; on your AI's own schedule, prints the prompt to run)",
+        "options": []
+      },
+      {
+        "usage": "meerko routines rm <routineId>",
+        "group": "routines",
+        "description": "delete a routine",
         "options": []
       },
       {

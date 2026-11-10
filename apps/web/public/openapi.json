@@ -45,8 +45,12 @@
       "description": "Credits and the BYOK provider keys that bypass them"
     },
     {
+      "name": "autopilot",
+      "description": "Routines your own AI runs, started by new replies or on a schedule"
+    },
+    {
       "name": "settings",
-      "description": "API keys, connected apps, agent hook, Slack, CRM and billing"
+      "description": "API keys, connected apps, Slack, CRM, the daily digest and billing"
     }
   ],
   "paths": {
@@ -2554,6 +2558,170 @@
         }
       }
     },
+    "/v1/sending-mode": {
+      "get": {
+        "operationId": "getSendingMode",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Whether a person approves each email before it goes, for sequences and for reply drafts",
+        "responses": {
+          "200": {
+            "description": "Whether a person approves each email before it goes, for sequences and for reply drafts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "$ref": "#/components/schemas/SendingMode"
+                    }
+                  },
+                  "required": [
+                    "mode"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pending-emails": {
+      "get": {
+        "operationId": "listPendingEmails",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Sequence emails waiting for approval, soonest first, as each lead will get them",
+        "parameters": [
+          {
+            "name": "sequence_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sequence emails waiting for approval, soonest first, as each lead will get them",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "emails": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PendingEmail"
+                      }
+                    }
+                  },
+                  "required": [
+                    "emails"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pending-emails/approve": {
+      "post": {
+        "operationId": "approveEmails",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Approve leads' next sequence email; each goes when it's due",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enrollment_ids": {
+                    "description": "Approve these leads' next email",
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sequence_id": {
+                    "description": "Approve the next email of every lead waiting in this sequence",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approve leads' next sequence email; each goes when it's due",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "approved": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "approved"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/sequences/{id}": {
       "get": {
         "operationId": "getSequence",
@@ -3290,6 +3458,7 @@
           "replies"
         ],
         "summary": "Save a draft answer for a person to approve",
+        "description": "When the workspace sends reply drafts on its own (sending mode `reply_drafts: auto`), the draft is sent straight away and `sent` says so; if sending fails it stays pending, with `send_error`.",
         "x-meerko-replies-scope": true,
         "parameters": [
           {
@@ -3343,6 +3512,28 @@
                         "id",
                         "body"
                       ]
+                    },
+                    "sent": {
+                      "type": "object",
+                      "properties": {
+                        "sent": {
+                          "type": "boolean"
+                        },
+                        "to": {
+                          "type": "string"
+                        },
+                        "subject": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "sent",
+                        "to",
+                        "subject"
+                      ]
+                    },
+                    "send_error": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -3823,35 +4014,443 @@
         }
       }
     },
-    "/v1/agent-hook": {
+    "/v1/routines": {
       "get": {
-        "operationId": "getAgentHook",
+        "operationId": "listRoutines",
         "tags": [
-          "settings"
+          "autopilot"
         ],
-        "summary": "Where Meerko rings your agent when replies arrive",
+        "summary": "List the workspace's Autopilot routines, with their latest runs",
         "responses": {
           "200": {
-            "description": "Where Meerko rings your agent when replies arrive",
+            "description": "List the workspace's Autopilot routines, with their latest runs",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "hook": {
+                    "routines": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Routine"
+                      }
+                    }
+                  },
+                  "required": [
+                    "routines"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createRoutine",
+        "tags": [
+          "autopilot"
+        ],
+        "summary": "Create a routine",
+        "description": "It starts on your AI's own scheduler; a person connects a Claude routine or a webhook in the dashboard so Meerko starts it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "brief": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000,
+                    "description": "What the AI does on each run, in plain words"
+                  },
+                  "when": {
+                    "type": "string",
+                    "enum": [
+                      "replies",
+                      "schedule"
+                    ],
+                    "description": "`replies`: when new replies wait (one per workspace). `schedule`: on `cadence`"
+                  },
+                  "cadence": {
+                    "description": "Required for `schedule`",
+                    "type": "object",
+                    "properties": {
+                      "days": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 7
+                        },
+                        "description": "ISO weekdays: 1 = Monday … 7 = Sunday"
+                      },
+                      "time": {
+                        "type": "string",
+                        "description": "HH:MM, 24-hour, in `timezone`"
+                      },
+                      "timezone": {
+                        "type": "string",
+                        "description": "IANA zone, e.g. Europe/Madrid"
+                      }
+                    },
+                    "required": [
+                      "days",
+                      "time",
+                      "timezone"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "brief",
+                  "when"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Create a routine",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "routine": {
+                      "$ref": "#/components/schemas/Routine"
+                    }
+                  },
+                  "required": [
+                    "routine"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/routines/{id}": {
+      "get": {
+        "operationId": "getRoutine",
+        "tags": [
+          "autopilot"
+        ],
+        "summary": "Get a routine, how it runs and its latest runs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get a routine, how it runs and its latest runs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "routine": {
+                      "$ref": "#/components/schemas/Routine"
+                    }
+                  },
+                  "required": [
+                    "routine"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateRoutine",
+        "tags": [
+          "autopilot"
+        ],
+        "summary": "Edit, pause or resume a routine",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "brief": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "when": {
+                    "type": "string",
+                    "enum": [
+                      "replies",
+                      "schedule"
+                    ]
+                  },
+                  "cadence": {
+                    "type": "object",
+                    "properties": {
+                      "days": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 7
+                        },
+                        "description": "ISO weekdays: 1 = Monday … 7 = Sunday"
+                      },
+                      "time": {
+                        "type": "string",
+                        "description": "HH:MM, 24-hour, in `timezone`"
+                      },
+                      "timezone": {
+                        "type": "string",
+                        "description": "IANA zone, e.g. Europe/Madrid"
+                      }
+                    },
+                    "required": [
+                      "days",
+                      "time",
+                      "timezone"
+                    ],
+                    "description": "When a scheduled routine is due"
+                  },
+                  "status": {
+                    "description": "`paused` stops it; `active` resumes it from now",
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "paused"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Edit, pause or resume a routine",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "routine": {
+                      "$ref": "#/components/schemas/Routine"
+                    }
+                  },
+                  "required": [
+                    "routine"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteRoutine",
+        "tags": [
+          "autopilot"
+        ],
+        "summary": "Delete a routine",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Delete a routine"
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/routines/{id}/run": {
+      "post": {
+        "operationId": "runRoutine",
+        "tags": [
+          "autopilot"
+        ],
+        "summary": "Run it now",
+        "description": "Meerko starts it through its Claude routine or webhook. A routine on your AI's own scheduler isn't started: `started` is false and `routine.setup.prompt` is what to run.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Run it now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "started": {
+                      "type": "boolean"
+                    },
+                    "run": {
                       "anyOf": [
                         {
-                          "$ref": "#/components/schemas/AgentHook"
+                          "$ref": "#/components/schemas/RoutineRun"
                         },
                         {
                           "type": "null"
                         }
                       ]
+                    },
+                    "error": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "routine": {
+                      "$ref": "#/components/schemas/Routine"
                     }
                   },
                   "required": [
-                    "hook"
+                    "started",
+                    "run",
+                    "error",
+                    "routine"
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/routines/{id}/start": {
+      "post": {
+        "operationId": "startRoutineRun",
+        "tags": [
+          "autopilot"
+        ],
+        "summary": "Check in at the start of a run and get the brief",
+        "description": "Call it first on every run: it records that the run happened and returns what to do.",
+        "x-meerko-replies-scope": true,
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Check in at the start of a run and get the brief",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineStart"
                 }
               }
             }
@@ -4154,64 +4753,6 @@
       }
     },
     "schemas": {
-      "AgentHook": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": [
-              "claude_routine",
-              "webhook"
-            ]
-          },
-          "url": {
-            "type": "string"
-          },
-          "secretLast4": {
-            "type": "string"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "lastFiredAt": {
-            "anyOf": [
-              {
-                "type": "string",
-                "description": "ISO 8601 timestamp"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "lastStatus": {
-            "type": [
-              "number",
-              "null"
-            ]
-          },
-          "lastError": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "ISO 8601 timestamp"
-          }
-        },
-        "required": [
-          "kind",
-          "url",
-          "secretLast4",
-          "enabled",
-          "lastFiredAt",
-          "lastStatus",
-          "lastError",
-          "createdAt"
-        ]
-      },
       "ApiError": {
         "$ref": "#/components/schemas/ApiError"
       },
@@ -4767,6 +5308,48 @@
       "PendingCells": {
         "$ref": "#/components/schemas/PendingCells"
       },
+      "PendingEmail": {
+        "type": "object",
+        "properties": {
+          "enrollment_id": {
+            "type": "string"
+          },
+          "sequence_id": {
+            "type": "string"
+          },
+          "sequence_name": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "step": {
+            "type": "number"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "send_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "enrollment_id",
+          "sequence_id",
+          "sequence_name",
+          "to",
+          "step",
+          "subject",
+          "body",
+          "send_at"
+        ]
+      },
       "Pipeline": {
         "$ref": "#/components/schemas/Pipeline"
       },
@@ -5010,6 +5593,307 @@
           "thread"
         ]
       },
+      "Routine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "brief": {
+            "type": "string"
+          },
+          "when": {
+            "type": "string",
+            "enum": [
+              "replies",
+              "schedule"
+            ]
+          },
+          "cadence": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "days": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 7
+                    },
+                    "description": "ISO weekdays: 1 = Monday … 7 = Sunday"
+                  },
+                  "time": {
+                    "type": "string",
+                    "description": "HH:MM, 24-hour, in `timezone`"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "description": "IANA zone, e.g. Europe/Madrid"
+                  }
+                },
+                "required": [
+                  "days",
+                  "time",
+                  "timezone"
+                ],
+                "description": "When a scheduled routine is due"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schedule": {
+            "type": "string",
+            "description": "In words: \"Weekdays at 09:00 (Europe/Madrid)\""
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused"
+            ]
+          },
+          "statusReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "own_scheduler",
+              "claude_routine",
+              "webhook"
+            ]
+          },
+          "triggerUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "secretLast4": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "needsSetup": {
+            "type": "boolean"
+          },
+          "nextDueAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastFiredAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineRun"
+            },
+            "description": "The latest runs, newest first"
+          },
+          "setup": {
+            "$ref": "#/components/schemas/RoutineSetup"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "brief",
+          "when",
+          "cadence",
+          "schedule",
+          "status",
+          "statusReason",
+          "trigger",
+          "triggerUrl",
+          "secretLast4",
+          "needsSetup",
+          "nextDueAt",
+          "lastFiredAt",
+          "lastError",
+          "createdAt",
+          "updatedAt",
+          "runs",
+          "setup"
+        ]
+      },
+      "RoutineRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "dueAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The scheduled time it ran for; null for replies, Run it now and runs the AI started itself"
+          },
+          "reason": {
+            "type": "string",
+            "description": "`schedule`, `replies`, `manual` (Run it now) or `ai`"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "firing",
+              "fired",
+              "fire_failed",
+              "ran",
+              "missed",
+              "no_callback"
+            ]
+          },
+          "firedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the AI checked in with start_routine_run"
+          },
+          "httpStatus": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "replies": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "sessionUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "dueAt",
+          "reason",
+          "outcome",
+          "firedAt",
+          "startedAt",
+          "httpStatus",
+          "error",
+          "replies",
+          "sessionUrl",
+          "createdAt"
+        ]
+      },
+      "RoutineSetup": {
+        "type": "object",
+        "properties": {
+          "howItRuns": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "setupPrompt": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "client": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "client",
+                "text"
+              ]
+            }
+          }
+        },
+        "required": [
+          "howItRuns"
+        ]
+      },
+      "RoutineStart": {
+        "$ref": "#/components/schemas/RoutineStart"
+      },
       "Row": {
         "type": "object",
         "properties": {
@@ -5065,6 +5949,29 @@
       },
       "SearchResult": {
         "$ref": "#/components/schemas/SearchResult"
+      },
+      "SendingMode": {
+        "type": "object",
+        "properties": {
+          "sequence_emails": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "auto"
+            ]
+          },
+          "reply_drafts": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "auto"
+            ]
+          }
+        },
+        "required": [
+          "sequence_emails",
+          "reply_drafts"
+        ]
       },
       "Sequence": {
         "type": "object",

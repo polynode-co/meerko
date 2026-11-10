@@ -5,8 +5,10 @@ import { GMAIL_SCOPES, GoogleOAuth } from "../mail/gmail.ts";
 import { SecretBox } from "../provider-keys.ts";
 import { createSequence, enrollRows, listSequenceRecipients, listSequences, previewSequence, sequenceStats, setSequenceStatus, SequenceError } from "../sequences.ts";
 import { createTable, insertRows } from "../tables.ts";
+import { approveEmails, getSendingMode, listPendingEmails, setSendingMode } from "../approvals.ts";
 import { createUnsubscribeToken, readUnsubscribeToken, runSendTick, unsubscribe } from "./sender.ts";
 
+const randomUUIDish = () => "00000000-0000-4000-8000-000000000000";
 const MON_1030_MADRID = new Date("2026-10-05T08:30:00Z");
 const SAT_NOON_MADRID = new Date("2026-10-10T10:00:00Z");
 const minutes = (d: Date, m: number) => new Date(d.getTime() + m * 60_000);
@@ -38,7 +40,7 @@ describe.skipIf(!process.env.DATABASE_URL)("sequence sender (db)", () => {
   beforeEach(async () => {
     sent = [];
     revoked = false;
-    ws = (await db.insert(workspaces).values({ name: "sender-test" }).returning())[0]!.id;
+    ws = (await db.insert(workspaces).values({ name: "sender-test", approveSequenceEmails: false }).returning())[0]!.id;
     const [mb] = await db
       .insert(mailboxes)
       .values({ workspaceId: ws, provider: "gmail", email: "iker@meerko.ai", displayName: "Iker", encryptedRefreshToken: box.encrypt("rt"), dailyLimit: 3 })
@@ -98,6 +100,35 @@ describe.skipIf(!process.env.DATABASE_URL)("sequence sender (db)", () => {
     expect(first).toMatch(/List-Unsubscribe: <https:\/\/app\.meerko\.ai\/u\/[\w-]+>/);
     expect(first).toContain("List-Unsubscribe-Post: List-Unsubscribe=One-Click");
     expect(sent[1]!.raw).toContain("To: paula@webon.example");
+  });
+
+  it("in a workspace that approves each email, sends only the approved step, and the follow-up waits again", async () => {
+    await setSendingMode(db, ws, { sequence_emails: "approve" });
+    await enrollRows(db, ws, seqId, { filter: { first_name: "Pia" }, now: MON_1030_MADRID });
+    await setSequenceStatus(db, ws, seqId, "active");
+    expect((await tick(MON_1030_MADRID)).sent).toBe(0);
+
+    const [waiting] = await listPendingEmails(db, ws, { sequenceId: seqId });
+    expect(waiting).toMatchObject({ to: "pia@slalom.example", step: 1, subject: "Quick question, Pia", body: "Hi Pia, how does Slalom handle social?" });
+    expect(await approveEmails(db, ws, { enrollmentIds: [waiting!.enrollment_id] })).toEqual({ approved: 1 });
+    // Approving twice, or from another workspace, changes nothing.
+    expect(await approveEmails(db, ws, { enrollmentIds: [waiting!.enrollment_id] })).toEqual({ approved: 0 });
+    expect(await approveEmails(db, randomUUIDish(), { sequenceId: seqId })).toEqual({ approved: 0 });
+    expect(await listPendingEmails(db, ws, { sequenceId: seqId })).toEqual([]);
+
+    expect((await tick(MON_1030_MADRID)).sent).toBe(1);
+    expect(sent[0]!.raw).toContain("Subject: Quick question, Pia");
+
+    // The follow-up is due three days later, but waits for its own approval.
+    expect((await tick(days(MON_1030_MADRID, 3))).sent).toBe(0);
+    expect(await listPendingEmails(db, ws, { sequenceId: seqId })).toMatchObject([{ step: 2, subject: "Re: Quick question, Pia" }]);
+    expect(await approveEmails(db, ws, { sequenceId: seqId })).toEqual({ approved: 1 });
+    expect((await tick(days(MON_1030_MADRID, 3))).sent).toBe(1);
+
+    // Switching to automatic sending empties the queue.
+    await setSendingMode(db, ws, { sequence_emails: "auto" });
+    expect(await getSendingMode(db, ws)).toEqual({ sequence_emails: "auto", reply_drafts: "approve" });
+    expect(await listPendingEmails(db, ws)).toEqual([]);
   });
 
   it("threads the follow-up as a reply after its delay, then completes", async () => {

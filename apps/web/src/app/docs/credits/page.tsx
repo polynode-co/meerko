@@ -32,7 +32,7 @@ export default function Page() {
         head={["Action", "Credits"]}
         rows={[
           ["Search result saved", "1 per result"],
-          ["Email found", "8"],
+          ["Email found", "5"],
           ["Email verified", "1"],
           ["Phone number found", "80, on Pro"],
           ["Counting search results", "Free"],
@@ -91,7 +91,7 @@ export default function Page() {
       <H2 id="generect">Phone numbers and Generect</H2>
       <p>
         Meerko finds phone numbers through <L href={docsSources.generect.url}>Generect</L>, and asks it for the emails Icypeas (and
-        Firecrawl, if you added a key) didn&apos;t find. A missed email found this way costs the usual 8 credits. A phone number costs 80
+        Firecrawl, if you added a key) didn&apos;t find. A missed email found this way costs the usual 5 credits. A phone number costs 80
         credits, only when one is found, and only when you ask for phones: email finding never looks them up. On Meerko Cloud, phones
         are part of Pro. Rows need a LinkedIn URL, or a first and last name plus a company or domain.
       </p>

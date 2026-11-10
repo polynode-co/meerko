@@ -152,8 +152,29 @@
     {
       "idx": 21,
       "version": "7",
-      "when": 1794313186598,
-      "tag": "0021_crm",
+      "when": 1794312639781,
+      "tag": "0021_reply_digest",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794318338247,
+      "tag": "0022_approval_mode",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794318479125,
+      "tag": "0023_routines",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794318593403,
+      "tag": "0024_crm",
       "breakpoints": true
     }
   ]

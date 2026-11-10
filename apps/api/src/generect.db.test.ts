@@ -70,14 +70,14 @@ describe.skipIf(!process.env.DATABASE_URL)("Generect: missed emails and phone nu
     return tableId;
   };
 
-  it("finds the emails Icypeas missed on Meerko's key, at the usual 8 credits", async () => {
+  it("finds the emails Icypeas missed on Meerko's key, at the usual 5 credits", async () => {
     const tableId = await newTable();
     const before = await getBalance(db, ws);
     const res = await enrich(tableId, ["email"]);
-    expect(await res.json()).toMatchObject({ found: { email: 1 }, creditsSpent: 8 });
+    expect(await res.json()).toMatchObject({ found: { email: 1 }, creditsSpent: 5 });
     expect(sent.at(-1)).toEqual({ path: "/api/v1/email/find/", auth: "Token meerko-server-key" });
     expect((await queryRows(db, ws, tableId))[0]!.data).toMatchObject({ email: "ana@acme.es", email_certainty: "very_sure" });
-    expect(await getBalance(db, ws)).toBe(before - 8);
+    expect(await getBalance(db, ws)).toBe(before - 5);
   });
 
   it("keeps phones on Pro, then charges 80 credits per number found", async () => {
@@ -99,7 +99,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Generect: missed emails and phone nu
     await call("/v1/provider-keys/icypeas", { method: "PUT", body: JSON.stringify({ key: "icy-own-1234" }) });
     const tableId = await newTable();
     const res = await enrich(tableId, ["email"]);
-    expect(await res.json()).toMatchObject({ found: { email: 1 }, creditsSpent: 8 });
+    expect(await res.json()).toMatchObject({ found: { email: 1 }, creditsSpent: 5 });
     await call("/v1/provider-keys/icypeas", { method: "DELETE" });
   });
 
