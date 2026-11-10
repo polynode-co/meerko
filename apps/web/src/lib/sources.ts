@@ -55,6 +55,12 @@ export const lemlistSources = { pricing: { label: "lemlist pricing", url: "https
 export const smartleadSources = { pricing: { label: "Smartlead pricing", url: "https://www.smartlead.ai/pricing" } };
 export const hunterSources = { pricing: { label: "Hunter pricing", url: "https://hunter.io/pricing" } };
 
+/** For /docs/crm. Checked 10 Nov 2026. */
+export const crmSources = {
+  hubspotServiceKeys: { label: "HubSpot changelog: Legacy APIs and apps, what's going unsupported and when", url: "https://developers.hubspot.com/changelog/legacy-apis-and-legacy-apps-whats-going-unsupported-and-when" },
+  attioApiKey: { label: "Attio Help: Generating an API key", url: "https://attio.com/help/apps/other-apps/generating-an-api-key" },
+};
+
 /** For /docs: the setup steps that depend on other products. */
 export const docsSources = {
   claudeCodeMcp: { label: "Claude Code docs: Connect Claude Code to tools via MCP", url: "https://code.claude.com/docs/en/mcp" },

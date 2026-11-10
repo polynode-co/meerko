@@ -761,6 +761,66 @@ keys
     console.log(deleted ? `Removed ${provider} key.` : `No ${provider} key was stored.`);
   });
 
+const crm = program.command("crm").description("push contacted leads to HubSpot or Attio");
+
+crm
+  .command("status", { isDefault: true })
+  .description("show the connected CRM")
+  .action(async () => {
+    const conn = await MeerkoClient.fromEnv().getCrm();
+    if (json()) return console.log(JSON.stringify({ connection: conn }));
+    if (!conn) return console.log("No CRM connected. Run `meerko crm connect hubspot` or `meerko crm connect attio`.");
+    console.log(`${conn.accountName ?? conn.provider} (token …${conn.last4}) · auto-sync ${conn.autoSync ? "on" : "off"}`);
+    if (conn.lastSyncedAt) console.log(`Last sync: ${conn.lastSyncedAt}`);
+    if (conn.lastError) console.log(`Last error: ${conn.lastError}`);
+  });
+
+crm
+  .command("connect <provider>")
+  .description("connect hubspot (a private app token) or attio (an API key); asks for it without showing it")
+  .option("--no-auto", "only sync when you run `meerko crm sync`")
+  .action(async (provider: string, opts: { auto: boolean }) => {
+    if (provider !== "hubspot" && provider !== "attio") throw new Error("provider must be hubspot or attio");
+    const token = await ask(provider === "hubspot" ? "HubSpot private app token: " : "Attio API key: ", true);
+    const conn = await MeerkoClient.fromEnv().connectCrm(provider, token, { autoSync: opts.auto });
+    console.log(json() ? JSON.stringify({ connection: conn }) : `Connected ${conn.accountName ?? provider}. ${conn.autoSync ? "Leads go there once Meerko has emailed them." : "Run `meerko crm sync <tableId>` to push leads."}`);
+  });
+
+crm
+  .command("sync <tableId>")
+  .description("push a table's rows (all not yet pushed, or --rows) to the CRM")
+  .option("--rows <ids>", "comma-separated row ids")
+  .action(async (tableId: string, opts: { rows?: string }) => {
+    const client = MeerkoClient.fromEnv();
+    const rowIds = opts.rows?.split(",").map((r) => r.trim()).filter(Boolean);
+    let total = { synced: 0, skipped: 0, failed: 0 };
+    for (;;) {
+      const res = await client.syncCrm(tableId, rowIds);
+      total = { synced: total.synced + res.synced, skipped: total.skipped + res.skipped, failed: total.failed + res.failed };
+      for (const e of res.errors) console.error(e);
+      // Specific rows are pushed in one pass of up to 100; a table keeps going while passes make progress.
+      if (rowIds || res.remaining === 0 || res.synced + res.skipped === 0) break;
+    }
+    console.log(json() ? JSON.stringify(total) : `Pushed ${total.synced} to the CRM${total.skipped ? `, skipped ${total.skipped} without an email` : ""}${total.failed ? `, ${total.failed} failed` : ""}.`);
+  });
+
+crm
+  .command("auto <state>")
+  .description("turn automatic sync on or off")
+  .action(async (state: string) => {
+    if (state !== "on" && state !== "off") throw new Error("state must be on or off");
+    const conn = await MeerkoClient.fromEnv().setCrmAutoSync(state === "on");
+    console.log(`Auto-sync ${conn.autoSync ? "on" : "off"}.`);
+  });
+
+crm
+  .command("disconnect")
+  .description("disconnect the CRM (contacts already there stay)")
+  .action(async () => {
+    await MeerkoClient.fromEnv().deleteCrm();
+    console.log("CRM disconnected.");
+  });
+
 program
   .command("credits")
   .description("show the workspace credit balance")

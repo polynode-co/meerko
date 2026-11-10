@@ -165,6 +165,37 @@ export async function removeSlack() {
   return run((c) => c.deleteSlack().then(() => "Disconnected"), ["/app/settings"]);
 }
 
+/** Connects HubSpot or Attio. The API checks the token with the CRM before saving it, encrypted. */
+export async function connectCrm(_: unknown, form: FormData): Promise<ActionResult> {
+  const provider = form.get("provider");
+  const token = String(form.get("token") ?? "").trim();
+  if (provider !== "hubspot" && provider !== "attio") return { ok: false, error: "Pick HubSpot or Attio" };
+  if (token.length < 8) return { ok: false, error: provider === "hubspot" ? "Paste the full private app token" : "Paste the full API key" };
+  return run(
+    (c) => c.connectCrm(provider, token).then((conn) => `Connected ${conn.accountName ?? provider}. Leads go there once Meerko has emailed them.`),
+    ["/app/settings"],
+  );
+}
+
+export async function setCrmAutoSync(autoSync: boolean) {
+  return run((c) => c.setCrmAutoSync(autoSync).then((conn) => (conn.autoSync ? "Auto-sync on" : "Auto-sync off: only manual syncs")), ["/app/settings"]);
+}
+
+export async function removeCrm() {
+  return run((c) => c.deleteCrm().then(() => "Disconnected. Contacts already in the CRM stay there."), ["/app/settings"]);
+}
+
+/** One pass of up to 100 rows; the button calls it again while rows remain. */
+export async function syncCrmBatch(tableId: string, rowIds?: string[]) {
+  try {
+    const res = await (await meerko()).syncCrm(tableId, rowIds);
+    return { ok: true as const, ...res };
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false as const, error: err.message };
+    throw err;
+  }
+}
+
 const PROVIDER_KEYS = ["icypeas", "firecrawl", "generect"] as const;
 const PROVIDER_NAMES: Record<ProviderKeyId, string> = { icypeas: "Icypeas", firecrawl: "Firecrawl", generect: "Generect" };
 type ProviderKeyId = (typeof PROVIDER_KEYS)[number];

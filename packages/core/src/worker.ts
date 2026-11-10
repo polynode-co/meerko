@@ -1,5 +1,6 @@
 import type { Db } from "@meerko/db";
 import { runAgentNotifyTick, type AgentNotifyResult } from "./agent-hooks.ts";
+import { runCrmSyncTick, type CrmTickResult } from "./crm.ts";
 import { runReplyTick, type ReplyTickResult } from "./replies/replies.ts";
 import { runSendTick, type SenderDeps, type TickResult } from "./sending/sender.ts";
 import { runSlackNotifyTick, type SlackNotifyResult } from "./slack.ts";
@@ -14,6 +15,9 @@ export interface WorkerTickResult {
   /** Replies and drafts posted to Slack. */
   slack?: SlackNotifyResult;
   slackError?: string;
+  /** Contacted leads pushed to the workspace's CRM. */
+  crm?: CrmTickResult;
+  crmError?: string;
   send: TickResult;
 }
 
@@ -23,7 +27,7 @@ export interface WorkerTickResult {
  * `POST /internal/tick` (cloud, so nothing has to stay running). Overlapping passes are safe: sends are
  * claimed with SKIP LOCKED and each inbound Gmail message is stored once.
  */
-export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string; hookFetch?: typeof fetch; allowPrivateHooks?: boolean; slackFetch?: typeof fetch }, opts: { replies: boolean }): Promise<WorkerTickResult> {
+export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string; hookFetch?: typeof fetch; allowPrivateHooks?: boolean; slackFetch?: typeof fetch; crmFetch?: typeof fetch }, opts: { replies: boolean }): Promise<WorkerTickResult> {
   const result: Partial<WorkerTickResult> = {};
   if (opts.replies) {
     try {
@@ -42,6 +46,12 @@ export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string
       result.slack = await runSlackNotifyTick(db, { box: deps.box, appUrl: deps.appUrl, now: deps.now, fetch: deps.slackFetch });
     } catch (err) {
       result.slackError = err instanceof Error ? err.message : String(err);
+    }
+    // And push leads whose stage moved to the workspace's CRM.
+    try {
+      result.crm = await runCrmSyncTick(db, { box: deps.box ?? null, fetch: deps.crmFetch });
+    } catch (err) {
+      result.crmError = err instanceof Error ? err.message : String(err);
     }
   }
   return { ...result, send: await runSendTick(db, deps) };

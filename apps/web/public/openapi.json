@@ -46,7 +46,7 @@
     },
     {
       "name": "settings",
-      "description": "API keys, connected apps, agent hook, Slack and billing"
+      "description": "API keys, connected apps, agent hook, Slack, CRM and billing"
     }
   ],
   "paths": {
@@ -1430,6 +1430,69 @@
                   "required": [
                     "updated"
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tables/{id}/crm-sync": {
+      "post": {
+        "operationId": "syncCrm",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Push rows to the connected CRM as contacts, matched by email",
+        "description": "Up to 100 rows per call; `remaining` says how many are left.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "row_ids": {
+                    "description": "Only these rows (up to 100). Without it, every row not yet pushed or changed since, 100 per call",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Push rows to the connected CRM as contacts, matched by email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrmSyncResult"
                 }
               }
             }
@@ -3856,6 +3919,200 @@
         }
       }
     },
+    "/v1/crm": {
+      "get": {
+        "operationId": "getCrm",
+        "tags": [
+          "settings"
+        ],
+        "summary": "The CRM leads are pushed to (HubSpot or Attio)",
+        "responses": {
+          "200": {
+            "description": "The CRM leads are pushed to (HubSpot or Attio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connection": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/CrmConnection"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "connection"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "connectCrm",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Connect HubSpot or Attio",
+        "description": "The token is checked with the CRM first, then stored encrypted. Replaces any CRM already connected.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "type": "string",
+                    "enum": [
+                      "hubspot",
+                      "attio"
+                    ]
+                  },
+                  "token": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 500,
+                    "description": "A HubSpot private app token or an Attio API key, entered by a person"
+                  },
+                  "auto_sync": {
+                    "description": "Push leads automatically once Meerko has contacted them. Defaults to true",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "provider",
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connect HubSpot or Attio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connection": {
+                      "$ref": "#/components/schemas/CrmConnection"
+                    }
+                  },
+                  "required": [
+                    "connection"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateCrm",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Turn automatic CRM sync on or off",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "auto_sync": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "auto_sync"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Turn automatic CRM sync on or off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connection": {
+                      "$ref": "#/components/schemas/CrmConnection"
+                    }
+                  },
+                  "required": [
+                    "connection"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCrm",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Disconnect the CRM (contacts already there stay)",
+        "responses": {
+          "200": {
+            "description": "Disconnect the CRM (contacts already there stay)"
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/billing": {
       "get": {
         "operationId": "getBilling",
@@ -4073,6 +4330,63 @@
       },
       "Credits": {
         "$ref": "#/components/schemas/Credits"
+      },
+      "CrmConnection": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "hubspot",
+              "attio"
+            ]
+          },
+          "last4": {
+            "type": "string"
+          },
+          "accountName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "autoSync": {
+            "type": "boolean"
+          },
+          "lastSyncedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          }
+        },
+        "required": [
+          "provider",
+          "last4",
+          "accountName",
+          "autoSync",
+          "lastSyncedAt",
+          "lastError",
+          "createdAt"
+        ]
+      },
+      "CrmSyncResult": {
+        "$ref": "#/components/schemas/CrmSyncResult"
       },
       "DomainHealth": {
         "type": "object",

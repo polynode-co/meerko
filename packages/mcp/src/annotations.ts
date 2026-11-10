@@ -72,4 +72,5 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   discard_draft: destructive("Discard a reply draft"),
   pipeline: read("Show the pipeline"),
   move_stage: write("Move leads to a pipeline stage"),
+  sync_crm: write("Push leads to the CRM", true), // writes contacts into HubSpot or Attio
 };

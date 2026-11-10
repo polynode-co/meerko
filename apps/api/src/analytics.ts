@@ -20,6 +20,7 @@ export const EVENTS = {
   creditsPurchased: "credits_purchased",
   agentHookConfigured: "agent_hook_configured",
   slackConnected: "slack_connected",
+  crmConnected: "crm_connected",
   workspaceCreated: "workspace_created",
 } as const;
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

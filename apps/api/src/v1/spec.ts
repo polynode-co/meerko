@@ -45,7 +45,7 @@ export const TAGS = {
   sequences: "Multi-step email sequences",
   replies: "Replies to sequences, and the drafts answering them",
   credits: "Credits and the BYOK provider keys that bypass them",
-  settings: "API keys, connected apps, agent hook, Slack and billing",
+  settings: "API keys, connected apps, agent hook, Slack, CRM and billing",
 } as const;
 export type Tag = keyof typeof TAGS;
 
@@ -82,6 +82,7 @@ export const V1: Operation[] = [
   { method: "put", path: "/icp", id: "setIcp", tag: "leads", summary: "Set the ideal customer profile; every lead is rescored against it", access: "any", body: s.icpInput, response: obj({ icp: s.Icp }) },
   { method: "delete", path: "/icp", id: "clearIcp", tag: "leads", summary: "Remove the ideal customer profile (scores go blank)", access: "any", response: obj({ cleared: z.boolean() }) },
   { method: "post", path: "/tables/:id/icp-review", id: "reviewIcpFit", tag: "leads", summary: "Adjust rows' ICP scores with a reason (the agent's judgement)", description: "Moves each row's rules-based score by up to ±30.", access: "any", body: s.icpReviewInput, response: obj({ updated: z.number() }) },
+  { method: "post", path: "/tables/:id/crm-sync", id: "syncCrm", tag: "tables", summary: "Push rows to the connected CRM as contacts, matched by email", description: "Up to 100 rows per call; `remaining` says how many are left.", access: "any", body: s.crmSyncInput, response: s.CrmSyncResult },
   { method: "post", path: "/websites/read", id: "readWebsite", tag: "leads", summary: "Read a website's text, to work out who it sells to (free)", description: "Meerko fetches the home page and returns its text; your agent decides the ideal customer from it. Public sites only.", access: "any", body: s.websiteInput, response: s.Website },
   { method: "post", path: "/search/companies", id: "searchCompanies", tag: "leads", summary: "Find companies and add them to a table (spends credits)", access: "any", body: s.searchInput, status: 201, response: s.SearchResult },
   { method: "post", path: "/tables/:id/enrich", id: "enrichRows", tag: "leads", summary: "Find and verify emails, or find phone numbers, for rows (spends credits)", access: "any", body: s.enrichInput, response: s.EnrichResult },
@@ -143,6 +144,10 @@ export const V1: Operation[] = [
   { method: "put", path: "/slack/webhook", id: "setSlackWebhook", tag: "settings", summary: "Post to Slack through an incoming webhook", access: "user", body: s.slackWebhookInput, response: obj({ connection: s.SlackConnection }) },
   { method: "post", path: "/slack/test", id: "testSlack", tag: "settings", summary: "Post a test message to Slack", access: "user", response: obj({ ok: z.boolean(), error: z.string().nullable() }) },
   { method: "delete", path: "/slack", id: "deleteSlack", tag: "settings", summary: "Disconnect Slack", access: "user", response: null },
+  { method: "get", path: "/crm", id: "getCrm", tag: "settings", summary: "The CRM leads are pushed to (HubSpot or Attio)", access: "any", response: obj({ connection: s.CrmConnection.nullable() }) },
+  { method: "put", path: "/crm", id: "connectCrm", tag: "settings", summary: "Connect HubSpot or Attio", description: "The token is checked with the CRM first, then stored encrypted. Replaces any CRM already connected.", access: "any", body: s.crmConnectInput, response: obj({ connection: s.CrmConnection }) },
+  { method: "patch", path: "/crm", id: "updateCrm", tag: "settings", summary: "Turn automatic CRM sync on or off", access: "any", body: s.crmUpdateInput, response: obj({ connection: s.CrmConnection }) },
+  { method: "delete", path: "/crm", id: "deleteCrm", tag: "settings", summary: "Disconnect the CRM (contacts already there stay)", access: "any", response: null },
   { method: "get", path: "/billing", id: "getBilling", tag: "settings", summary: "Plan, subscription and balance (Meerko Cloud)", access: "any", response: s.Billing },
   { method: "post", path: "/billing/checkout", id: "startCheckout", tag: "settings", summary: "Start a Stripe checkout for Pro or a credit pack", access: "owner", body: s.checkoutInput, response: s.Url },
   { method: "post", path: "/billing/portal", id: "openBillingPortal", tag: "settings", summary: "Open the Stripe billing portal", access: "owner", response: s.Url },

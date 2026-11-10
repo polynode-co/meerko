@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import { AGENT_INTENTS, BYOK_PROVIDERS, MAX_CREDIT_PACKS } from "@meerko/core";
-import { AGENT_HOOK_KINDS, API_KEY_SCOPES, STAGES } from "@meerko/db";
+import { AGENT_HOOK_KINDS, API_KEY_SCOPES, CRM_PROVIDERS, STAGES } from "@meerko/db";
 
 // --- Requests ---
 
@@ -162,6 +162,15 @@ export const approveDraftInput = z.object({ body: z.string().min(1).max(20_000).
 export const pipelineQuery = z.object({ table_id: z.string().optional() });
 export const byokProvider = z.enum(BYOK_PROVIDERS);
 export const providerKeyInput = z.object({ key: z.string().min(8) });
+export const crmConnectInput = z.object({
+  provider: z.enum(CRM_PROVIDERS),
+  token: z.string().trim().min(8).max(500).describe("A HubSpot private app token or an Attio API key, entered by a person"),
+  auto_sync: z.boolean().optional().describe("Push leads automatically once Meerko has contacted them. Defaults to true"),
+});
+export const crmUpdateInput = z.object({ auto_sync: z.boolean() });
+export const crmSyncInput = z.object({
+  row_ids: z.array(z.string()).min(1).max(100).optional().describe("Only these rows (up to 100). Without it, every row not yet pushed or changed since, 100 per call"),
+});
 
 // --- Responses (mirroring @meerko/sdk) ---
 
@@ -236,6 +245,23 @@ export const AgentHook = z.object({
   lastStatus: z.number().nullable(),
   lastError: z.string().nullable(),
   createdAt: ts,
+});
+export const CrmConnection = z.object({
+  provider: z.enum(CRM_PROVIDERS),
+  last4: z.string(),
+  accountName: z.string().nullable(),
+  autoSync: z.boolean(),
+  lastSyncedAt: nts,
+  lastError: z.string().nullable(),
+  createdAt: ts,
+});
+export const CrmSyncResult = z.object({
+  provider: z.enum(CRM_PROVIDERS),
+  synced: z.number().int(),
+  skipped: z.number().int().describe("Rows without a usable email: CRMs match contacts by email"),
+  failed: z.number().int(),
+  remaining: z.number().int().describe("Rows still waiting; call again to continue"),
+  errors: z.array(z.string()),
 });
 export const SlackConnection = z.object({
   kind: z.enum(["app", "webhook"]),

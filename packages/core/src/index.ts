@@ -38,4 +38,5 @@ export * from "./mail/system-mail.ts";
 export * from "./billing.ts";
 export * from "./agent-hooks.ts";
 export * from "./slack.ts";
+export * from "./crm.ts";
 export * from "./workspaces.ts";
