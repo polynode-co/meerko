@@ -14,8 +14,8 @@ const silkscreen = Silkscreen({ subsets: ["latin"], variable: "--font-silkscreen
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
-  // Targets "ai sales agent" (1.3k/mo US, KD 15, +140% YoY) and "ai sdr" (DataForSEO, Oct 2026).
-  title: "Meerko — the open-source AI sales agent",
+  // Leads with the headline (Iker, 2026-11-10); the description keeps "AI sales agent" and "AI SDR" for search.
+  title: "Meerko — the outbound engine for your AI agent",
   description:
     "Meerko is an open-source AI sales agent (AI SDR): find leads, send cold email from your own Gmail or Outlook and catch every reply, from Claude, ChatGPT or your coding agent.",
   icons: { icon: "/meerko-icon.svg" },
@@ -23,13 +23,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Meerko",
-    title: "Meerko — the open-source AI sales agent",
+    title: "Meerko — the outbound engine for your AI agent",
     description: "An AI SDR you run from Claude, ChatGPT or your coding agent: find leads, send from your own Gmail or Outlook, catch every reply. Open source.",
-    images: [{ url: "/og/meerko.jpg", width: 1200, height: 630, alt: "Meerko: always on the lookout for your next customer. The open-source AI sales agent." }],
+    images: [{ url: "/og/meerko.jpg", width: 1200, height: 630, alt: "Meerko: the outbound engine for your AI agent. The open-source AI sales agent." }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Meerko — the open-source AI sales agent",
+    title: "Meerko — the outbound engine for your AI agent",
     description: "An AI SDR you run from Claude, ChatGPT or your coding agent: find leads, send from your own Gmail or Outlook, catch every reply. Open source.",
     images: ["/og/meerko.jpg"],
   },
