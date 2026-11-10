@@ -2491,6 +2491,170 @@
         }
       }
     },
+    "/v1/sending-mode": {
+      "get": {
+        "operationId": "getSendingMode",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Whether a person approves each email before it goes, for sequences and for reply drafts",
+        "responses": {
+          "200": {
+            "description": "Whether a person approves each email before it goes, for sequences and for reply drafts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "$ref": "#/components/schemas/SendingMode"
+                    }
+                  },
+                  "required": [
+                    "mode"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pending-emails": {
+      "get": {
+        "operationId": "listPendingEmails",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Sequence emails waiting for approval, soonest first, as each lead will get them",
+        "parameters": [
+          {
+            "name": "sequence_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sequence emails waiting for approval, soonest first, as each lead will get them",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "emails": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PendingEmail"
+                      }
+                    }
+                  },
+                  "required": [
+                    "emails"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pending-emails/approve": {
+      "post": {
+        "operationId": "approveEmails",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Approve leads' next sequence email; each goes when it's due",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enrollment_ids": {
+                    "description": "Approve these leads' next email",
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sequence_id": {
+                    "description": "Approve the next email of every lead waiting in this sequence",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approve leads' next sequence email; each goes when it's due",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "approved": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "approved"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/sequences/{id}": {
       "get": {
         "operationId": "getSequence",
@@ -3227,6 +3391,7 @@
           "replies"
         ],
         "summary": "Save a draft answer for a person to approve",
+        "description": "When the workspace sends reply drafts on its own (sending mode `reply_drafts: auto`), the draft is sent straight away and `sent` says so; if sending fails it stays pending, with `send_error`.",
         "x-meerko-replies-scope": true,
         "parameters": [
           {
@@ -3280,6 +3445,28 @@
                         "id",
                         "body"
                       ]
+                    },
+                    "sent": {
+                      "type": "object",
+                      "properties": {
+                        "sent": {
+                          "type": "boolean"
+                        },
+                        "to": {
+                          "type": "string"
+                        },
+                        "subject": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "sent",
+                        "to",
+                        "subject"
+                      ]
+                    },
+                    "send_error": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -4453,6 +4640,48 @@
       "PendingCells": {
         "$ref": "#/components/schemas/PendingCells"
       },
+      "PendingEmail": {
+        "type": "object",
+        "properties": {
+          "enrollment_id": {
+            "type": "string"
+          },
+          "sequence_id": {
+            "type": "string"
+          },
+          "sequence_name": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "step": {
+            "type": "number"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "send_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "enrollment_id",
+          "sequence_id",
+          "sequence_name",
+          "to",
+          "step",
+          "subject",
+          "body",
+          "send_at"
+        ]
+      },
       "Pipeline": {
         "$ref": "#/components/schemas/Pipeline"
       },
@@ -4751,6 +4980,29 @@
       },
       "SearchResult": {
         "$ref": "#/components/schemas/SearchResult"
+      },
+      "SendingMode": {
+        "type": "object",
+        "properties": {
+          "sequence_emails": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "auto"
+            ]
+          },
+          "reply_drafts": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "auto"
+            ]
+          }
+        },
+        "required": [
+          "sequence_emails",
+          "reply_drafts"
+        ]
       },
       "Sequence": {
         "type": "object",

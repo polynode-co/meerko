@@ -26,6 +26,10 @@ import {
   connectOutlook,
   listReplies,
   ReplyError,
+  approveEmails,
+  getSendingMode,
+  listPendingEmails,
+  setSendingMode,
   createSequence,
   enrollRows as enrollSequenceRows,
   getSequence,
@@ -181,6 +185,9 @@ import {
   createTableInput,
   deleteRowsInput,
   draftInput,
+  sendingModeInput,
+  pendingEmailsQuery,
+  approveEmailsInput,
   enrichInput,
   enrollInput,
   gmailAppPasswordInput,
@@ -1405,9 +1412,45 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     return c.json({ reply: await classifyReply(db, c.var.workspaceId, c.req.param("id"), intent, handled) });
   });
 
+  const approveDeps = () => ({ box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, fetch: deps.gmailFetch, imap: deps.imap });
+
   v1.post("/replies/:id/draft", async (c) => {
     const { body } = await parse(draftInput, await c.req.json());
-    return c.json({ draft: await draftReply(db, c.var.workspaceId, c.req.param("id"), body) }, 201);
+    const draft = await draftReply(db, c.var.workspaceId, c.req.param("id"), body);
+    // A workspace that sends reply drafts on its own: send it now. If that fails, it waits as a normal draft.
+    if ((await getSendingMode(db, c.var.workspaceId)).reply_drafts === "auto") {
+      try {
+        const sent = await approveDraft(db, c.var.workspaceId, draft.id, approveDeps());
+        await syncSlackDraft(db, slackDeps(), draft.id, "sent", "Meerko (auto-send)");
+        return c.json({ draft, sent }, 201);
+      } catch (err) {
+        return c.json({ draft, send_error: err instanceof Error ? err.message : String(err) }, 201);
+      }
+    }
+    return c.json({ draft }, 201);
+  });
+
+  // Approval before sending: the workspace's choice, and the sequence emails waiting for a person.
+  v1.get("/sending-mode", async (c) => c.json({ mode: await getSendingMode(db, c.var.workspaceId) }));
+
+  v1.put("/sending-mode", async (c) => {
+    requireUser(c, "Sign in to the dashboard to choose how emails are sent");
+    const input = await parse(sendingModeInput, await c.req.json().catch(() => ({})));
+    const mode = await setSendingMode(db, c.var.workspaceId, input);
+    await analytics.capture({ distinctId: c.var.user!.id, event: EVENTS.sendingModeSet, workspaceId: c.var.workspaceId, properties: { ...mode } });
+    return c.json({ mode });
+  });
+
+  v1.get("/pending-emails", async (c) => {
+    const { sequence_id, limit } = await parse(pendingEmailsQuery, c.req.query());
+    return c.json({ emails: await listPendingEmails(db, c.var.workspaceId, { sequenceId: sequence_id, limit }) });
+  });
+
+  v1.post("/pending-emails/approve", async (c) => {
+    const { enrollment_ids, sequence_id } = await parse(approveEmailsInput, await c.req.json().catch(() => ({})));
+    const res = await approveEmails(db, c.var.workspaceId, { enrollmentIds: enrollment_ids, sequenceId: sequence_id });
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.emailsApproved, workspaceId: c.var.workspaceId, properties: { count: res.approved, whole_sequence: !!sequence_id } });
+    return c.json(res);
   });
 
   v1.get("/drafts", async (c) => {
@@ -1417,7 +1460,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/drafts/:id/approve", async (c) => {
     const { body } = await parse(approveDraftInput, await c.req.json().catch(() => ({})));
-    const sent = await approveDraft(db, c.var.workspaceId, c.req.param("id"), { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, fetch: deps.gmailFetch, imap: deps.imap }, body);
+    const sent = await approveDraft(db, c.var.workspaceId, c.req.param("id"), approveDeps(), body);
     await syncSlackDraft(db, slackDeps(), c.req.param("id"), "sent", c.var.user ? (c.var.user.name ?? c.var.user.email) : undefined);
     return c.json(sent);
   });

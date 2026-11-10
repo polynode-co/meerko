@@ -68,7 +68,7 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     queries = [];
     threadOf = {};
     sends = [];
-    ws = (await db.insert(workspaces).values({ name: "replies-test" }).returning())[0]!.id;
+    ws = (await db.insert(workspaces).values({ name: "replies-test", approveSequenceEmails: false }).returning())[0]!.id;
     const [mb] = await db
       .insert(mailboxes)
       .values({ workspaceId: ws, provider: "gmail", email: "iker@meerko.ai", encryptedRefreshToken: box.encrypt("rt") })

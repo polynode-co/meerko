@@ -148,6 +148,13 @@
       "when": 1794051936738,
       "tag": "0020_icp",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794313115315,
+      "tag": "0021_approval_mode",
+      "breakpoints": true
     }
   ]
 }

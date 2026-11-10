@@ -100,6 +100,10 @@ export const V1: Operation[] = [
 
   // --- sequences ---
   { method: "get", path: "/sequences", id: "listSequences", tag: "sequences", summary: "List sequences", access: "any", response: obj({ sequences: z.array(s.SequenceSummary) }) },
+  { method: "get", path: "/sending-mode", id: "getSendingMode", tag: "sequences", summary: "Whether a person approves each email before it goes, for sequences and for reply drafts", access: "any", response: obj({ mode: s.SendingMode }) },
+  { method: "put", path: "/sending-mode", id: "setSendingMode", tag: "sequences", summary: "Choose approval or automatic sending (a signed-in person)", access: "user", body: s.sendingModeInput, response: obj({ mode: s.SendingMode }) },
+  { method: "get", path: "/pending-emails", id: "listPendingEmails", tag: "sequences", summary: "Sequence emails waiting for approval, soonest first, as each lead will get them", access: "any", query: s.pendingEmailsQuery, response: obj({ emails: z.array(s.PendingEmail) }) },
+  { method: "post", path: "/pending-emails/approve", id: "approveEmails", tag: "sequences", summary: "Approve leads' next sequence email; each goes when it's due", access: "any", body: s.approveEmailsInput, response: obj({ approved: z.number() }) },
   { method: "post", path: "/sequences", id: "createSequence", tag: "sequences", summary: "Create a sequence (as a draft)", access: "any", body: s.createSequenceInput, status: 201, response: obj({ sequence: s.Sequence }) },
   { method: "get", path: "/sequences/:id", id: "getSequence", tag: "sequences", summary: "Get a sequence and its steps", access: "any", response: obj({ sequence: s.Sequence }) },
   { method: "patch", path: "/sequences/:id", id: "updateSequence", tag: "sequences", summary: "Change a sequence's steps, mailboxes or sending window", access: "any", body: s.updateSequenceInput, response: obj({ sequence: s.Sequence }) },
@@ -114,7 +118,7 @@ export const V1: Operation[] = [
   // --- replies ---
   { method: "get", path: "/replies", id: "listReplies", tag: "replies", summary: "List replies, with their threads", access: "any", scope: "replies", query: s.listRepliesQuery, response: obj({ replies: z.array(s.Reply) }) },
   { method: "post", path: "/replies/:id/classify", id: "classifyReply", tag: "replies", summary: "Set a reply's intent", access: "any", scope: "replies", body: s.classifyInput, response: obj({ reply: obj({ id: z.string(), intent: z.string(), handledAt: z.string().nullable() }) }) },
-  { method: "post", path: "/replies/:id/draft", id: "draftReply", tag: "replies", summary: "Save a draft answer for a person to approve", access: "any", scope: "replies", body: s.draftInput, status: 201, response: obj({ draft: obj({ id: z.string(), body: z.string() }) }) },
+  { method: "post", path: "/replies/:id/draft", id: "draftReply", tag: "replies", summary: "Save a draft answer for a person to approve", description: "When the workspace sends reply drafts on its own (sending mode `reply_drafts: auto`), the draft is sent straight away and `sent` says so; if sending fails it stays pending, with `send_error`.", access: "any", scope: "replies", body: s.draftInput, status: 201, response: obj({ draft: obj({ id: z.string(), body: z.string() }), sent: obj({ sent: z.boolean(), to: z.string(), subject: z.string() }).optional(), send_error: z.string().optional() }) },
   { method: "get", path: "/drafts", id: "listDrafts", tag: "replies", summary: "List drafts", access: "any", scope: "replies", query: s.listDraftsQuery, response: obj({ drafts: z.array(s.Draft) }) },
   { method: "post", path: "/drafts/:id/approve", id: "approveDraft", tag: "replies", summary: "Send a draft", access: "any", body: s.approveDraftInput, response: obj({ sent: z.boolean(), to: z.string(), subject: z.string() }) },
   { method: "post", path: "/drafts/:id/discard", id: "discardDraft", tag: "replies", summary: "Discard a draft", access: "any", response: obj({ discarded: z.boolean() }) },

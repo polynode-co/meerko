@@ -119,6 +119,14 @@ export async function testAgentHook(): Promise<ActionResult> {
   }
 }
 
+export async function approveEmails(input: { enrollmentIds?: string[]; sequenceId?: string }) {
+  return run((c) => c.approveEmails(input).then((r) => `Approved ${r.approved} ${r.approved === 1 ? "email" : "emails"}`), ["/app"]);
+}
+
+export async function setSendingMode(mode: { sequence_emails?: "approve" | "auto"; reply_drafts?: "approve" | "auto" }) {
+  return run((c) => c.setSendingMode(mode).then(() => "Saved"), ["/app"]);
+}
+
 export async function enableAgentHook() {
   return run((c) => c.enableAgentHook().then(() => "Turned back on"), ["/app/settings"]);
 }

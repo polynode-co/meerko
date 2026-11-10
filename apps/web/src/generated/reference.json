@@ -1064,7 +1064,7 @@
       {
         "name": "start_sequence",
         "title": "Start sending a sequence",
-        "description": "Start sending a sequence. Real emails go to real people from the user's mailbox: only call this after the user has seen the preview and explicitly approved. Sends respect the send window, the mailbox's daily limit and spacing.",
+        "description": "Start sending a sequence. Real emails go to real people from the user's mailbox: only call this after the user has seen the preview and explicitly approved. Sends respect the send window, the mailbox's daily limit and spacing. If the workspace approves each email (get_sending_mode), nothing goes until approved: show the user list_pending_emails.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": true,
@@ -1080,6 +1080,70 @@
           "required": [
             "sequence_id"
           ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "get_sending_mode",
+        "title": "Get the sending mode",
+        "description": "Whether the user approves each email before it goes ('approve', the default) or Meerko sends on its own ('auto'), for sequence emails and for reply drafts. The user changes it in the dashboard's Connections.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "list_pending_emails",
+        "title": "List emails waiting for approval",
+        "description": "Sequence emails waiting for the user's approval, soonest first, exactly as each lead will get them. Show them to the user before approve_emails.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sequence_id": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "approve_emails",
+        "title": "Approve emails to send",
+        "description": "Approve leads' next sequence email; each goes when it's due, inside the send window and the mailbox's limits. Real emails to real people: only call this after the user has read them (list_pending_emails) and explicitly said to send. Pass enrollment_ids for some, or sequence_id for every lead waiting in that sequence.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "enrollment_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "sequence_id": {
+              "type": "string"
+            }
+          },
           "$schema": "http://json-schema.org/draft-07/schema#"
         }
       },
@@ -1214,7 +1278,7 @@
       {
         "name": "draft_reply",
         "title": "Draft a reply",
-        "description": "Save a draft answer to a reply (from list_replies). Nothing is sent: the user reviews it first.\nWrite like a person answering an email: short, specific to what they said, in their language, with one clear next step (e.g. two meeting times or a booking link if the user gave you one). Sign off with the sender's first name: Gmail doesn't add the user's signature to emails sent through Meerko. Drafting again for the same reply replaces the pending draft.",
+        "description": "Save a draft answer to a reply (from list_replies). Nothing is sent: the user reviews it first, unless they chose to send reply drafts automatically (get_sending_mode), in which case it goes at once and the result has `sent`.\nWrite like a person answering an email: short, specific to what they said, in their language, with one clear next step (e.g. two meeting times or a booking link if the user gave you one). Sign off with the sender's first name: Gmail doesn't add the user's signature to emails sent through Meerko. Drafting again for the same reply replaces the pending draft.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -1920,6 +1984,37 @@
         "usage": "meerko sequences start <sequenceId>",
         "group": "sequences",
         "description": "start sending (within the send window, respecting mailbox limits)",
+        "options": []
+      },
+      {
+        "usage": "meerko sequences pending [sequenceId]",
+        "group": "sequences",
+        "description": "emails waiting for your approval, as each lead will get them",
+        "options": [
+          {
+            "flags": "-n, --limit <n>",
+            "description": "how many",
+            "default": "20",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko sequences approve [sequenceId]",
+        "group": "sequences",
+        "description": "approve the next email of every lead waiting in a sequence, or of the leads given with --lead",
+        "options": [
+          {
+            "flags": "-l, --lead <enrollmentId...>",
+            "description": "only these leads (ids from `meerko seq pending`)",
+            "required": false
+          }
+        ]
+      },
+      {
+        "usage": "meerko sequences mode",
+        "group": "sequences",
+        "description": "whether you approve each email first, or Meerko sends on its own (change it in the dashboard)",
         "options": []
       },
       {
