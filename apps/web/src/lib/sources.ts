@@ -58,6 +58,8 @@ export const instantlySources = { pricing: { label: "Instantly pricing", url: "h
 /** Reply.io, lemlist, Smartlead and Hunter, for /alternatives and /compare. Each vendor's own pricing page, checked 5 Nov 2026. */
 export const replySources = { pricing: { label: "Reply.io pricing", url: "https://reply.io/pricing/" } };
 export const lemlistSources = { pricing: { label: "lemlist pricing", url: "https://www.lemlist.com/pricing" } };
+/** Oxygen, for /alternatives/oxygen. Oxygen's own pricing page (plans, credit table and FAQ), checked 10 Nov 2026. */
+export const oxygenSources = { pricing: { label: "Oxygen pricing", url: "https://www.oxygen-agent.com/pricing" } };
 export const smartleadSources = { pricing: { label: "Smartlead pricing", url: "https://www.smartlead.ai/pricing" } };
 export const hunterSources = { pricing: { label: "Hunter pricing", url: "https://hunter.io/pricing" } };
 

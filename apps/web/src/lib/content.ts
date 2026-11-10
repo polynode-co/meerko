@@ -163,6 +163,7 @@ export const alternatives: AlternativeEntry[] = [
   { slug: "lemlist", name: "lemlist", logo: "/logos/lemlist.png", summary: "lemlist pricing and features next to Meerko, from lemlist's own pages." },
   { slug: "smartlead", name: "Smartlead", logo: "/logos/smartlead.png", summary: "Smartlead pricing and features next to Meerko, from Smartlead's own pages." },
   { slug: "hunter", name: "Hunter", logo: "/logos/hunter.png", summary: "Hunter's email finder, verifier and pricing next to Meerko, from Hunter's own pages." },
+  { slug: "oxygen", name: "Oxygen", logo: "/logos/oxygen.png", summary: "Oxygen's plans, credit prices and mailbox fees next to Meerko, from Oxygen's own pricing page." },
 ];
 
 /** Head-to-head pages under /compare: two other tools side by side, Meerko as a third option. */
