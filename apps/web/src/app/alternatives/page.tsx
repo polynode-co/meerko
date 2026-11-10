@@ -6,7 +6,7 @@ import { alternatives, versusPages } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Open-Source Alternatives to Clay, Apollo, Instantly & lemlist | Meerko",
-  description: "How Meerko, the open-source AI sales agent, compares with Clay, Apollo, Instantly, Reply.io, lemlist, Smartlead and Hunter on price and features, from each vendor's own pages.",
+  description: "How Meerko, the open-source AI sales agent, compares with Clay, Apollo, Instantly, Reply.io, lemlist, Smartlead, Hunter and Oxygen on price and features, from each vendor's own pages.",
   alternates: { canonical: "/alternatives" },
 };
 
