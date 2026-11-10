@@ -119,6 +119,10 @@ export async function testAgentHook(): Promise<ActionResult> {
   }
 }
 
+export async function setDigest(enabled: boolean) {
+  return run((c) => c.setDigest(enabled).then(() => (enabled ? "Turned on" : "Turned off")), ["/app/settings"]);
+}
+
 /** The optional questions after sign-up. Saving with nothing picked counts as a skip; either way, carry on. */
 export async function saveProfile(form: FormData) {
   const pick = (k: string) => {
