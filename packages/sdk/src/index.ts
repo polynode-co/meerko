@@ -385,7 +385,7 @@ export class MeerkoClient {
 
   /** Uses the token from a sign-in link and returns a session token, once (public). */
   verifyEmailSignIn(token: string) {
-    return this.call<{ token: string; expires_at: string }>("POST", "/auth/email/verify", { token });
+    return this.call<{ token: string; expires_at: string; new_user?: boolean }>("POST", "/auth/email/verify", { token });
   }
 
   /** Trades the one-time code from the Google sign-in callback for a session token (public; no key needed). */
@@ -449,6 +449,11 @@ export class MeerkoClient {
   /** Needs a dashboard session. The returned `key` is shown once; only its prefix is kept. */
   createApiKey(name: string, scope: ApiKey["scope"] = "full") {
     return this.request<{ id: string; name: string; scope: ApiKey["scope"]; key: string }>("POST", "/api-keys", { name, scope });
+  }
+
+  /** The optional questions asked once after sign-up; every answer may be left out. */
+  saveProfile(answers: { role?: "founder" | "gtm" | "agency" | "other"; company_size?: "1" | "2-10" | "11-50" | "51-200" | "201+"; agent?: "claude" | "chatgpt" | "claude_code" | "codex" | "cursor" | "other" | "none" }) {
+    return this.request<void>("POST", "/me/profile", answers);
   }
 
   getAgentHook() {
