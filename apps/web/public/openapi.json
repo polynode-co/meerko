@@ -3307,6 +3307,19 @@
             }
           },
           {
+            "name": "needs_you",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Unclassified replies plus unhandled ones with a draft waiting: what waits on the person"
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,

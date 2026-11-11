@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Meerko", robots: { index: false } };
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [me, mailboxes, replies, credits, workspaces] = await load((c) =>
-    Promise.all([c.me(), c.listMailboxes(), c.listReplies({ limit: 100 }), c.getCredits(), c.listWorkspaces()]),
+    Promise.all([c.me(), c.listMailboxes(), c.listReplies({ needsYou: true, limit: 100 }), c.getCredits(), c.listWorkspaces()]),
   );
   const mailbox = mailboxes[0] ?? null;
 

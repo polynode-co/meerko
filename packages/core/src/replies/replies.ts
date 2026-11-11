@@ -9,6 +9,7 @@ import {
   isNull,
   mailboxes,
   messages,
+  replyDrafts,
   sequences,
   sequenceSteps,
   sql,
@@ -266,6 +267,11 @@ export interface ListRepliesOptions {
   unclassified?: boolean;
   /** Include out-of-office, bounces and unsubscribes (hidden by default). */
   includeAutomatic?: boolean;
+  /**
+   * What waits on the person: unclassified replies, plus unhandled ones with a draft to approve (an agent that
+   * labels a reply and drafts an answer hasn't finished with it until someone sends or discards the draft).
+   */
+  needsYou?: boolean;
   limit?: number;
 }
 
@@ -274,7 +280,11 @@ export async function listReplies(db: Db, workspaceId: string, opts: ListReplies
   const conds: SQL[] = [eq(messages.workspaceId, workspaceId), eq(messages.direction, "in")];
   if (opts.sequenceId) conds.push(eq(enrollments.sequenceId, opts.sequenceId));
   if (opts.intent) conds.push(eq(messages.intent, opts.intent));
-  else if (opts.unclassified ?? true) conds.push(sql`${messages.intent} is null`);
+  else if (opts.needsYou) {
+    conds.push(
+      sql`(${messages.intent} is null or (${messages.handledAt} is null and exists (select 1 from ${replyDrafts} where ${replyDrafts.replyId} = ${messages.id} and ${replyDrafts.status} = 'pending')))`,
+    );
+  } else if (opts.unclassified ?? true) conds.push(sql`${messages.intent} is null`);
   if (!opts.includeAutomatic && !opts.intent) conds.push(sql`coalesce(${messages.intent}, '') not in ('bounce', 'out_of_office', 'unsubscribe')`);
 
   const replies = await db

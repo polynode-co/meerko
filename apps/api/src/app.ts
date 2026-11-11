@@ -1543,6 +1543,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       intent: q.intent,
       unclassified: q.unclassified ? q.unclassified === "true" : undefined,
       includeAutomatic: q.include_automatic === "true",
+      needsYou: q.needs_you === "true",
       limit: q.limit,
     });
     return c.json({ replies });
