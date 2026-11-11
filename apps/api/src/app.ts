@@ -184,6 +184,7 @@ import {
   type MicrosoftOAuth,
   type SecretBox,
   type IcypeasQuery,
+  INSTALL_ID_RE,
 } from "@meerko/core";
 import type { ApiKeyScope, Db } from "@meerko/db";
 import { createAnalytics, EVENTS, signupSource, type Analytics } from "./analytics.ts";
@@ -434,6 +435,16 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   };
 
   app.get("/health", (c) => c.json({ ok: true }));
+
+  // Opt-in install count from self-hosted workers (packages/core/src/telemetry.ts). Only a hashed install id comes in;
+  // it's counted with no person profile. Not a /v1 capability: no user calls it.
+  app.post("/telemetry/ping", async (c) => {
+    const body = (await c.req.json().catch(() => null)) as { install_id?: unknown } | null;
+    const id = body?.install_id;
+    if (typeof id !== "string" || !INSTALL_ID_RE.test(id)) return c.json({ error: "Expected { install_id: <sha256 hex> }" }, 400);
+    await analytics.capture({ distinctId: `install:${id}`, event: EVENTS.selfHostPinged, properties: { $process_person_profile: false } });
+    return c.body(null, 204);
+  });
 
   const googleOAuth = () => {
     if (!deps.googleOAuth) throw new HTTPException(503, { message: "Gmail isn't configured on this server (set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)" });

@@ -28,6 +28,7 @@ export const EVENTS = {
   slackConnected: "slack_connected",
   crmConnected: "crm_connected",
   workspaceCreated: "workspace_created",
+  selfHostPinged: "self_host_pinged",
 } as const;
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];
 

@@ -31,6 +31,7 @@ export default function Page() {
         ["agent", "Connect your agent"],
         ["docker", "Run it all with Docker"],
         ["production", "Running it in production"],
+        ["telemetry", "Telemetry"],
         ["updating", "Updating"],
       ]}
     >
@@ -168,6 +169,7 @@ export default function Page() {
           ["MEERKO_TICK_SECRET", "Meerko Cloud only, where a scheduler replaces the worker. Leave it empty."],
           ["STRIPE_*", "Billing, as on Meerko Cloud (see .env.example). Leave them empty: no billing and no plan limits."],
           ["POSTHOG_API_KEY · NEXT_PUBLIC_POSTHOG_KEY · POSTHOG_HOST", "Product analytics (POSTHOG_HOST defaults to PostHog's EU cloud). Leave the keys empty and nothing is sent anywhere."],
+          ["MEERKO_TELEMETRY", <>1 sends Meerko one anonymous ping a day so we can count installs. Off by default; see <L href="#telemetry">Telemetry</L>.</>],
           ["NEXT_PUBLIC_SITE_URL", "The dashboard's public URL, built into its image (Docker builds only). Same as MEERKO_APP_URL."],
         ]}
       />
@@ -225,6 +227,18 @@ export default function Page() {
         </li>
         <li>Back up Postgres, and the encryption key with it.</li>
       </ul>
+
+      <H2 id="telemetry">Telemetry</H2>
+      <p>
+        Off by default: a self-hosted Meerko sends nothing to us. If you&apos;d like to be counted, set <C>MEERKO_TELEMETRY=1</C>{" "}
+        for the worker. Once a day it posts one field to <C>https://api.meerko.ai/telemetry/ping</C>: <C>install_id</C>, a SHA-256
+        hash of your first workspace&apos;s id. That lets us count installs without being able to tell whose they are.
+      </p>
+      <p>
+        Nothing else goes with it: no leads, mail, mailboxes, users, workspace names, hostnames or usage counts. The code is{" "}
+        <C>packages/core/src/telemetry.ts</C>. Unset the variable to stop. The worker only pings once{" "}
+        <C>MEERKO_ENCRYPTION_KEY</C> is set and a workspace exists.
+      </p>
 
       <H2 id="updating">Updating</H2>
       {sh(["git pull", "pnpm install", "pnpm db:migrate"])}

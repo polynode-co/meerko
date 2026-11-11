@@ -44,3 +44,4 @@ export * from "./crm.ts";
 export * from "./digest.ts";
 export * from "./workspaces.ts";
 export * from "./approvals.ts";
+export * from "./telemetry.ts";

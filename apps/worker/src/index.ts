@@ -1,6 +1,6 @@
 // Background jobs for self-hosting: the email sender every 30s and the reply scan every 2 minutes.
 // Meerko Cloud doesn't run this process; Cloud Scheduler calls POST /internal/tick on the API instead.
-import { GoogleOAuth, MicrosoftOAuth, runWorkerTick, SecretBox, smtpMailer } from "@meerko/core";
+import { GoogleOAuth, MicrosoftOAuth, runWorkerTick, SecretBox, sendTelemetryPing, smtpMailer, TELEMETRY_EVERY_MS, telemetryEnabled } from "@meerko/core";
 import { createDb } from "@meerko/db";
 
 const TICK_MS = 30_000;
@@ -84,4 +84,12 @@ if (!box) {
   console.log(`Meerko worker running (sender every ${TICK_MS / 1000}s, replies every ${(TICK_MS * REPLY_EVERY_TICKS) / 60_000} min)`);
   const timer = setInterval(() => void (busy || tick()), TICK_MS);
   void tick();
+
+  // Opt-in anonymous install count (MEERKO_TELEMETRY=1, off by default): one ping a day with a hashed install id.
+  if (telemetryEnabled()) {
+    console.log("Telemetry on: one anonymous install ping a day (unset MEERKO_TELEMETRY to stop).");
+    const ping = () => void sendTelemetryPing(db, { url: process.env.MEERKO_TELEMETRY_URL });
+    ping();
+    setInterval(ping, TELEMETRY_EVERY_MS).unref();
+  }
 }
