@@ -61,7 +61,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         {mailboxes.length === 0 && <p className="px-[18px] py-6 text-[15px] text-lk-muted">Connect the inbox you send from: Gmail, Google Workspace, Outlook, Microsoft 365, Zoho, Fastmail or any IMAP/SMTP provider.</p>}
         {mailboxes.map((m) => (
           <div key={m.id} className="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-lk-line px-[18px] py-4 last:border-0">
-            <span className="flex min-w-0 flex-1 flex-col">
+            <span className="flex min-w-[min(100%,240px)] flex-1 flex-col">
               <span className="font-plex text-[14px] break-all text-lk-fg">{m.email}</span>
               {(m.login || m.servers) && (
                 <span className="font-plex text-[12px] text-lk-dim">
