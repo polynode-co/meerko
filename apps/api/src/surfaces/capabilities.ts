@@ -383,6 +383,15 @@ export const CAPABILITIES: Capability[] = [
     api: API,
   },
   {
+    id: "delete-sequence",
+    summary: "Delete a paused or draft sequence",
+    routes: ["deleteSequence"],
+    web: yes(action("deleteSequence")),
+    mcp: yes("delete_sequence"),
+    cli: yes("sequences delete"),
+    api: API,
+  },
+  {
     id: "sequence-pool",
     summary: "See a sequence's mailboxes and today's sending",
     routes: ["sequencePool"],

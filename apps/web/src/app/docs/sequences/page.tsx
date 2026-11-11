@@ -41,7 +41,7 @@ export default function Page() {
         ["stops", "When it stops for a lead"],
         ["ask", "Ask your agent"],
       ]}
-      tools={["create_sequence", "update_sequence", "preview_sequence", "enroll_rows", "start_sequence", "pause_sequence", "list_sequences", "sequence_stats"]}
+      tools={["create_sequence", "update_sequence", "preview_sequence", "enroll_rows", "start_sequence", "pause_sequence", "delete_sequence", "list_sequences", "sequence_stats"]}
     >
       <Callout icon={ShieldCheck}>
         <p>
