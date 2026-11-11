@@ -9,10 +9,12 @@ import { buttonClass, Card, CardHead, monoLabel, th } from "@/components/app/ui"
 const RED = "#e5795b";
 const domainOf = (email: string) => email.split("@")[1]!;
 
-function StatusPill({ status, rampDay }: { status: "active" | "error"; rampDay: number | null }) {
+function StatusPill({ status, rampDay, held }: { status: "active" | "error"; rampDay: number | null; held?: boolean }) {
   const [text, cls] =
     status === "error"
       ? ["Reconnect", "text-[#e5795b] outline-[#e5795b]/60"]
+      : held
+        ? ["Paused · see Settings", "text-[#e5795b] outline-[#e5795b]/60"]
       : rampDay
         ? [`Ramping · day ${rampDay}/21`, "text-lk-fg outline-lk-muted"]
         : ["Ready", "bg-lk-ink text-lk-lime outline-lk-line"];
@@ -122,7 +124,7 @@ export function MailboxPoolCard({
                   </span>
                 </td>
                 <td className="px-3 py-3">
-                  <StatusPill status={m.status} rampDay={m.rampDay} />
+                  <StatusPill status={m.status} rampDay={m.rampDay} held={m.held} />
                 </td>
                 <td className="w-[180px] px-3 py-3">
                   <span className="flex flex-col gap-1.5">
@@ -235,7 +237,7 @@ function EditPoolModal({
                       <span className="font-plex text-sm text-lk-dim">
                         {m.rampDay ? `${m.effectiveLimit}/day → ${m.dailyLimit}` : `${m.dailyLimit}/day`}
                       </span>
-                      <StatusPill status={m.status} rampDay={m.rampDay} />
+                      <StatusPill status={m.status} rampDay={m.rampDay} held={m.heldAt !== null} />
                     </label>
                   );
                 })}

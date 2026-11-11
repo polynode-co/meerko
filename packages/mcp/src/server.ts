@@ -330,7 +330,7 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
   tool(
     "list_mailboxes",
     {
-      description: "List connected sending mailboxes with their daily limit, what they may send today (effectiveLimit, lower while a new mailbox ramps up; rampDay) and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail.",
+      description: "List connected sending mailboxes with their daily limit, what they may send today (effectiveLimit, lower while a new mailbox ramps up; rampDay) and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail. A mailbox with `heldAt` set was paused by Meerko for too many hard bounces or spam rejections (`holdDetail` says which): it sends nothing, and the pool's other mailboxes keep sending. Tell the user, and resume it with update_mailbox only when they ask.",
       inputSchema: {},
     },
     () => run(() => client().listMailboxes()),
@@ -340,16 +340,18 @@ email_certainty values: ultra_sure, very_sure, probable (deliverability unconfir
     "update_mailbox",
     {
       description: `Set a mailbox's daily send limit, the sender name recipients see, or its ramp.
-New mailboxes ramp up automatically: they start at 10 emails a day and grow to their daily limit over 21 days (list_mailboxes shows effectiveLimit and rampDay). Turn the ramp off only for an inbox that already sends regularly.`,
+New mailboxes ramp up automatically: they start at 10 emails a day and grow to their daily limit over 21 days (list_mailboxes shows effectiveLimit and rampDay). Turn the ramp off only for an inbox that already sends regularly.
+\`resume: true\` lifts a hold Meerko put on the mailbox after too many bounces or spam rejections (\`heldAt\` in list_mailboxes). Only when the user asks for it, after they've seen why it was held.`,
       inputSchema: {
         mailbox_id: z.string(),
         daily_limit: z.number().int().min(1).max(500).optional(),
         display_name: z.string().optional(),
         ramp: z.boolean().optional().describe("true restarts the 21-day ramp from today; false sends at the full daily limit now"),
+        resume: z.literal(true).optional().describe("Lift Meerko's hold on this mailbox; only when the user asks"),
       },
     },
-    ({ mailbox_id, daily_limit, display_name, ramp }) =>
-      run(() => client().updateMailbox(mailbox_id, { dailyLimit: daily_limit, displayName: display_name, ramp })),
+    ({ mailbox_id, daily_limit, display_name, ramp, resume }) =>
+      run(() => client().updateMailbox(mailbox_id, { dailyLimit: daily_limit, displayName: display_name, ramp, resume })),
   );
 
   tool(

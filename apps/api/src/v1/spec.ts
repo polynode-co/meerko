@@ -97,7 +97,7 @@ export const V1: Operation[] = [
   { method: "post", path: "/mailboxes/gmail/connect", id: "connectGmail", tag: "mailboxes", summary: "Start connecting Gmail through Google's consent screen (when the server enables it)", access: "any", body: s.oauthConnectInput, response: s.Url },
   { method: "post", path: "/mailboxes/outlook/connect", id: "connectOutlook", tag: "mailboxes", summary: "Start connecting Outlook / Microsoft 365", access: "any", body: s.oauthConnectInput, response: s.Url },
   { method: "get", path: "/mailboxes/health", id: "mailboxHealth", tag: "mailboxes", summary: "SPF, DKIM and DMARC for each sending domain", access: "any", response: obj({ domains: z.array(s.DomainHealth) }) },
-  { method: "patch", path: "/mailboxes/:id", id: "updateMailbox", tag: "mailboxes", summary: "Change a mailbox's daily limit, name or ramp-up", access: "any", body: s.updateMailboxInput, response: obj({ mailbox: s.Mailbox }) },
+  { method: "patch", path: "/mailboxes/:id", id: "updateMailbox", tag: "mailboxes", summary: "Change a mailbox's daily limit, name or ramp-up, or resume it after a hold", access: "any", body: s.updateMailboxInput, response: obj({ mailbox: s.Mailbox }) },
   { method: "delete", path: "/mailboxes/:id", id: "deleteMailbox", tag: "mailboxes", summary: "Disconnect a mailbox", access: "any", response: deleted },
   { method: "post", path: "/mailboxes/:id/test", id: "sendTestEmail", tag: "mailboxes", summary: "Send a test email from a mailbox", access: "any", body: s.testEmailInput, response: obj({ sent: z.boolean(), messageId: z.string().nullable() }) },
 

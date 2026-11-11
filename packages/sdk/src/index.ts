@@ -221,6 +221,11 @@ export interface Mailbox {
   rampDay: number | null;
   status: "active" | "error";
   lastError: string | null;
+  /** Set while Meerko holds the mailbox for too many bounces or spam rejections: it sends nothing until resumed. */
+  heldAt: string | null;
+  holdReason: "bounces" | "rejections" | null;
+  /** What tripped the hold, in words. */
+  holdDetail: string | null;
   createdAt: string;
 }
 
@@ -244,6 +249,8 @@ export interface SequencePool {
     email: string;
     displayName: string | null;
     status: "active" | "error";
+    /** Paused by Meerko for bounces or spam rejections (see Mailbox.heldAt). */
+    held: boolean;
     dailyLimit: number;
     effectiveLimit: number;
     rampDay: number | null;
@@ -753,11 +760,13 @@ export class MeerkoClient {
     return this.request<{ mailboxes: Mailbox[] }>("GET", "/mailboxes").then((r) => r.mailboxes);
   }
 
-  updateMailbox(id: string, patch: { dailyLimit?: number; displayName?: string | null; ramp?: boolean }) {
+  /** `resume: true` lifts a hold Meerko put on the mailbox (see Mailbox.heldAt). */
+  updateMailbox(id: string, patch: { dailyLimit?: number; displayName?: string | null; ramp?: boolean; resume?: true }) {
     return this.request<{ mailbox: Mailbox }>("PATCH", `/mailboxes/${id}`, {
       daily_limit: patch.dailyLimit,
       display_name: patch.displayName,
       ramp: patch.ramp,
+      resume: patch.resume,
     }).then((r) => r.mailbox);
   }
 
