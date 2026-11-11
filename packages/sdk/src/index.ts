@@ -342,6 +342,8 @@ export interface StoredConfig {
   apiUrl?: string;
   apiKey?: string;
   oauth?: { clientId: string; accessToken: string; refreshToken: string };
+  /** When the CLI showed its one-time "star the repo" note; it never shows again after this. */
+  starPromptShownAt?: string;
 }
 
 export function readStoredConfig(): StoredConfig {
