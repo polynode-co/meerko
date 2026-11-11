@@ -113,6 +113,7 @@ export const V1: Operation[] = [
   { method: "get", path: "/sequences/:id/preview", id: "previewSequence", tag: "sequences", summary: "Render each step for one row, with any missing variables", access: "any", query: s.previewQuery, response: s.SequencePreview },
   { method: "post", path: "/sequences/:id/enroll", id: "enrollRows", tag: "sequences", summary: "Enroll rows, by id or filter", access: "any", body: s.enrollInput, response: s.EnrollResult },
   { method: "post", path: "/sequences/:id/start", id: "startSequence", tag: "sequences", summary: "Start sending", access: "any", response: obj({ sequence: s.Sequence }) },
+  { method: "delete", path: "/sequences/:id", id: "deleteSequence", tag: "sequences", summary: "Delete a paused or draft sequence, its steps and enrollments; replies stay", access: "any", response: obj({ deleted: z.boolean() }) },
   { method: "post", path: "/sequences/:id/pause", id: "pauseSequence", tag: "sequences", summary: "Pause sending", access: "any", response: obj({ sequence: s.Sequence }) },
   { method: "get", path: "/sequences/:id/pool", id: "sequencePool", tag: "sequences", summary: "The sequence's mailboxes and today's sending", access: "any", response: s.SequencePool },
   { method: "get", path: "/sequences/:id/stats", id: "sequenceStats", tag: "sequences", summary: "Sent, replied and per-step numbers", access: "any", response: s.SequenceStats },

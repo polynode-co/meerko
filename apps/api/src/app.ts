@@ -121,6 +121,7 @@ import {
   MailboxInUseError,
   TableInUseError,
   deleteRows,
+  deleteSequence,
   deleteTable,
   sequencePool,
   approveAuthorization,
@@ -1535,6 +1536,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     await analytics.capture({ distinctId: actor(c), event: EVENTS.sequenceStarted, workspaceId: c.var.workspaceId });
     return c.json({ sequence });
   });
+  v1.delete("/sequences/:id", async (c) => c.json(await deleteSequence(db, c.var.workspaceId, c.req.param("id"))));
   v1.post("/sequences/:id/pause", async (c) => c.json({ sequence: await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "paused") }));
   v1.get("/sequences/:id/pool", async (c) => c.json(await sequencePool(db, c.var.workspaceId, c.req.param("id"))));
   v1.get("/sequences/:id/stats", async (c) => c.json(await sequenceStats(db, c.var.workspaceId, c.req.param("id"))));

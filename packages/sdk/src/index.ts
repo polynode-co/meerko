@@ -828,6 +828,11 @@ export class MeerkoClient {
     return this.request<{ sequence: Sequence }>("POST", `/sequences/${id}/pause`).then((r) => r.sequence);
   }
 
+  /** Delete a paused or draft sequence with its steps and enrollments; replies stay. Refused (400) while it's active. */
+  deleteSequence(id: string) {
+    return this.request<{ deleted: boolean }>("DELETE", `/sequences/${id}`);
+  }
+
   sequenceStats(id: string) {
     return this.request<{
       id: string;

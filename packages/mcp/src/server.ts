@@ -485,6 +485,16 @@ Then: preview_sequence to check, enroll_rows, show the user the preview and enro
   );
 
   tool(
+    "delete_sequence",
+    {
+      description:
+        "Permanently delete a sequence with its steps and enrollments; replies it got stay in the inbox and the leads stay in their table. Refused while it's active (pause it first). Confirm with the user before deleting.",
+      inputSchema: { sequence_id: z.string() },
+    },
+    ({ sequence_id }) => run(() => client().deleteSequence(sequence_id)),
+  );
+
+  tool(
     "list_sequences",
     { description: "List sequences with status and enrollment counts.", inputSchema: {} },
     () => run(() => client().listSequences()),

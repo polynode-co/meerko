@@ -4,6 +4,7 @@ import { MeerkoApiError } from "@meerko/sdk";
 import { EnrollButton } from "@/components/app/enroll-button";
 import { MailboxPoolCard } from "@/components/app/mailbox-pool";
 import { PendingEmails } from "@/components/app/pending-emails";
+import { DeleteSequence } from "@/components/app/delete-sequence";
 import { SequenceToggle } from "@/components/app/sequence-toggle";
 import { Card, CardHead, formatWhen, monoLabel, Page, PageHeader, PaperWindow, Pill, td, th, type PillTone } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
@@ -134,7 +135,10 @@ export default async function SequencePage({ params, searchParams }: { params: P
           <p className="font-pixel text-[14px] text-lk-fg uppercase">{banner.title}</p>
           <p className="text-[15px] text-lk-muted">{banner.text}</p>
         </div>
-        <SequenceToggle id={id} status={seq.status} />
+        <div className="flex flex-wrap items-center gap-2">
+          <SequenceToggle id={id} status={seq.status} />
+          {seq.status !== "active" && <DeleteSequence sequenceId={id} name={seq.name} />}
+        </div>
       </section>
 
       {seq.status !== "draft" && waiting.length > 0 && <PendingEmails sequenceId={id} emails={waiting.slice(0, 20)} total={waiting.length} />}
