@@ -20,15 +20,16 @@ export class OAuthStateError extends Error {}
 
 /**
  * OAuth `state`: the workspace id, encrypted and authenticated, so the public callback can trust it.
- * `returnTo` (already validated by the caller) is where the callback sends the browser afterwards.
+ * `returnTo` (already validated by the caller) is where the callback sends the browser afterwards. `actorId` is who
+ * started the connect, so the callback's analytics land on that person rather than on the workspace.
  */
-export function createOAuthState(box: SecretBox | null, workspaceId: string, returnTo?: string) {
+export function createOAuthState(box: SecretBox | null, workspaceId: string, returnTo?: string, actorId?: string) {
   if (!box) throw new EncryptionNotConfiguredError();
-  const payload = JSON.stringify({ w: workspaceId, exp: Date.now() + STATE_TTL_MS, n: randomBytes(8).toString("hex"), r: returnTo });
+  const payload = JSON.stringify({ w: workspaceId, exp: Date.now() + STATE_TTL_MS, n: randomBytes(8).toString("hex"), r: returnTo, a: actorId });
   return Buffer.from(box.encrypt(payload), "base64").toString("base64url");
 }
 
-function decodeOAuthState(box: SecretBox, state: string): { w: string; exp: number; r?: string } | null {
+function decodeOAuthState(box: SecretBox, state: string): { w: string; exp: number; r?: string; a?: string } | null {
   try {
     return JSON.parse(box.decrypt(Buffer.from(state, "base64url").toString("base64")));
   } catch {
@@ -42,6 +43,11 @@ export function readOAuthState(box: SecretBox | null, state: string): string {
   if (!payload) throw new OAuthStateError("Invalid sign-in link. Start again with `meerko mailboxes connect --google`.");
   if (payload.exp < Date.now()) throw new OAuthStateError("This sign-in link expired. Start again with `meerko mailboxes connect --google`.");
   return payload.w;
+}
+
+/** Who started the connect, from a genuine `state`; undefined for states made before it was recorded. */
+export function readOAuthActor(box: SecretBox | null, state: string): string | undefined {
+  return (box && decodeOAuthState(box, state)?.a) || undefined;
 }
 
 /** The return URL carried in a genuine `state`, even an expired one (so the user still lands back in the app). */

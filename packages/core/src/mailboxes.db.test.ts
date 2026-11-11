@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { createDb, dataTables, eq, mailboxes, sequenceMailboxes, sequences, workspaces, type Db } from "@meerko/db";
 import { GMAIL_SCOPES, GoogleOAuth } from "./mail/gmail.ts";
-import { connectGmail, createOAuthState, deleteMailbox, listMailboxes, MailboxInUseError, OAuthStateError, readOAuthReturnTo, readOAuthState, sendTestEmail } from "./mailboxes.ts";
+import { connectGmail, createOAuthState, deleteMailbox, listMailboxes, MailboxInUseError, OAuthStateError, readOAuthActor, readOAuthReturnTo, readOAuthState, sendTestEmail } from "./mailboxes.ts";
 import { SecretBox } from "./provider-keys.ts";
 
 describe.skipIf(!process.env.DATABASE_URL)("mailboxes (db)", () => {
@@ -83,6 +83,8 @@ describe.skipIf(!process.env.DATABASE_URL)("mailboxes (db)", () => {
     const id = "00000000-0000-0000-0000-000000000000";
     expect(readOAuthReturnTo(box, createOAuthState(box, id, "https://app.example/app/settings"))).toBe("https://app.example/app/settings");
     expect(readOAuthReturnTo(box, createOAuthState(box, id))).toBeUndefined();
+    expect(readOAuthActor(box, createOAuthState(box, id, undefined, "user-1"))).toBe("user-1");
+    expect(readOAuthActor(box, createOAuthState(box, id))).toBeUndefined();
     expect(readOAuthReturnTo(box, "not-a-state")).toBeUndefined();
     const other = new SecretBox(randomBytes(32).toString("base64"));
     expect(readOAuthReturnTo(box, createOAuthState(other, id, "https://evil.example"))).toBeUndefined();
