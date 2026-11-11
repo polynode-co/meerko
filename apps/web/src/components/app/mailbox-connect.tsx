@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useEffect, useState } from "react";
 import { MAIL_PROVIDERS, type MailProviderId } from "@meerko/sdk/constants";
 import { connectGmail, connectMailbox, connectOutlook } from "@/app/app/actions";
+import { site } from "@/lib/site";
 import { buttonClass, cardTitle } from "./ui";
 
 const field = "w-full bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime text-[15px]";
@@ -126,6 +127,14 @@ function ConnectForm({ oauth, outlook, initialEmail, onCancel, onDone }: { oauth
       ) : (
         <>
         <div className="flex flex-col gap-1.5">
+          {gmail && outlook && (
+            <p className="mb-2 flex flex-wrap items-center gap-2 text-lk-dim">
+              Using Outlook or Microsoft 365?
+              <button type="button" onClick={() => setProvider("outlook")} className={link}>
+                One click with Sign in with Microsoft
+              </button>
+            </p>
+          )}
           <p className="font-semibold">
             {gmail
               ? "Connect a Gmail or Google Workspace inbox with an app password"
@@ -139,18 +148,28 @@ function ConnectForm({ oauth, outlook, initialEmail, onCancel, onDone }: { oauth
                 <li>
                   Turn on{" "}
                   <a href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noreferrer" className={link}>2-Step Verification</a>{" "}
-                  for the account, if it isn&apos;t on yet.
+                  for the account, if it isn&apos;t on yet. App passwords only appear once it is.
                 </li>
                 <li>
-                  <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className={link}>Create an app password</a>: name it
-                  &quot;Meerko&quot; and copy the 16 letters Google shows you.
+                  Open{" "}
+                  <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className={link}>App passwords</a>{" "}
+                  (Google may ask for your password again).
                 </li>
-                <li>Paste it below. Meerko checks it with Gmail before saving it, encrypted.</li>
+                <li>Under App name, type &quot;Meerko&quot; and click Create.</li>
+                <li>Copy the 16-letter password Google shows you. It&apos;s shown once; spaces don&apos;t matter.</li>
+                <li>Paste it below with the address. Meerko checks it with Gmail before saving it, encrypted.</li>
               </>
             ) : (
               providerSteps[provider].map((step, i) => <li key={i}>{step}</li>)
             )}
           </ol>
+          {gmail && (
+            <p className="text-sm text-lk-dim">
+              No App passwords page? A Google Workspace admin may have turned it off:{" "}
+              <a href="/docs/mailboxes#no-app-password" target="_blank" className={link}>what to check, and the steps for your admin</a>. Still
+              stuck? Email <a href={`mailto:${site.contactEmail}`} className={link}>{site.contactEmail}</a>.
+            </p>
+          )}
           <p className="text-sm text-lk-dim">
             {gmail
               ? "Google emails you a security alert when the password is created and first used. That's expected."
