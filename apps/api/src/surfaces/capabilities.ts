@@ -300,6 +300,15 @@ export const CAPABILITIES: Capability[] = [
     api: API,
   },
   {
+    id: "resume-mailbox",
+    summary: "Resume a mailbox Meerko paused for bounces or spam rejections",
+    routes: ["updateMailbox"],
+    web: yes(action("resumeMailbox")),
+    mcp: yes("update_mailbox"),
+    cli: yes("mailboxes resume"),
+    api: API,
+  },
+  {
     id: "delete-mailbox",
     summary: "Disconnect a mailbox",
     routes: ["deleteMailbox"],

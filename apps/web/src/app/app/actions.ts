@@ -333,6 +333,11 @@ export async function disconnectMailbox(mailboxId: string): Promise<ActionResult
   }, ["/app/settings"]);
 }
 
+/** Lifts the hold Meerko put on a mailbox after too many bounces or spam rejections. */
+export async function resumeMailbox(mailboxId: string): Promise<ActionResult> {
+  return run((c) => c.updateMailbox(mailboxId, { resume: true }).then((m) => `${m.email} is sending again.`), ["/app/settings"]);
+}
+
 /** Deletes a table, then leaves its (now missing) page for the list of tables. */
 export async function deleteTable(tableId: string): Promise<ActionResult> {
   const res = await run((c) => c.deleteTable(tableId).then(() => undefined), ["/app/leads", "/app"]);

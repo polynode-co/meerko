@@ -6,6 +6,7 @@ import { runRoutinesTick, type RoutinesTickResult } from "./routines/routines.ts
 import { runDigestTick, type DigestResult } from "./digest.ts";
 import type { SystemMailer } from "./mail/system-mail.ts";
 import { runReplyTick, type ReplyTickResult } from "./replies/replies.ts";
+import { runMailboxHoldTick, type MailboxHoldResult } from "./sending/mailbox-hold.ts";
 import { runSendTick, type SenderDeps, type TickResult } from "./sending/sender.ts";
 import { runSlackNotifyTick, type SlackNotifyResult } from "./slack.ts";
 
@@ -31,6 +32,9 @@ export interface WorkerTickResult {
   /** Daily digests emailed to workspace owners. */
   digest?: DigestResult;
   digestError?: string;
+  /** Mailboxes put on hold for bounces or spam rejections, and holds announced to their owners. */
+  holds?: MailboxHoldResult;
+  holdError?: string;
   send: TickResult;
 }
 
@@ -84,6 +88,12 @@ export async function runWorkerTick(db: Db, deps: SenderDeps & { appUrl?: string
     result.expired = await expireCredits(db, deps.now?.());
   } catch (err) {
     result.expireError = err instanceof Error ? err.message : String(err);
+  }
+  // Right before sending, so a mailbox that just crossed a bounce or rejection threshold sends nothing more.
+  try {
+    result.holds = await runMailboxHoldTick(db, { mailer: deps.mailer, box: deps.box, appUrl: deps.appUrl, fetch: deps.slackFetch, now: deps.now });
+  } catch (err) {
+    result.holdError = err instanceof Error ? err.message : String(err);
   }
   return { ...result, send: await runSendTick(db, deps) };
 }

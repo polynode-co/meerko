@@ -221,6 +221,11 @@ export interface Mailbox {
   rampDay: number | null;
   status: "active" | "error";
   lastError: string | null;
+  /** Set while Meerko holds the mailbox for too many bounces or spam rejections: it sends nothing until resumed. */
+  heldAt: string | null;
+  holdReason: "bounces" | "rejections" | null;
+  /** What tripped the hold, in words. */
+  holdDetail: string | null;
   createdAt: string;
 }
 
@@ -244,6 +249,8 @@ export interface SequencePool {
     email: string;
     displayName: string | null;
     status: "active" | "error";
+    /** Paused by Meerko for bounces or spam rejections (see Mailbox.heldAt). */
+    held: boolean;
     dailyLimit: number;
     effectiveLimit: number;
     rampDay: number | null;
@@ -342,6 +349,8 @@ export interface StoredConfig {
   apiUrl?: string;
   apiKey?: string;
   oauth?: { clientId: string; accessToken: string; refreshToken: string };
+  /** When the CLI showed its one-time "star the repo" note; it never shows again after this. */
+  starPromptShownAt?: string;
 }
 
 export function readStoredConfig(): StoredConfig {
@@ -751,11 +760,13 @@ export class MeerkoClient {
     return this.request<{ mailboxes: Mailbox[] }>("GET", "/mailboxes").then((r) => r.mailboxes);
   }
 
-  updateMailbox(id: string, patch: { dailyLimit?: number; displayName?: string | null; ramp?: boolean }) {
+  /** `resume: true` lifts a hold Meerko put on the mailbox (see Mailbox.heldAt). */
+  updateMailbox(id: string, patch: { dailyLimit?: number; displayName?: string | null; ramp?: boolean; resume?: true }) {
     return this.request<{ mailbox: Mailbox }>("PATCH", `/mailboxes/${id}`, {
       daily_limit: patch.dailyLimit,
       display_name: patch.displayName,
       ramp: patch.ramp,
+      resume: patch.resume,
     }).then((r) => r.mailbox);
   }
 
@@ -854,12 +865,13 @@ export class MeerkoClient {
   }
 
   /** Unclassified replies by default, newest first, each with its thread and the prospect's row. */
-  listReplies(opts: { sequenceId?: string; intent?: string; unclassified?: boolean; includeAutomatic?: boolean; limit?: number } = {}) {
+  listReplies(opts: { sequenceId?: string; intent?: string; unclassified?: boolean; includeAutomatic?: boolean; needsYou?: boolean; limit?: number } = {}) {
     const params = new URLSearchParams();
     if (opts.sequenceId) params.set("sequence_id", opts.sequenceId);
     if (opts.intent) params.set("intent", opts.intent);
     if (opts.unclassified !== undefined) params.set("unclassified", String(opts.unclassified));
     if (opts.includeAutomatic) params.set("include_automatic", "true");
+    if (opts.needsYou) params.set("needs_you", "true");
     if (opts.limit) params.set("limit", String(opts.limit));
     const qs = params.size ? `?${params}` : "";
     return this.request<{ replies: Reply[] }>("GET", `/replies${qs}`).then((r) => r.replies);

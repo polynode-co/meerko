@@ -1,5 +1,5 @@
 {
-  "id": "ec11b77e-0d59-4916-ab8f-1d77d77e56ab",
+  "id": "af48e5df-15a0-46c1-a87e-660d143bac5c",
   "prevId": "2c7bbe3f-6360-4d7a-8bbc-5dde0790438e",
   "version": "7",
   "dialect": "postgresql",
@@ -937,6 +937,81 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.mailbox_rejections": {
+      "name": "mailbox_rejections",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "mailbox_id": {
+          "name": "mailbox_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "mailbox_rejections_mailbox_idx": {
+          "name": "mailbox_rejections_mailbox_idx",
+          "columns": [
+            {
+              "expression": "mailbox_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "mailbox_rejections_mailbox_id_mailboxes_id_fk": {
+          "name": "mailbox_rejections_mailbox_id_mailboxes_id_fk",
+          "tableFrom": "mailbox_rejections",
+          "tableTo": "mailboxes",
+          "columnsFrom": [
+            "mailbox_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.mailboxes": {
       "name": "mailboxes",
       "schema": "",
@@ -1022,6 +1097,36 @@
           "primaryKey": false,
           "notNull": false
         },
+        "held_at": {
+          "name": "held_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hold_reason": {
+          "name": "hold_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hold_detail": {
+          "name": "hold_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hold_notified_at": {
+          "name": "hold_notified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hold_counts_from": {
+          "name": "hold_counts_from",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "replies_checked_at": {
           "name": "replies_checked_at",
           "type": "timestamp with time zone",
@@ -1087,142 +1192,6 @@
           "value": "\"mailboxes\".\"provider\" <> 'imap' or \"mailboxes\".\"servers\" is not null"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.mcp_event_subscriptions": {
-      "name": "mcp_event_subscriptions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "routine_id": {
-          "name": "routine_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "url": {
-          "name": "url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "encrypted_secret": {
-          "name": "encrypted_secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "refresh_before": {
-          "name": "refresh_before",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_delivery_at": {
-          "name": "last_delivery_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_status": {
-          "name": "last_status",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "mcp_event_subscriptions_routine_idx": {
-          "name": "mcp_event_subscriptions_routine_idx",
-          "columns": [
-            {
-              "expression": "routine_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "mcp_event_subscriptions_user_id_users_id_fk": {
-          "name": "mcp_event_subscriptions_user_id_users_id_fk",
-          "tableFrom": "mcp_event_subscriptions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "mcp_event_subscriptions_workspace_id_workspaces_id_fk": {
-          "name": "mcp_event_subscriptions_workspace_id_workspaces_id_fk",
-          "tableFrom": "mcp_event_subscriptions",
-          "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "mcp_event_subscriptions_routine_id_routines_id_fk": {
-          "name": "mcp_event_subscriptions_routine_id_routines_id_fk",
-          "tableFrom": "mcp_event_subscriptions",
-          "tableTo": "routines",
-          "columnsFrom": [
-            "routine_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.memberships": {

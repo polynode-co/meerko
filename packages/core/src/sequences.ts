@@ -273,11 +273,12 @@ export async function enrollRows(
 export async function assignMailboxes(db: Db, seq: { id: string; assignment: MailboxAssignment; mailboxIds: string[] }, count: number, now = new Date()) {
   if (seq.mailboxIds.length === 0) throw new SequenceError("The sequence has no mailboxes to send from");
   const pool = await db
-    .select({ id: mailboxes.id, status: mailboxes.status, dailyLimit: mailboxes.dailyLimit, rampStartedAt: mailboxes.rampStartedAt })
+    .select({ id: mailboxes.id, status: mailboxes.status, heldAt: mailboxes.heldAt, dailyLimit: mailboxes.dailyLimit, rampStartedAt: mailboxes.rampStartedAt })
     .from(mailboxes)
     .where(inArray(mailboxes.id, seq.mailboxIds));
-  const usable = pool.filter((m) => m.status === "active");
-  if (usable.length === 0) throw new SequenceError("None of the sequence's mailboxes can send; reconnect one with `meerko mailboxes connect`");
+  // A mailbox on hold (too many bounces or spam rejections) takes no new leads until a person resumes it.
+  const usable = pool.filter((m) => m.status === "active" && !m.heldAt);
+  if (usable.length === 0) throw new SequenceError("None of the sequence's mailboxes can send: reconnect one with `meerko mailboxes connect`, or resume one that Meerko put on hold");
   // Current load: leads still being emailed, from this sequence ("even") or from any sequence ("capacity").
   const load = await db
     .select({ mailboxId: enrollments.mailboxId, n: sql<number>`count(*)::int` })
@@ -353,7 +354,7 @@ export async function sequencePool(db: Db, workspaceId: string, id: string, now 
   const since = new Date(now.getTime() - DAY_MS);
   const [rows, sent, leads] = await Promise.all([
     db
-      .select({ id: mailboxes.id, email: mailboxes.email, displayName: mailboxes.displayName, status: mailboxes.status, dailyLimit: mailboxes.dailyLimit, rampStartedAt: mailboxes.rampStartedAt })
+      .select({ id: mailboxes.id, email: mailboxes.email, displayName: mailboxes.displayName, status: mailboxes.status, heldAt: mailboxes.heldAt, dailyLimit: mailboxes.dailyLimit, rampStartedAt: mailboxes.rampStartedAt })
       .from(mailboxes)
       .where(inArray(mailboxes.id, seq.mailboxIds))
       .orderBy(mailboxes.email),
@@ -375,6 +376,7 @@ export async function sequencePool(db: Db, workspaceId: string, id: string, now 
       email: m.email,
       displayName: m.displayName,
       status: m.status,
+      held: m.heldAt !== null,
       dailyLimit: m.dailyLimit,
       effectiveLimit: ramp.effectiveLimit,
       rampDay: ramp.rampDay,
@@ -385,7 +387,7 @@ export async function sequencePool(db: Db, workspaceId: string, id: string, now 
   return {
     assignment: seq.assignment,
     sentToday: list.reduce((n, m) => n + m.sentToday, 0),
-    capacityToday: list.filter((m) => m.status === "active").reduce((n, m) => n + m.effectiveLimit, 0),
+    capacityToday: list.filter((m) => m.status === "active" && !m.held).reduce((n, m) => n + m.effectiveLimit, 0),
     mailboxes: list,
   };
 }

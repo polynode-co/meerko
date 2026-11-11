@@ -29,6 +29,29 @@ export const program = new Command("meerko").description("Meerko — the open-so
 const json = () => program.opts<{ json?: boolean }>().json;
 program.option("--json", "print raw JSON (handy for agents and scripts)");
 
+/**
+ * A one-time note asking people to star the repo, after a command succeeds in a terminal. Off until the repo is public
+ * (flip REPO_PUBLIC then; MEERKO_STAR_PROMPT=1 shows it early for testing). Never with --json, in pipes or in CI, and
+ * MEERKO_NO_STAR_PROMPT=1 turns it off for good.
+ */
+const REPO_PUBLIC = false;
+export const REPO_URL = "https://github.com/polynode-co/meerko";
+export function maybeStarPrompt(env: NodeJS.ProcessEnv = process.env, tty = Boolean(process.stderr.isTTY)) {
+  if (!(REPO_PUBLIC || env.MEERKO_STAR_PROMPT === "1") || env.MEERKO_NO_STAR_PROMPT === "1" || env.CI || !tty || json()) return false;
+  const stored = readStoredConfig();
+  if (stored.starPromptShownAt) return false;
+  writeStoredConfig({ ...stored, starPromptShownAt: new Date().toISOString() });
+  console.error(`\nEnjoying Meerko? A star helps others find it: ${REPO_URL}\n(Shown once. It won't appear again.)`);
+  return true;
+}
+program.hook("postAction", () => {
+  try {
+    maybeStarPrompt();
+  } catch {
+    // A note must never fail a command that worked.
+  }
+});
+
 /** Best effort: opens `url` in the default browser. Callers print the link too. */
 function openInBrowser(url: string) {
   const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open";
@@ -507,6 +530,14 @@ mailboxes
       ramp: opts.ramp,
     });
     console.log(json() ? JSON.stringify(m) : `${m.email}: ${m.dailyLimit}/day, name "${m.displayName ?? ""}"`);
+  });
+
+mailboxes
+  .command("resume <mailboxId>")
+  .description("resume sending from a mailbox Meerko paused for too many bounces or spam rejections")
+  .action(async (id: string) => {
+    const m = await MeerkoClient.fromEnv().updateMailbox(id, { resume: true });
+    console.log(json() ? JSON.stringify(m) : `${m.email} is sending again. Counting toward a new hold starts from now.`);
   });
 
 mailboxes

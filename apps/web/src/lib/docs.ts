@@ -2,6 +2,7 @@
 // The MCP and CLI reference comes from the code (generated/reference.json, `pnpm docs:reference`).
 import referenceJson from "@/generated/reference.json";
 import { apiOperations } from "./api-reference";
+import { toolGroups } from "./tool-groups";
 
 export type DocsGroup = "Get started" | "Connect your agent" | "Concepts" | "Reference";
 
@@ -90,6 +91,7 @@ const reference = referenceJson as unknown as Reference;
 export const mcp = reference.mcp;
 export const cli = reference.cli;
 
+<<<<<<< HEAD
 /** How the reference groups the MCP tools. Every tool must be in exactly one group. */
 export const toolGroups: { id: string; label: string; page: string; tools: string[] }[] = [
   { id: "workspaces", label: "Workspaces", page: "workspaces", tools: ["whoami", "list_workspaces", "switch_workspace", "create_workspace", "rename_workspace"] },
@@ -108,6 +110,9 @@ export const toolGroups: { id: string; label: string; page: string; tools: strin
   { id: "autopilot", label: "Autopilot", page: "wake-your-agent", tools: ["manage_routine", "start_routine_run"] },
   { id: "credits", label: "Credits", page: "credits", tools: ["get_credits"] },
 ];
+=======
+export { toolGroups } from "./tool-groups";
+>>>>>>> origin/dev
 
 // Fail the build when a tool is added to the MCP server without a place in the docs.
 {

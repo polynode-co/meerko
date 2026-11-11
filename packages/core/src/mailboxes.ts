@@ -8,6 +8,7 @@ import { ImapClient } from "./mail/imap.ts";
 import type { ImapConnectors } from "./mail/imap-common.ts";
 import { buildMime } from "./mail/mime.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "./provider-keys.ts";
+import { resumeMailbox } from "./sending/mailbox-hold.ts";
 import { domainHealthFor } from "./mail/domain-health.ts";
 import { rampState } from "./sending/ramp.ts";
 import { assertMailboxAllowed } from "./billing.ts";
@@ -20,15 +21,16 @@ export class OAuthStateError extends Error {}
 
 /**
  * OAuth `state`: the workspace id, encrypted and authenticated, so the public callback can trust it.
- * `returnTo` (already validated by the caller) is where the callback sends the browser afterwards.
+ * `returnTo` (already validated by the caller) is where the callback sends the browser afterwards. `actorId` is who
+ * started the connect, so the callback's analytics land on that person rather than on the workspace.
  */
-export function createOAuthState(box: SecretBox | null, workspaceId: string, returnTo?: string) {
+export function createOAuthState(box: SecretBox | null, workspaceId: string, returnTo?: string, actorId?: string) {
   if (!box) throw new EncryptionNotConfiguredError();
-  const payload = JSON.stringify({ w: workspaceId, exp: Date.now() + STATE_TTL_MS, n: randomBytes(8).toString("hex"), r: returnTo });
+  const payload = JSON.stringify({ w: workspaceId, exp: Date.now() + STATE_TTL_MS, n: randomBytes(8).toString("hex"), r: returnTo, a: actorId });
   return Buffer.from(box.encrypt(payload), "base64").toString("base64url");
 }
 
-function decodeOAuthState(box: SecretBox, state: string): { w: string; exp: number; r?: string } | null {
+function decodeOAuthState(box: SecretBox, state: string): { w: string; exp: number; r?: string; a?: string } | null {
   try {
     return JSON.parse(box.decrypt(Buffer.from(state, "base64url").toString("base64")));
   } catch {
@@ -42,6 +44,11 @@ export function readOAuthState(box: SecretBox | null, state: string): string {
   if (!payload) throw new OAuthStateError("Invalid sign-in link. Start again with `meerko mailboxes connect --google`.");
   if (payload.exp < Date.now()) throw new OAuthStateError("This sign-in link expired. Start again with `meerko mailboxes connect --google`.");
   return payload.w;
+}
+
+/** Who started the connect, from a genuine `state`; undefined for states made before it was recorded. */
+export function readOAuthActor(box: SecretBox | null, state: string): string | undefined {
+  return (box && decodeOAuthState(box, state)?.a) || undefined;
 }
 
 /** The return URL carried in a genuine `state`, even an expired one (so the user still lands back in the app). */
@@ -118,6 +125,9 @@ const publicColumns = {
   rampStartedAt: mailboxes.rampStartedAt,
   status: mailboxes.status,
   lastError: mailboxes.lastError,
+  heldAt: mailboxes.heldAt,
+  holdReason: mailboxes.holdReason,
+  holdDetail: mailboxes.holdDetail,
   createdAt: mailboxes.createdAt,
 };
 
@@ -248,9 +258,11 @@ export async function updateMailbox(
   db: Db,
   workspaceId: string,
   id: string,
-  patch: { dailyLimit?: number; displayName?: string | null; ramp?: boolean },
+  patch: { dailyLimit?: number; displayName?: string | null; ramp?: boolean; resume?: boolean },
 ) {
-  const { ramp, ...fields } = patch;
+  const { ramp, resume, ...fields } = patch;
+  // Lifting a hold Meerko put on it; counting toward a new hold restarts from now (sending/mailbox-hold.ts).
+  if (resume) await resumeMailbox(db, workspaceId, id);
   const [row] = await db
     .update(mailboxes)
     // Turning the ramp on starts it over from today; off sends at the full limit straight away.

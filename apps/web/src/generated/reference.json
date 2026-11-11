@@ -741,7 +741,7 @@
       {
         "name": "list_mailboxes",
         "title": "List mailboxes",
-        "description": "List connected sending mailboxes with their daily limit, what they may send today (effectiveLimit, lower while a new mailbox ramps up; rampDay) and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail.",
+        "description": "List connected sending mailboxes with their daily limit, what they may send today (effectiveLimit, lower while a new mailbox ramps up; rampDay) and status. A mailbox in `error` status lost access and must be reconnected with connect_gmail. A mailbox with `heldAt` set was paused by Meerko for too many hard bounces or spam rejections (`holdDetail` says which): it sends nothing, and the pool's other mailboxes keep sending. Tell the user, and resume it with update_mailbox only when they ask.",
         "annotations": {
           "readOnlyHint": true,
           "destructiveHint": false,
@@ -756,7 +756,7 @@
       {
         "name": "update_mailbox",
         "title": "Update mailbox settings",
-        "description": "Set a mailbox's daily send limit, the sender name recipients see, or its ramp.\nNew mailboxes ramp up automatically: they start at 10 emails a day and grow to their daily limit over 21 days (list_mailboxes shows effectiveLimit and rampDay). Turn the ramp off only for an inbox that already sends regularly.",
+        "description": "Set a mailbox's daily send limit, the sender name recipients see, or its ramp.\nNew mailboxes ramp up automatically: they start at 10 emails a day and grow to their daily limit over 21 days (list_mailboxes shows effectiveLimit and rampDay). Turn the ramp off only for an inbox that already sends regularly.\n`resume: true` lifts a hold Meerko put on the mailbox after too many bounces or spam rejections (`heldAt` in list_mailboxes). Only when the user asks for it, after they've seen why it was held.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -779,6 +779,11 @@
             "ramp": {
               "description": "true restarts the 21-day ramp from today; false sends at the full daily limit now",
               "type": "boolean"
+            },
+            "resume": {
+              "description": "Lift Meerko's hold on this mailbox; only when the user asks",
+              "type": "boolean",
+              "const": true
             }
           },
           "required": [
@@ -2052,6 +2057,12 @@
             "required": false
           }
         ]
+      },
+      {
+        "usage": "meerko mailboxes resume <mailboxId>",
+        "group": "mailboxes",
+        "description": "resume sending from a mailbox Meerko paused for too many bounces or spam rejections",
+        "options": []
       },
       {
         "usage": "meerko mailboxes test <mailboxId>",

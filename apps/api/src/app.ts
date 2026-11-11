@@ -49,6 +49,7 @@ import {
   GmailError,
   listMailboxes,
   OAuthStateError,
+  readOAuthActor,
   readOAuthReturnTo,
   createApiKey,
   RoutineError,
@@ -187,6 +188,7 @@ import {
   type MicrosoftOAuth,
   type SecretBox,
   type IcypeasQuery,
+  INSTALL_ID_RE,
 } from "@meerko/core";
 import type { ApiKeyScope, Db } from "@meerko/db";
 import { createAnalytics, EVENTS, signupSource, type Analytics } from "./analytics.ts";
@@ -440,6 +442,16 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   app.get("/health", (c) => c.json({ ok: true }));
 
+  // Opt-in install count from self-hosted workers (packages/core/src/telemetry.ts). Only a hashed install id comes in;
+  // it's counted with no person profile. Not a /v1 capability: no user calls it.
+  app.post("/telemetry/ping", async (c) => {
+    const body = (await c.req.json().catch(() => null)) as { install_id?: unknown } | null;
+    const id = body?.install_id;
+    if (typeof id !== "string" || !INSTALL_ID_RE.test(id)) return c.json({ error: "Expected { install_id: <sha256 hex> }" }, 400);
+    await analytics.capture({ distinctId: `install:${id}`, event: EVENTS.selfHostPinged, properties: { $process_person_profile: false } });
+    return c.body(null, 204);
+  });
+
   const googleOAuth = () => {
     if (!deps.googleOAuth) throw new HTTPException(503, { message: "Gmail isn't configured on this server (set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)" });
     return deps.googleOAuth;
@@ -471,6 +483,11 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       console.error("credit expiry failed:", result.expireError);
       await analytics.captureException(result.expireError, undefined, { $exception_fingerprint: "api.tick.expire_credits" });
     }
+    if (result.holdError) {
+      console.error("mailbox hold check failed:", result.holdError);
+      await analytics.captureException(result.holdError, undefined, { $exception_fingerprint: "api.tick.mailbox_hold" });
+    }
+    if (result.holds?.held) console.log(`mailbox holds: ${result.holds.held} mailboxes put on hold`);
     if (result.slackError) {
       console.error("slack notify failed:", result.slackError);
       await analytics.captureException(result.slackError, undefined, { $exception_fingerprint: "api.tick.slack" });
@@ -608,7 +625,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!code || !state) return fail("This link is missing its sign-in code.");
     try {
       const mailbox = await connectGmail(db, box, googleOAuth(), state, code, deps.gmailFetch, { enforcePlan: !!deps.billing });
-      await analytics.capture({ distinctId: mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "gmail" } });
+      await analytics.capture({ distinctId: readOAuthActor(box, state) ?? mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "gmail" } });
       if (returnTo) return c.redirect(backToApp(returnTo, { gmail_connected: mailbox.email }));
       return c.html(resultPage("Gmail connected", `Meerko can now send from ${mailbox.email}. You can close this tab.`));
     } catch (err) {
@@ -628,7 +645,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.microsoftOAuth) return fail("Outlook isn't configured on this server.");
     try {
       const mailbox = await connectOutlook(db, box, deps.microsoftOAuth, state, code, deps.gmailFetch, { enforcePlan: !!deps.billing });
-      await analytics.capture({ distinctId: mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "outlook" } });
+      await analytics.capture({ distinctId: readOAuthActor(box, state) ?? mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "outlook" } });
       if (returnTo) return c.redirect(backToApp(returnTo, { gmail_connected: mailbox.email }));
       return c.html(resultPage("Outlook connected", `Meerko can now send from ${mailbox.email}. You can close this tab.`));
     } catch (err) {
@@ -1474,7 +1491,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const { login_hint, return_to } = await parse(oauthConnectInput, await c.req.json().catch(() => ({})));
     const returnTo = appReturnUrl(return_to);
     if (return_to && deps.appUrl && !returnTo) throw new HTTPException(400, { message: "return_to must be on the dashboard's URL (MEERKO_APP_URL)" });
-    return c.json({ url: deps.microsoftOAuth.authUrl(createOAuthState(box, c.var.workspaceId, returnTo), login_hint) });
+    return c.json({ url: deps.microsoftOAuth.authUrl(createOAuthState(box, c.var.workspaceId, returnTo, actor(c)), login_hint) });
   });
 
   v1.post("/mailboxes/gmail/connect", async (c) => {
@@ -1485,7 +1502,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     // Without MEERKO_APP_URL the server can't vouch for any return URL, so the callback shows its own page instead.
     const returnTo = appReturnUrl(return_to);
     if (return_to && deps.appUrl && !returnTo) throw new HTTPException(400, { message: "return_to must be on the dashboard's URL (MEERKO_APP_URL)" });
-    return c.json({ url: googleOAuth().authUrl(createOAuthState(box, c.var.workspaceId, returnTo), login_hint) });
+    return c.json({ url: googleOAuth().authUrl(createOAuthState(box, c.var.workspaceId, returnTo, actor(c)), login_hint) });
   });
 
   v1.get("/mailboxes", async (c) => c.json({ mailboxes: await listMailboxes(db, c.var.workspaceId) }));
@@ -1496,6 +1513,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       dailyLimit: input.daily_limit,
       displayName: input.display_name,
       ramp: input.ramp,
+      resume: input.resume,
     });
     return c.json({ mailbox });
   });
@@ -1560,6 +1578,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       intent: q.intent,
       unclassified: q.unclassified ? q.unclassified === "true" : undefined,
       includeAutomatic: q.include_automatic === "true",
+      needsYou: q.needs_you === "true",
       limit: q.limit,
     });
     return c.json({ replies });

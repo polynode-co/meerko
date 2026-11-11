@@ -270,6 +270,18 @@ export const mailboxes = pgTable(
     rampStartedAt: timestamp("ramp_started_at", { withTimezone: true }),
     status: text("status").$type<"active" | "error">().notNull().default("active"),
     lastError: text("last_error"),
+    /**
+     * Set when Meerko put the mailbox on hold itself (too many hard bounces, or providers rejecting its mail as spam):
+     * it sends nothing until a person resumes it. See core/sending/mailbox-hold.ts.
+     */
+    heldAt: timestamp("held_at", { withTimezone: true }),
+    holdReason: text("hold_reason").$type<MailboxHoldReason>(),
+    /** What tripped it, in words, e.g. "6 hard bounces in 80 emails over 7 days (7.5%)". */
+    holdDetail: text("hold_detail"),
+    /** When the owner was told (email, Slack). Null while a hold is still to be announced. */
+    holdNotifiedAt: timestamp("hold_notified_at", { withTimezone: true }),
+    /** Set when a person resumes it: bounces and rejections before this no longer count toward a new hold. */
+    holdCountsFrom: timestamp("hold_counts_from", { withTimezone: true }),
     /** Inbox is scanned for replies from this time onward (with some overlap). */
     repliesCheckedAt: timestamp("replies_checked_at", { withTimezone: true }),
     createdAt: createdAt(),
@@ -282,6 +294,19 @@ export const mailboxes = pgTable(
 );
 
 export type MailboxProvider = "gmail" | "gmail_imap" | "imap" | "outlook";
+export type MailboxHoldReason = "bounces" | "rejections";
+
+/** Sends a mail provider refused as spam or for a blocklist (SMTP 5.7.x), counted toward a mailbox hold. */
+export const mailboxRejections = pgTable(
+  "mailbox_rejections",
+  {
+    id: id(),
+    mailboxId: uuid("mailbox_id").notNull().references(() => mailboxes.id, { onDelete: "cascade" }),
+    error: text("error").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("mailbox_rejections_mailbox_idx").on(t.mailboxId, t.createdAt)],
+);
 /** Where an `imap` mailbox connects (TLS: IMAP 993, SMTP 465 or 587). */
 export type MailboxServers = { imap: { host: string; port: number }; smtp: { host: string; port: number } };
 export type SequenceStatus = "draft" | "active" | "paused";

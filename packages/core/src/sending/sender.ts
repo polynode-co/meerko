@@ -5,6 +5,7 @@ import {
   enrollments,
   eq,
   gte,
+  isNull,
   lte,
   mailboxes,
   messages,
@@ -22,6 +23,7 @@ import { GmailError, type GoogleOAuth } from "../mail/gmail.ts";
 import type { ImapConnectors } from "../mail/imap-common.ts";
 import { buildMime } from "../mail/mime.ts";
 import { markMailboxError } from "../mailboxes.ts";
+import { isPolicyRejection, recordRejection } from "./mailbox-hold.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "../provider-keys.ts";
 import { advanceStage } from "../pipeline.ts";
 import { reassignUnsent } from "../sequences.ts";
@@ -125,7 +127,7 @@ export async function runSendTick(db: Db, deps: SenderDeps): Promise<TickResult>
     .innerJoin(sequences, eq(enrollments.sequenceId, sequences.id))
     .innerJoin(mailboxes, eq(enrollments.mailboxId, mailboxes.id))
     .innerJoin(workspaces, eq(sequences.workspaceId, workspaces.id))
-    .where(and(eq(enrollments.state, "active"), lte(enrollments.nextSendAt, now), eq(sequences.status, "active"), eq(mailboxes.status, "active"), sendable()));
+    .where(and(eq(enrollments.state, "active"), lte(enrollments.nextSendAt, now), eq(sequences.status, "active"), eq(mailboxes.status, "active"), isNull(mailboxes.heldAt), sendable()));
 
   for (const mb of due) {
     const [{ sentToday, lastSentAt }] = (await db
@@ -240,6 +242,8 @@ async function sendNextForMailbox(db: Db, deps: SenderDeps, mailboxId: string, n
         await markMailboxError(db, mailboxId, message);
         return "mailbox_error";
       }
+      // Refused as spam or for a blocklist: counts toward putting this mailbox on hold (mailbox-hold.ts).
+      if (isPolicyRejection(message)) await recordRejection(db, mailboxId, message, now);
       await tx.update(enrollments).set({ state: "failed", nextSendAt: null, lastError: message }).where(eq(enrollments.id, en.id));
       return "failed";
     } finally {
