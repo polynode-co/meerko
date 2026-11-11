@@ -42,7 +42,7 @@ if (!box) {
   const tick = async () => {
     busy = true;
     try {
-      const { replies: r, replyError, routines, routineError, slack, slackError, digest, digestError, send: res } = await runWorkerTick(
+      const { replies: r, replyError, routines, routineError, slack, slackError, digest, digestError, holds, holdError, send: res } = await runWorkerTick(
         db,
         { box, oauth, microsoft, publicUrl, appUrl: MEERKO_APP_URL, mailer, allowPrivateHooks: MEERKO_ALLOW_PRIVATE_HOOKS === "1" },
         { replies: ticks++ % REPLY_EVERY_TICKS === 0 },
@@ -51,6 +51,8 @@ if (!box) {
       if (routineError) console.error("autopilot failed:", routineError);
       if (slackError) console.error("slack notify failed:", slackError);
       if (digestError) console.error("digest failed:", digestError);
+      if (holdError) console.error("mailbox hold check failed:", holdError);
+      if (holds?.held) console.log(`mailbox holds: ${holds.held} mailboxes put on hold (owners told)`);
       if (digest && (digest.sent || digest.failed)) console.log(`digest: ${digest.sent} sent, ${digest.failed} failed`);
       if (slack && (slack.drafts || slack.replies || slack.failed)) console.log(`slack: ${slack.drafts} drafts and ${slack.replies} replies posted, ${slack.failed} failed`);
       if (routines && (routines.started || routines.failed || routines.missed || routines.noCallback))

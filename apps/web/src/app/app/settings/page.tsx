@@ -5,6 +5,7 @@ import { buttonClass, Card, Notice, Page, PageHeader, Pill } from "@/components/
 import { ApiKeysCard } from "@/components/app/api-keys-card";
 import { BillingCard } from "@/components/app/billing-card";
 import { DisconnectMailbox } from "@/components/app/disconnect-mailbox";
+import { ResumeMailbox } from "@/components/app/resume-mailbox";
 import { TestEmail } from "@/components/app/test-email";
 import { ConnectedAppsCard } from "@/components/app/connected-apps-card";
 import { SlackCard } from "@/components/app/slack-card";
@@ -68,9 +69,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 </span>
               )}
               {m.lastError && <span className="text-sm text-[#e5795b]">{m.lastError}</span>}
+              {m.heldAt && (
+                <span className="text-sm text-[#e5795b]">
+                  Paused by Meerko: {m.holdDetail}. Its queued emails wait; your other mailboxes keep sending. Fix the cause, then resume it.
+                </span>
+              )}
             </span>
             <span className="font-plex text-[13px] text-lk-dim">{m.rampDay ? `${m.effectiveLimit}/day today · ramp day ${m.rampDay}/21 → ${m.dailyLimit}` : `${m.dailyLimit}/day`}</span>
-            <Pill tone={m.status === "active" ? "solid" : "amber"}>{m.status === "active" ? "connected" : "reconnect"}</Pill>
+            <Pill tone={m.status === "active" && !m.heldAt ? "solid" : "amber"}>{m.status !== "active" ? "reconnect" : m.heldAt ? "paused" : "connected"}</Pill>
+            {m.heldAt && <ResumeMailbox mailboxId={m.id} email={m.email} />}
             {m.status === "active" && <TestEmail mailboxId={m.id} defaultTo={me.user?.email} />}
             {m.status === "error" && (
               <Link href={`/app/settings?connect=gmail&email=${encodeURIComponent(m.email)}`} className={buttonClass("secondary", "sm")}>

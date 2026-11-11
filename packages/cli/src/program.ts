@@ -533,6 +533,14 @@ mailboxes
   });
 
 mailboxes
+  .command("resume <mailboxId>")
+  .description("resume sending from a mailbox Meerko paused for too many bounces or spam rejections")
+  .action(async (id: string) => {
+    const m = await MeerkoClient.fromEnv().updateMailbox(id, { resume: true });
+    console.log(json() ? JSON.stringify(m) : `${m.email} is sending again. Counting toward a new hold starts from now.`);
+  });
+
+mailboxes
   .command("test <mailboxId>")
   .description("send a test email to check the connection")
   .requiredOption("--to <address>", "recipient")

@@ -8,6 +8,7 @@ import { ImapClient } from "./mail/imap.ts";
 import type { ImapConnectors } from "./mail/imap-common.ts";
 import { buildMime } from "./mail/mime.ts";
 import { EncryptionNotConfiguredError, type SecretBox } from "./provider-keys.ts";
+import { resumeMailbox } from "./sending/mailbox-hold.ts";
 import { domainHealthFor } from "./mail/domain-health.ts";
 import { rampState } from "./sending/ramp.ts";
 import { assertMailboxAllowed } from "./billing.ts";
@@ -124,6 +125,9 @@ const publicColumns = {
   rampStartedAt: mailboxes.rampStartedAt,
   status: mailboxes.status,
   lastError: mailboxes.lastError,
+  heldAt: mailboxes.heldAt,
+  holdReason: mailboxes.holdReason,
+  holdDetail: mailboxes.holdDetail,
   createdAt: mailboxes.createdAt,
 };
 
@@ -254,9 +258,11 @@ export async function updateMailbox(
   db: Db,
   workspaceId: string,
   id: string,
-  patch: { dailyLimit?: number; displayName?: string | null; ramp?: boolean },
+  patch: { dailyLimit?: number; displayName?: string | null; ramp?: boolean; resume?: boolean },
 ) {
-  const { ramp, ...fields } = patch;
+  const { ramp, resume, ...fields } = patch;
+  // Lifting a hold Meerko put on it; counting toward a new hold restarts from now (sending/mailbox-hold.ts).
+  if (resume) await resumeMailbox(db, workspaceId, id);
   const [row] = await db
     .update(mailboxes)
     // Turning the ramp on starts it over from today; off sends at the full limit straight away.

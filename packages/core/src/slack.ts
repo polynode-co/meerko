@@ -353,6 +353,22 @@ export async function testSlack(db: Db, workspaceId: string, deps: SlackDeps) {
   }
 }
 
+/**
+ * Posts a one-off notice (e.g. a mailbox put on hold) to the workspace's Slack channel, if Slack is connected and on.
+ * Resolves true when Slack accepted it, false when there's no connection or it failed; never throws.
+ */
+export async function postSlackNotice(db: Db, deps: Pick<SlackDeps, "box" | "fetch">, workspaceId: string, text: string): Promise<boolean> {
+  if (!deps.box) return false;
+  try {
+    const conn = await loadConnection(db, workspaceId);
+    if (!conn?.enabled) return false;
+    await post(conn, deps.box, deps.fetch ?? fetch, { text, blocks: [] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const describe = (err: unknown) => (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError") ? "Slack didn't answer within 10s" : err instanceof Error ? err.message : String(err));
 
 async function loadConnection(db: Db, workspaceId: string): Promise<(ConnectionRow & { enabled: boolean }) | undefined> {

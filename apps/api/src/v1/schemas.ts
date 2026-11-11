@@ -176,6 +176,7 @@ export const updateMailboxInput = z.object({
   daily_limit: z.number().int().min(1).max(500).optional(),
   display_name: z.string().max(100).nullable().optional(),
   ramp: z.boolean().optional(),
+  resume: z.literal(true).optional().describe("Lift a hold Meerko put on the mailbox (heldAt) after too many bounces or spam rejections"),
 });
 export const testEmailInput = z.object({ to: z.string().email() });
 export const listRepliesQuery = z.object({
@@ -388,6 +389,9 @@ export const Mailbox = z.object({
   rampDay: z.number().nullable(),
   status: z.enum(["active", "error"]),
   lastError: z.string().nullable(),
+  heldAt: nts.describe("Set while Meerko holds the mailbox for bounces or spam rejections: it sends nothing until resumed"),
+  holdReason: z.enum(["bounces", "rejections"]).nullable(),
+  holdDetail: z.string().nullable().describe('What tripped the hold, e.g. "6 hard bounces in 80 emails over 7 days (7.5%)"'),
   createdAt: ts,
 });
 const dns = z.enum(["pass", "missing", "managed"]);
@@ -423,6 +427,7 @@ export const SequencePool = z.object({
       email: z.string(),
       displayName: z.string().nullable(),
       status: z.enum(["active", "error"]),
+      held: z.boolean().describe("Paused by Meerko for bounces or spam rejections; resume it from the mailbox"),
       dailyLimit: z.number(),
       effectiveLimit: z.number(),
       rampDay: z.number().nullable(),

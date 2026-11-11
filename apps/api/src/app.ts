@@ -478,6 +478,11 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       console.error("credit expiry failed:", result.expireError);
       await analytics.captureException(result.expireError, undefined, { $exception_fingerprint: "api.tick.expire_credits" });
     }
+    if (result.holdError) {
+      console.error("mailbox hold check failed:", result.holdError);
+      await analytics.captureException(result.holdError, undefined, { $exception_fingerprint: "api.tick.mailbox_hold" });
+    }
+    if (result.holds?.held) console.log(`mailbox holds: ${result.holds.held} mailboxes put on hold`);
     if (result.slackError) {
       console.error("slack notify failed:", result.slackError);
       await analytics.captureException(result.slackError, undefined, { $exception_fingerprint: "api.tick.slack" });
@@ -1479,6 +1484,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       dailyLimit: input.daily_limit,
       displayName: input.display_name,
       ramp: input.ramp,
+      resume: input.resume,
     });
     return c.json({ mailbox });
   });

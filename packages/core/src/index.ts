@@ -33,6 +33,7 @@ export * from "./pipeline.ts";
 export * from "./worker.ts";
 export * from "./oauth.ts";
 export * from "./sending/ramp.ts";
+export * from "./sending/mailbox-hold.ts";
 export * from "./mail/domain-health.ts";
 export * from "./mail/system-mail.ts";
 export * from "./billing.ts";

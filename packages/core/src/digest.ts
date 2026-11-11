@@ -1,7 +1,7 @@
 // The daily digest: one email a day to each workspace owner when people have replied ("3 replies waiting"), so
 // replies don't sit unseen when nobody has the dashboard, Slack or an agent hook open. On by default; every email
 // carries a one-click unsubscribe, and Settings turns it back on.
-import { and, desc, eq, memberships, messages, sql, users, workspaces, type Db } from "@meerko/db";
+import { and, desc, eq, isNotNull, mailboxes, memberships, messages, sql, users, workspaces, type Db } from "@meerko/db";
 import type { SystemMail, SystemMailer } from "./mail/system-mail.ts";
 import type { SecretBox } from "./provider-keys.ts";
 import { humanReply } from "./slack.ts";
@@ -112,9 +112,14 @@ export async function runDigestTick(db: Db, deps: DigestDeps): Promise<DigestRes
         .where(and(eq(messages.workspaceId, d.workspaceId), humanReply()))
         .orderBy(desc(messages.sentAt))
         .limit(LISTED);
+      // Mailboxes Meerko paused (mailbox-hold.ts) stay in every digest until someone resumes them.
+      const held = await db
+        .select({ email: mailboxes.email, detail: mailboxes.holdDetail })
+        .from(mailboxes)
+        .where(and(eq(mailboxes.workspaceId, d.workspaceId), isNotNull(mailboxes.heldAt)));
       const unsubscribeUrl = new URL(`/digest/unsubscribe?t=${encodeURIComponent(digestUnsubscribeToken(deps.box, d.userId, d.workspaceId))}`, deps.publicUrl).toString();
       await deps.mailer.send(
-        digestMail({ to: d.email, workspaceName: d.workspaceName, waiting: d.waiting, newCount: d.newCount, replies, appUrl: deps.appUrl, unsubscribeUrl }),
+        digestMail({ to: d.email, workspaceName: d.workspaceName, waiting: d.waiting, newCount: d.newCount, replies, held, appUrl: deps.appUrl, unsubscribeUrl }),
       );
       await db
         .update(memberships)
@@ -138,9 +143,13 @@ export function digestMail(input: {
   waiting: number;
   newCount: number;
   replies: DigestReply[];
+  /** Mailboxes Meerko paused for bounces or spam rejections. */
+  held?: { email: string; detail: string | null }[];
   appUrl?: string;
   unsubscribeUrl: string;
 }): SystemMail {
+  const held = input.held ?? [];
+  const heldLine = (h: { email: string; detail: string | null }) => `${h.email} is paused${h.detail ? `: ${h.detail}` : ""}. Resume it in Settings once it's fixed.`;
   const { waiting, newCount, replies, workspaceName, unsubscribeUrl } = input;
   const inbox = input.appUrl ? new URL("/app/inbox", input.appUrl).toString() : null;
   const settings = input.appUrl ? new URL("/app/settings", input.appUrl).toString() : null;
@@ -156,6 +165,7 @@ export function digestMail(input: {
     ...(more > 0 ? [`- and ${plural(more, "more", "more")}`] : []),
     "",
     ...(inbox ? [`Answer them: ${inbox}`, ""] : []),
+    ...(held.length ? [...held.map(heldLine), ""] : []),
     "You get this once a day, only when people have replied.",
     `Stop these emails: ${unsubscribeUrl}`,
   ].join("\n");
@@ -172,6 +182,7 @@ export function digestMail(input: {
 <h1 style="margin:0 0 8px;font-size:22px;line-height:1.25">${escapeHtml(headline)}</h1>
 <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#6b6b63">${escapeHtml(sub)}</p>
 <ul style="margin:0 0 24px;padding-left:18px;font-size:15px;line-height:1.5">${rows}${more > 0 ? `<li style="color:#6b6b63">and ${escapeHtml(plural(more, "more", "more"))}</li>` : ""}</ul>
+${held.map((h) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#b5462a">${escapeHtml(heldLine(h))}</p>`).join("")}
 ${inbox ? `<p style="margin:0 0 24px"><a href="${escapeHtml(inbox)}" style="display:inline-block;background:#0b0b0c;color:#a8f326;padding:13px 20px;font-size:14px;font-weight:600;text-decoration:none">Open the inbox</a></p>` : ""}
 <p style="margin:0;font-size:13px;line-height:1.6;color:#6b6b63">You get this once a day, only when people have replied. <a href="${escapeHtml(unsubscribeUrl)}" style="color:#6b6b63">Stop these emails</a>${settings ? `, or turn them back on in <a href="${escapeHtml(settings)}" style="color:#6b6b63">Settings</a>` : ""}.</p>
 </div></body></html>`;

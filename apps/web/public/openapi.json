@@ -2188,7 +2188,7 @@
         "tags": [
           "mailboxes"
         ],
-        "summary": "Change a mailbox's daily limit, name or ramp-up",
+        "summary": "Change a mailbox's daily limit, name or ramp-up, or resume it after a hold",
         "parameters": [
           {
             "name": "id",
@@ -2224,6 +2224,11 @@
                   },
                   "ramp": {
                     "type": "boolean"
+                  },
+                  "resume": {
+                    "description": "Lift a hold Meerko put on the mailbox (heldAt) after too many bounces or spam rejections",
+                    "type": "boolean",
+                    "const": true
                   }
                 }
               }
@@ -2232,7 +2237,7 @@
         },
         "responses": {
           "200": {
-            "description": "Change a mailbox's daily limit, name or ramp-up",
+            "description": "Change a mailbox's daily limit, name or ramp-up, or resume it after a hold",
             "content": {
               "application/json": {
                 "schema": {
@@ -5281,6 +5286,39 @@
               "null"
             ]
           },
+          "heldAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "ISO 8601 timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set while Meerko holds the mailbox for bounces or spam rejections: it sends nothing until resumed"
+          },
+          "holdReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "bounces",
+                  "rejections"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "holdDetail": {
+            "description": "What tripped the hold, e.g. \"6 hard bounces in 80 emails over 7 days (7.5%)\"",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "createdAt": {
             "type": "string",
             "description": "ISO 8601 timestamp"
@@ -5299,6 +5337,9 @@
           "rampDay",
           "status",
           "lastError",
+          "heldAt",
+          "holdReason",
+          "holdDetail",
           "createdAt"
         ]
       },
