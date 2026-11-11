@@ -293,7 +293,7 @@ function Start() {
         <span className="font-plex text-[12.5px] tracking-[0.8px] text-lk-dim">IN YOUR TERMINAL</span>
         <LookoutCommand command={`claude mcp add --transport http --scope user meerko ${mcpUrl()}`} />
         <span className="font-plex text-[12.5px] tracking-[0.8px] text-lk-dim">OR IN THE BROWSER</span>
-        <LimeButton href={site.signupUrl} className="px-[18px] py-4 text-right">
+        <LimeButton href={site.signupUrl} className="px-[18px] py-4 text-center">
           Start free with 200 credits →
         </LimeButton>
       </div>
