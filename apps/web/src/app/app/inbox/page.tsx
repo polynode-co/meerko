@@ -11,7 +11,7 @@ import { load } from "@/lib/meerko";
 // draft docked under it.
 
 const views = {
-  needs: { label: "Needs you", opts: {} },
+  needs: { label: "Needs you", opts: { needsYou: true } },
   interested: { label: "Interested", opts: { intent: "interested" } },
   all: { label: "All", opts: { unclassified: false } },
   automatic: { label: "Automatic", opts: { unclassified: false, includeAutomatic: true } },

@@ -856,12 +856,13 @@ export class MeerkoClient {
   }
 
   /** Unclassified replies by default, newest first, each with its thread and the prospect's row. */
-  listReplies(opts: { sequenceId?: string; intent?: string; unclassified?: boolean; includeAutomatic?: boolean; limit?: number } = {}) {
+  listReplies(opts: { sequenceId?: string; intent?: string; unclassified?: boolean; includeAutomatic?: boolean; needsYou?: boolean; limit?: number } = {}) {
     const params = new URLSearchParams();
     if (opts.sequenceId) params.set("sequence_id", opts.sequenceId);
     if (opts.intent) params.set("intent", opts.intent);
     if (opts.unclassified !== undefined) params.set("unclassified", String(opts.unclassified));
     if (opts.includeAutomatic) params.set("include_automatic", "true");
+    if (opts.needsYou) params.set("needs_you", "true");
     if (opts.limit) params.set("limit", String(opts.limit));
     const qs = params.size ? `?${params}` : "";
     return this.request<{ replies: Reply[] }>("GET", `/replies${qs}`).then((r) => r.replies);

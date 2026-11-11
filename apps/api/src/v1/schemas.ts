@@ -183,6 +183,7 @@ export const listRepliesQuery = z.object({
   intent: z.string().optional(),
   unclassified: z.enum(["true", "false"]).optional(),
   include_automatic: z.enum(["true", "false"]).optional(),
+  needs_you: z.enum(["true", "false"]).optional().describe("Unclassified replies plus unhandled ones with a draft waiting: what waits on the person"),
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 export const classifyInput = z.object({ intent: z.enum(AGENT_INTENTS), handled: z.boolean().optional() });
