@@ -20,6 +20,7 @@ const OUTCOME: Record<RoutineRun["outcome"], { text: string; tone: PillTone; dot
 const STARTED_BY: Record<RoutineTrigger, string> = {
   own_scheduler: "your AI's own schedule",
   claude_routine: "Meerko, through a Claude routine",
+  chatgpt_events: "Meerko, through ChatGPT",
   webhook: "Meerko, through a webhook",
 };
 
@@ -146,6 +147,7 @@ function HowItRuns({ routine, canSetTrigger }: { routine: Routine; canSetTrigger
     [
       ["own_scheduler", "My AI's own schedule"],
       ["claude_routine", "Claude routine, started by Meerko"],
+      ["chatgpt_events", "ChatGPT task, started by Meerko"],
       ["webhook", "Webhook, called by Meerko"],
     ] as const
   ).filter(([value]) => !(value === "own_scheduler" && routine.when === "replies"));
@@ -159,7 +161,7 @@ function HowItRuns({ routine, canSetTrigger }: { routine: Routine; canSetTrigger
       {!changed && setup.prompt && (
         <div className="flex flex-col gap-1.5">
           <span className="flex items-center justify-between gap-3">
-            <span className={monoLabel}>{routine.trigger === "claude_routine" ? "The Claude routine's prompt" : "Prompt for your AI"}</span>
+            <span className={monoLabel}>{routine.trigger === "claude_routine" ? "The Claude routine's prompt" : routine.trigger === "chatgpt_events" ? "Paste into ChatGPT" : "Prompt for your AI"}</span>
             <button type="button" onClick={() => copy(setup.prompt!, "prompt")} className={buttonClass("secondary", "sm")}>{copied === "prompt" ? "Copied" : "Copy"}</button>
           </span>
           <p className="bg-lk-ink px-3 py-2.5 font-plex text-[13px] leading-relaxed whitespace-pre-wrap text-lk-fg outline outline-1 -outline-offset-1 outline-lk-line">{setup.prompt}</p>
@@ -211,6 +213,12 @@ function HowItRuns({ routine, canSetTrigger }: { routine: Routine; canSetTrigger
                 className={field}
               />
             </>
+          )}
+          {kind === "chatgpt_events" && changed && (
+            <p className="text-lk-dim">
+              Save, then paste the prompt shown here into a ChatGPT chat with the Meerko app on. ChatGPT subscribes to this routine&apos;s{" "}
+              <span className="font-plex">routine.due</span> event, and Meerko sends it each time the routine should run. Needs a ChatGPT plan with event-triggered tasks.
+            </p>
           )}
           {kind === "webhook" && (
             <>

@@ -95,6 +95,22 @@ describe.skipIf(!process.env.DATABASE_URL)("Autopilot routines and drafts-only c
     expect(JSON.stringify(await res.json())).toMatch(/not found|isError/i);
   });
 
+  it("speaks MCP Events on /mcp: initialize advertises events, events/list answers, an API key can't subscribe", async () => {
+    const rpc = async (path: string, method: string, params: object = {}) =>
+      (
+        await app.request(path, {
+          method: "POST",
+          headers: { authorization: `Bearer ${fullKey}`, "content-type": "application/json", accept: "application/json, text/event-stream" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 7, method, params }),
+        })
+      ).json();
+    const init = { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "chatgpt", version: "1" } };
+    expect((await rpc("/mcp", "initialize", init)).result.capabilities.events).toEqual({});
+    expect((await rpc("/mcp/drafter", "initialize", init)).result.capabilities.events).toBeUndefined();
+    expect(await rpc("/mcp", "events/list")).toMatchObject({ id: 7, result: { events: [{ name: "routine.due" }] } });
+    expect(await rpc("/mcp", "events/subscribe", { name: "routine.due" })).toMatchObject({ id: 7, error: { message: expect.stringMatching(/API key/) } });
+  });
+
   it("lets any credential manage routines, but only a signed-in person choose what starts one", async () => {
     const created = await call("/v1/routines", fullKey, { method: "POST", body: JSON.stringify({ name: "Answer replies", brief: "Draft answers", when: "replies" }) });
     expect(created.status).toBe(201);

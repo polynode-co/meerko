@@ -81,6 +81,7 @@ export default function Page() {
         ["started-by", "What starts a run"],
         ["safety", "What a woken agent can do"],
         ["routine", "Set up a Claude Code routine"],
+        ["chatgpt", "Start a ChatGPT task"],
         ["webhook", "Use a webhook"],
         ["agent-sdk", "Example: the Claude Agent SDK"],
         ["runs", "Runs, and runs that didn't happen"],
@@ -128,6 +129,7 @@ export default function Page() {
             </>,
           ],
           ["A Claude Code routine, started by Meerko", <>Meerko calls the routine&apos;s API trigger at each run. See below.</>],
+          ["A ChatGPT task, started by Meerko", <>Meerko sends a <C>routine.due</C> event to the ChatGPT task subscribed to the routine. See below.</>],
           ["A webhook, called by Meerko", <>Meerko POSTs a signed event to your URL at each run. See below.</>],
         ]}
       />
@@ -180,6 +182,33 @@ export default function Page() {
           Meerko&apos;s message names the Meerko routine and, for replies, who wrote and the subjects. Claude treats that message as data, so
           the routine&apos;s own prompt tells it to call <Tool name="start_routine_run" /> and follow the brief. Routines accept at most 30 API
           calls an hour, and Meerko starts a replies routine at most once every 5 minutes.
+        </p>
+      </Callout>
+
+      <H2 id="chatgpt">Start a ChatGPT task</H2>
+      <p>
+        ChatGPT can run a task when an app it&apos;s connected to sends it an event (
+        <L href="https://developers.openai.com/plugins/build/mcp-events">MCP Events</L>). Meerko offers one, <C>routine.due</C>, and sends it
+        each time a routine whose trigger is ChatGPT should run: at its scheduled time, or when replies wait for a replies routine. It needs a
+        ChatGPT plan with event-triggered tasks, and runs on that plan.
+      </p>
+      <Step n={1} id="chatgpt-choose" title="Choose ChatGPT in Autopilot">
+        <p>
+          In <L href="/app/autopilot">Autopilot</L>, open the routine&apos;s <strong>How it runs</strong>, choose <strong>ChatGPT task</strong>{" "}
+          and save. Autopilot then shows a prompt with the routine&apos;s id.
+        </p>
+      </Step>
+      <Step n={2} id="chatgpt-subscribe" title="Paste the prompt into ChatGPT">
+        <p>
+          In a ChatGPT chat with the Meerko app connected (<C>{mcpUrl}</C>), paste the prompt. ChatGPT subscribes to <C>routine.due</C> for
+          that routine; Meerko checks ChatGPT&apos;s callback answers before it accepts the subscription. Then click <strong>Run it now</strong>{" "}
+          in Autopilot to check it.
+        </p>
+      </Step>
+      <Callout>
+        <p>
+          The event names the routine and why it&apos;s due; the task calls <Tool name="start_routine_run" /> and follows the brief. Each event is
+          signed (Standard Webhooks). If no ChatGPT task is subscribed, the run shows <strong>failed to start</strong> and says so.
         </p>
       </Callout>
 

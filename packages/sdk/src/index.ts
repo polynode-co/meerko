@@ -109,7 +109,7 @@ export interface Digest {
   last_sent_at: string | null;
 }
 
-export const ROUTINE_TRIGGERS = ["own_scheduler", "claude_routine", "webhook"] as const;
+export const ROUTINE_TRIGGERS = ["own_scheduler", "claude_routine", "chatgpt_events", "webhook"] as const;
 export type RoutineTrigger = (typeof ROUTINE_TRIGGERS)[number];
 export type RoutineWhen = "replies" | "schedule";
 

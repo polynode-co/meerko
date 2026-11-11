@@ -38,6 +38,7 @@ export * from "./mail/system-mail.ts";
 export * from "./billing.ts";
 export * from "./routines/cadence.ts";
 export * from "./routines/http.ts";
+export * from "./routines/mcp-events.ts";
 export * from "./routines/routines.ts";
 export * from "./slack.ts";
 export * from "./crm.ts";
