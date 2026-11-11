@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { installId, sendTelemetryPing, telemetryEnabled } from "@meerko/core";
-import { createDb, type Db } from "@meerko/db";
+import { createDb, eq, workspaces, type Db } from "@meerko/db";
 import type { Analytics, CaptureInput } from "./analytics.ts";
 import { createApp } from "./app.ts";
 
@@ -15,6 +15,14 @@ describe.skipIf(!process.env.DATABASE_URL)("self-host telemetry (db)", () => {
     captureException: async () => {},
   };
   const app = createApp(db, { analytics });
+  // installId() hashes the oldest workspace, so a fresh test database needs one (and returns null before it exists).
+  let ws: string | undefined;
+  beforeAll(async () => {
+    ws = (await db.insert(workspaces).values({ name: "telemetry-test" }).returning())[0]!.id;
+  });
+  afterAll(async () => {
+    if (ws) await db.delete(workspaces).where(eq(workspaces.id, ws));
+  });
 
   it("is off unless MEERKO_TELEMETRY is set", () => {
     expect(telemetryEnabled({})).toBe(false);
