@@ -49,6 +49,7 @@ import {
   GmailError,
   listMailboxes,
   OAuthStateError,
+  readOAuthActor,
   readOAuthReturnTo,
   createApiKey,
   RoutineError,
@@ -603,7 +604,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!code || !state) return fail("This link is missing its sign-in code.");
     try {
       const mailbox = await connectGmail(db, box, googleOAuth(), state, code, deps.gmailFetch, { enforcePlan: !!deps.billing });
-      await analytics.capture({ distinctId: mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "gmail" } });
+      await analytics.capture({ distinctId: readOAuthActor(box, state) ?? mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "gmail" } });
       if (returnTo) return c.redirect(backToApp(returnTo, { gmail_connected: mailbox.email }));
       return c.html(resultPage("Gmail connected", `Meerko can now send from ${mailbox.email}. You can close this tab.`));
     } catch (err) {
@@ -623,7 +624,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     if (!deps.microsoftOAuth) return fail("Outlook isn't configured on this server.");
     try {
       const mailbox = await connectOutlook(db, box, deps.microsoftOAuth, state, code, deps.gmailFetch, { enforcePlan: !!deps.billing });
-      await analytics.capture({ distinctId: mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "outlook" } });
+      await analytics.capture({ distinctId: readOAuthActor(box, state) ?? mailbox.workspaceId, event: EVENTS.mailboxConnected, workspaceId: mailbox.workspaceId, properties: { provider: "outlook" } });
       if (returnTo) return c.redirect(backToApp(returnTo, { gmail_connected: mailbox.email }));
       return c.html(resultPage("Outlook connected", `Meerko can now send from ${mailbox.email}. You can close this tab.`));
     } catch (err) {
@@ -1445,7 +1446,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const { login_hint, return_to } = await parse(oauthConnectInput, await c.req.json().catch(() => ({})));
     const returnTo = appReturnUrl(return_to);
     if (return_to && deps.appUrl && !returnTo) throw new HTTPException(400, { message: "return_to must be on the dashboard's URL (MEERKO_APP_URL)" });
-    return c.json({ url: deps.microsoftOAuth.authUrl(createOAuthState(box, c.var.workspaceId, returnTo), login_hint) });
+    return c.json({ url: deps.microsoftOAuth.authUrl(createOAuthState(box, c.var.workspaceId, returnTo, actor(c)), login_hint) });
   });
 
   v1.post("/mailboxes/gmail/connect", async (c) => {
@@ -1456,7 +1457,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     // Without MEERKO_APP_URL the server can't vouch for any return URL, so the callback shows its own page instead.
     const returnTo = appReturnUrl(return_to);
     if (return_to && deps.appUrl && !returnTo) throw new HTTPException(400, { message: "return_to must be on the dashboard's URL (MEERKO_APP_URL)" });
-    return c.json({ url: googleOAuth().authUrl(createOAuthState(box, c.var.workspaceId, returnTo), login_hint) });
+    return c.json({ url: googleOAuth().authUrl(createOAuthState(box, c.var.workspaceId, returnTo, actor(c)), login_hint) });
   });
 
   v1.get("/mailboxes", async (c) => c.json({ mailboxes: await listMailboxes(db, c.var.workspaceId) }));
