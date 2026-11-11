@@ -105,6 +105,7 @@ export const toolGroups: { id: string; label: string; page: string; tools: strin
   { id: "replies", label: "Replies & drafts", page: "replies", tools: ["list_replies", "classify_reply", "draft_reply", "list_drafts", "approve_draft", "discard_draft"] },
   { id: "pipeline-tools", label: "Pipeline", page: "pipeline", tools: ["pipeline", "move_stage"] },
   { id: "crm", label: "CRM", page: "crm", tools: ["sync_crm"] },
+  { id: "autopilot", label: "Autopilot", page: "wake-your-agent", tools: ["manage_routine", "start_routine_run"] },
   { id: "credits", label: "Credits", page: "credits", tools: ["get_credits"] },
 ];
 
