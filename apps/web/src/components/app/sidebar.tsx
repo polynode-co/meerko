@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Inbox, LayoutDashboard, LogOut, Menu, PanelsTopLeft, Plug, Send, X } from "lucide-react";
+import { Bot, Inbox, LayoutDashboard, LogOut, Menu, Plug, Send, Sparkles, Table2, X } from "lucide-react";
 import Link from "next/link";
 import posthog from "posthog-js";
 import { usePathname } from "next/navigation";
@@ -10,16 +10,18 @@ import { logout } from "@/app/app/actions";
 import type { Workspace } from "@meerko/sdk";
 import { WorkspaceSwitcher } from "@/components/app/workspace-switcher";
 
-// The "LK App Sidebar" component (pQPbg) from the .pen file. Below `lg` it folds into a top bar with a menu.
+// "WS3/Sidebar" (UG9by) in docs/design/meerko.pen. Below `lg` it folds into a top bar with a menu.
 
 const nav = [
   { href: "/app", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/app/leads", label: "Leads", icon: PanelsTopLeft },
-  { href: "/app/sequences", label: "Sequences", icon: Send },
   { href: "/app/inbox", label: "Inbox", icon: Inbox, badge: "inbox" as const },
+  { section: "Outbound" },
+  { href: "/app/leads", label: "Leads", icon: Table2 },
+  { href: "/app/sequences", label: "Sequences", icon: Send },
   { href: "/app/autopilot", label: "Autopilot", icon: Bot },
+  { section: "Workspace" },
   { href: "/app/settings", label: "Connections", icon: Plug },
-];
+] as const;
 
 export interface SidebarProps {
   workspace: string;
@@ -31,13 +33,6 @@ export interface SidebarProps {
   credits: { enabled: boolean; balance: number | null };
 }
 
-const Brand = () => (
-  <Link href="/app" className="flex items-center gap-2.5 px-2">
-    <LogoMark size={26} />
-    <span className="font-pixel text-[16px] tracking-[1px] text-lk-fg">MEERKO</span>
-  </Link>
-);
-
 export function Sidebar({ workspace, workspaces, userEmail, mailboxNeedsReconnect, inboxCount, credits }: SidebarProps) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
@@ -45,84 +40,97 @@ export function Sidebar({ workspace, workspaces, userEmail, mailboxNeedsReconnec
   useEffect(() => setOpen(false), [path]);
   const active = (href: string, exact?: boolean) => (exact ? path === href : path === href || path.startsWith(href + "/"));
 
-  const item = (href: string, label: string, Icon: typeof Inbox, on: boolean, badge?: number) => (
-    <Link
-      key={href}
-      href={href}
-      aria-current={on ? "page" : undefined}
-      className={`flex items-center gap-3 p-2.5 font-plex text-[13px] tracking-[0.6px] uppercase transition ${
-        on ? "bg-lk-lime font-semibold text-lk-ink" : "text-lk-muted hover:bg-lk-frame hover:text-lk-fg"
-      }`}
-    >
-      <Icon className="size-4 shrink-0" />
-      <span className="flex-1">{label}</span>
-      {!!badge && <span className={`px-1.5 py-px text-[12px] font-semibold ${on ? "bg-lk-ink text-lk-lime" : "bg-lk-lime text-lk-ink"}`}>{badge}</span>}
-    </Link>
-  );
-
   return (
     <>
       {/* Mobile top bar */}
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-lk-line bg-lk-bg px-4 py-3 lg:hidden">
-        <Brand />
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-lk-line bg-white px-4 py-2.5 lg:hidden">
+        <Link href="/app" className="flex items-center gap-2">
+          <LogoMark size={24} />
+          <span className="text-[14px] font-semibold text-lk-fg">{workspace}</span>
+        </Link>
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-label={open ? "Close menu" : "Open menu"}
-          className="flex items-center gap-2 p-2 font-plex text-[13px] text-lk-muted uppercase outline outline-1 -outline-offset-1 outline-lk-gray"
+          className="flex items-center gap-2 rounded-md border border-lk-line p-2 text-lk-muted"
         >
           {open ? <X className="size-4" /> : <Menu className="size-4" />}
-          {!open && inboxCount > 0 && <span className="bg-lk-lime px-1.5 text-[12px] font-semibold text-lk-ink">{inboxCount}</span>}
+          {!open && inboxCount > 0 && <span className="rounded-full bg-ws-acc px-1.5 font-mono text-[10px] font-semibold text-lk-fg">{inboxCount}</span>}
         </button>
       </div>
-      {open && <div className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={() => setOpen(false)} />}
+      {open && <div className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => setOpen(false)} />}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] shrink-0 flex-col justify-between gap-6 overflow-y-auto border-r border-lk-line bg-lk-bg px-4 py-[22px] transition-transform lg:sticky lg:top-0 lg:z-auto lg:h-dvh lg:w-[232px] lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[256px] shrink-0 flex-col overflow-y-auto border-r border-lk-line bg-ws-side transition-transform lg:sticky lg:top-0 lg:z-auto lg:h-dvh lg:w-[240px] lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex flex-col gap-7">
-          <Brand />
-
-          <WorkspaceSwitcher
-            workspace={workspace}
-            workspaces={workspaces}
-            canCreate={!!userEmail}
-            warning={mailboxNeedsReconnect ? "Mailbox needs reconnecting" : null}
-          />
-
-          <nav className="flex flex-col gap-1">
-            {nav.map((n) => item(n.href, n.label, n.icon, active(n.href, n.exact), n.badge === "inbox" ? inboxCount : undefined))}
-          </nav>
+        <div className="flex h-[52px] shrink-0 items-center border-b border-lk-line px-2">
+          <div className="min-w-0 flex-1">
+            <WorkspaceSwitcher
+              workspace={workspace}
+              workspaces={workspaces}
+              canCreate={!!userEmail}
+              warning={mailboxNeedsReconnect ? "Mailbox needs reconnecting" : null}
+            />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-3.5">
-          <div className="flex flex-col gap-2 bg-lk-box p-3.5 outline outline-1 -outline-offset-1 outline-lk-line">
-            <span className="font-plex text-[12px] tracking-[0.8px] text-lk-dim uppercase">Credits</span>
-            {credits.enabled ? (
-              <>
-                <span className="text-[24px] leading-none font-semibold tracking-[-0.8px] text-lk-fg">{(credits.balance ?? 0).toLocaleString("en")}</span>
-                <div className="h-1 bg-lk-line">
-                  <div className="h-full bg-lk-lime" style={{ width: `${Math.min(100, ((credits.balance ?? 0) / 1000) * 100)}%` }} />
-                </div>
-              </>
-            ) : (
-              <span className="text-[15px] text-lk-fg">your own keys</span>
-            )}
-          </div>
+        <nav className="flex flex-1 flex-col gap-px p-2 pt-2.5">
+          <Link
+            href="/docs/quick-start"
+            className="mb-2 flex h-8 items-center gap-2 rounded-md border border-lk-line bg-white px-2.5 text-[13px] text-lk-dim transition hover:text-lk-fg"
+          >
+            <Sparkles className="size-3.5 text-ws-acc-ink" />
+            <span className="flex-1">Connect your agent</span>
+            <span className="font-mono text-[10px]">MCP</span>
+          </Link>
+          {nav.map((n) => {
+            if ("section" in n)
+              return (
+                <span key={n.section} className="px-2 pt-3.5 pb-1 font-mono text-[10.5px] tracking-[0.9px] text-lk-dim uppercase">
+                  {n.section}
+                </span>
+              );
+            const on = active(n.href, "exact" in n ? n.exact : false);
+            const badge = "badge" in n ? inboxCount : 0;
+            const Icon = n.icon;
+            return (
+              <Link
+                key={n.href}
+                href={n.href}
+                aria-current={on ? "page" : undefined}
+                className={`flex h-[30px] items-center gap-2.5 rounded-md px-2 text-[13.5px] transition ${on ? "bg-[#efebe2] font-semibold text-lk-fg" : "text-lk-fg hover:bg-ws-soft"}`}
+              >
+                <Icon className={`size-4 shrink-0 ${on ? "text-lk-fg" : "text-[#777]"}`} />
+                <span className="flex-1">{n.label}</span>
+                {badge > 0 && <span className="rounded-full bg-ws-acc px-[5px] font-mono text-[10px] leading-4 font-semibold text-lk-fg">{badge}</span>}
+              </Link>
+            );
+          })}
+        </nav>
 
-          <div className="flex flex-col gap-1.5 px-2.5">
-            {userEmail && (
-              <span className="truncate font-plex text-[12px] text-lk-dim" title={userEmail}>
-                {userEmail}
+        <div className="flex flex-col gap-2.5 border-t border-lk-line p-3">
+          <Link href="/app/settings#billing" className="flex flex-col gap-1.5 rounded-lg border border-lk-line bg-white p-2.5 transition hover:border-lk-gray">
+            <span className="flex items-center justify-between">
+              <span className="font-mono text-[10px] tracking-[1px] text-lk-dim uppercase">Credits</span>
+              <span className="font-mono text-[12px] font-semibold text-lk-fg">{credits.enabled ? (credits.balance ?? 0).toLocaleString("en") : "your keys"}</span>
+            </span>
+            {credits.enabled && (
+              <span className="h-1 overflow-hidden rounded-full bg-ws-soft">
+                <span className="block h-full bg-ws-acc" style={{ width: `${Math.min(100, ((credits.balance ?? 0) / 1000) * 100)}%` }} />
               </span>
             )}
+          </Link>
+          <div className="flex items-center justify-between gap-2 px-1">
+            <span className="truncate font-mono text-[10.5px] text-lk-dim" title={userEmail ?? undefined}>
+              {userEmail ?? "API key"}
+            </span>
             {/* reset() so whoever signs in next on this browser isn't merged into this person. */}
             <form action={logout} onSubmit={() => posthog.reset()}>
-              <button className="flex items-center gap-2 font-plex text-[12.5px] tracking-[0.6px] text-lk-dim uppercase hover:text-lk-fg">
-                <LogOut className="size-3.5" /> Sign out
+              <button aria-label="Sign out" title="Sign out" className="rounded p-1 text-lk-dim hover:bg-ws-soft hover:text-lk-fg">
+                <LogOut className="size-3.5" />
               </button>
             </form>
           </div>
