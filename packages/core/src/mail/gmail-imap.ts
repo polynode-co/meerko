@@ -1,5 +1,5 @@
 // Gmail over IMAP and SMTP with an app password: no Gmail API scopes, so no Google verification or CASA
-// (docs/APP_PASSWORD_PLAN.md). Gmail's IMAP extensions keep it shaped like the API client: X-GM-RAW takes
+// Gmail's IMAP extensions keep it shaped like the API client: X-GM-RAW takes
 // the same search syntax, and X-GM-MSGID / X-GM-THRID are the API's message and thread ids in decimal.
 import type { FetchMessageObject } from "imapflow";
 import type { InboundRef, MailClient, OutgoingRaw, SentIds } from "./client.ts";

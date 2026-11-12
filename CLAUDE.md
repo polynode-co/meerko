@@ -3,25 +3,15 @@
 # Meerko
 
 Open-source GTM agent: pnpm + Turborepo monorepo (`apps/api` Hono API, `apps/web` Next.js site and
-dashboard, `apps/worker`, `packages/{db,core,sdk,cli,mcp}`), deployed to GCP with Terraform
-that lives in the private `polynode-co/core-infrastructure` repo, `apps/meerko/{dev,prd}` with the shared
-module `apps/meerko/app` (moved there 2026-11-12, #149, so this repo can go public).
+dashboard, `apps/worker`, `packages/{db,core,sdk,cli,mcp}`). Self-hosting runs from `docker-compose.selfhost.yml`.
+Meerko Cloud's infrastructure and deploy runbook are kept privately by the maintainers, outside this repo.
 
-## Branches and deploys
+## Branches and releases
 
-Same model as antwork.io:
-
-| Branch | Environment | Deploys |
-|---|---|---|
-| `dev` | `the dev project` (dev.meerko.ai, api-dev.meerko.ai) | **Manually**: dev takes many merges a day, and few are a request to see something running |
-| `main` | `the prd project` (meerko.ai, api.meerko.ai) | **On every push**, path-filtered per service |
-
-Deploy dev when you want to see it:
-
-```
-(the dev deploy command is in the maintainers' private runbook)
-(the dev deploy command is in the maintainers' private runbook)
-```
+| Branch | What it is |
+|---|---|
+| `dev` | Where work lands: every pull request goes into `dev` |
+| `main` | Released code. Meerko Cloud deploys from it |
 
 **Releases are daily**: the `promote` workflow fast-forwards `main` to `dev` on its own at 20:00
 Madrid time, shipping whatever merged that day. A hotfix doesn't wait: merge it to `dev`, then run
@@ -31,9 +21,9 @@ puts a merge commit on `main` that `dev` doesn't have, and every later fast-forw
 `verify.yml` fails such PRs. If `main` has diverged anyway: `git checkout dev && git merge origin/main
 && git push origin dev`, confirm `git rev-parse dev^{tree}` didn't change, then promote.
 
-Migrations run on deploy: the api build (core-infrastructure `apps/meerko/app/build.tf`) applies pending ones after the tests pass and
-before the new revision takes traffic, so merging a PR with a migration needs no manual step, and the 20:00 promote
-migrates prd. A failed migration fails the deploy and the old revision keeps serving. Keep migrations
+Migrations run on deploy: the API's build applies pending ones after the tests pass and before the new revision
+takes traffic, so merging a PR with a migration needs no manual step, and the 20:00 promote migrates production. A
+failed migration fails the deploy and the old revision keeps serving. Keep migrations idempotent and
 backwards-compatible with the code still running (add columns with defaults, backfill in SQL); one that drops
 something goes after the code that stops using it. The web app deploys separately, so it must not need a column the
 API hasn't migrated yet.
@@ -43,7 +33,8 @@ API hasn't migrated yet.
 1. `./scripts/new-worktree.sh feat/<thing>`: a new branch from `origin/dev` in
    `.claude/worktrees/`, with `.env` linked and dependencies installed from the pnpm store.
 2. Work and commit there. Run `pnpm typecheck` and the tests for the packages you touched.
-3. Push, open a PR into `dev` (`gh pr create --base dev`), and merge it once it's green.
+3. Push, open a PR into `dev` (`gh pr create --base dev`), and merge it once it's green. Sign off each commit
+   (`git commit -s`, CONTRIBUTING.md).
 4. `git worktree remove .claude/worktrees/<slug>` after the merge.
 
 ## Surface parity
@@ -59,7 +50,7 @@ in-process). No surface talks to the database or core directly, so there's no se
   server action means updating its row in the same PR. A `missing` cell is a gap to close, not a place to park
   something.
 - The gate: `pnpm typecheck` (includes `docs:reference --check` and `api:spec --check`) and
-  `pnpm --filter @meerko/api test` (`spec.test.ts`, `capabilities.test.ts`). The api deploy runs both.
+  `pnpm --filter @meerko/api test` (`spec.test.ts`, `capabilities.test.ts`). The API deploy runs both.
 
 ## This tree is shared
 
