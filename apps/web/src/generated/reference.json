@@ -1175,6 +1175,28 @@
         }
       },
       {
+        "name": "delete_sequence",
+        "title": "Delete a sequence",
+        "description": "Permanently delete a sequence with its steps and enrollments; replies it got stay in the inbox and the leads stay in their table. Refused while it's active (pause it first). Confirm with the user before deleting.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sequence_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "sequence_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
         "name": "list_sequences",
         "title": "List sequences",
         "description": "List sequences with status and enrollment counts.",
@@ -2165,6 +2187,18 @@
         "group": "sequences",
         "description": "stop sending until started again",
         "options": []
+      },
+      {
+        "usage": "meerko sequences delete <sequenceId>",
+        "group": "sequences",
+        "description": "delete a paused or draft sequence with its steps and enrollments (replies and leads stay)",
+        "options": [
+          {
+            "flags": "-y, --yes",
+            "description": "don't ask for confirmation",
+            "required": false
+          }
+        ]
       },
       {
         "usage": "meerko sequences stats <sequenceId>",

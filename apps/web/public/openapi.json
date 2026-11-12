@@ -2907,6 +2907,53 @@
             }
           }
         }
+      },
+      "delete": {
+        "operationId": "deleteSequence",
+        "tags": [
+          "sequences"
+        ],
+        "summary": "Delete a paused or draft sequence, its steps and enrollments; replies stay",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Delete a paused or draft sequence, its steps and enrollments; replies stay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/sequences/{id}/preview": {

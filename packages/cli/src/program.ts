@@ -661,6 +661,21 @@ seqs
   });
 
 seqs
+  .command("delete <sequenceId>")
+  .description("delete a paused or draft sequence with its steps and enrollments (replies and leads stay)")
+  .option("-y, --yes", "don't ask for confirmation")
+  .action(async (id: string, opts: { yes?: boolean }) => {
+    const client = MeerkoClient.fromEnv();
+    if (!opts.yes) {
+      const seq = await client.getSequence(id);
+      const answer = await ask(`Delete "${seq.name}"? Type the sequence name to confirm: `);
+      if (answer !== seq.name) throw new Error("Not deleted: the name didn't match.");
+    }
+    const res = await client.deleteSequence(id);
+    console.log(json() ? JSON.stringify(res) : "Deleted the sequence.");
+  });
+
+seqs
   .command("stats <sequenceId>")
   .description("enrollment states, emails sent and reply rate")
   .action(async (id: string) => {

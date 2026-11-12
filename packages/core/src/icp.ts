@@ -47,14 +47,14 @@ const text = (v: unknown) => (typeof v === "string" ? v : typeof v === "number" 
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
 const has = (haystack: string, needle: string) => norm(haystack).includes(norm(needle));
 
-/** Country names a location string may use for an alpha-2 code: English, Spanish, French, German, Portuguese, Italian. */
-const countryNames = (() => {
+/** Country names a location string may use for an alpha-2 code: English, Spanish, French, German, Portuguese, Italian, Dutch. */
+export const countryNames = (() => {
   const cache = new Map<string, string[]>();
   return (code: string) => {
     const c = code.toUpperCase();
     if (!cache.has(c)) {
       const names = new Set<string>([c === "US" ? "United States" : "", c === "GB" ? "United Kingdom" : "", c === "GB" ? "England" : ""].filter(Boolean));
-      for (const lang of ["en", "es", "fr", "de", "pt", "it"]) {
+      for (const lang of ["en", "es", "fr", "de", "pt", "it", "nl"]) {
         try {
           const n = new Intl.DisplayNames([lang], { type: "region" }).of(c);
           if (n && n !== c) names.add(n);
@@ -113,7 +113,7 @@ export function scoreRow(icp: Icp | null, data: Record<string, unknown>, review?
     add("headcount", ok, ok ? `${size} ${size === 1 ? "person" : "people"}` : `${size} people, you want ${range}`);
   }
   if (icp.countries?.length && location) {
-    const hit = icp.countries.find((c) => countryNames(c).some((n) => has(location, n)) || new RegExp(`(^|[\\s,])${c}($|[\\s,])`, "i").test(location));
+    const hit = icp.countries.find((c) => countryNames(c).some((n) => has(location, n)) || location.split(",").some((part) => part.trim() === c.toUpperCase()));
     add("country", !!hit, hit ? `${hit.toUpperCase()} · ${location}` : `${location}, not one of your countries`);
   }
   if (icp.keywords?.length && profile.trim()) {

@@ -63,6 +63,7 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   preview_sequence: read("Preview a sequence email"),
   enroll_rows: write("Enroll rows in a sequence"), // nothing is sent until start_sequence
   start_sequence: destructive("Start sending a sequence", true), // real emails to real people
+  delete_sequence: destructive("Delete a sequence"),
   pause_sequence: write("Pause a sequence"),
   get_sending_mode: read("Get the sending mode"),
   list_pending_emails: read("List emails waiting for approval"),

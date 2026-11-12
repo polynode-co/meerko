@@ -168,6 +168,17 @@ export async function updateSequence(db: Db, workspaceId: string, id: string, in
   return getSequence(db, workspaceId, id);
 }
 
+/**
+ * Deletes a sequence with its steps, enrollments and pool. Replies it got stay in the inbox. Refuses while it's
+ * sending, so an agent can't stop a live campaign by accident: pause it first.
+ */
+export async function deleteSequence(db: Db, workspaceId: string, id: string) {
+  const seq = await getSequence(db, workspaceId, id);
+  if (seq.status === "active") throw new SequenceError(`Pause "${seq.name}" first: it's still sending.`);
+  await db.delete(sequences).where(and(eq(sequences.workspaceId, workspaceId), eq(sequences.id, id)));
+  return { deleted: true };
+}
+
 export async function setSequenceStatus(db: Db, workspaceId: string, id: string, status: Exclude<SequenceStatus, "draft">) {
   const seq = await getSequence(db, workspaceId, id);
   if (status === "active") {

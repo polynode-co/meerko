@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { mcpUrl } from "@/lib/meerko";
 import { site } from "@/lib/site";
-import { LogoMark } from "../ui/brand";
 import { LookoutCommand } from "./copy-command";
 import { LimeButton, LkLandscapeFooter, LkNav, Window, kicker, label, sectionTitle } from "./kit";
 import { DemoPlayer } from "./demo-player";
@@ -125,27 +124,15 @@ function SequenceWindow() {
   );
 }
 
-function SlackWindow() {
+/** A real run, recorded on a local Meerko with demo data (issue #115): a reply arrives, Autopilot wakes Claude Code, its draft waits. */
+function WakeUpWindow() {
   return (
-    <Window title="SLACK — #outbound">
-      <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center bg-lk-ink">
-          <LogoMark size={24} />
-        </span>
-        <div className="flex flex-1 flex-col gap-2">
-          <span className="font-plex text-[12.5px] text-lk-gray">Meerko APP 14:22</span>
-          <p className="text-[15.5px] leading-[21px] text-lk-ink">
-            Lucía M. (Ledgr) replied: “Good timing — can we talk Thursday?”
-            <br />
-            Draft: “Thursday works. 10:00 or 15:00 your time?”
-          </p>
-          <div className="flex gap-2 pt-1.5">
-            <span className="bg-lk-ink px-3.5 py-2 font-plex text-[12.5px] text-lk-lime">Approve &amp; send</span>
-            <span className="px-3.5 py-2 font-plex text-[12.5px] text-lk-ink outline-[1.5px] -outline-offset-[0.75px] outline-lk-ink outline">Discard</span>
-          </div>
-        </div>
-      </div>
-    </Window>
+    <figure className="flex flex-col gap-3">
+      <Window title="MEERKO — A REPLY COMES IN" bodyClassName="">
+        <video className="block aspect-[1280/712] w-full bg-lk-bg" src="/landing/agent-wakeup.mp4" poster="/landing/agent-wakeup-poster.jpg" autoPlay muted loop playsInline preload="metadata" aria-label="A reply arrives in the Meerko inbox, Autopilot starts Claude Code, and Claude's draft answer waits for approval" />
+      </Window>
+      <figcaption className="font-plex text-[12.5px] tracking-[0.6px] text-lk-dim">A real run with demo data: the reply lands, Autopilot wakes Claude Code, its draft waits for you.</figcaption>
+    </figure>
   );
 }
 
@@ -169,7 +156,7 @@ const steps = [
     title: "Your agent drafts. You press send.",
     body: "When a reply lands, Meerko wakes your agent to draft an answer. Its key can draft, never send. Approve in Slack or the inbox.",
     cta: ["Wake your agent →", "/docs/wake-your-agent"],
-    window: <SlackWindow />,
+    window: <WakeUpWindow />,
   },
 ] as const;
 
@@ -293,7 +280,7 @@ function Start() {
         <span className="font-plex text-[12.5px] tracking-[0.8px] text-lk-dim">IN YOUR TERMINAL</span>
         <LookoutCommand command={`claude mcp add --transport http --scope user meerko ${mcpUrl()}`} />
         <span className="font-plex text-[12.5px] tracking-[0.8px] text-lk-dim">OR IN THE BROWSER</span>
-        <LimeButton href={site.signupUrl} className="px-[18px] py-4 text-right">
+        <LimeButton href={site.signupUrl} className="px-[18px] py-4 text-center">
           Start free with 200 credits →
         </LimeButton>
       </div>

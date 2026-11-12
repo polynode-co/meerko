@@ -36,6 +36,11 @@ describe("ICP fit", () => {
     expect(scoreRow({ countries: ["US"] }, { location: "Berlin, Germany" }).score).toBe(0);
   });
 
+  it("doesn't read a country code inside a place name", () => {
+    expect(scoreRow({ countries: ["ES"] }, { location: "Dar es Salaam, Tanzania" }).score).toBe(0);
+    expect(scoreRow({ countries: ["US"] }, { location: "Austin, US" }).score).toBe(100);
+  });
+
   it("weights the misses: wrong title and size", () => {
     const fit = scoreRow(icp, { title: "Influencer Marketing", industry: "Retail Apparel and Fashion", company_size: 40, location: "Madrid, Spain" });
     // industry 30 + country 15 of industry 30, title 25, size 20, country 15 = 45/90

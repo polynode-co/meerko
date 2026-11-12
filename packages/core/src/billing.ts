@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { and, creditLedger, eq, inArray, isNotNull, isNull, mailboxes, workspaces, type Db, type Plan } from "@meerko/db";
+import { and, asc, creditLedger, eq, inArray, isNotNull, isNull, mailboxes, workspaces, type Db, type Plan } from "@meerko/db";
 import { lapseMonthlyCredits, monthlyCreditsExpiry } from "./credits.ts";
 import { billingWorkspaceOf, sharesBilling } from "./workspaces.ts";
 
@@ -121,13 +121,24 @@ export async function assertMailboxAllowed(db: Db, workspaceId: string, email: s
   const billingId = await billingWorkspaceOf(db, workspaceId);
   const shared = db.select({ id: workspaces.id }).from(workspaces).where(sharesBilling(billingId));
   const rows = await db
-    .select({ email: mailboxes.email, workspaceId: mailboxes.workspaceId })
+    .select({ email: mailboxes.email, workspaceId: mailboxes.workspaceId, workspaceName: workspaces.name })
     .from(mailboxes)
-    .where(inArray(mailboxes.workspaceId, shared));
+    .innerJoin(workspaces, eq(workspaces.id, mailboxes.workspaceId))
+    .where(inArray(mailboxes.workspaceId, shared))
+    .orderBy(asc(mailboxes.createdAt));
   if (rows.some((m) => m.workspaceId === workspaceId && m.email === email.toLowerCase())) return;
-  if (rows.length >= limit) {
-    throw new PlanLimitError(`The Free plan includes ${limit} mailbox. Upgrade to Pro in Connections to connect more.`);
-  }
+  if (rows.length >= limit) throw new PlanLimitError(mailboxLimitText(limit, rows, workspaceId));
+}
+
+/**
+ * Why a connect was refused: which mailbox holds the Free slot and where. A mailbox in another workspace is named
+ * by its workspace only, since a member of this one may not be a member of that one.
+ */
+export function mailboxLimitText(limit: number, used: { email: string; workspaceId: string; workspaceName: string }[], workspaceId: string) {
+  const here = used.find((m) => m.workspaceId === workspaceId);
+  const holder = here ? here.email : `a mailbox in your "${used[0]?.workspaceName}" workspace (the plan is shared by all your workspaces)`;
+  const fix = here ? "Disconnect it" : "Disconnect it there";
+  return `The Free plan includes ${limit} mailbox, and ${holder} already uses it. ${fix}, or upgrade to Pro under Plan & credits in Connections for unlimited mailboxes.`;
 }
 
 /** Throws unless the workspace's plan includes phone numbers on Meerko's key (`PLAN_PHONES`). */

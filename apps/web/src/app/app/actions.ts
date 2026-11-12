@@ -345,6 +345,13 @@ export async function deleteTable(tableId: string): Promise<ActionResult> {
   return res;
 }
 
+/** Deletes a paused or draft sequence, then leaves its (now missing) page for the list of sequences. */
+export async function deleteSequence(sequenceId: string): Promise<ActionResult> {
+  const res = await run((c) => c.deleteSequence(sequenceId).then(() => undefined), ["/app/sequences", "/app"]);
+  if (res.ok) redirect("/app/sequences");
+  return res;
+}
+
 export async function setSequenceRunning(sequenceId: string, running: boolean) {
   return run(
     (c) => (running ? c.startSequence(sequenceId) : c.pauseSequence(sequenceId)).then((s) => `${s.name} ${running ? "started" : "paused"}`),
