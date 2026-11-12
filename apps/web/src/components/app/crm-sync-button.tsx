@@ -45,12 +45,12 @@ export function CrmSyncButton({ tableId, provider }: { tableId: string; provider
   return (
     <div className="flex items-center gap-3">
       {status && (
-        <span role="status" aria-live="polite" className={`max-w-xs text-sm ${status.ok ? "text-lk-dim" : "text-[#e5795b]"}`}>
+        <span role="status" aria-live="polite" className={`max-w-xs text-[12.5px] ${status.ok ? "text-lk-muted" : "text-ws-red"}`}>
           {status.text}
         </span>
       )}
       <button disabled={running} onClick={run} className={buttonClass("ghost")} title={`Push rows not yet in ${NAMES[provider]}, matched by email`}>
-        <CloudUpload className={`size-[15px] ${running ? "animate-pulse text-lk-lime" : ""}`} />
+        <CloudUpload className={running ? "animate-pulse text-ws-acc-ink" : ""} />
         {running ? "Syncing…" : `Sync to ${NAMES[provider]}`}
       </button>
     </div>

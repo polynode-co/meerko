@@ -19,14 +19,9 @@ export function SequenceToggle({ id, status }: { id: string; status: "draft" | "
   };
   return (
     <div className="flex items-center gap-3">
-      {error && <span className="max-w-xs text-sm text-[#e5795b]">{error}</span>}
-      <button
-        disabled={pending}
-        onClick={toggle}
-        // Pause gets a visible lime outline: the neutral secondary style disappears on dark backgrounds.
-        className={buttonClass(running ? "lime" : "primary")}
-      >
-        {running ? <Pause className="size-[15px]" /> : <Play className="size-[15px]" />}
+      {error && <span className="max-w-xs text-[12.5px] text-ws-red">{error}</span>}
+      <button disabled={pending} onClick={toggle} className={buttonClass(running ? "secondary" : "primary")}>
+        {running ? <Pause /> : <Play />}
         {pending ? "Saving…" : running ? "Pause sending" : status === "draft" ? "Start sending" : "Resume sending"}
       </button>
     </div>

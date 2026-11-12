@@ -3,13 +3,14 @@
 import { useActionState, useState, useTransition } from "react";
 import type { SlackConnection } from "@meerko/sdk";
 import { installSlack, removeSlack, saveSlackWebhook, testSlack } from "@/app/app/actions";
-import { buttonClass, Card, formatWhen, Pill, cardTitle } from "@/components/app/ui";
+import { buttonClass, field, formatWhen, Pill } from "@/components/app/ui";
 
-const inputClass = "min-w-0 flex-1 bg-lk-ink px-3 py-2 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime text-[15px]";
+const line = "px-4 py-2.5 text-[13px]";
 
 /**
- * Posts new replies and the agent's drafts to a Slack channel. With the Meerko Slack app, drafts carry Approve and
- * Discard buttons and `/meerko` shows what's waiting; a pasted incoming webhook only posts.
+ * Connections → Notifications: posts new replies and the agent's drafts to a Slack channel. With the Meerko Slack app,
+ * drafts carry Approve and Discard buttons and `/meerko` shows what's waiting; a pasted incoming webhook only posts.
+ * Rendered as a block inside the Notifications card.
  */
 export function SlackCard({
   connection,
@@ -42,32 +43,28 @@ export function SlackCard({
   const where = connection?.kind === "app" ? `#${connection.channelName ?? "channel"} in ${connection.teamName ?? "Slack"}` : "an incoming webhook";
 
   return (
-    <Card id="slack">
-      <div className="border-b border-lk-line px-[18px] py-4">
-        <h2 className={cardTitle}>Slack</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-lk-muted">
-          Meerko posts new replies and your agent&apos;s drafts to a channel.
-          {appAvailable ? " With the Meerko app you approve or discard each draft right there, and /meerko shows what's waiting." : ""}{" "}
-          <a href="/docs/slack" className="text-lk-lime hover:underline">How it works</a>.
-        </p>
-      </div>
-
-      {notice && <p className="border-b border-lk-line px-[18px] py-3 text-[15px] text-lk-dim">{notice}</p>}
-
+    <div id="slack" className="scroll-mt-6 border-b border-lk-line last:border-0">
       {connection ? (
-        <div className="flex flex-wrap items-center gap-4 border-b border-lk-line px-[18px] py-4">
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="text-[15px] font-medium">{connection.kind === "app" ? "Meerko Slack app" : "Incoming webhook"}</span>
-            <span className="truncate text-sm text-lk-dim">Posting to {where}</span>
-            {connection.lastError && <span className="text-sm text-[#e5795b]">{connection.lastError}</span>}
+        <div className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+          <span className="flex min-w-[min(100%,180px)] flex-1 flex-col gap-0.5">
+            <span className="flex items-center gap-2 text-[13.5px] font-medium text-lk-fg">
+              Slack
+              <Pill tone={!connection.enabled ? "neutral" : connection.lastError ? "amber" : "signal"}>{!connection.enabled ? "off" : connection.lastError ? "failing" : "connected"}</Pill>
+            </span>
+            <span className="truncate font-mono text-[11px] text-lk-dim">
+              {where} · {connection.kind === "app" ? "Meerko Slack app" : "posts only"} · {connection.lastPostedAt ? `posted ${formatWhen(connection.lastPostedAt)}` : "nothing posted yet"}
+            </span>
+            {connection.lastError && <span className="text-[12px] text-ws-red">{connection.lastError}</span>}
           </span>
-          <span className="font-plex text-sm text-lk-dim">{connection.lastPostedAt ? `posted ${formatWhen(connection.lastPostedAt)}` : "nothing posted yet"}</span>
-          <Pill tone={!connection.enabled ? "neutral" : connection.lastError ? "amber" : "signal"}>{!connection.enabled ? "off" : connection.lastError ? "failing" : "on"}</Pill>
           {canManage && (
-            <span className="flex flex-wrap gap-2">
-              <button type="button" disabled={pending} onClick={() => act(testSlack)} className={buttonClass()}>Send test</button>
+            <span className="flex flex-wrap gap-1.5">
+              <button type="button" disabled={pending} onClick={() => act(testSlack)} className={buttonClass("secondary", "sm")}>
+                Send test
+              </button>
               {!connection.enabled && connection.kind === "app" && (
-                <button type="button" disabled={pending} onClick={install} className={buttonClass()}>Reconnect</button>
+                <button type="button" disabled={pending} onClick={install} className={buttonClass("secondary", "sm")}>
+                  Reconnect
+                </button>
               )}
               <button
                 type="button"
@@ -76,7 +73,7 @@ export function SlackCard({
                   if (!window.confirm("Stop posting to Slack?")) return;
                   act(removeSlack);
                 }}
-                className={buttonClass("ghost")}
+                className={buttonClass("ghost", "sm")}
               >
                 Disconnect
               </button>
@@ -84,41 +81,57 @@ export function SlackCard({
           )}
         </div>
       ) : (
-        canManage && (
-          <div className="flex flex-col gap-3 border-b border-lk-line px-[18px] py-4 text-[15px]">
-            {appAvailable && (
-              <div className="flex flex-wrap items-center gap-3">
-                <button type="button" disabled={pending} onClick={install} className={buttonClass("primary")}>Add to Slack</button>
-                <span className="text-lk-dim">Pick the channel on Slack&apos;s page. Approving works for people whose Slack email matches their Meerko login.</span>
-              </div>
-            )}
-            {appAvailable && !webhookOpen && (
-              <button type="button" onClick={() => setWebhookOpen(true)} className="self-start text-sm text-lk-dim hover:text-lk-fg">
-                Or paste an incoming webhook (posts only, no buttons)
+        <div className="flex flex-col gap-2.5 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="flex min-w-[min(100%,180px)] flex-1 flex-col gap-0.5">
+              <span className="text-[13.5px] font-medium text-lk-fg">Slack</span>
+              <span className="text-[12px] text-lk-dim">
+                New replies and drafts in a channel{appAvailable ? ", approved right there" : ""}.{" "}
+                <a href="/docs/slack" className="text-lk-muted underline underline-offset-2 hover:text-lk-fg">
+                  How it works
+                </a>
+              </span>
+            </span>
+            {canManage && appAvailable && (
+              <button type="button" disabled={pending} onClick={install} className={buttonClass("secondary", "sm")}>
+                Add to Slack
               </button>
             )}
-            {webhookOpen && (
-              <form action={save} className="flex flex-col gap-2">
-                <p className="text-lk-dim">
-                  Create an incoming webhook in Slack and paste its URL. Meerko posts there, with links to the inbox; approving happens in
-                  Meerko.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <input name="url" type="url" required placeholder="https://hooks.slack.com/services/…" className={inputClass} />
-                  <button disabled={saving} className={buttonClass(appAvailable ? "secondary" : "primary")}>{saving ? "Connecting…" : "Connect"}</button>
-                </div>
-              </form>
-            )}
           </div>
-        )
+          {canManage && appAvailable && !webhookOpen && (
+            <button type="button" onClick={() => setWebhookOpen(true)} className="self-start text-[12px] text-lk-dim hover:text-lk-fg">
+              Or paste an incoming webhook (posts only, no buttons)
+            </button>
+          )}
+          {canManage && webhookOpen && (
+            <form action={save} className="flex flex-wrap gap-2">
+              <input name="url" type="url" required placeholder="https://hooks.slack.com/services/…" aria-label="Slack incoming webhook URL" className={`${field} flex-1 font-mono text-[12px]`} />
+              <button disabled={saving} className={buttonClass("secondary")}>
+                {saving ? "Connecting…" : "Connect"}
+              </button>
+            </form>
+          )}
+          {!canManage && <p className="text-[12px] text-lk-dim">Sign in with your account, not an API key, to set this up.</p>}
+        </div>
       )}
 
-      {saved && !saved.ok && <p role="alert" className="border-b border-lk-line px-[18px] py-3 text-[15px] text-[#e5795b]">{saved.error}</p>}
-      {saved?.ok && <p role="status" className="border-b border-lk-line px-[18px] py-3 text-[15px] text-lk-lime">{saved.message}</p>}
-      {result && (
-        <p role="status" className={`border-b border-lk-line px-[18px] py-3 text-[15px] ${result.ok ? "text-lk-lime" : "text-[#e5795b]"}`}>{result.text}</p>
+      {notice && <p className={`border-t border-lk-line ${line} text-lk-muted`}>{notice}</p>}
+      {saved && !saved.ok && (
+        <p role="alert" className={`border-t border-lk-line ${line} text-ws-red`}>
+          {saved.error}
+        </p>
       )}
-      {!canManage && <p className="px-[18px] py-3 text-sm text-lk-dim">Sign in with your account, not an API key, to set this up.</p>}
-    </Card>
+      {saved?.ok && (
+        <p role="status" className={`border-t border-lk-line ${line} text-ws-green`}>
+          {saved.message}
+        </p>
+      )}
+      {result && (
+        <p role="status" className={`border-t border-lk-line ${line} ${result.ok ? "text-ws-green" : "text-ws-red"}`}>
+          {result.text}
+        </p>
+      )}
+      {connection && !canManage && <p className={`border-t border-lk-line ${line} text-lk-dim`}>Sign in with your account, not an API key, to set this up.</p>}
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import { MailSearch, Phone } from "lucide-react";
 import { useState, useTransition } from "react";
 import { enrichEmailsBatch, findPhones, type ActionResult } from "@/app/app/actions";
 import { useRouter } from "next/navigation";
-import { buttonClass } from "./ui";
+import { buttonClass, monoLabel } from "./ui";
 
 const PER_CLICK = 25;
 
@@ -65,18 +65,18 @@ export function EnrichButton({ tableId, scored = false }: { tableId: string; sco
   return (
     <div className="flex items-center gap-3">
       {(progress || result) && (
-        <span role="status" aria-live="polite" className={`max-w-xs text-sm ${result && !result.ok ? "text-[#e5795b]" : progress ? "text-lk-fg" : "text-lk-dim"}`}>
+        <span role="status" aria-live="polite" className={`max-w-xs text-[12.5px] ${result && !result.ok ? "text-ws-red" : progress ? "text-lk-fg" : "text-lk-muted"}`}>
           {progress ? `${progress.done} of ${progress.total} checked · ${progress.found} found` : result?.ok ? result.message : result?.error}
         </span>
       )}
       {scored && (
-        <label className="flex items-center gap-2 font-plex text-[12px] tracking-[0.6px] text-lk-muted uppercase" title="Only leads whose ICP fit is 70 or more">
-          <input type="checkbox" checked={goodFitsOnly} disabled={running} onChange={(e) => setGoodFitsOnly(e.target.checked)} className="size-3.5 accent-lk-lime" />
+        <label className={`flex cursor-pointer items-center gap-2 ${monoLabel} !text-lk-muted`} title="Only leads whose ICP fit is 70 or more">
+          <input type="checkbox" checked={goodFitsOnly} disabled={running} onChange={(e) => setGoodFitsOnly(e.target.checked)} className="size-3.5 accent-lk-fg" />
           Fit 70+ only
         </label>
       )}
       <button disabled={running} onClick={run} className={buttonClass("secondary")}>
-        <MailSearch className={`size-[15px] ${running ? "animate-pulse text-lk-lime" : ""}`} />
+        <MailSearch className={running ? "animate-pulse text-ws-acc-ink" : ""} />
         {running ? (progress ? `Finding emails… ${progress.done}/${progress.total}` : "Finding emails…") : "Find & verify emails"}
       </button>
     </div>
@@ -90,7 +90,7 @@ export function PhoneButton({ tableId }: { tableId: string }) {
   return (
     <div className="flex items-center gap-3">
       {result && (
-        <span role="status" className={`max-w-xs text-sm ${result.ok ? "text-lk-dim" : "text-[#e5795b]"}`}>
+        <span role="status" className={`max-w-xs text-[12.5px] ${result.ok ? "text-lk-muted" : "text-ws-red"}`}>
           {result.ok ? result.message : result.error}
         </span>
       )}
@@ -100,7 +100,7 @@ export function PhoneButton({ tableId }: { tableId: string }) {
         className={buttonClass("ghost")}
         title="80 credits per number found; misses are free"
       >
-        <Phone className="size-[15px]" />
+        <Phone />
         {pending ? "Finding phones…" : "Find phones"}
       </button>
     </div>

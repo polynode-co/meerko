@@ -1,9 +1,10 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Info, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createSequence } from "@/app/app/actions";
-import { buttonClass, Card, CardHead, field, fieldLabel } from "./ui";
+import { buttonClass, Card, CardHead, crumb, field, fieldLabel, monoLabel, PageHeader, Pill } from "./ui";
 
 type Step = { subject: string; body: string; delay_days: number };
 export type FormTable = { id: string; name: string; rowCount: number; columns: { key: string; name: string }[] };
@@ -12,11 +13,12 @@ export type FormMailbox = { id: string; email: string; status: string };
 const FIRST: Step = { subject: "", body: "Hi {{first_name}},\n\n", delay_days: 0 };
 const FOLLOW_UP: Step = { subject: "", body: "Hi {{first_name}},\n\n", delay_days: 3 };
 const HOURS = Array.from({ length: 25 }, (_, h) => h);
-const box = "bg-lk-ink px-2.5 py-[7px] text-[15px] text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime";
+const box = "rounded-md border border-lk-line bg-white px-2.5 py-[7px] font-mono text-[12.5px] text-lk-fg focus:border-lk-fg focus:outline-none";
 
 /**
  * Writes a draft sequence: who it goes to (a table), who it comes from (a mailbox pool) and the emails.
- * Saving sends nothing; the sequence page then enrolls people and starts it.
+ * Saving sends nothing; the sequence page then enrolls people and starts it. Renders the page header too, since its
+ * save button sits there.
  */
 export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: FormTable[]; mailboxes: FormMailbox[]; defaultTableId?: string }) {
   const [name, setName] = useState("");
@@ -61,11 +63,38 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
     });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid items-start gap-6 xl:grid-cols-[400px_minmax(0,1fr)]">
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        eyebrow={
+          <span className={crumb}>
+            <Link href="/app/sequences" className="hover:text-lk-fg">
+              Sequences
+            </Link>{" "}
+            ›
+          </span>
+        }
+        title="New sequence"
+        meta="Saved as a draft · nothing sends until you start it"
+        actions={
+          <>
+            {error && (
+              <span role="alert" className="max-w-sm text-[12.5px] text-ws-red">
+                {error}
+              </span>
+            )}
+            <Link href="/app/sequences" className={buttonClass("ghost")}>
+              Cancel
+            </Link>
+            <button type="button" disabled={pending} onClick={submit} className={buttonClass("primary")}>
+              {pending ? "Saving…" : "Save as draft"}
+            </button>
+          </>
+        }
+      />
+      <div className="grid items-start gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
         <Card>
           <CardHead title="Setup" />
-          <div className="flex flex-col gap-5 p-[18px] text-[15px]">
+          <div className="flex flex-col gap-5 p-4 text-[13px]">
             <label className="flex flex-col gap-1.5">
               <span className={fieldLabel}>Name</span>
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Fintech CTOs, October" className={field} />
@@ -75,7 +104,7 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
               <select value={tableId} onChange={(e) => setTableId(e.target.value)} className={field}>
                 {tables.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({t.rowCount.toLocaleString("en")} {t.rowCount === 1 ? "row" : "rows"})
+                    {t.name} · {t.rowCount.toLocaleString("en")} {t.rowCount === 1 ? "row" : "rows"}
                   </option>
                 ))}
               </select>
@@ -88,36 +117,52 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
                     type="checkbox"
                     checked={mailboxIds.includes(m.id)}
                     onChange={(e) => setMailboxIds((ids) => (e.target.checked ? [...ids, m.id] : ids.filter((x) => x !== m.id)))}
-                    className="size-4 accent-lk-lime"
+                    className="size-4 accent-lk-fg"
                   />
-                  <span className="min-w-0 truncate font-plex text-[14px] text-lk-fg">{m.email}</span>
-                  {m.status !== "active" && <span className="text-[14px] text-[#e5795b]">needs reconnecting</span>}
+                  <span className={`min-w-0 flex-1 truncate font-mono text-[12px] ${m.status === "active" ? "text-lk-fg" : "text-lk-dim"}`}>{m.email}</span>
+                  {m.status !== "active" && <Pill tone="red">reconnect</Pill>}
                 </label>
               ))}
-              <span className="text-[14px] leading-snug text-lk-dim">With several, each person gets one mailbox and keeps it for every email.</span>
+              <span className="text-[12px] text-lk-dim">Each person keeps one mailbox for every email.</span>
             </fieldset>
             <div className="flex flex-col gap-1.5">
               <span className={fieldLabel}>Sending hours</span>
               <div className="flex flex-wrap items-center gap-2 text-lk-muted">
-                <span>weekdays from</span>
+                <span>Weekdays</span>
                 <select value={startHour} onChange={(e) => setStartHour(Number(e.target.value))} aria-label="From" className={box}>
-                  {HOURS.slice(0, 24).map((h) => <option key={h} value={h}>{h}:00</option>)}
+                  {HOURS.slice(0, 24).map((h) => (
+                    <option key={h} value={h}>
+                      {h}:00
+                    </option>
+                  ))}
                 </select>
                 <span>to</span>
                 <select value={endHour} onChange={(e) => setEndHour(Number(e.target.value))} aria-label="To" className={box}>
-                  {HOURS.slice(1).map((h) => <option key={h} value={h}>{h}:00</option>)}
+                  {HOURS.slice(1).map((h) => (
+                    <option key={h} value={h}>
+                      {h}:00
+                    </option>
+                  ))}
                 </select>
               </div>
-              <span className="text-[14px] text-lk-dim">({timezone.replace(/_/g, " ")} time)</span>
+              <span className="font-mono text-[11px] text-lk-dim">{timezone}</span>
             </div>
           </div>
         </Card>
 
         <Card>
-          <CardHead title="Steps" />
+          <CardHead
+            title={
+              <>
+                Emails <span className="font-mono text-[11px] font-normal text-lk-dim">{steps.length}</span>
+              </>
+            }
+          />
           {placeholders.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 border-b border-lk-line px-[18px] py-3.5">
-              <span className="basis-full pb-1 text-[14px] text-lk-dim">Placeholders from {table?.name}, filled in per person. Click one to add it where you&apos;re typing:</span>
+            <div className="flex flex-wrap items-center gap-1.5 border-b border-lk-line bg-ws-head px-4 py-2.5">
+              <span className={`${monoLabel} pr-2`} title="Filled in per person. Click one to add it where you're typing.">
+                From {table?.name}
+              </span>
               {placeholders.map((key) => (
                 <button
                   key={key}
@@ -125,7 +170,7 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
                   // Keep the focus (and the cursor) in the box being edited.
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => insert(key)}
-                  className="px-2 py-[3px] font-plex text-[12.5px] text-lk-lime outline outline-1 -outline-offset-1 outline-lk-gray hover:outline-lk-lime"
+                  className="rounded border border-lk-line bg-white px-1.5 py-[2px] font-mono text-[11px] text-ws-blue transition hover:border-ws-blue"
                 >
                   {`{{${key}}}`}
                 </button>
@@ -134,14 +179,14 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
           )}
 
           {steps.map((s, i) => (
-            <div key={i} className="flex flex-col gap-3 border-b border-lk-line p-[18px]">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="flex items-center gap-3">
-                  <span className="bg-lk-ink px-2 py-[3px] font-plex text-[12px] tracking-[0.6px] text-lk-lime uppercase outline outline-1 -outline-offset-1 outline-lk-line">Email {i + 1}</span>
-                  <span className="font-plex text-[12.5px] tracking-[0.6px] text-lk-dim uppercase">{i === 0 ? "First email" : "Follow-up, same thread"}</span>
+            <div key={i} className="flex flex-col gap-2.5 border-b border-lk-line p-4">
+              <div className="flex min-h-8 flex-wrap items-center justify-between gap-3">
+                <span className="flex items-center gap-2">
+                  <Pill tone="blue">Email {i + 1}</Pill>
+                  <span className="font-mono text-[11px] text-lk-dim">{i === 0 ? "first email" : "follow-up · same thread"}</span>
                 </span>
                 {i > 0 && (
-                  <span className="flex items-center gap-2 text-[14px] whitespace-nowrap text-lk-dim">
+                  <span className="flex items-center gap-2 text-[12.5px] whitespace-nowrap text-lk-muted">
                     if no reply after
                     <input
                       type="number"
@@ -150,11 +195,16 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
                       value={s.delay_days}
                       onChange={(e) => update(i, { delay_days: Math.max(1, Math.min(60, Number(e.target.value) || 1)) })}
                       aria-label="Days"
-                      className={`${box} w-16`}
+                      className={`${box} w-14`}
                     />
                     days
-                    <button type="button" onClick={() => setSteps((all) => all.filter((_, j) => j !== i))} className="p-1 text-lk-dim hover:text-[#e5795b]" aria-label={`Remove email ${i + 1}`}>
-                      <Trash2 className="size-4" />
+                    <button
+                      type="button"
+                      onClick={() => setSteps((all) => all.filter((_, j) => j !== i))}
+                      className="rounded p-1 text-lk-dim transition hover:bg-ws-red-soft hover:text-ws-red"
+                      aria-label={`Remove email ${i + 1}`}
+                    >
+                      <Trash2 className="size-[14px]" />
                     </button>
                   </span>
                 )}
@@ -166,9 +216,9 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
                 value={s.body}
                 onChange={(e) => update(i, { body: e.target.value })}
                 onFocus={track(i, "body")}
-                rows={8}
+                rows={i === 0 ? 7 : 5}
                 aria-label={`Email ${i + 1}`}
-                className={`${field} font-plex !text-[14px] leading-[22px]`}
+                className={`${field} p-3 font-mono !text-[12.5px] leading-[21px]`}
               />
             </div>
           ))}
@@ -177,26 +227,17 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
             <button
               type="button"
               onClick={() => setSteps((all) => [...all, FOLLOW_UP])}
-              className="flex w-full items-center justify-center gap-2 p-4 font-plex text-[13px] tracking-[0.6px] text-lk-lime uppercase transition hover:bg-lk-frame"
+              className="flex w-full items-center justify-center gap-2 px-4 py-3 text-[12.5px] font-semibold text-lk-muted transition hover:bg-lk-frame hover:text-lk-fg"
             >
-              <Plus className="size-[15px]" /> Add a follow-up
+              <Plus className="size-[14px]" /> Add a follow-up
             </button>
           )}
         </Card>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="max-w-[640px] text-[15px] leading-relaxed text-lk-dim">
-          Saving sends nothing. On the next page you check what each person receives, add the people and start sending. Every email gets a
-          one-click unsubscribe link.
-        </p>
-        <div className="flex items-center gap-3">
-          {error && <span role="alert" className="max-w-sm text-[15px] text-[#e5795b]">{error}</span>}
-          <button type="button" disabled={pending} onClick={submit} className={buttonClass("primary")}>
-            {pending ? "Saving…" : "Save as draft"}
-          </button>
-        </div>
-      </div>
+      <p className="flex items-center gap-2 text-[12.5px] text-lk-dim">
+        <Info className="size-[14px]" /> Every email gets a one-click unsubscribe link.
+      </p>
     </div>
   );
 }

@@ -1,10 +1,21 @@
 "use client";
 
-import { CheckCheck, Send, Sparkles, Trash2 } from "lucide-react";
+import { CheckCheck, ChevronDown, Send, Sparkles } from "lucide-react";
 import { useState, useTransition } from "react";
 import { REPLY_INTENTS } from "@meerko/sdk/constants";
 import { approveDraft, classifyReply, discardDraft, sendReply, type ActionResult } from "@/app/app/actions";
-import { buttonClass, field, label, monoLabel } from "./ui";
+import { buttonClass, field, intentTone, label, monoLabel, type PillTone } from "./ui";
+
+// "WS3 · Inbox" (xhEIF) in docs/design/meerko.pen: the draft docked under the conversation.
+
+const toneText: Record<PillTone, string> = {
+  neutral: "bg-ws-soft text-lk-muted",
+  amber: "bg-ws-acc-soft text-ws-acc-ink",
+  signal: "bg-ws-green-soft text-ws-green",
+  solid: "bg-ws-acc text-lk-fg",
+  blue: "bg-ws-blue-soft text-ws-blue",
+  red: "bg-ws-red-soft text-ws-red",
+};
 
 /**
  * The agent's draft answer (edit, set intent, approve or discard), or, with no draft, a box to write the
@@ -29,43 +40,62 @@ export function DraftPanel({
   const [pending, start] = useTransition();
   const act = (fn: () => Promise<ActionResult>) => start(async () => setResult(await fn()));
 
+  const options = REPLY_INTENTS.filter((i) => i !== "other");
+  const known = !!current && (options as readonly string[]).includes(current);
   const intents = (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className={`${monoLabel} mr-1`}>Intent</span>
-      {REPLY_INTENTS.filter((i) => i !== "other").map((i) => (
-        <button
-          key={i}
+    <label className="flex shrink-0 items-center gap-2">
+      <span className={monoLabel}>Intent</span>
+      <span className="relative inline-flex">
+        <select
+          value={current ?? ""}
           disabled={pending}
-          onClick={() => {
+          aria-label="Intent"
+          onChange={(e) => {
+            const i = e.target.value;
             setCurrent(i);
             act(() => classifyReply(replyId, i));
           }}
-          className={`px-2 py-1 font-plex text-[12.5px] tracking-[0.4px] uppercase outline outline-1 -outline-offset-1 ${current === i ? "bg-lk-ink font-semibold text-lk-lime outline-lk-lime" : "text-lk-dim outline-lk-line hover:text-lk-fg hover:outline-lk-gray"}`}
+          className={`cursor-pointer appearance-none rounded border border-lk-line py-[3px] pr-6 pl-2 font-mono text-[11px] focus:border-lk-fg focus:outline-none disabled:opacity-60 ${
+            toneText[current ? (intentTone[current] ?? "neutral") : "neutral"]
+          }`}
         >
-          {label(i)}
-        </button>
-      ))}
-    </div>
+          {!known && (
+            <option value={current ?? ""} disabled>
+              {current ? label(current) : "unclassified"}
+            </option>
+          )}
+          {options.map((i) => (
+            <option key={i} value={i}>
+              {label(i)}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute top-1/2 right-1.5 size-3 -translate-y-1/2 text-lk-dim" />
+      </span>
+    </label>
   );
 
   const feedback = result && (
-    <p role="status" className={`text-[15px] ${result.ok ? "text-lk-lime" : "text-[#e5795b]"}`}>
+    <p role="status" className={`text-[12.5px] ${result.ok ? "text-ws-green" : "text-ws-red"}`}>
       {result.ok ? (result.message ?? "Saved") : result.error}
     </p>
   );
 
   if (!draft) {
     return (
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-3">
         {answered && !composing ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-[15px] outline outline-1 -outline-offset-1 outline-lk-line">
-            <span className="flex items-center gap-2 text-lk-muted">
-              <CheckCheck className="size-4 text-lk-lime" /> You replied. The sequence is stopped for this lead.
-            </span>
-            <button onClick={() => setComposing(true)} className={buttonClass()}>
-              Write a follow-up
-            </button>
-          </div>
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-lk-line bg-lk-frame px-3.5 py-2.5 text-[13px]">
+              <span className="flex items-center gap-2 text-lk-muted">
+                <CheckCheck className="size-4 text-ws-green" /> You replied. The sequence is stopped for this lead.
+              </span>
+              <button onClick={() => setComposing(true)} className={buttonClass("secondary", "sm")}>
+                Write a follow-up
+              </button>
+            </div>
+            {intents}
+          </>
         ) : (
           <section className="flex flex-col gap-3">
             <textarea
@@ -74,10 +104,13 @@ export function DraftPanel({
               rows={Math.min(8, Math.max(3, body.split("\n").length + 1))}
               placeholder="Write your reply…"
               aria-label="Your reply"
-              className={`${field} resize-y px-4 py-3.5 leading-relaxed`}
+              className={`${field} resize-y rounded-lg px-3.5 py-3 text-[13.5px] leading-[1.6]`}
             />
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-[14px] text-lk-dim">Sent from your mailbox, in this thread.</span>
+              <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                {intents}
+                <span className="font-mono text-[10.5px] text-lk-dim">your mailbox · same thread</span>
+              </span>
               <button
                 disabled={pending || !body.trim()}
                 onClick={() =>
@@ -92,12 +125,11 @@ export function DraftPanel({
                 }
                 className={buttonClass("primary")}
               >
-                <Send className="size-[15px]" /> {pending ? "Sending…" : "Send reply"}
+                <Send /> {pending ? "Sending…" : "Send reply"}
               </button>
             </div>
           </section>
         )}
-        {intents}
         {feedback}
       </div>
     );
@@ -105,31 +137,34 @@ export function DraftPanel({
 
   // Docked under the conversation: the agent's draft, editable in place, then approve or discard.
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="flex items-center gap-2 font-plex text-[12.5px] tracking-[0.6px] text-lk-lime uppercase">
-          <Sparkles className="size-3.5" /> Draft by your agent · edit before sending
+        <span className="flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[1px] text-ws-acc-ink uppercase">
+          <Sparkles className="size-3" /> Draft by your agent
         </span>
+        <span className="text-[12px] text-lk-dim">Nothing sends until you approve</span>
       </div>
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
         rows={Math.min(10, Math.max(4, body.split("\n").length + 1))}
         aria-label="Draft reply"
-        className={`${field} resize-y px-4 py-3 text-[15.5px] leading-relaxed`}
+        className={`${field} resize-y rounded-lg px-3.5 py-3 text-[13.5px] leading-[1.6]`}
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-[14px] text-lk-dim">Nothing is sent until you approve. It goes from your mailbox, in this thread.</span>
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {intents}
+          <span className="font-mono text-[10.5px] text-lk-dim">your mailbox · same thread</span>
+        </span>
         <div className="flex gap-2">
-          <button disabled={pending} onClick={() => act(() => discardDraft(draft.id))} className={buttonClass()}>
-            <Trash2 className="size-[15px]" /> Discard
+          <button disabled={pending} onClick={() => act(() => discardDraft(draft.id))} className={buttonClass("secondary")}>
+            Discard
           </button>
           <button disabled={pending || !body.trim()} onClick={() => act(() => approveDraft(draft.id, body))} className={buttonClass("primary")}>
-            <Send className="size-[15px]" /> {pending ? "Sending…" : "Approve & send"}
+            <Send /> {pending ? "Sending…" : "Approve & send"}
           </button>
         </div>
       </div>
-      {intents}
       {feedback}
     </section>
   );

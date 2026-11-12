@@ -14,13 +14,13 @@ export function DeleteTable({ tableId, rowCount }: { tableId: string; rowCount: 
   if (!confirming) {
     return (
       <button type="button" onClick={() => setConfirming(true)} className={buttonClass("ghost")} aria-label="Delete table">
-        <Trash2 className="size-[15px]" />
+        <Trash2 />
       </button>
     );
   }
   return (
-    <span className="flex items-center gap-2 text-[15px]">
-      <span>{error ?? `Delete the table and its ${rowCount.toLocaleString("en")} leads?`}</span>
+    <span className="flex flex-wrap items-center gap-2 text-[12.5px]">
+      <span className={error ? "text-ws-red" : "text-lk-muted"}>{error ?? `Delete the table and its ${rowCount.toLocaleString("en")} leads?`}</span>
       <button
         type="button"
         disabled={pending}

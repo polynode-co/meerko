@@ -1,4 +1,4 @@
-import { Send } from "lucide-react";
+import { ArrowDownWideNarrow, Send } from "lucide-react";
 import Link from "next/link";
 import { STAGES, type Stage } from "@meerko/sdk";
 import { AddLead } from "@/components/app/add-lead";
@@ -6,10 +6,11 @@ import { CrmSyncButton } from "@/components/app/crm-sync-button";
 import { DeleteTable } from "@/components/app/delete-table";
 import { EnrichButton, PhoneButton } from "@/components/app/enrich-button";
 import { LeadsTable, type LeadColumn } from "@/components/app/leads-table";
-import { AgentHint, buttonClass, Card, CardHead, monoLabel, Page, PageHeader } from "@/components/app/ui";
+import { AgentHint, buttonClass, Card, monoLabel, Page, PageHeader } from "@/components/app/ui";
 import { load } from "@/lib/meerko";
 
 const PAGE = 50;
+// "WS · Lead table" (fyeZC) in docs/design/meerko.pen.
 // Shown inside the Name/Company/Email cells instead of as their own columns.
 const MERGED = new Set(["first_name", "last_name", "title", "company", "domain", "email", "email_certainty", "email_verification"]);
 
@@ -60,18 +61,25 @@ export default async function TablePage({
       key={s ?? "all"}
       href={s ? `?stage=${s}` : "?"}
       aria-current={stage === s ? "page" : undefined}
-      className={`flex items-center gap-2 border-l border-lk-line px-3.5 py-[9px] font-plex text-[13px] tracking-[0.6px] uppercase first:border-l-0 ${
-        stage === s ? "bg-lk-lime font-semibold text-lk-ink" : "text-lk-muted hover:text-lk-fg"
+      className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-[12.5px] capitalize transition ${
+        stage === s ? "bg-ws-soft font-semibold text-lk-fg" : "text-lk-muted hover:text-lk-fg"
       }`}
     >
-      {s ?? "All"} <span className={stage === s ? "text-lk-ink/70" : "text-lk-dim"}>{n}</span>
+      {s ?? "All"} <span className="font-mono text-[10.5px] font-normal text-lk-dim">{n.toLocaleString("en")}</span>
     </Link>
   );
 
   return (
     <Page>
       <PageHeader
-        eyebrow="Leads / Table"
+        eyebrow={
+          <>
+            <Link href="/app/leads" className="hover:text-lk-fg">
+              Leads
+            </Link>{" "}
+            /
+          </>
+        }
         title={table.name}
         meta={`${table.rowCount.toLocaleString("en")} rows · ${table.columns.length} columns`}
         actions={
@@ -81,31 +89,31 @@ export default async function TablePage({
             {crm && keys.has("email") && <CrmSyncButton tableId={tableId} provider={crm.provider} />}
             <AddLead floating tableId={tableId} extraColumns={table.columns.filter((c) => !MERGED.has(c.key) && !c.prompt).map((c) => ({ key: c.key, name: c.name }))} />
             <Link href={`/app/sequences/new?table=${tableId}`} className={buttonClass("primary")}>
-              <Send className="size-[15px]" /> New sequence
+              <Send /> New sequence
             </Link>
             <DeleteTable tableId={tableId} rowCount={table.rowCount} />
           </>
         }
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav aria-label="Stage" className="flex max-w-full flex-wrap outline outline-1 -outline-offset-1 outline-lk-line">
+        <nav aria-label="Stage" className="flex max-w-full flex-wrap gap-0.5 rounded-md border border-lk-line bg-white p-0.5">
           {tab(undefined, pipeline.total)}
           {STAGES.map((s) => tab(s, pipeline.stages[s]))}
         </nav>
         <span className="flex items-center gap-4">
           {scored && (
-            <Link href={sortHref} className={`${monoLabel} hover:text-lk-lime ${byFit ? "!text-lk-lime" : ""}`}>
-              {byFit ? "✓ Best fit first" : "Sort by fit"}
+            <Link href={sortHref} className={`inline-flex items-center gap-1.5 text-[12.5px] transition hover:text-lk-fg ${byFit ? "font-semibold text-lk-fg" : "text-lk-muted"}`}>
+              <ArrowDownWideNarrow className="size-[13px]" />
+              {byFit ? "Best fit first" : "Sort by fit"}
             </Link>
           )}
-          <span className={monoLabel}>
-          {total ? `Rows ${(page - 1) * PAGE + 1}–${Math.min(page * PAGE, total)} of ${total}` : "No rows"}
+          <span className="font-mono text-[11px] text-lk-dim">
+            {total ? `${(page - 1) * PAGE + 1}–${Math.min(page * PAGE, total)} of ${total.toLocaleString("en")}` : "No rows"}
           </span>
         </span>
       </div>
 
       <Card>
-        <CardHead title="Rows" />
         <LeadsTable tableId={tableId} columns={columns} rows={rows} />
       </Card>
 
@@ -115,10 +123,10 @@ export default async function TablePage({
         </AgentHint>
       )}
       {pages > 1 && (
-        <div className="flex items-center justify-between gap-3 font-plex text-[13px] tracking-[0.6px] uppercase">
-          {page > 1 ? <Link className="text-lk-muted hover:text-lk-lime" href={pageHref(page - 1)}>← Prev</Link> : <span className="text-lk-gray">← Prev</span>}
-          <span className="text-lk-dim">Page {page} of {pages}</span>
-          {page * PAGE < total ? <Link className="text-lk-muted hover:text-lk-lime" href={pageHref(page + 1)}>Next →</Link> : <span className="text-lk-gray">Next →</span>}
+        <div className={`flex items-center justify-between gap-3 ${monoLabel}`}>
+          {page > 1 ? <Link className="text-lk-fg hover:underline" href={pageHref(page - 1)}>← Prev</Link> : <span className="text-lk-gray">← Prev</span>}
+          <span>Page {page} of {pages}</span>
+          {page * PAGE < total ? <Link className="text-lk-fg hover:underline" href={pageHref(page + 1)}>Next →</Link> : <span className="text-lk-gray">Next →</span>}
         </div>
       )}
     </Page>

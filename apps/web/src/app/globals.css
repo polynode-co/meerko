@@ -28,6 +28,20 @@
   --color-lk-paper: #e9e9e6;
   --color-lk-paper-hi: #f6f6f3;
   --color-lk-lime: #a8f326;
+
+  /* Workspace v3 (.pen "WS3 · …", 2026-11-12): light app, Antwork v3 patterns, saffron for outcomes. */
+  --color-ws-side: #faf8f3;
+  --color-ws-head: #fbfaf6;
+  --color-ws-soft: #f1eee7;
+  --color-ws-acc: #f4b400;
+  --color-ws-acc-ink: #8a6100;
+  --color-ws-acc-soft: #fff6d6;
+  --color-ws-green: #15803d;
+  --color-ws-green-soft: #e7f6ec;
+  --color-ws-red: #b91c1c;
+  --color-ws-red-soft: #fdecec;
+  --color-ws-blue: #1d4ed8;
+  --color-ws-blue-soft: #eaf0fe;
 }
 
 @theme inline {
@@ -36,6 +50,29 @@
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
   --font-plex: var(--font-plex-mono), ui-monospace, monospace;
   --font-pixel: var(--font-silkscreen), ui-monospace, monospace;
+}
+
+/*
+ * The workspace (/app) is light. It reuses the lk-* names so every app component flips in one place: lk-fg is ink,
+ * lk-muted secondary text, lk-dim muted labels, lk-line hairlines, lk-lime the saffron accent. Mono labels use
+ * JetBrains Mono and the pixel titles fall back to Inter. The marketing site keeps the dark Lookout tokens.
+ */
+.ws3 {
+  --color-lk-bg: #ffffff;
+  --color-lk-ink: #ffffff;
+  --color-lk-frame: #fbfaf6;
+  --color-lk-box: #ffffff;
+  --color-lk-line: #e6e1d6;
+  --color-lk-gray: #cfc9be;
+  --color-lk-dim: #8c857d;
+  --color-lk-muted: #5f5b53;
+  --color-lk-fg: #16161a;
+  --color-lk-paper: #fbfaf6;
+  --color-lk-paper-hi: #ffffff;
+  --color-lk-lime: #f4b400;
+  --font-plex-mono: var(--font-jetbrains);
+  --font-silkscreen: var(--font-inter);
+  color-scheme: light;
 }
 
 @layer base {
