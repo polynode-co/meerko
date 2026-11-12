@@ -19,13 +19,13 @@ name: promote
 # exact commit prd runs, so it is also the rollback point. Tags never deploy: the prd triggers
 # only match the main branch.
 #
-# Migrations don't run on deploy, and nobody is watching at 20:00: run a migration against the
-# prd database before merging the PR that adds it to dev (docs/DEPLOY.md).
+# Migrations run on deploy: the prd api build applies pending ones before the new revision takes
+# traffic, and a failed one keeps the old revision serving (CLAUDE.md).
 
 on:
   schedule:
-    # Cron is UTC and Madrid shifts between UTC+1 and UTC+2, so both hours are listed and the
-    # gate below keeps only the one that is 20:00 in Madrid today.
+    # Cron is UTC and Madrid shifts between UTC+1 and UTC+2, so both hours are listed. GitHub
+    # often runs them late; the gate below ships the first one of each night and skips the rest.
     - cron: '0 18 * * *'
     - cron: '0 19 * * *'
   workflow_dispatch:
@@ -53,21 +53,24 @@ jobs:
           echo "::error::Type 'promote' to confirm. This deploys dev to production."
           exit 1
 
-      - name: Keep only the run that is 20:00 in Madrid
-        if: github.event_name == 'schedule'
-        run: |
-          # +0200 in summer -> 18 UTC, +0100 in winter -> 19 UTC.
-          OFFSET=$(TZ=Europe/Madrid date +%z | cut -c2-3)
-          WANT="0 $((20 - 10#$OFFSET)) * * *"
-          if [ "${{ github.event.schedule }}" != "$WANT" ]; then
-            echo "::notice::Not 20:00 in Madrid on this schedule; skipping."
-            echo "SKIP=true" >> "$GITHUB_ENV"
-          fi
-
       - uses: actions/checkout@v4
-        if: env.SKIP != 'true'
         with:
           fetch-depth: 0 # real history, to test ancestry
+
+      - name: Ship each night once, however late GitHub runs the cron
+        if: github.event_name == 'schedule'
+        run: |
+          # Either cron may fire hours late or not at all, so the gate ignores which one fired:
+          # the first scheduled run between 20:00 and 08:00 Madrid ships that night, and a
+          # promote-night-<date> tag stops any later run of the same night (scripts/promote-night.sh).
+          export NIGHT_MARKERS="$(git ls-remote --tags origin 'promote-night-*' | sed 's#.*refs/tags/##')"
+          read -r VERDICT DETAIL <<< "$(./scripts/promote-night.sh)"
+          if [ "$VERDICT" != "ship" ]; then
+            echo "::notice::Skipping: $DETAIL."
+            echo "SKIP=true" >> "$GITHUB_ENV"
+          else
+            echo "NIGHT=$DETAIL" >> "$GITHUB_ENV"
+          fi
 
       - name: Verify main can fast-forward to dev
         if: env.SKIP != 'true'
@@ -118,7 +121,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BASE="prd-$(TZ=Europe/Madrid date +%Y-%m-%d)"
+          BASE="prd-${NIGHT:-$(TZ=Europe/Madrid date +%Y-%m-%d)}"
           TAG="$BASE"; N=1
           while git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || git ls-remote --exit-code --tags origin "$TAG" >/dev/null; do
             N=$((N + 1)); TAG="$BASE.$N"
@@ -130,3 +133,11 @@ jobs:
           } > notes.md
           gh release create "$TAG" --target "$TO" --title "$TAG" --notes-file notes.md
           echo "::notice::Released $TAG."
+
+      - name: Mark the night as promoted
+        if: github.event_name == 'schedule' && env.SKIP != 'true'
+        run: |
+          # Also when nothing shipped, so a late duplicate can't ship what merged in between.
+          # Tags never deploy: the prd triggers only match the main branch.
+          git push origin "$(git rev-parse origin/dev):refs/tags/promote-night-$NIGHT"
+          echo "::notice::Marked the $NIGHT night as promoted."
