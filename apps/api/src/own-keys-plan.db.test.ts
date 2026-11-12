@@ -45,7 +45,7 @@ describe.skipIf(!process.env.DATABASE_URL)("own provider keys are Pro-only on Cl
   it("refuses to store a key on Free, pointing at Pro and self-hosting", async () => {
     const res = await call(cloud, "/v1/provider-keys/firecrawl", { method: "PUT", body: JSON.stringify({ key: "fc-good-1234" }) });
     expect(res.status).toBe(402);
-    expect((await res.json()).error).toMatch(/Pro feature.*self-host/);
+    expect((await res.json()).error).toMatch(/Pro plan.*Self-hosted/);
   });
 
   it("ignores a key stored before, while the workspace is on Free", async () => {

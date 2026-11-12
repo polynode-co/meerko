@@ -5,13 +5,24 @@ Meerko is an agent-native outbound engine for GTM engineers. You drive it from y
 
 > *"Create a table of Series A fintech CTOs in Spain, enrich their emails, write a 3-step sequence and start it."*
 
-**Status:** early. Tables and AI columns, lead search and email finding, sequences from Gmail, Outlook and IMAP mailboxes, the reply inbox, Slack and agent notifications, the `meerko` CLI and the MCP server work today. See [docs/PLAN.md](docs/PLAN.md).
+**Status:** early. Tables and AI columns, lead search and email finding, sequences from Gmail, Outlook and IMAP mailboxes, the reply inbox, Slack and agent notifications, the `meerko` CLI and the MCP server work today.
 
 **Docs:** setup, self-hosting, concepts and the full MCP and CLI reference live on the site under `/docs` (source: `apps/web/src/app/docs`).
 
 ## Quick start (self-hosted)
 
-Requires Node 20+, pnpm and Docker.
+**With Docker only:**
+
+```bash
+git clone --branch main https://github.com/polynode-co/meerko meerko && cd meerko
+cp .env.example .env    # set MEERKO_ENCRYPTION_KEY (openssl rand -base64 32) to send email
+docker compose -f docker-compose.selfhost.yml up -d --build
+docker compose -f docker-compose.selfhost.yml run --rm tools packages/core/src/seed.ts   # prints an API key (mk_...)
+```
+
+The dashboard is on http://localhost:3000 (sign in with the API key) and the API on http://localhost:8787.
+
+**From source** (Node 20+, pnpm and Docker for Postgres):
 
 ```bash
 git clone --branch main https://github.com/polynode-co/meerko meerko && cd meerko
@@ -78,4 +89,5 @@ Run checks with `pnpm typecheck` and `pnpm test`. The docs' MCP and CLI referenc
 
 ## License
 
-[AGPL-3.0](LICENSE).
+[AGPL-3.0](LICENSE). The client packages (`packages/sdk`, `packages/cli`, `packages/mcp`) are [MIT](packages/sdk/LICENSE), so
+they can be embedded anywhere. Contributions are signed off under the DCO ([CONTRIBUTING.md](CONTRIBUTING.md)).

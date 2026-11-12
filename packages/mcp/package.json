@@ -1,8 +1,8 @@
 {
   "name": "@meerko/mcp",
   "version": "0.0.0",
+  "license": "MIT",
   "description": "Meerko MCP server — drive Meerko from Claude Code, Cursor, Codex and other agents.",
-  "license": "AGPL-3.0-only",
   "type": "module",
   "bin": {
     "meerko-mcp": "./src/index.ts"

@@ -30,7 +30,7 @@ export const PLAN_PHONES: Record<Plan, boolean> = { free: false, pro: true };
  */
 export const PLAN_OWN_KEYS: Record<Plan, boolean> = { free: false, pro: true };
 export const OWN_KEYS_PRO_MESSAGE =
-  "Using your own provider keys on Meerko Cloud is a Pro feature. Upgrade in Connections, or self-host Meerko to run on your own keys for free.";
+  "Using your own provider keys on Meerko Cloud needs the Pro plan (Plan & credits in Connections). Self-hosted Meerko runs on your own keys for free.";
 
 /** True if the workspace's plan lets it use its own provider keys. */
 export async function ownKeysAllowed(db: Db, workspaceId: string) {
@@ -138,14 +138,14 @@ export function mailboxLimitText(limit: number, used: { email: string; workspace
   const here = used.find((m) => m.workspaceId === workspaceId);
   const holder = here ? here.email : `a mailbox in your "${used[0]?.workspaceName}" workspace (the plan is shared by all your workspaces)`;
   const fix = here ? "Disconnect it" : "Disconnect it there";
-  return `The Free plan includes ${limit} mailbox, and ${holder} already uses it. ${fix}, or upgrade to Pro under Plan & credits in Connections for unlimited mailboxes.`;
+  return `The Free plan includes ${limit} mailbox, and ${holder} already uses it. ${fix} to connect another; the Pro plan (Plan & credits in Connections) has unlimited mailboxes.`;
 }
 
 /** Throws unless the workspace's plan includes phone numbers on Meerko's key (`PLAN_PHONES`). */
 export async function assertPhonesAllowed(db: Db, workspaceId: string) {
   const { plan } = await getBilling(db, workspaceId);
   if (!PLAN_PHONES[plan]) {
-    throw new PlanLimitError("Finding phone numbers is on Pro. Upgrade in Settings, or add your own Generect key to use it on Free.");
+    throw new PlanLimitError("Finding phone numbers needs the Pro plan (Plan & credits in Connections), or your own Generect key on Free.");
   }
 }
 

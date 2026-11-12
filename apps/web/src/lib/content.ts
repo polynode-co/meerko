@@ -1,4 +1,4 @@
-// The registry of content pages (docs/CONTENT.md). Hubs, related links, the footer and the sitemap read from it.
+// The registry of content pages. Hubs, related links, the footer and the sitemap read from it.
 import { Bot, ListChecks, Mail, ShieldCheck, Terminal, type LucideIcon } from "lucide-react";
 
 export type Topic = "Cold email" | "Deliverability" | "GTM engineering" | "AI agents" | "Agent how-tos";
@@ -10,7 +10,7 @@ export interface GuideEntry {
   title: string;
   /** One sentence for hub cards. */
   summary: string;
-  /** Guides in other topics worth linking to from this one (docs/CONTENT.md). */
+  /** Guides in other topics worth linking to from this one. */
   crossLinks: string[];
 }
 
@@ -22,7 +22,7 @@ export const topicMeta: Record<Topic, { icon: LucideIcon; tagline: string }> = {
   Deliverability: { icon: ShieldCheck, tagline: "Land in the inbox, not in spam." },
   "GTM engineering": { icon: Terminal, tagline: "Build the systems around outbound." },
   "AI agents": { icon: Bot, tagline: "Run outbound from the assistant you already use." },
-  // A weekly series: one outbound task done end to end from an assistant (docs/CONTENT.md).
+  // A weekly series: one outbound task done end to end from an assistant.
   "Agent how-tos": { icon: ListChecks, tagline: "One outbound task a week, done from your assistant." },
 };
 

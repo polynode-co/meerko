@@ -183,7 +183,7 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     expect(sends.length).toBe(before + 1);
     expect(sent.threadId).toBe(threadOf["pia@slalom.example"]);
     expect(sent.raw).toContain("In-Reply-To: <reply-1@slalom.example>");
-    expect(sent.raw).toMatch(/References: <[^>]+> <reply-1@slalom\.agency>/);
+    expect(sent.raw).toMatch(/References: <[^>]+> <reply-1@slalom\.example>/);
     expect(Buffer.from(sent.raw.split("\r\n\r\n")[1]!.replace(/\r\n/g, ""), "base64").toString()).toContain("Wednesday");
 
     // Approving twice doesn't send twice; the reply is handled.

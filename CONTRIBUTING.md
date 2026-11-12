@@ -10,4 +10,18 @@ Thanks for helping. Meerko is a pnpm + Turborepo monorepo; the [README](README.m
 - **Docs:** they're pages under `apps/web/src/app/docs`. Claims about the product have to match the code.
 - **Commits:** one change per commit, with a message that says what it does and why.
 
-By contributing you agree your work is licensed under [AGPL-3.0](LICENSE), like the rest of the project.
+- **Surfaces:** the dashboard, MCP server, CLI and REST API do the same things through `/v1`. A change to one updates
+  its row in `apps/api/src/surfaces/capabilities.ts`.
+
+## Sign-off
+
+Meerko uses the [Developer Certificate of Origin](https://developercertificate.org/): sign off every commit with
+`git commit -s`, which adds a `Signed-off-by: Your Name <you@example.com>` line. It certifies you wrote the change, or
+otherwise have the right to submit it under the project's licence.
+
+## Licence
+
+Contributions are licensed like the code they change: [AGPL-3.0](LICENSE) for the project, and [MIT](packages/sdk/LICENSE)
+for the client packages `packages/sdk`, `packages/cli` and `packages/mcp`.
+
+Please follow the [code of conduct](CODE_OF_CONDUCT.md).

@@ -1,10 +1,11 @@
 # The whole of Meerko in containers: Postgres, migrations, the API, the worker and the dashboard.
 #
-#   cp .env.example .env               # then fill in Google and the encryption key (docs: /docs/self-hosting)
+#   cp .env.example .env               # set MEERKO_ENCRYPTION_KEY to send email; Google is optional (docs: /docs/self-hosting)
 #   docker compose -f docker-compose.selfhost.yml up -d --build
 #   docker compose -f docker-compose.selfhost.yml run --rm tools packages/core/src/seed.ts    # prints an API key
 #
-# The dashboard is on http://localhost:3000 and the API on http://localhost:8787. On a server, put both behind
+# The dashboard is on http://localhost:3000 and the API on http://localhost:8787 (MEERKO_WEB_PORT and MEERKO_API_PORT
+# change the host ports). On a server, put both behind
 # HTTPS and set MEERKO_PUBLIC_URL and MEERKO_APP_URL in .env to their public addresses.
 # (docker-compose.yml, used by `pnpm db:up`, is only the database for running Meerko from source.)
 
@@ -34,7 +35,7 @@ services:
   # Applies database migrations, then exits. Everything else waits for it.
   migrate:
     <<: *env
-    image: meerko-api
+    image: ${COMPOSE_PROJECT_NAME:-meerko}-api
     build: { context: ., dockerfile: apps/api/Dockerfile }
     working_dir: /repo/packages/db
     command: ["/repo/apps/api/node_modules/.bin/tsx", "src/migrate.ts"]
@@ -44,9 +45,9 @@ services:
 
   api:
     <<: *env
-    image: meerko-api
+    image: ${COMPOSE_PROJECT_NAME:-meerko}-api
     build: { context: ., dockerfile: apps/api/Dockerfile }
-    ports: ["8787:8080"]
+    ports: ["${MEERKO_API_PORT:-8787}:8080"]
     depends_on:
       migrate: { condition: service_completed_successfully }
     restart: unless-stopped
@@ -70,7 +71,7 @@ services:
       args:
         # Inlined at build time: the dashboard's own public address.
         NEXT_PUBLIC_SITE_URL: ${MEERKO_APP_URL:-http://localhost:3000}
-    ports: ["3000:8080"]
+    ports: ["${MEERKO_WEB_PORT:-3000}:8080"]
     depends_on: [api]
     restart: unless-stopped
 
@@ -79,7 +80,7 @@ services:
   #   packages/core/src/invite.ts you@example.com           lets an address sign in with Google
   tools:
     <<: *env
-    image: meerko-api
+    image: ${COMPOSE_PROJECT_NAME:-meerko}-api
     build: { context: ., dockerfile: apps/api/Dockerfile }
     working_dir: /repo
     entrypoint: ["/repo/apps/api/node_modules/.bin/tsx"]

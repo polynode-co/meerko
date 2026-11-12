@@ -5,7 +5,7 @@ describe("mailboxLimitText", () => {
   it("names the mailbox when it is in this workspace", () => {
     const text = mailboxLimitText(1, [{ email: "a@x.com", workspaceId: "w1", workspaceName: "Acme" }], "w1");
     expect(text).toContain("a@x.com already uses it");
-    expect(text).toContain("Disconnect it, or upgrade to Pro");
+    expect(text).toContain("Disconnect it to connect another; the Pro plan");
   });
 
   it("names only the other workspace, not its mailbox", () => {

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-// Every statement here must match what the code does (see the verified-facts rule in docs/CONTENT.md).
+// Every statement here must match what the code does.
 const toc: [string, string][] = [
   ["who-we-are", "Who we are"],
   ["what-we-collect", "What we collect"],

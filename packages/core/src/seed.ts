@@ -12,4 +12,4 @@ await db.close();
 
 console.log(`Workspace: ${workspace!.name} (${workspace!.id})`);
 console.log(`API key:   ${key}`);
-console.log(`\nLog in with:  pnpm meerko login --key ${key}`);
+console.log(`\nSign in to the dashboard with this key, or from the CLI:  meerko login --key ${key}  (from source: pnpm meerko login --key ${key})`);

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security issue
+    url: https://github.com/polynode-co/meerko/security/policy
+    about: Report vulnerabilities privately, not in a public issue.
+  - name: Docs
+    url: https://meerko.ai/docs
+    about: Setup, self-hosting and the MCP, CLI and API reference.

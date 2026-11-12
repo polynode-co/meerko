@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   // Minimal self-contained server for the Cloud Run container (see apps/web/Dockerfile).
   output: "standalone",
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
-  // Pages moved into the /guides and /alternatives hubs (docs/CONTENT.md).
+  // Pages moved into the /guides and /alternatives hubs.
   async redirects() {
     return [
       { source: "/gtm-engineer", destination: "/guides/gtm-engineer", permanent: true },
