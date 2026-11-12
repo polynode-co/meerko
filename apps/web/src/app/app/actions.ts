@@ -141,14 +141,14 @@ export async function runRoutine(id: string): Promise<ActionResult> {
 export async function setRoutineTrigger(_: unknown, form: FormData): Promise<ActionResult & { secret?: string }> {
   const id = String(form.get("id") ?? "");
   const kind = String(form.get("kind") ?? "");
-  if (kind !== "own_scheduler" && kind !== "claude_routine" && kind !== "webhook") return { ok: false, error: "Choose what starts it" };
+  if (kind !== "own_scheduler" && kind !== "claude_routine" && kind !== "chatgpt_events" && kind !== "webhook") return { ok: false, error: "Choose what starts it" };
   const url = String(form.get("url") ?? "").trim();
   const token = String(form.get("token") ?? "").trim();
-  if (kind !== "own_scheduler" && !url) return { ok: false, error: kind === "webhook" ? "Enter the URL Meerko should call" : "Paste the routine's API trigger URL" };
+  if ((kind === "claude_routine" || kind === "webhook") && !url) return { ok: false, error: kind === "webhook" ? "Enter the URL Meerko should call" : "Paste the routine's API trigger URL" };
   try {
     const { secret } = await (await meerko()).setRoutineTrigger(id, { kind, url: url || undefined, token: token || undefined });
     revalidatePath("/app/autopilot");
-    return { ok: true, message: kind === "own_scheduler" ? "Saved" : "Saved. Run it now to check it.", secret };
+    return { ok: true, message: kind === "own_scheduler" ? "Saved" : kind === "chatgpt_events" ? "Saved. Paste the prompt into ChatGPT, then run it now to check it." : "Saved. Run it now to check it.", secret };
   } catch (err) {
     if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
     throw err;

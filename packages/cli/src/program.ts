@@ -821,7 +821,7 @@ const routinesCmd = program.command("routines").description("Autopilot: routines
 
 const printRoutine = (r: Routine) => {
   console.log(`${r.name}  (${r.id})`);
-  console.log(`  ${r.schedule} · ${r.status}${r.statusReason ? ` (${r.statusReason})` : ""} · started by ${r.trigger === "own_scheduler" ? "your AI's own schedule" : r.trigger === "claude_routine" ? "Meerko, through a Claude routine" : "Meerko, through a webhook"}`);
+  console.log(`  ${r.schedule} · ${r.status}${r.statusReason ? ` (${r.statusReason})` : ""} · started by ${r.trigger === "own_scheduler" ? "your AI's own schedule" : r.trigger === "claude_routine" ? "Meerko, through a Claude routine" : r.trigger === "chatgpt_events" ? "Meerko, through ChatGPT" : "Meerko, through a webhook"}`);
   if (r.nextDueAt) console.log(`  next run ${new Date(r.nextDueAt).toLocaleString()}`);
   if (r.lastError) console.log(`  last error: ${r.lastError}`);
 };

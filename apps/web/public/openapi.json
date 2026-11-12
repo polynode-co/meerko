@@ -5771,6 +5771,7 @@
             "enum": [
               "own_scheduler",
               "claude_routine",
+              "chatgpt_events",
               "webhook"
             ]
           },

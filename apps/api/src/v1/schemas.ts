@@ -146,7 +146,7 @@ export const updateRoutineInput = z.object({
   status: z.enum(ROUTINE_STATUSES).optional().describe("`paused` stops it; `active` resumes it from now"),
 });
 export const routineTriggerInput = z.object({
-  kind: z.enum(ROUTINE_TRIGGERS).describe("`own_scheduler`: your AI's scheduled task starts it. `claude_routine`, `webhook`: Meerko does"),
+  kind: z.enum(ROUTINE_TRIGGERS).describe("`own_scheduler`: your AI's scheduled task starts it. `claude_routine`, `chatgpt_events` (a routine.due MCP event to the ChatGPT task subscribed to it), `webhook`: Meerko does"),
   url: z.string().trim().max(2000).optional().describe("The Claude routine's API trigger URL, or your webhook's URL"),
   token: z.string().trim().max(2000).optional().describe("The Claude routine's API trigger token. Leave out to keep the saved one for the same URL"),
 });

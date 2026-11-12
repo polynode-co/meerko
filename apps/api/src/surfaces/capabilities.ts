@@ -633,7 +633,7 @@ export const CAPABILITIES: Capability[] = [
   },
   {
     id: "routine-trigger",
-    summary: "Choose what starts a routine: the AI's own schedule, a Claude routine or a webhook",
+    summary: "Choose what starts a routine: the AI's own schedule, a Claude routine, a ChatGPT task or a webhook",
     routes: ["setRoutineTrigger"],
     web: yes(action("setRoutineTrigger")),
     mcp: PERSON_ONLY,

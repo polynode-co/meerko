@@ -59,6 +59,9 @@ import {
   listRoutines,
   routineSetup,
   runRoutineNow,
+  answerEventsRequest,
+  isEventsMethod,
+  mcpEventsEnabled,
   setRoutineTrigger,
   startRoutineRun,
   updateRoutine,
@@ -320,6 +323,8 @@ export interface AppDeps {
   appUrl?: string;
   /** Lets Autopilot webhooks call private addresses (MEERKO_ALLOW_PRIVATE_HOOKS=1, self-hosting only). */
   allowPrivateHooks?: boolean;
+  /** MCP Events for ChatGPT (`events/*`, routine.due). On unless MEERKO_MCP_EVENTS=0. */
+  mcpEvents?: boolean;
   /** Overrides fetch for Autopilot's calls (tests). */
   hookFetch?: typeof fetch;
   /**
@@ -973,10 +978,34 @@ export function createApp(db: Db, deps: AppDeps = {}) {
         logger: (message) => console.warn(`[posthog-mcp] ${message}`),
       });
     }
+    // MCP Events (ChatGPT, core/routines/mcp-events.ts): the SDK has no events support, so `events/*` are answered
+    // here, and `initialize` advertises `events`. Only single requests on the full connector; anything else goes on.
+    const events = !drafter && (deps.mcpEvents ?? mcpEventsEnabled());
+    let method: unknown;
+    if (events) {
+      const rpc = (await c.req.raw.clone().json().catch(() => null)) as { id?: unknown; method?: unknown; params?: unknown } | null;
+      method = rpc && !Array.isArray(rpc) ? rpc.method : undefined;
+      if (isEventsMethod(method)) {
+        await server.close();
+        const answer = await answerEventsRequest(db, auth.actor?.id ?? null, method, rpc!.params, { box, fetch: deps.hookFetch, allowPrivate: deps.allowPrivateHooks });
+        return c.json({ jsonrpc: "2.0", id: rpc!.id ?? null, ...answer });
+      }
+    }
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     await server.connect(transport);
     try {
-      return await transport.handleRequest(c.req.raw);
+      const res = await transport.handleRequest(c.req.raw);
+      if (events && method === "initialize" && res.headers.get("content-type")?.includes("application/json")) {
+        const doc = (await res.clone().json().catch(() => null)) as { result?: { capabilities?: Record<string, unknown> } } | null;
+        const caps = doc?.result?.capabilities;
+        if (caps && !("events" in caps)) {
+          caps.events = {};
+          const headers = new Headers(res.headers);
+          headers.delete("content-length");
+          return new Response(JSON.stringify(doc), { status: res.status, headers });
+        }
+      }
+      return res;
     } finally {
       await server.close();
       // Cloud Run throttles CPU once the response is sent, so events go out before it.

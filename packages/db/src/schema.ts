@@ -470,8 +470,9 @@ export type RoutineWhen = (typeof ROUTINE_WHENS)[number];
 /**
  * What starts a run. `own_scheduler`: the user's AI, from its own scheduled task (Meerko only checks it ran).
  * `claude_routine` and `webhook`: Meerko, by calling the Claude routine's API trigger or a signed webhook.
+ * `chatgpt_events`: Meerko, by sending a `routine.due` MCP event to the ChatGPT tasks subscribed to it.
  */
-export const ROUTINE_TRIGGERS = ["own_scheduler", "claude_routine", "webhook"] as const;
+export const ROUTINE_TRIGGERS = ["own_scheduler", "claude_routine", "chatgpt_events", "webhook"] as const;
 export type RoutineTrigger = (typeof ROUTINE_TRIGGERS)[number];
 
 export const ROUTINE_STATUSES = ["active", "paused"] as const;
@@ -522,6 +523,36 @@ export const routines = pgTable(
     // Replies are announced once (messages.agent_notified_at), so a workspace has one routine for them.
     uniqueIndex("routines_one_replies_idx").on(t.workspaceId).where(sql`${t.when} = 'replies'`),
   ],
+);
+
+/**
+ * MCP Events (developers.openai.com/plugins/build/mcp-events): a ChatGPT task subscribed to a routine's
+ * `routine.due` event over the MCP connection, with its callback URL and `whsec_` signing secret (encrypted with
+ * MEERKO_ENCRYPTION_KEY). The id is derived from user, event, routine and URL, so subscribing again is the same row.
+ */
+export const mcpEventSubscriptions = pgTable(
+  "mcp_event_subscriptions",
+  {
+    id: text("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    routineId: uuid("routine_id")
+      .notNull()
+      .references(() => routines.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    encryptedSecret: text("encrypted_secret").notNull(),
+    /** ChatGPT must subscribe again before this, or deliveries stop. */
+    refreshBefore: timestamp("refresh_before", { withTimezone: true }).notNull(),
+    lastDeliveryAt: timestamp("last_delivery_at", { withTimezone: true }),
+    lastStatus: integer("last_status"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("mcp_event_subscriptions_routine_idx").on(t.routineId)],
 );
 
 /**

@@ -22,6 +22,7 @@ import {
 import { EncryptionNotConfiguredError, type SecretBox } from "../provider-keys.ts";
 import { NotFoundError } from "../tables.ts";
 import { CadenceError, describeCadence, dueInstants, nextDueAfter, validateCadence } from "./cadence.ts";
+import { deliverRoutineDue } from "./mcp-events.ts";
 import { assertSafeHookUrl, CALL_TIMEOUT_MS, CLAUDE_ROUTINE_BETA, CLAUDE_ROUTINE_URL, describeFailure, describeStatus, RoutineError, signWebhook } from "./http.ts";
 
 /**
@@ -268,8 +269,9 @@ export async function setRoutineTrigger(
   const row = await loadRow(db, workspaceId, id);
   const now = opts.now ?? new Date();
   const reset = { lastError: null, failingSince: null, updatedAt: now, ...(row.statusReason === "failing" ? { statusReason: null, status: "active" as const } : {}) };
-  if (input.kind === "own_scheduler") {
-    await db.update(routines).set({ trigger: "own_scheduler", triggerUrl: null, encryptedSecret: null, secretLast4: null, ...reset }).where(eq(routines.id, row.id));
+  if (input.kind === "own_scheduler" || input.kind === "chatgpt_events") {
+    // ChatGPT brings its own callback and secret when it subscribes (mcp-events.ts), so there's nothing to store here.
+    await db.update(routines).set({ trigger: input.kind, triggerUrl: null, encryptedSecret: null, secretLast4: null, ...reset }).where(eq(routines.id, row.id));
     return { routine: await getRoutine(db, workspaceId, id, now) };
   }
   if (!box) throw new EncryptionNotConfiguredError();
@@ -288,7 +290,7 @@ export async function setRoutineTrigger(
     await assertSafeHookUrl(url, opts);
     secret = "whsec_" + randomBytes(24).toString("base64url");
   } else {
-    throw new RoutineError("`kind` must be `own_scheduler`, `claude_routine` or `webhook`");
+    throw new RoutineError("`kind` must be `own_scheduler`, `claude_routine`, `chatgpt_events` or `webhook`");
   }
   await db
     .update(routines)
@@ -482,8 +484,15 @@ async function fire(db: Db, row: FireRow, call: Call, deps: RoutineDeps, now: Da
   let sessionUrl: string | null = null;
   let error: string | null = null;
   try {
-    ({ status, sessionUrl } = await ring(row, call, deps, now));
-    if (status < 200 || status >= 300) error = describeStatus(row.trigger as "claude_routine" | "webhook", status);
+    if (row.trigger === "chatgpt_events") {
+      const r = await deliverRoutineDue(db, row, { reason: call.reason, dueAt: call.dueAt, replies: call.replies?.length }, { ...deps, now: () => now });
+      status = r.lastStatus;
+      if (r.subscriptions === 0) error = "No ChatGPT task is subscribed to this routine. Ask ChatGPT to subscribe with the prompt in Autopilot.";
+      else if (r.delivered === 0) error = r.error ?? "No ChatGPT subscription took the event";
+    } else {
+      ({ status, sessionUrl } = await ring(row, call, deps, now));
+      if (status < 200 || status >= 300) error = describeStatus(row.trigger as "claude_routine" | "webhook", status);
+    }
   } catch (err) {
     error = err instanceof RoutineError ? err.message : describeFailure(err);
   }
@@ -704,7 +713,7 @@ export function routineSetup(r: Pick<RoutineView, "id" | "name" | "when" | "trig
     if (r.when === "replies") {
       return {
         howItRuns:
-          "Your AI can't tell when replies arrive, so Meerko has to start this one: connect a Claude routine or a webhook. Until then it doesn't run.",
+          "Your AI can't tell when replies arrive, so Meerko has to start this one: connect a Claude routine, ChatGPT or a webhook. Until then it doesn't run.",
         setupPrompt,
       };
     }
@@ -717,6 +726,13 @@ export function routineSetup(r: Pick<RoutineView, "id" | "name" | "when" | "trig
         { client: "Claude Code", text: "Run /schedule, set the schedule and paste the prompt, with the Meerko MCP server added." },
         { client: "Any other AI", text: `Create a recurring task with the Meerko MCP server (${urls.mcpUrl}) connected and paste the prompt.` },
       ],
+      setupPrompt,
+    };
+  }
+  if (r.trigger === "chatgpt_events") {
+    return {
+      howItRuns: `${r.when === "replies" ? "When replies arrive" : r.schedule}, Meerko sends a routine.due event to the ChatGPT task subscribed to it, and ChatGPT runs it. In a ChatGPT chat with the Meerko app on, paste the prompt below so ChatGPT subscribes. Needs a ChatGPT plan with event-triggered tasks.`,
+      prompt: `Subscribe to Meerko's routine.due event for routine_id "${r.id}". Each time it arrives, call Meerko's start_routine_run with routine_id="${r.id}" and follow the brief it returns. Don't ask me anything; if something blocks a step, skip it and say why at the end.`,
       setupPrompt,
     };
   }
