@@ -55,7 +55,7 @@ ChatGPT, Grok, Codex and Cursor connect the same way, by URL. Without Google or 
 
 A self-hosted install sends no analytics: everything below is off unless you set a PostHog key (`.env.example`).
 
-Meerko Cloud uses [PostHog](https://posthog.com) (EU cloud), with one project per environment created by Terraform (`terraform/app/posthog.tf`):
+Meerko Cloud uses [PostHog](https://posthog.com) (EU cloud), with one project per environment created by Terraform (`apps/meerko/app/posthog.tf` in core-infrastructure):
 
 - **Web:** pageviews, clicks, session replays (inputs and dashboard data masked) and errors (`apps/web/src/instrumentation-client.ts`).
 - **API:** product events such as `sign_up`, `leads_searched` and `sequence_started` (`apps/api/src/analytics.ts`), and unexpected errors.

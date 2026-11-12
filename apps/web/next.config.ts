@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
 };
 
 // Uploads browser source maps to PostHog Error Tracking, then deletes them, during `next build`. Gated on the
-// personal key (a BuildKit secret on prd, see terraform/app/build.tf), so any other build is a normal one.
+// personal key (a BuildKit secret on prd, see core-infrastructure apps/meerko/app/build.tf), so any other build is a normal one.
 const withSourceMaps = (config: NextConfig) =>
   process.env.POSTHOG_CLI_API_KEY
     ? withPostHogConfig(config, {

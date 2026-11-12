@@ -1,7 +1,7 @@
 import { site } from "@/lib/site";
 
 // The plans and pricing FAQ shown on /pricing (Pen "Pricing A — Free vs Pro", wNMnq). Figures match packages/core
-// (credits.ts, billing.ts: PRO_PRICES, FOUNDING_OFFER) and terraform/app/stripe.tf; the web app can't import core, so
+// (credits.ts, billing.ts: PRO_PRICES, FOUNDING_OFFER) and core-infrastructure apps/meerko/app/stripe.tf; the web app can't import core, so
 // change them together. Two plans plus credit packs as the add-on. Self-hosting and volume deals are one row each under
 // the cards, not plans: there's nothing to buy for the first, and no enterprise tier yet for the second.
 

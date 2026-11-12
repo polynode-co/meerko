@@ -1,5 +1,5 @@
 # The Meerko Cloud Slack app. Create it at https://api.slack.com/apps → Create New App → From a manifest,
-# then put its Client ID, Client Secret and Signing Secret in Terraform (terraform/<env>/terraform.tfvars).
+# then put its Client ID, Client Secret and Signing Secret in Terraform (core-infrastructure apps/meerko/<env>/terraform.tfvars).
 # For dev, swap api.meerko.ai for api-dev.meerko.ai. Self-hosters: /docs/slack shows this for your own URL.
 display_information:
   name: Meerko

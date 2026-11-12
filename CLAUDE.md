@@ -4,7 +4,8 @@
 
 Open-source GTM agent: pnpm + Turborepo monorepo (`apps/api` Hono API, `apps/web` Next.js site and
 dashboard, `apps/worker`, `packages/{db,core,sdk,cli,mcp}`), deployed to GCP with Terraform
-(`terraform/dev`, `terraform/prd`, shared module `terraform/app`).
+that lives in the private `polynode-co/core-infrastructure` repo, `apps/meerko/{dev,prd}` with the shared
+module `apps/meerko/app` (moved there 2026-11-12, #149, so this repo can go public).
 
 ## Branches and deploys
 
@@ -30,7 +31,7 @@ puts a merge commit on `main` that `dev` doesn't have, and every later fast-forw
 `verify.yml` fails such PRs. If `main` has diverged anyway: `git checkout dev && git merge origin/main
 && git push origin dev`, confirm `git rev-parse dev^{tree}` didn't change, then promote.
 
-Migrations run on deploy: the api build (`terraform/app/build.tf`) applies pending ones after the tests pass and
+Migrations run on deploy: the api build (core-infrastructure `apps/meerko/app/build.tf`) applies pending ones after the tests pass and
 before the new revision takes traffic, so merging a PR with a migration needs no manual step, and the 20:00 promote
 migrates prd. A failed migration fails the deploy and the old revision keeps serving. Keep migrations
 backwards-compatible with the code still running (add columns with defaults, backfill in SQL); one that drops

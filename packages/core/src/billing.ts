@@ -5,7 +5,7 @@ import { billingWorkspaceOf, sharesBilling } from "./workspaces.ts";
 
 /** Credits a Pro subscription adds on each paid month (the $49 plan at $1 = 100 credits). */
 export const PRO_MONTHLY_CREDITS = 4900;
-/** Pro's prices, matching terraform/app/stripe.tf: $49 a month, or $490 a year ($41/month). */
+/** Pro's prices, matching core-infrastructure apps/meerko/app/stripe.tf: $49 a month, or $490 a year ($41/month). */
 export const PRO_PRICES = { month: 49, year: 490 } as const;
 export type BillingInterval = keyof typeof PRO_PRICES;
 /**
@@ -390,7 +390,7 @@ export type BillingOutcome =
   | { type: "credits"; workspaceId: string; credits: number; reason: "purchase" | "pro_monthly"; granted: boolean }
   | null;
 
-/** The events the webhook endpoint subscribes to (terraform/app/stripe.tf lists the same ones). */
+/** The events the webhook endpoint subscribes to (core-infrastructure apps/meerko/app/stripe.tf lists the same ones). */
 export const STRIPE_EVENTS = [
   "checkout.session.completed",
   "checkout.session.async_payment_succeeded",
