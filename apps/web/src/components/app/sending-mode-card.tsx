@@ -3,21 +3,11 @@
 import { useState, useTransition } from "react";
 import type { ApprovalMode, SendingMode } from "@meerko/sdk";
 import { setSendingMode } from "@/app/app/actions";
-import { Card, cardTitle } from "@/components/app/ui";
+import { SectionHead } from "@/app/app/settings/parts";
 
 const CHOICES: { key: keyof SendingMode; label: string; approve: string; auto: string }[] = [
-  {
-    key: "sequence_emails",
-    label: "Sequence emails",
-    approve: "I approve each one before it goes",
-    auto: "Send them on schedule",
-  },
-  {
-    key: "reply_drafts",
-    label: "Answers to replies",
-    approve: "I approve each draft before it goes",
-    auto: "Send my agent's drafts as soon as they're written",
-  },
+  { key: "sequence_emails", label: "Sequence emails", approve: "Approve each one", auto: "Send on schedule" },
+  { key: "reply_drafts", label: "Answers to replies", approve: "Approve each draft", auto: "Send as soon as drafted" },
 ];
 
 /** Whether a person approves every email first (the default) or Meerko sends on its own, chosen once at setup. */
@@ -31,29 +21,36 @@ export function SendingModeCard({ mode, canManage }: { mode: SendingMode; canMan
       if (res.ok) setCurrent((m) => ({ ...m, [key]: value }));
       setError(res.ok ? undefined : res.error);
     });
+  const modes = new Set(CHOICES.map((c) => current[c.key]));
 
   return (
-    <Card id="sending-mode">
-      <div className="border-b border-lk-line px-[18px] py-4">
-        <h2 className={cardTitle}>Approval before sending</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-lk-muted">
-          Choose whether you read and approve every email first, or let Meerko send on its own. Approving is the safe default.
-        </p>
+    <section id="sending-mode" className="scroll-mt-6">
+      <SectionHead title="Sending" note={modes.size > 1 ? "mixed mode" : modes.has("approve") ? "approve mode" : "sends on its own"} />
+      <div className="border-y border-lk-line">
+        {CHOICES.map((c) => (
+          <fieldset key={c.key} disabled={!canManage || pending} className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-lk-line py-2.5 last:border-0">
+            <legend className="sr-only">{c.label}</legend>
+            <span className="text-[13.5px] font-medium text-lk-fg">{c.label}</span>
+            <span className="inline-flex rounded-md border border-lk-line bg-white p-0.5">
+              {(["approve", "auto"] as const).map((v) => (
+                <label
+                  key={v}
+                  className="cursor-pointer rounded px-2.5 py-[5px] text-[12.5px] text-lk-muted transition hover:text-lk-fg has-[:checked]:bg-lk-fg has-[:checked]:font-medium has-[:checked]:text-white has-[:disabled]:cursor-default has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-lk-gray"
+                >
+                  <input type="radio" name={c.key} checked={current[c.key] === v} onChange={() => choose(c.key, v)} className="sr-only" />
+                  {v === "approve" ? c.approve : c.auto}
+                </label>
+              ))}
+            </span>
+          </fieldset>
+        ))}
       </div>
-      {CHOICES.map((c) => (
-        <fieldset key={c.key} disabled={!canManage || pending} className="flex flex-col gap-2 border-b border-lk-line px-[18px] py-4 last:border-0">
-          <legend className="sr-only">{c.label}</legend>
-          <span className="text-[15px] font-medium text-lk-fg">{c.label}</span>
-          {(["approve", "auto"] as const).map((v) => (
-            <label key={v} className="flex cursor-pointer items-center gap-3 text-[15px] text-lk-muted">
-              <input type="radio" name={c.key} checked={current[c.key] === v} onChange={() => choose(c.key, v)} className="accent-lk-lime" />
-              {v === "approve" ? c.approve : c.auto}
-            </label>
-          ))}
-        </fieldset>
-      ))}
-      {!canManage && <p className="px-[18px] py-3 text-[14px] text-lk-dim">Sign in to the dashboard to change this.</p>}
-      {error && <p role="alert" className="px-[18px] py-3 text-[15px] text-[#e5795b]">{error}</p>}
-    </Card>
+      {!canManage && <p className="pt-2 text-[12.5px] text-lk-dim">Sign in to the dashboard to change this.</p>}
+      {error && (
+        <p role="alert" className="pt-2 text-[13px] text-ws-red">
+          {error}
+        </p>
+      )}
+    </section>
   );
 }

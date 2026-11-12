@@ -14,13 +14,13 @@ export function DeleteSequence({ sequenceId, name }: { sequenceId: string; name:
   if (!confirming) {
     return (
       <button type="button" onClick={() => setConfirming(true)} className={buttonClass("ghost")} aria-label="Delete sequence">
-        <Trash2 className="size-[15px]" />
+        <Trash2 className="!size-[15px]" />
       </button>
     );
   }
   return (
-    <span className="flex items-center gap-2 text-[15px]">
-      <span>{error ?? `Delete "${name}"? Leads and replies stay.`}</span>
+    <span className="flex flex-wrap items-center gap-2 text-[13px] text-lk-fg">
+      <span className={error ? "text-ws-red" : ""}>{error ?? `Delete “${name}”? Leads and replies stay.`}</span>
       <button
         type="button"
         disabled={pending}

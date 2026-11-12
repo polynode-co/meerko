@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { saveProfile } from "@/app/app/actions";
-import { buttonClass, Card, fieldLabel, Page, PageHeader } from "@/components/app/ui";
+import { buttonClass, Card, monoLabel, Page, PageHeader } from "@/components/app/ui";
 import { safeNext } from "@/lib/meerko";
+
+// "WS3 · About you" (Y0Vfe) in docs/design/meerko.pen: the questions card; the Ideal customer form stays on Connections.
 
 export const metadata: Metadata = { title: "Welcome — Meerko", robots: { index: false } };
 
@@ -49,18 +51,32 @@ export default async function AboutYouPage({ searchParams }: { searchParams: Pro
   const next = safeNext((await searchParams).next) ?? "/app";
   return (
     <Page>
-      <PageHeader eyebrow="Welcome" title="Three quick questions" meta="All optional. They help us build Meerko for people like you." />
-      <Card>
-        <form action={saveProfile} className="flex flex-col gap-7 px-[18px] py-6">
+      <PageHeader
+        title="About you"
+        meta="Three quick questions, all optional. They help us build Meerko for people like you."
+        actions={
+          <>
+            <Link href={next} className={buttonClass("ghost")}>
+              Skip
+            </Link>
+            <button form="about-you" className={buttonClass("primary")}>
+              Continue
+            </button>
+          </>
+        }
+      />
+      <Card raised className="max-w-[560px]">
+        <form id="about-you" action={saveProfile} className="flex flex-col gap-6 px-5 py-5">
           <input type="hidden" name="next" value={next} />
+          <p className={monoLabel}>You · optional</p>
           {QUESTIONS.map((q) => (
-            <fieldset key={q.name} className="flex flex-col gap-3">
-              <legend className={`${fieldLabel} mb-3`}>{q.label}</legend>
-              <div className="flex flex-wrap gap-2">
+            <fieldset key={q.name} className="flex flex-col">
+              <legend className="mb-2.5 text-[13.5px] font-semibold text-lk-fg">{q.label}</legend>
+              <div className="flex flex-wrap gap-1.5">
                 {q.options.map(([value, text]) => (
                   <label
                     key={value}
-                    className="cursor-pointer px-4 py-2 text-[15px] text-lk-muted outline outline-1 -outline-offset-1 outline-lk-line has-[:checked]:bg-lk-lime has-[:checked]:text-lk-ink has-[:checked]:outline-lk-lime hover:text-lk-fg"
+                    className="cursor-pointer rounded-md border border-lk-line bg-white px-3 py-[6px] text-[13px] text-lk-muted transition hover:text-lk-fg has-[:checked]:border-lk-fg has-[:checked]:bg-lk-fg has-[:checked]:font-medium has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-lk-gray"
                   >
                     <input type="radio" name={q.name} value={value} className="sr-only" />
                     {text}
@@ -69,9 +85,9 @@ export default async function AboutYouPage({ searchParams }: { searchParams: Pro
               </div>
             </fieldset>
           ))}
-          <div className="flex flex-wrap items-center gap-4 pt-2">
+          <div className="flex flex-wrap items-center gap-2 border-t border-lk-line pt-4 sm:hidden">
             <button className={buttonClass("primary")}>Continue</button>
-            <Link href={next} className="text-[15px] text-lk-dim hover:text-lk-fg">
+            <Link href={next} className={buttonClass("ghost")}>
               Skip
             </Link>
           </div>

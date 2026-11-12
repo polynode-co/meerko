@@ -3,7 +3,7 @@
 import { Send } from "lucide-react";
 import { useState, useTransition } from "react";
 import { sendTestEmail, type ActionResult } from "@/app/app/actions";
-import { buttonClass } from "./ui";
+import { buttonClass, field } from "./ui";
 
 /** Sends a short test email from a mailbox, to check it's connected and see how it lands. */
 export function TestEmail({ mailboxId, defaultTo }: { mailboxId: string; defaultTo?: string }) {
@@ -13,8 +13,8 @@ export function TestEmail({ mailboxId, defaultTo }: { mailboxId: string; default
   const [result, setResult] = useState<ActionResult | null>(null);
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className={buttonClass("ghost")}>
-        <Send className="size-3.5" /> Send test
+      <button onClick={() => setOpen(true)} className={buttonClass("ghost", "sm")}>
+        <Send /> Send test
       </button>
     );
   }
@@ -24,11 +24,25 @@ export function TestEmail({ mailboxId, defaultTo }: { mailboxId: string; default
         e.preventDefault();
         start(async () => setResult(await sendTestEmail(mailboxId, to)));
       }}
-      className="flex flex-wrap items-center gap-2"
+      className="flex flex-wrap items-center justify-end gap-2"
     >
-      <input value={to} onChange={(e) => setTo(e.target.value)} type="email" placeholder="you@company.com" required className="w-56 bg-lk-ink px-3 py-1.5 text-lk-fg outline outline-1 -outline-offset-1 outline-lk-gray focus:outline-lk-lime font-plex text-sm" />
-      <button disabled={pending} className={buttonClass()}>{pending ? "Sending…" : "Send"}</button>
-      {result && <span role="status" className={`text-sm ${result.ok ? "text-lk-lime" : "text-[#e5795b]"}`}>{result.ok ? result.message : result.error}</span>}
+      <input
+        value={to}
+        onChange={(e) => setTo(e.target.value)}
+        type="email"
+        placeholder="you@company.com"
+        required
+        aria-label="Send the test to"
+        className={`${field} w-56 py-[5px] font-mono text-[12px]`}
+      />
+      <button disabled={pending} className={buttonClass("secondary", "sm")}>
+        {pending ? "Sending…" : "Send"}
+      </button>
+      {result && (
+        <span role="status" className={`basis-full text-right text-[12px] ${result.ok ? "text-ws-green" : "text-ws-red"}`}>
+          {result.ok ? result.message : result.error}
+        </span>
+      )}
     </form>
   );
 }

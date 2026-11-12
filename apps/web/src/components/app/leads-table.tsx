@@ -16,42 +16,42 @@ export interface LeadColumn {
 }
 
 const certainty: Record<string, [string, string]> = {
-  ultra_sure: ["bg-lk-lime", "verified"],
-  very_sure: ["bg-lk-lime", "verified"],
+  ultra_sure: ["bg-ws-green", "verified"],
+  very_sure: ["bg-ws-green", "verified"],
   probable: ["bg-lk-muted", "probable"],
   not_found: ["bg-lk-gray", "not found"],
-  undeliverable: ["bg-[#e5795b]", "bounces"],
+  undeliverable: ["bg-ws-red", "bounces"],
 };
-const certaintyText: Record<string, string> = { "bg-lk-lime": "text-lk-lime", "bg-lk-muted": "text-lk-muted", "bg-lk-gray": "text-lk-dim", "bg-[#e5795b]": "text-[#e5795b]" };
+const certaintyText: Record<string, string> = { "bg-ws-green": "text-ws-green", "bg-lk-muted": "text-lk-muted", "bg-lk-gray": "text-lk-dim", "bg-ws-red": "text-ws-red" };
 const str = (v: unknown) => (v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v));
 
 function Cell({ col, data }: { col: LeadColumn; data: Record<string, unknown> }) {
   if (col.kind === "person") {
     return (
       <div className="flex flex-col gap-0.5">
-        <span className="font-medium text-lk-fg">{[str(data.first_name), str(data.last_name)].join(" ").trim() || "—"}</span>
-        {!!data.title && <span className="text-sm text-lk-dim">{str(data.title)}</span>}
+        <span className="text-[13px] font-medium text-lk-fg">{[str(data.first_name), str(data.last_name)].join(" ").trim() || "—"}</span>
+        {!!data.title && <span className="text-[12px] text-lk-muted">{str(data.title)}</span>}
       </div>
     );
   }
   if (col.kind === "company") {
     return (
       <div className="flex flex-col gap-0.5">
-        <span className="text-lk-muted">{str(data.company) || "—"}</span>
-        {!!data.domain && <span className="font-plex text-[12px] text-lk-dim">{str(data.domain)}</span>}
+        <span className="text-[13px] text-lk-fg">{str(data.company) || "—"}</span>
+        {!!data.domain && <span className="font-mono text-[11px] text-lk-dim">{str(data.domain)}</span>}
       </div>
     );
   }
   if (col.kind === "email") {
-    if (data.email_certainty === "missing_input") return <span className="text-sm text-lk-dim italic">no name or domain · skipped</span>;
+    if (data.email_certainty === "missing_input") return <span className="font-mono text-[11px] text-lk-dim">no name or domain · skipped</span>;
     const status = str(data.email_verification) || str(data.email_certainty);
     const [dot, text] = certainty[status] ?? (data.email ? ["bg-lk-gray", "unverified"] : [null, ""]);
     if (!dot) return <span className="text-lk-dim">—</span>;
     return (
       <div className="flex items-center gap-2">
-        <span className={`size-[7px] shrink-0 ${dot}`} />
-        {!!data.email && <span className="truncate font-plex text-[14px] text-lk-muted">{str(data.email)}</span>}
-        <span className={`font-plex text-[12px] tracking-[0.6px] whitespace-nowrap uppercase ${certaintyText[dot]}`}>{text}</span>
+        <span className={`size-1.5 shrink-0 rounded-full ${dot}`} />
+        {!!data.email && <span className="truncate font-mono text-[12px] text-lk-fg">{str(data.email)}</span>}
+        <span className={`font-mono text-[11px] whitespace-nowrap ${certaintyText[dot]}`}>{text}</span>
       </div>
     );
   }
@@ -59,7 +59,7 @@ function Cell({ col, data }: { col: LeadColumn; data: Record<string, unknown> })
   if (col.kind === "ai") {
     if (!value) {
       return (
-        <span className="inline-flex items-center gap-1.5 border border-lk-lime/50 px-2 py-1 font-plex text-[12px] text-lk-lime/80">
+        <span className="inline-flex items-center gap-1.5 rounded border border-ws-acc px-2 py-[3px] font-mono text-[11px] whitespace-nowrap text-ws-acc-ink">
           <Loader className="size-3" /> agent pending
         </span>
       );
@@ -71,22 +71,22 @@ function Cell({ col, data }: { col: LeadColumn; data: Record<string, unknown> })
       const high = Number(score) >= 4;
       return (
         <div className="flex items-center gap-2">
-          <span className={`grid size-[22px] shrink-0 place-items-center font-plex text-sm font-bold ${high ? "bg-lk-lime/[0.08] text-lk-lime" : "bg-lk-line text-lk-dim"}`}>{score}</span>
-          {why && <span className="line-clamp-2 text-sm text-lk-dim">{why}</span>}
+          <span className={`grid size-[22px] shrink-0 place-items-center rounded font-mono text-[12px] font-semibold ${high ? "bg-ws-acc-soft text-ws-acc-ink" : "bg-ws-soft text-lk-muted"}`}>{score}</span>
+          {why && <span className="line-clamp-2 text-[13px] text-lk-fg">{why}</span>}
         </div>
       );
     }
-    return <span className="line-clamp-2 text-[15px] text-lk-muted">{value}</span>;
+    return <span className="line-clamp-2 text-[13px] text-lk-fg">{value}</span>;
   }
   if (/^https?:\/\//.test(value)) {
     const host = (value.match(/^https?:\/\/(?:www\.)?([^/?#]+)/i)?.[1] ?? "link").toLowerCase();
     return (
-      <a href={value} target="_blank" rel="noreferrer" className="text-sm whitespace-nowrap text-lk-lime hover:underline">
+      <a href={value} target="_blank" rel="noreferrer" className="text-[13px] whitespace-nowrap text-ws-blue hover:underline">
         {host.endsWith("linkedin.com") ? "LinkedIn" : host} ↗
       </a>
     );
   }
-  return <span className="line-clamp-2 text-[15px] text-lk-muted">{value || <span className="text-lk-dim">—</span>}</span>;
+  return <span className="line-clamp-2 text-[13px] text-lk-fg">{value || <span className="text-lk-dim">—</span>}</span>;
 }
 
 export function LeadsTable({ tableId, columns, rows }: { tableId: string; columns: LeadColumn[]; rows: Row[] }) {
@@ -112,11 +112,11 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
   return (
     <div className="flex flex-col">
       {(selected.size > 0 || message) && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-lk-lime/40 bg-lk-lime/[0.07] px-[18px] py-2.5 text-[15px]">
+        <div className="flex min-h-[42px] flex-wrap items-center gap-x-1 gap-y-2 border-b border-lk-line bg-lk-frame px-4 py-1.5 text-[13px]">
           {selected.size > 0 ? (
             <>
               <span className="font-semibold text-lk-fg">{selected.size} selected</span>
-              <span className="text-lk-dim">Move to</span>
+              <span className="mr-1 text-lk-dim">Move to</span>
               {STAGES.map((s) => (
                 <button key={s} disabled={pending} onClick={() => move(s)} className={buttonClass("ghost", "sm")}>
                   {s}
@@ -125,7 +125,7 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
               <span className="ml-auto flex items-center gap-2">
                 {confirming ? (
                   <>
-                    <span className="text-sm">Delete {selected.size} for good? Their sequences stop.</span>
+                    <span className="text-[12.5px] text-lk-muted">Delete {selected.size} for good? Their sequences stop.</span>
                     <button disabled={pending} onClick={() => act(() => deleteRows(tableId, [...selected]))} className={buttonClass("danger", "sm")}>
                       Delete
                     </button>
@@ -134,29 +134,29 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
                     </button>
                   </>
                 ) : (
-                  <button disabled={pending} onClick={() => setConfirming(true)} className={buttonClass("ghost", "sm")}>
+                  <button disabled={pending} onClick={() => setConfirming(true)} className={`${buttonClass("ghost", "sm")} !text-ws-red hover:!bg-ws-red-soft`}>
                     <Trash2 className="size-3.5" /> Delete
                   </button>
                 )}
               </span>
             </>
           ) : (
-            <span className="text-lk-dim">{message}</span>
+            <span className="text-lk-muted">{message}</span>
           )}
         </div>
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] border-collapse text-left text-[15px]">
-          <thead className="bg-lk-ink">
+        <table className="w-full min-w-[960px] border-collapse text-left text-[13px]">
+          <thead className="bg-ws-head">
             <tr className="border-b border-lk-line">
-              <th className="w-10 py-2.5 pr-2 pl-[18px]">
+              <th className="w-10 py-2.5 pr-2 pl-4">
                 <input
                   type="checkbox"
                   aria-label="Select all"
                   checked={all}
                   onChange={() => setSelected(all ? new Set() : new Set(rows.map((r) => r.id)))}
-                  className="size-3.5 accent-lk-lime"
+                  className="size-3.5 accent-lk-fg"
                 />
               </th>
               {scored && (
@@ -165,40 +165,40 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
                 </th>
               )}
               {columns.map((c) => (
-                <th key={c.key} title={c.prompt} className={`px-3 py-2.5 whitespace-nowrap ${thText} ${c.kind === "ai" ? "!text-lk-lime" : ""}`}>
+                <th key={c.key} title={c.prompt} className={`px-3 py-2.5 whitespace-nowrap ${thText} ${c.kind === "ai" ? "!text-ws-acc-ink" : ""}`}>
                   <span className="inline-flex items-center gap-1.5">
                     {c.kind === "ai" && <Sparkles className="size-3" />}
                     {c.name.replace(/_/g, " ").replace(/\burl\b/i, "").trim()}
                   </span>
                 </th>
               ))}
-              <th className={`py-2.5 pr-[18px] pl-3 ${thText}`}>Stage</th>
+              <th className={`py-2.5 pr-4 pl-3 ${thText}`}>Stage</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={columns.length + (scored ? 3 : 2)} className="px-3 py-14 text-center text-lk-dim">
+                <td colSpan={columns.length + (scored ? 3 : 2)} className="px-3 py-14 text-center text-[13px] text-lk-dim">
                   No rows at this stage.
                 </td>
               </tr>
             )}
             {rows.map((r) => (
-              <tr key={r.id} className={`border-b border-lk-line last:border-0 ${selected.has(r.id) ? "bg-lk-lime/[0.04]" : "hover:bg-lk-frame"}`}>
-                <td className="py-3 pr-2 pl-[18px] align-middle">
-                  <input type="checkbox" aria-label="Select row" checked={selected.has(r.id)} onChange={() => toggle(r.id)} className="size-3.5 accent-lk-lime" />
+              <tr key={r.id} className={`border-b border-lk-line last:border-0 ${selected.has(r.id) ? "bg-lk-frame" : "hover:bg-lk-frame"}`}>
+                <td className="py-2.5 pr-2 pl-4 align-middle">
+                  <input type="checkbox" aria-label="Select row" checked={selected.has(r.id)} onChange={() => toggle(r.id)} className="size-3.5 accent-lk-fg" />
                 </td>
                 {scored && (
-                  <td className="py-3 pr-1 pl-2 align-middle">
+                  <td className="py-2.5 pr-1 pl-2 align-middle">
                     <ScoreRing fit={r.icp} />
                   </td>
                 )}
                 {columns.map((c) => (
-                  <td key={c.key} className="max-w-[280px] px-3 py-3 align-middle">
+                  <td key={c.key} className="max-w-[280px] px-3 py-2.5 align-middle">
                     <Cell col={c} data={r.data} />
                   </td>
                 ))}
-                <td className="py-3 pr-[18px] pl-3 align-middle">
+                <td className="py-2.5 pr-4 pl-3 align-middle">
                   <Pill tone={stageTone[r.stage]}>{r.stage}</Pill>
                 </td>
               </tr>
