@@ -50,9 +50,10 @@ export function createServer(client: () => MeerkoClient, opts: { only?: { tools:
   const only = opts.only;
   const tool = ((name: string, config: Record<string, unknown>, ...rest: unknown[]) => {
     if (only && !only.tools.includes(name)) return undefined;
-    // Every tool gets its title and behaviour hints from annotations.ts, which the app directories require.
-    const { title, ...annotations } = TOOL_ANNOTATIONS[name] ?? ({} as Partial<(typeof TOOL_ANNOTATIONS)[string]>);
-    return (server.registerTool as (...args: unknown[]) => unknown).call(server, name, { title, annotations, ...config }, ...rest);
+    // Every tool gets its title and behaviour hints from annotations.ts, which the app directories require. The title
+    // goes both top-level and in `annotations.title`: the Claude Connectors Directory reads the latter (#154).
+    const annotations = TOOL_ANNOTATIONS[name] ?? ({} as Partial<(typeof TOOL_ANNOTATIONS)[string]>);
+    return (server.registerTool as (...args: unknown[]) => unknown).call(server, name, { title: annotations.title, annotations, ...config }, ...rest);
   }) as typeof server.registerTool;
   const prompt = ((name: string, ...rest: unknown[]) => {
     if (only && !only.prompts.includes(name)) return undefined;
