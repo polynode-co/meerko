@@ -37,6 +37,12 @@ describe("website reading", () => {
     await expect(readWebsite("intranet.example", { fetch, resolve: async () => ["10.0.0.5"] })).rejects.toThrow(/public websites/);
     const toMetadata = (async () => new Response(null, { status: 302, headers: { location: "https://169.254.169.254/" } })) as unknown as typeof globalThis.fetch;
     await expect(readWebsite("acme.com", { fetch: toMetadata, resolve: publicDns })).rejects.toThrow(/public websites/);
+    // IPv4-mapped IPv6, which new URL() rewrites to hex (#156): never fetched.
+    let fetched = false;
+    const spy = (async () => ((fetched = true), html(page))) as unknown as typeof globalThis.fetch;
+    for (const raw of ["https://[::ffff:169.254.169.254]/", "https://[::ffff:a9fe:a9fe]/", "https://[::ffff:127.0.0.1]:8080/"])
+      await expect(readWebsite(raw, { fetch: spy, resolve: publicDns })).rejects.toThrow(/public websites/);
+    expect(fetched).toBe(false);
   });
 
   it("explains pages it can't read", async () => {
