@@ -5,11 +5,13 @@ import { RoutineError, assertSafeHookUrl, isPrivateAddress, signWebhook } from "
 const resolveTo = (...addresses: string[]) => async () => addresses;
 
 describe("isPrivateAddress", () => {
-  it.each(["10.0.0.1", "127.0.0.1", "169.254.169.254", "172.16.0.1", "172.31.255.255", "192.168.1.1", "100.64.0.1", "0.0.0.0", "::1", "fd00::1", "fe80::1", "::ffff:10.0.0.1"])(
+  it.each(["10.0.0.1", "127.0.0.1", "169.254.169.254", "172.16.0.1", "172.31.255.255", "192.168.1.1", "100.64.0.1", "0.0.0.0", "::1", "fd00::1", "fe80::1", "::ffff:10.0.0.1",
+    "::ffff:a9fe:a9fe", "::ffff:7f00:1", "0:0:0:0:0:ffff:a9fe:a9fe", "::a9fe:a9fe", "::127.0.0.1",
+    "64:ff9b::a9fe:a9fe", "64:ff9b::10.0.0.1", "64:ff9b:1::1", "2002:a9fe:a9fe::1", "2001:0:4136:e378::1", "fe80::1%eth0", "ff02::1", "fc00::1", "::", "192.0.0.1", "198.18.0.1"])(
     "blocks %s",
     (ip) => expect(isPrivateAddress(ip)).toBe(true),
   );
-  it.each(["8.8.8.8", "172.32.0.1", "142.250.184.14", "2a00:1450:4003:80e::200e"])("allows %s", (ip) => expect(isPrivateAddress(ip)).toBe(false));
+  it.each(["8.8.8.8", "172.32.0.1", "142.250.184.14", "2a00:1450:4003:80e::200e", "::ffff:808:808", "::ffff:8.8.8.8", "64:ff9b::808:808", "2002:808:808::1", "2001:db8::1"])("allows %s", (ip) => expect(isPrivateAddress(ip)).toBe(false));
 });
 
 describe("assertSafeHookUrl", () => {
@@ -40,5 +42,12 @@ describe("signWebhook", () => {
     const header = signWebhook("whsec_abc", body, 1760000000);
     const expected = createHmac("sha256", "whsec_abc").update(`1760000000.${body}`).digest("hex");
     expect(header).toBe(`t=1760000000,v1=${expected}`);
+  });
+});
+
+describe("URL-normalised hosts", () => {
+  // new URL() rewrites a dotted IPv4 tail to hex, which the old check missed (#156).
+  it.each(["https://[::ffff:169.254.169.254]/", "https://[::ffff:127.0.0.1]/", "https://[0:0:0:0:0:ffff:a9fe:a9fe]/"])("refuses %s", async (raw) => {
+    await expect(assertSafeHookUrl(raw)).rejects.toThrow(RoutineError);
   });
 });

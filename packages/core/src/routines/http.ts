@@ -41,15 +41,56 @@ export async function assertSafeHookUrl(raw: string, opts: { allowPrivate?: bool
   return url;
 }
 
+/** An IPv6 address as eight 16-bit groups, whatever its notation (`::`, a dotted IPv4 tail); null if it isn't one. */
+function ipv6Groups(ip: string): number[] | null {
+  if (isIP(ip) !== 6) return null;
+  let text = ip.replace(/%.*$/, "");
+  const dotted = text.match(/^(.*:)(\d+\.\d+\.\d+\.\d+)$/);
+  if (dotted) {
+    const [a, b, c, d] = dotted[2]!.split(".").map(Number) as [number, number, number, number];
+    text = `${dotted[1]}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const [head, tail] = text.split("::") as [string, string | undefined];
+  const left = head ? head.split(":") : [];
+  const right = tail ? tail.split(":") : [];
+  const fill = tail === undefined ? [] : Array<string>(8 - left.length - right.length).fill("0");
+  const groups = [...left, ...fill, ...right].map((g) => parseInt(g, 16));
+  return groups.length === 8 && groups.every((g) => g >= 0 && g <= 0xffff) ? groups : null;
+}
+
+const ipv4From = (hi: number, lo: number) => `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
+
+/**
+ * Private, loopback, link-local (cloud metadata), CGNAT, multicast or reserved. IPv6 forms that carry an IPv4
+ * address (mapped `::ffff:a9fe:a9fe`, compatible, NAT64, 6to4) are judged by that address, in any notation:
+ * `new URL()` rewrites `[::ffff:169.254.169.254]` to `[::ffff:a9fe:a9fe]`.
+ */
 export function isPrivateAddress(address: string): boolean {
   const ip = address.toLowerCase();
   if (isIP(ip) === 4) {
-    const [a, b] = ip.split(".").map(Number) as [number, number];
-    return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224;
+    const [a, b, c] = ip.split(".").map(Number) as [number, number, number];
+    return (
+      a === 0 || a === 10 || a === 127 || a >= 224 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 192 && b === 0 && c === 0) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      (a === 100 && b >= 64 && b <= 127)
+    );
   }
-  const mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (mapped) return isPrivateAddress(mapped[1]!);
-  return ip === "::" || ip === "::1" || /^f[cd]/.test(ip) || /^fe[89ab]/.test(ip) || /^ff/.test(ip);
+  const g = ipv6Groups(ip);
+  if (!g) return true; // not an address we can read: refuse rather than guess
+  const zero = (from: number, to: number) => g.slice(from, to).every((x) => x === 0);
+  if (zero(0, 5) && (g[5] === 0xffff || g[5] === 0)) {
+    if (g[5] === 0 && g[6] === 0 && g[7]! <= 1) return true; // :: and ::1
+    return isPrivateAddress(ipv4From(g[6]!, g[7]!)); // ::ffff:a.b.c.d and the deprecated ::a.b.c.d
+  }
+  if (g[0] === 0x64 && g[1] === 0xff9b) return g[2] !== 0 || isPrivateAddress(ipv4From(g[6]!, g[7]!)); // NAT64; 64:ff9b:1::/48 is local
+  if (g[0] === 0x2002) return isPrivateAddress(ipv4From(g[1]!, g[2]!)); // 6to4
+  if (g[0] === 0x2001 && g[1] === 0) return true; // Teredo hides the IPv4 address
+  const first = g[0]!;
+  return (first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80 || (first & 0xff00) === 0xff00;
 }
 
 /** `meerko-signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<body>">`, the same scheme as Stripe's. */
