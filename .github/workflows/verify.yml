@@ -20,13 +20,13 @@ jobs:
           echo "or from a terminal: git push origin origin/dev:refs/heads/main"
           exit 1
 
-  # The nightly promote gate, against the times GitHub really fires the crons.
+  # The promote gate: promote.yml runs only by hand, behind the typed confirmation.
   promote-gate:
     name: promote gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: ./scripts/promote-night.test.sh
+      - run: ./scripts/promote-gate.test.sh
 
   # Manual only: typecheck and the unit tests, for when you want the answer without a deploy.
   # The database tests skip here (no DATABASE_URL).
