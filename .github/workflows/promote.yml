@@ -2,10 +2,10 @@ name: promote
 
 # Promotes dev to main (production) by fast-forward, the only supported way to release.
 #
-# Release rhythm: this runs on its own every day at 20:00 Madrid time and ships whatever
-# merged to dev that day. A hotfix doesn't wait: merge it to dev, then run this by hand
-# (Actions -> promote, type "promote"). That ships everything else on dev with it, so hold
-# a risky PR unmerged until it's ready to go out.
+# Release rhythm: this never runs on its own. A release ships when a maintainer runs it by hand
+# (Actions -> promote, type "promote"), after the release gate briefing (09:00, 15:00 and 21:00
+# Madrid time). It ships everything on dev, so hold a risky PR unmerged until it's ready to go
+# out. There is no schedule on purpose (scripts/promote-gate.test.sh fails if one comes back).
 #
 # A pull request from dev into main leaves a merge commit on main that dev never has, so main
 # diverges and every later fast-forward is rejected. Fast-forwarding keeps main byte-identical
@@ -15,7 +15,7 @@ name: promote
 # the push webhook even though the push comes from GITHUB_TOKEN.
 #
 # Every promote that ships something ends in a GitHub Release tagged prd-YYYY-MM-DD (Madrid
-# date; a same-day hotfix gets .2, .3, ...), listing the commits it shipped. The tag is the
+# date; a second release the same day gets .2, .3, ...), listing the commits it shipped. The tag is the
 # exact commit prd runs, so it is also the rollback point. Tags never deploy: the prd triggers
 # only match the main branch.
 #
@@ -23,11 +23,6 @@ name: promote
 # traffic, and a failed one keeps the old revision serving (CLAUDE.md).
 
 on:
-  schedule:
-    # Cron is UTC and Madrid shifts between UTC+1 and UTC+2, so both hours are listed. GitHub
-    # often runs them late; the gate below ships the first one of each night and skips the rest.
-    - cron: '0 18 * * *'
-    - cron: '0 19 * * *'
   workflow_dispatch:
     inputs:
       confirm:
@@ -48,7 +43,7 @@ jobs:
 
     steps:
       - name: Check the confirmation
-        if: github.event_name == 'workflow_dispatch' && inputs.confirm != 'promote'
+        if: inputs.confirm != 'promote'
         run: |
           echo "::error::Type 'promote' to confirm. This deploys dev to production."
           exit 1
@@ -57,23 +52,7 @@ jobs:
         with:
           fetch-depth: 0 # real history, to test ancestry
 
-      - name: Ship each night once, however late GitHub runs the cron
-        if: github.event_name == 'schedule'
-        run: |
-          # Either cron may fire hours late or not at all, so the gate ignores which one fired:
-          # the first scheduled run between 20:00 and 08:00 Madrid ships that night, and a
-          # promote-night-<date> tag stops any later run of the same night (scripts/promote-night.sh).
-          export NIGHT_MARKERS="$(git ls-remote --tags origin 'promote-night-*' | sed 's#.*refs/tags/##')"
-          read -r VERDICT DETAIL <<< "$(./scripts/promote-night.sh)"
-          if [ "$VERDICT" != "ship" ]; then
-            echo "::notice::Skipping: $DETAIL."
-            echo "SKIP=true" >> "$GITHUB_ENV"
-          else
-            echo "NIGHT=$DETAIL" >> "$GITHUB_ENV"
-          fi
-
       - name: Verify main can fast-forward to dev
-        if: env.SKIP != 'true'
         run: |
           git fetch origin dev main
           DEV=$(git rev-parse origin/dev)
@@ -109,7 +88,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fast-forward main
-        if: env.SKIP != 'true' && env.ALREADY_LEVEL == 'false'
+        if: env.ALREADY_LEVEL == 'false'
         run: |
           # A plain push is fast-forward only; git rejects anything else. Never --force: it would
           # rewrite production history.
@@ -117,11 +96,11 @@ jobs:
           echo "::notice::main is now at $(git rev-parse origin/dev). The prd Cloud Build triggers fire on this push."
 
       - name: Record the release
-        if: env.SKIP != 'true' && env.ALREADY_LEVEL == 'false'
+        if: env.ALREADY_LEVEL == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BASE="prd-${NIGHT:-$(TZ=Europe/Madrid date +%Y-%m-%d)}"
+          BASE="prd-$(TZ=Europe/Madrid date +%Y-%m-%d)"
           TAG="$BASE"; N=1
           while git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || git ls-remote --exit-code --tags origin "$TAG" >/dev/null; do
             N=$((N + 1)); TAG="$BASE.$N"
@@ -133,11 +112,3 @@ jobs:
           } > notes.md
           gh release create "$TAG" --target "$TO" --title "$TAG" --notes-file notes.md
           echo "::notice::Released $TAG."
-
-      - name: Mark the night as promoted
-        if: github.event_name == 'schedule' && env.SKIP != 'true'
-        run: |
-          # Also when nothing shipped, so a late duplicate can't ship what merged in between.
-          # Tags never deploy: the prd triggers only match the main branch.
-          git push origin "$(git rev-parse origin/dev):refs/tags/promote-night-$NIGHT"
-          echo "::notice::Marked the $NIGHT night as promoted."

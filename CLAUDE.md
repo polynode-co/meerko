@@ -13,16 +13,17 @@ Meerko Cloud's infrastructure and deploy runbook are kept privately by the maint
 | `dev` | Where work lands: every pull request goes into `dev` |
 | `main` | Released code. Meerko Cloud deploys from it |
 
-**Releases are daily**: the `promote` workflow fast-forwards `main` to `dev` on its own at 20:00
-Madrid time, shipping whatever merged that day. A hotfix doesn't wait: merge it to `dev`, then run
-`promote` by hand (Actions → promote, type `promote`); it ships everything else on `dev` too, so
-hold a risky PR unmerged until it's ready. **Promote by fast-forward only**. **Never open a pull request from `dev` into `main`**: it
+**Releases are manual**: nothing ships on its own. The `promote` workflow fast-forwards `main` to
+`dev` only when a maintainer runs it by hand (Actions → promote, type `promote`), after the release
+gate briefing (09:00, 15:00 and 21:00 Madrid time). It has no schedule, and `scripts/promote-gate.test.sh`
+fails if one comes back. A promote ships everything on `dev`, so hold a risky PR unmerged until it's
+ready. **Promote by fast-forward only**. **Never open a pull request from `dev` into `main`**: it
 puts a merge commit on `main` that `dev` doesn't have, and every later fast-forward is rejected.
 `verify.yml` fails such PRs. If `main` has diverged anyway: `git checkout dev && git merge origin/main
 && git push origin dev`, confirm `git rev-parse dev^{tree}` didn't change, then promote.
 
 Migrations run on deploy: the API's build applies pending ones after the tests pass and before the new revision
-takes traffic, so merging a PR with a migration needs no manual step, and the 20:00 promote migrates production. A
+takes traffic, so merging a PR with a migration needs no manual step, and the next promote migrates production. A
 failed migration fails the deploy and the old revision keeps serving. Keep migrations idempotent and
 backwards-compatible with the code still running (add columns with defaults, backfill in SQL); one that drops
 something goes after the code that stops using it. The web app deploys separately, so it must not need a column the
