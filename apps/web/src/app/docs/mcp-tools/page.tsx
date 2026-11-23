@@ -27,7 +27,7 @@ function ToolEntry({ tool }: { tool: McpTool }) {
         <span className="min-w-0 flex-1 text-[15px] leading-normal">{first}</span>
         {needsApproval(tool) && (
           <span className="hidden shrink-0 items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[12px] text-accent sm:inline-flex">
-            <ShieldCheck className="size-3" /> sends email · needs your OK
+            <ShieldCheck className="size-3" /> can send email · needs your OK
           </span>
         )}
         {cantUndo(tool) && (
@@ -91,8 +91,9 @@ export default function Page() {
               {i < all.length - 2 ? ", " : i === all.length - 2 ? " and " : ""}
             </span>
           ))}{" "}
-          send real email. Their descriptions tell your agent to call them only after you&apos;ve seen the preview or the draft and said
-          yes.
+          send real email, or can lead to one: a reply draft goes out at once in a workspace set to send automatically, and leads
+          enrolled in a running sequence get its emails. The ones that always send tell your agent to call them only after you&apos;ve
+          seen the preview or the draft and said yes.
         </p>
         <p>
           Every tool also carries a title and the standard MCP hints: read-only, destructive (it sends, deletes or overwrites), and open-world

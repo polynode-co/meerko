@@ -1059,8 +1059,8 @@
         "annotations": {
           "title": "Enroll rows in a sequence",
           "readOnlyHint": false,
-          "destructiveHint": false,
-          "openWorldHint": false
+          "destructiveHint": true,
+          "openWorldHint": true
         },
         "inputSchema": {
           "type": "object",
@@ -1347,8 +1347,8 @@
         "annotations": {
           "title": "Draft a reply",
           "readOnlyHint": false,
-          "destructiveHint": false,
-          "openWorldHint": false
+          "destructiveHint": true,
+          "openWorldHint": true
         },
         "inputSchema": {
           "type": "object",
