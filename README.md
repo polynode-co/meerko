@@ -1,3 +1,5 @@
+<p align="center"><a href="https://meerko.ai"><img src="docs/readme-banner.jpg" alt="Meerko, the open-source GTM agent: the outbound engine for your AI agent. Works in Claude and ChatGPT, sends from your own inbox, MCP, CLI and API, open source under AGPL-3.0."></a></p>
+
 <h1 align="center">Meerko</h1>
 <p align="center"><b>The open-source GTM agent.</b> Always on the lookout for your next customer.</p>
 
