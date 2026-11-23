@@ -32,6 +32,7 @@ export * from "./replies/drafts.ts";
 export * from "./pipeline.ts";
 export * from "./worker.ts";
 export * from "./oauth.ts";
+export * from "./reviewer-links.ts";
 export * from "./sending/ramp.ts";
 export * from "./sending/mailbox-hold.ts";
 export * from "./mail/domain-health.ts";

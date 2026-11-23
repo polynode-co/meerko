@@ -10,6 +10,7 @@
     "seed": "tsx --env-file=../../.env src/seed.ts",
     "invite": "tsx --env-file=../../.env src/invite.ts",
     "seed-reviewer": "tsx --env-file=../../.env src/seed-reviewer.ts",
+    "reviewer-link": "tsx --env-file=../../.env src/reviewer-link.ts",
     "test": "vitest run",
     "typecheck": "tsc -p ."
   },
