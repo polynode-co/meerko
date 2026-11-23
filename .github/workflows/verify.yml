@@ -4,6 +4,14 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Read-only token: nothing here pushes, comments or deploys.
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # dev -> main pull requests break fast-forward promotion; fail them on sight.
   promotion-shape:
@@ -28,11 +36,11 @@ jobs:
       - uses: actions/checkout@v4
       - run: ./scripts/promote-gate.test.sh
 
-  # Manual only: typecheck and the unit tests, for when you want the answer without a deploy.
-  # The database tests skip here (no DATABASE_URL).
+  # Every pull request, forks included: typecheck and the unit tests. It uses no secrets, and the
+  # database tests skip (no DATABASE_URL). Keep the trigger pull_request, never pull_request_target:
+  # this job runs the pull request's own code.
   checks:
     name: typecheck and tests
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
