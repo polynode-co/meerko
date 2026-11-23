@@ -166,6 +166,7 @@ export default function Page() {
           ["MEERKO_SMTP_URL · MEERKO_MAIL_FROM", "Any SMTP server (smtp://user:password@host:587, smtps:// for 465) and the sender address, for sign-in links by email. Needs MEERKO_APP_URL. Without them, the login page offers Google (or an API key) only."],
           ["ICYPEAS_API_KEY", "Lead search and email finding for every workspace on this server."],
           ["MEERKO_CREDITS", "off (default) when self-hosting. on meters search and enrichment in credits, as on Meerko Cloud. Setting up Stripe turns it on."],
+          ["MEERKO_OPENAI_APPS_CHALLENGE", "The token served at /.well-known/openai-apps-challenge, which OpenAI reads to verify the domain behind a ChatGPT plugin. Leave it empty unless you list your own server as one."],
           ["MEERKO_TICK_SECRET", "Meerko Cloud only, where a scheduler replaces the worker. Leave it empty."],
           ["STRIPE_*", "Billing, as on Meerko Cloud (see .env.example). Leave them empty: no billing and no plan limits."],
           ["POSTHOG_API_KEY · NEXT_PUBLIC_POSTHOG_KEY · POSTHOG_HOST", "Product analytics (POSTHOG_HOST defaults to PostHog's EU cloud). Leave the keys empty and nothing is sent anywhere."],

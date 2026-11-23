@@ -5,6 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "@meerko/mcp/server";
 import { describe, expect, it } from "vitest";
+import { createApp } from "./app.ts";
 
 // The ChatGPT plugin package (the ZIP OpenAI's dashboard takes) is built from chatgpt-app-submission.json by
 // scripts/build-chatgpt-plugin.mjs. OpenAI scans the tools from the live server and compares them with what was
@@ -24,11 +25,28 @@ const SEED_ANCHORS = [
   "Ledgerline",
   "Berg",
   "Fjordly",
-  "Rivera",
   "Nair",
   "Quaystack",
   "Yes, let's talk. Thursday afternoon works for me.",
 ];
+
+// OpenAI verifies the plugin's domain by fetching this path with no credentials. The route reads nothing from the
+// database, so the app is built without one.
+describe("the ChatGPT plugin's domain verification", () => {
+  const PATH = "/.well-known/openai-apps-challenge";
+
+  it("serves the token as plain text and nothing else, with no sign-in", async () => {
+    const res = await createApp(undefined as never).request(PATH);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toMatch(/^text\/plain/);
+    expect(await res.text()).toBe("2JsDp1zUCAMKcGRm0X8dImMgNlqtsMZdA6P1PLtKR24");
+  });
+
+  it("serves a rotated token from MEERKO_OPENAI_APPS_CHALLENGE", async () => {
+    const res = await createApp(undefined as never, { openaiAppsChallenge: "rotated-token" }).request(PATH);
+    expect(await res.text()).toBe("rotated-token");
+  });
+});
 
 describe("the ChatGPT plugin package", async () => {
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
@@ -43,6 +61,12 @@ describe("the ChatGPT plugin package", async () => {
   it("passes the package checks", () => {
     const out = execFileSync("node", ["scripts/build-chatgpt-plugin.mjs", "--check"], { cwd: root, encoding: "utf8" });
     expect(out).toContain("OK");
+  });
+
+  // The dashboard refuses a package with any other number of cases; the build's --check says so too.
+  it("has exactly 5 review cases and 3 negative ones", () => {
+    expect(submission.test_cases).toHaveLength(5);
+    expect(submission.negative_test_cases).toHaveLength(3);
   });
 
   it("lists exactly the tools the server registers", () => {

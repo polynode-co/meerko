@@ -59,6 +59,7 @@ const app = createApp(createDb(), {
   mailer: smtpMailer(process.env.MEERKO_SMTP_URL, process.env.MEERKO_MAIL_FROM),
   signup: process.env.MEERKO_SIGNUP === "open" ? "open" : ("invite" satisfies SignupMode),
   publicUrl,
+  openaiAppsChallenge: process.env.MEERKO_OPENAI_APPS_CHALLENGE,
   analytics,
   billing,
 });
