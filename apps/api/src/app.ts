@@ -74,7 +74,9 @@ import {
   createSession,
   mayJoin,
   recentEmailSignIns,
+  clientIpFromForwarded,
   redeemEmailSignIn,
+  redeemReviewerLink,
   signInLinkMail,
   signInWithEmail,
   type SystemMailer,
@@ -721,6 +723,24 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       if (err instanceof SignInError) throw new HTTPException(403, { message: err.message });
       throw err;
     }
+  });
+
+  /**
+   * Uses a directory reviewer's sign-in link (the web app's /r/<token>) and returns a session token, like
+   * /auth/email/verify. Links come only from `pnpm db:reviewer-link`; nothing here or in /v1 creates one. The
+   * web app's server passes on the visitor's X-Forwarded-For and user agent for the per-IP limit and the log.
+   * Wrong, expired and revoked tokens get one answer.
+   */
+  app.post("/auth/reviewer-link", async (c) => {
+    const body = await parse(
+      z.object({ token: z.string().min(1).max(200), forwarded_for: z.string().max(1000).nullish(), user_agent: z.string().max(2000).nullish() }),
+      await c.req.json().catch(() => ({})),
+    );
+    const result = await redeemReviewerLink(db, body.token, { ip: clientIpFromForwarded(body.forwarded_for), userAgent: body.user_agent });
+    if (result.status === "rate_limited") throw new HTTPException(429, { message: "Too many attempts from this address. Try again in a few minutes." });
+    if (result.status === "invalid") throw new HTTPException(400, { message: "This sign-in link isn't valid." });
+    await analytics.capture({ distinctId: result.userId, event: EVENTS.signInCompleted, workspaceId: result.workspaceId, properties: { method: "reviewer_link" }, set: { email: result.email } });
+    return c.json({ token: result.session.token, expires_at: result.session.expiresAt });
   });
 
   app.get("/auth/google/start", (c) => {

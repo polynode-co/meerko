@@ -138,6 +138,45 @@ export const emailSignIns = pgTable("email_sign_ins", {
   createdAt: createdAt(),
 });
 
+/**
+ * Secret sign-in links for directory reviewers (`/r/<token>` on the web app), who can't always get through
+ * Google's extra verification. Each signs in as its one user, any number of times until it expires or is
+ * revoked. Only `pnpm db:reviewer-link` creates and revokes them, and only the token's hash is stored.
+ */
+export const reviewerLinks = pgTable(
+  "reviewer_links",
+  {
+    id: id(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("reviewer_links_user_idx").on(t.userId)],
+);
+
+export const REVIEWER_LINK_OUTCOMES = ["signed_in", "expired", "revoked", "unknown", "no_workspace"] as const;
+export type ReviewerLinkOutcome = (typeof REVIEWER_LINK_OUTCOMES)[number];
+
+/**
+ * Every attempt to use a reviewer link: when, from where, and how it ended. Never the token. `linkId` is null
+ * when the token matched no link. The per-IP limit counts these rows.
+ */
+export const reviewerLinkUses = pgTable(
+  "reviewer_link_uses",
+  {
+    id: id(),
+    linkId: uuid("link_id").references(() => reviewerLinks.id, { onDelete: "cascade" }),
+    outcome: text("outcome").$type<ReviewerLinkOutcome>().notNull(),
+    ip: text("ip").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("reviewer_link_uses_ip_idx").on(t.ip, t.createdAt), index("reviewer_link_uses_created_idx").on(t.createdAt)],
+);
+
 /** Emails allowed into a workspace; claimed on that address's first Google sign-in. */
 export const invitations = pgTable(
   "invitations",

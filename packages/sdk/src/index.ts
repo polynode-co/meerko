@@ -497,6 +497,14 @@ export class MeerkoClient {
     return this.call<{ token: string; expires_at: string; new_user?: boolean }>("POST", "/auth/email/verify", { token });
   }
 
+  /**
+   * Uses a directory reviewer's sign-in link and returns a session token (public). `from` is the visitor's
+   * X-Forwarded-For and user agent, for the server's per-IP limit and its log.
+   */
+  reviewerSignIn(token: string, from: { forwardedFor?: string | null; userAgent?: string | null } = {}) {
+    return this.call<{ token: string; expires_at: string }>("POST", "/auth/reviewer-link", { token, forwarded_for: from.forwardedFor, user_agent: from.userAgent });
+  }
+
   /** Trades the one-time code from the Google sign-in callback for a session token (public; no key needed). */
   exchangeAuthCode(code: string) {
     return this.call<{ token: string; expires_at: string }>("POST", "/auth/exchange", { code });
