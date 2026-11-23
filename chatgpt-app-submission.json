@@ -1,5 +1,5 @@
 {
-  "note": "Source of the ChatGPT plugin package (the ZIP OpenAI's dashboard takes). `pnpm chatgpt-plugin` builds it into .tmp/; `pnpm chatgpt-plugin --check` validates it. `tools` mirrors packages/mcp/src/annotations.ts and apps/api/src/chatgpt-plugin.test.ts keeps the two in step. The test cases run against the reviewer workspace that `pnpm db:seed-reviewer` fills (packages/core/src/reviewer-seed.ts). No credentials go in this file: the reviewer login is entered in the dashboard.",
+  "note": "Source of the ChatGPT plugin package (the ZIP OpenAI's dashboard takes). `pnpm chatgpt-plugin` builds it into .tmp/; `pnpm chatgpt-plugin --check` validates it. `tools` mirrors packages/mcp/src/annotations.ts and apps/api/src/chatgpt-plugin.test.ts keeps the two in step. The test cases run against the reviewer workspace that `pnpm db:seed-reviewer` fills (packages/core/src/reviewer-seed.ts); the dashboard takes exactly 5 of them and exactly 3 negative ones. No credentials go in this file: the reviewer login is entered in the dashboard.",
   "app_info": {
     "display_name": "Meerko",
     "subtitle": "Find leads, send cold email",
@@ -422,18 +422,6 @@
       "expected_output": "Shows one sequence, \"Founders: agent-run outbound\", paused, with 6 leads enrolled. Then shows its three steps rendered for one lead: the first has a subject like \"Ledgerline and outbound, Maya\" and a body that opens with the lead's first name, and the two follow-ups come 3 and 4 days later. No email is sent."
     },
     {
-      "description": "Find the reply nobody has sorted yet and classify it.",
-      "user_prompt": "Do I have new replies in Meerko? Mark the one from Maya as a question.",
-      "tools_triggered": "list_replies, classify_reply",
-      "expected_output": "Shows one unsorted reply, from Maya Okafor at Ledgerline, asking whether Meerko works with Claude or only ChatGPT, then confirms it is now classified as a question. No email is sent."
-    },
-    {
-      "description": "Review the reply drafts that are waiting for the user's approval.",
-      "user_prompt": "Show me the reply drafts waiting for my approval in Meerko.",
-      "tools_triggered": "list_drafts",
-      "expected_output": "Lists two pending drafts with the reply each one answers: one to Maya Okafor about working with Claude, and one to Tomás Rivera about pricing for a team of three and using their own Gmail inboxes. It says they have not been sent and asks before sending any."
-    },
-    {
       "description": "Write a draft answer to an interested reply and leave it for review.",
       "user_prompt": "Priya replied that she is interested. Draft a short answer in Meerko proposing Thursday at 3pm, and don't send it yet.",
       "tools_triggered": "list_replies, draft_reply",
@@ -450,12 +438,6 @@
       "user_prompt": "With Meerko, how many CTOs at fintech companies in Spain could I reach? Just count them, don't save anything.",
       "tools_triggered": "find_people",
       "expected_output": "Returns the number of people matching a CTO title at financial-services companies in Spain. It says the count is free, and no rows are saved and no credits are spent."
-    },
-    {
-      "description": "Show the credit balance, with no offer to buy more.",
-      "user_prompt": "How many Meerko credits do I have left?",
-      "tools_triggered": "get_credits",
-      "expected_output": "States the workspace's credit balance as a number (about 2,000 in the demo workspace, less whatever earlier searches used). The answer has no prices, plans or links to buy credits."
     }
   ],
   "negative_test_cases": [
@@ -473,17 +455,12 @@
       "description": "Do not trigger for general knowledge about sales or email with nothing to look up or do in the user's workspace.",
       "user_prompt": "What is a good reply rate for B2B cold email, and what is the difference between SPF and DKIM?",
       "expected_output": "Meerko should not be invoked: this is a general question, answered from ChatGPT's own knowledge."
-    },
-    {
-      "description": "Do not sell anything. Meerko has no tool that buys credits or changes a plan, and returns no checkout link.",
-      "user_prompt": "Buy me 5,000 more Meerko credits and upgrade my plan.",
-      "expected_output": "No purchase is made and no checkout or upgrade link is shown. At most ChatGPT reads the current balance and says that credits and plans are managed in the user's Meerko account settings."
     }
   ],
   "plugin": {
     "note": "Fields only the plugin package needs; the rest of the package is derived from app_info and the test cases above. `name` is the package id of a first upload: once the dashboard has a listing, the id it assigned may have to go here instead, or the upload is refused. `developerName` is replaced by the verified identity on the dashboard. `demoRecordingURL` stays null until the walkthrough video exists; the package builds without it but cannot be submitted.",
     "name": "meerko",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "developerName": "Polynode Technologies, S.L.",
     "websiteURL": "https://meerko.ai",
     "supportURL": "https://meerko.ai/docs",

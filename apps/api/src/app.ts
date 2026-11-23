@@ -269,6 +269,8 @@ const PROVIDER_NAMES = { icypeas: "Icypeas", firecrawl: "Firecrawl", generect: "
 
 /** Sent by the in-process client behind /mcp/drafter. It can only narrow a credential, so sending it yourself gains nothing. */
 const SCOPE_HEADER = "x-meerko-scope";
+// Meerko Cloud's domain verification token for the ChatGPT plugin. OpenAI fetches it with no sign-in: it is public.
+const OPENAI_APPS_CHALLENGE = "2JsDp1zUCAMKcGRm0X8dImMgNlqtsMZdA6P1PLtKR24";
 
 async function parse<T extends z.ZodType>(schema: T, data: unknown): Promise<z.infer<T>> {
   const result = await schema.safeParseAsync(data);
@@ -346,6 +348,11 @@ export interface AppDeps {
    * MCP clients connect to. Defaults to the request's origin.
    */
   publicUrl?: string;
+  /**
+   * The token OpenAI's dashboard reads at /.well-known/openai-apps-challenge to verify the domain behind the ChatGPT
+   * plugin (MEERKO_OPENAI_APPS_CHALLENGE). Defaults to Meerko Cloud's, which is public by design.
+   */
+  openaiAppsChallenge?: string;
   /** PostHog product events, errors and MCP analytics; a no-op when unset (tests, self-hosting without a key). */
   analytics?: Analytics;
   /** Stripe on Meerko Cloud: plans, credit packs and plan limits. Unset (self-hosting) turns all of it off. */
@@ -864,6 +871,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   // RFC 9728: tells MCP clients where to sign in for /mcp (and /mcp/drafter, the same sign-in).
   const resourceMetadata = (path: string, name: string) => (c: Context) =>
     c.json({ resource: `${issuer(c)}/${path}`, authorization_servers: [issuer(c)], bearer_methods_supported: ["header"], resource_name: name });
+  // OpenAI's domain verification for the ChatGPT plugin: the token as plain text and nothing else, with no sign-in.
+  app.get("/.well-known/openai-apps-challenge", (c) => c.text(deps.openaiAppsChallenge || OPENAI_APPS_CHALLENGE));
+
   app.get("/.well-known/oauth-protected-resource", resourceMetadata("mcp", "Meerko"));
   app.get("/.well-known/oauth-protected-resource/mcp", resourceMetadata("mcp", "Meerko"));
   app.get("/.well-known/oauth-protected-resource/mcp/drafter", resourceMetadata("mcp/drafter", "Meerko (drafts only)"));

@@ -173,8 +173,11 @@ for (const [key, against] of [["brandColor", "#FFFFFF"], ["brandColorDark", "#21
 }
 
 const review = manifest.extensions["com.openai"].review;
-if (review.test_cases.positive.length < 5) problems.push("review needs at least 5 positive test cases");
-if (review.test_cases.negative.length < 3) problems.push("review needs at least 3 negative test cases");
+// The dashboard reads the cases from the package and takes exactly these counts, no more.
+for (const [kind, want] of [["positive", 5], ["negative", 3]]) {
+  const have = review.test_cases[kind].length;
+  if (have !== want) problems.push(`review needs exactly ${want} ${kind} test cases, the package has ${have}`);
+}
 const toolNames = Object.keys(source.tools);
 review.test_cases.positive.forEach((t, i) => {
   maxLen(`positive[${i}].description`, t.description, 4000);
