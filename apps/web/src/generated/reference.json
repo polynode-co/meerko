@@ -645,7 +645,7 @@
           "title": "Read a website",
           "readOnlyHint": true,
           "destructiveHint": false,
-          "openWorldHint": false
+          "openWorldHint": true
         },
         "inputSchema": {
           "type": "object",

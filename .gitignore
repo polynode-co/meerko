@@ -19,5 +19,8 @@ tfplan
 # Local lead exports (personal data, never commit)
 data/
 
+# Build output that isn't shipped (scripts/build-chatgpt-plugin.mjs)
+.tmp/
+
 # Per-session worktrees (scripts/new-worktree.sh)
 .claude/worktrees/
