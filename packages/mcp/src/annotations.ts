@@ -34,7 +34,7 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   create_table: write("Create a lead table"),
   add_column: write("Add a column"),
   get_pending_cells: read("Get cells waiting for the agent"),
-  read_website: read("Read a website"),
+  read_website: read("Read a website", true), // fetches any public site
   get_icp: read("Get the ideal customer profile"),
   set_icp: write("Set the ideal customer profile"),
   review_icp_fit: write("Adjust ICP fit scores"),
