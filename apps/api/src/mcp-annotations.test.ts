@@ -28,8 +28,10 @@ describe("MCP tool annotations", async () => {
     expect(Object.keys(TOOL_ANNOTATIONS).sort()).toEqual(tools.map((t) => t.name).sort());
   });
 
-  it("marks every real send as destructive and open-world", () => {
-    for (const name of ["send_test_email", "start_sequence", "approve_draft"]) {
+  // draft_reply and enroll_rows too: a draft goes at once in a workspace that sends automatically, and enrolling into
+  // a running sequence gets the leads emailed (#89).
+  it("marks every tool that can lead to an email as destructive and open-world", () => {
+    for (const name of ["send_test_email", "start_sequence", "approve_emails", "approve_draft", "draft_reply", "enroll_rows"]) {
       expect(tools.find((t) => t.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: true });
     }
   });

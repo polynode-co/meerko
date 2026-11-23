@@ -264,11 +264,11 @@
       }
     },
     "enroll_rows": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": true },
       "justifications": {
         "read_only_justification": "Adds rows from the sequence's table to the sequence as enrollments.",
-        "open_world_justification": "Enrollments are records in the user's Meerko workspace. Email only goes out through a sequence the user has started, and by default each email waits for the user's approval.",
-        "destructive_justification": "Only adds enrollments; rows already enrolled, unsubscribed or undeliverable are skipped, and nothing is removed."
+        "open_world_justification": "In a sequence that is already running, the enrolled people are emailed from the user's mailbox, at inboxes outside Meerko. In a draft or paused sequence nothing is sent until it is started.",
+        "destructive_justification": "Enrolling into a running sequence leads to real emails, which cannot be taken back once sent. By default each email still waits for the user's approval."
       }
     },
     "start_sequence": {
@@ -352,11 +352,11 @@
       }
     },
     "draft_reply": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": true },
       "justifications": {
         "read_only_justification": "Saves a draft answer to a reply for the user to review.",
-        "open_world_justification": "The draft is stored in the user's Meerko workspace. By default nothing is sent: sending is the separate approve_draft tool. Only a user who has switched the workspace to automatic sending in the dashboard has drafts sent without that step.",
-        "destructive_justification": "Adds a draft, or replaces the pending draft for the same reply, which has not been sent to anyone."
+        "open_world_justification": "In a workspace the user has switched to automatic sending, the draft is emailed at once to the person who replied, outside Meerko. By default it is only stored, and sending is the separate approve_draft tool.",
+        "destructive_justification": "With automatic sending on, the draft goes out as a real email, which cannot be taken back. Drafting again for the same reply also replaces the pending draft's text."
       }
     },
     "list_drafts": {

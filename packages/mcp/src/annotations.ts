@@ -61,7 +61,7 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   create_sequence: write("Create a sequence"),
   update_sequence: destructive("Edit a sequence"), // overwrites the steps' text
   preview_sequence: read("Preview a sequence email"),
-  enroll_rows: write("Enroll rows in a sequence"), // nothing is sent until start_sequence
+  enroll_rows: destructive("Enroll rows in a sequence", true), // in a sequence that's already running, the leads get emailed
   start_sequence: destructive("Start sending a sequence", true), // real emails to real people
   delete_sequence: destructive("Delete a sequence"),
   pause_sequence: write("Pause a sequence"),
@@ -74,7 +74,7 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   // Replies and pipeline
   list_replies: read("List replies"),
   classify_reply: write("Classify a reply"),
-  draft_reply: write("Draft a reply"),
+  draft_reply: destructive("Draft a reply", true), // sent at once in a workspace that sends reply drafts automatically
   list_drafts: read("List reply drafts"),
   approve_draft: destructive("Approve and send a reply", true), // sends the reply
   discard_draft: destructive("Discard a reply draft"),

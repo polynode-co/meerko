@@ -108,7 +108,7 @@ export function toolByName(name: string) {
 }
 
 /** Tools whose description tells the agent to wait for the user's explicit OK. */
-/** Tools that send real email: destructive and reaching outside the account (annotations.ts). */
+/** Tools that send real email or can lead to one: destructive and reaching outside the account (annotations.ts). */
 export const needsApproval = (tool: McpTool) => !!tool.annotations.destructiveHint && !!tool.annotations.openWorldHint;
 /** Tools that delete or overwrite the user's own data. */
 export const cantUndo = (tool: McpTool) => !!tool.annotations.destructiveHint && !tool.annotations.openWorldHint;
