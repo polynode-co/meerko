@@ -27,6 +27,16 @@ export async function billingWorkspaceOf(db: Db | Tx, workspaceId: string): Prom
   return ws?.billing ?? workspaceId;
 }
 
+/** The user ids of a workspace's owners, oldest first: who Meerko's own notices about the workspace go to. */
+export async function workspaceOwnerIds(db: Db | Tx, workspaceId: string): Promise<string[]> {
+  const rows = await db
+    .select({ userId: memberships.userId })
+    .from(memberships)
+    .where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.role, "owner")))
+    .orderBy(asc(memberships.createdAt));
+  return rows.map((r) => r.userId);
+}
+
 /** Every workspace sharing `billingId`'s plan: the payer and the ones pointing at it. */
 export function sharesBilling(billingId: string) {
   return sql`(${workspaces.id} = ${billingId} or ${workspaces.billingWorkspaceId} = ${billingId})`;

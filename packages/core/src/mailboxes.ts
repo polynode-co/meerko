@@ -1,6 +1,6 @@
 import { OutlookClient, type MicrosoftOAuth } from "./mail/outlook.ts";
 import { randomBytes } from "node:crypto";
-import { and, eq, mailboxes, sequenceMailboxes, sequences, sql, type Db, type MailboxServers } from "@meerko/db";
+import { and, eq, isNull, mailboxes, sequenceMailboxes, sequences, sql, type Db, type MailboxServers } from "@meerko/db";
 import { mailClient } from "./mail/client.ts";
 import { GmailClient, GmailError, type GoogleOAuth } from "./mail/gmail.ts";
 import { GmailImapClient } from "./mail/gmail-imap.ts";
@@ -13,6 +13,7 @@ import { domainHealthFor } from "./mail/domain-health.ts";
 import { rampState } from "./sending/ramp.ts";
 import { assertMailboxAllowed } from "./billing.ts";
 import { NotFoundError } from "./tables.ts";
+import { workspaceOwnerIds } from "./workspaces.ts";
 
 const STATE_TTL_MS = 10 * 60_000;
 
@@ -308,7 +309,35 @@ export async function deleteMailbox(db: Db, workspaceId: string, id: string) {
 
 /** Records a lost connection so the user is told to reconnect, and sending skips the mailbox. */
 export async function markMailboxError(db: Db, id: string, error: string) {
-  await db.update(mailboxes).set({ status: "error", lastError: error }).where(eq(mailboxes.id, id));
+  await db
+    .update(mailboxes)
+    // A mailbox that was working has a new disconnect to tell; one already in error keeps its state.
+    .set({ status: "error", lastError: error, disconnectReportedAt: sql`case when ${mailboxes.status} = 'active' then null else ${mailboxes.disconnectReportedAt} end` })
+    .where(eq(mailboxes.id, id));
+}
+
+export interface MailboxDisconnect {
+  mailboxId: string;
+  workspaceId: string;
+  email: string;
+  provider: string;
+  /** The workspace's owners, who get the "sending stopped" email. */
+  ownerIds: string[];
+}
+
+/**
+ * Mailboxes that lost their connection and haven't been reported yet, marked reported in the same statement so each
+ * disconnect is reported once even when two passes overlap. The API turns each into a `mailbox_disconnected` event.
+ */
+export async function claimMailboxDisconnects(db: Db): Promise<MailboxDisconnect[]> {
+  const claimed = await db
+    .update(mailboxes)
+    .set({ disconnectReportedAt: sql`now()` })
+    .where(and(eq(mailboxes.status, "error"), isNull(mailboxes.disconnectReportedAt)))
+    .returning({ mailboxId: mailboxes.id, workspaceId: mailboxes.workspaceId, email: mailboxes.email, provider: mailboxes.provider });
+  const out: MailboxDisconnect[] = [];
+  for (const m of claimed) out.push({ ...m, ownerIds: await workspaceOwnerIds(db, m.workspaceId) });
+  return out;
 }
 
 /** Sends a one-off test email, proving the connection works end to end. */

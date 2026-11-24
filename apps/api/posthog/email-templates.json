@@ -1,0 +1,149 @@
+{
+  "note": "GENERATED FILE, do not edit. Source: apps/api/src/lifecycle/. Regenerate with `UPDATE_LIFECYCLE_EMAILS=1 pnpm --filter @meerko/api exec vitest run src/lifecycle`; compare with PostHog with `pnpm --filter @meerko/api posthog-emails`.",
+  "templates": [
+    {
+      "key": "welcome",
+      "name": "Welcome",
+      "targets": {
+        "dev": {
+          "workflowId": "01a20e2d-0591-0000-1334-f40ebf559f32",
+          "actionId": "email_welcome"
+        }
+      },
+      "subject": "Welcome to Meerko",
+      "preheader": "What Meerko does, and what to do first.",
+      "html": "<div style=\"font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#0b0b0c;max-width:560px\"><p>Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},</p><p>Thanks for signing up. I'm Iker, and I build Meerko.</p><p>Meerko is outbound for your AI. You tell Claude, ChatGPT or any MCP client who you sell to; Meerko finds the people, finds their emails and sends the sequence from your own inbox. By default you approve every email before it goes out.</p><p>The first step is connecting the mailbox you'll send from.</p><p><a href=\"https://meerko.ai/app/settings?connect=gmail\" style=\"display:inline-block;background:#0b0b0c;color:#ffffff;padding:10px 16px;text-decoration:none;font-weight:600\">Connect a mailbox</a></p><p>Who are you hoping to reach? Reply and tell me: I read every reply.</p><p>Iker<br>Founder, Meerko</p></div>",
+      "text": "Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},\n\nThanks for signing up. I'm Iker, and I build Meerko.\n\nMeerko is outbound for your AI. You tell Claude, ChatGPT or any MCP client who you sell to; Meerko finds the people, finds their emails and sends the sequence from your own inbox. By default you approve every email before it goes out.\n\nThe first step is connecting the mailbox you'll send from.\n\nConnect a mailbox: https://meerko.ai/app/settings?connect=gmail\n\nWho are you hoping to reach? Reply and tell me: I read every reply.\n\nIker\nFounder, Meerko",
+      "fromName": "Iker from Meerko",
+      "replyTo": "contact@meerko.ai"
+    },
+    {
+      "key": "onboarding-day-1-connect-mailbox",
+      "name": "Day 1: connect your mailbox",
+      "targets": {
+        "prd": {
+          "workflowId": "01a1ca4b-0976-0000-b18f-a6d6bd32dcab",
+          "actionId": "email_1"
+        },
+        "dev": {
+          "workflowId": "01a20e2e-5170-0000-9aff-816cac26c976",
+          "actionId": "email_1"
+        }
+      },
+      "subject": "Connect a mailbox to send your first sequence",
+      "preheader": "Two minutes with Gmail, one click with Outlook.",
+      "html": "<div style=\"font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#0b0b0c;max-width:560px\"><p>Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},</p><p>Meerko sends from your own inbox, so the first step is connecting one.</p><p>Gmail or Google Workspace takes about two minutes with an app password. Outlook and Microsoft 365 is one click with Sign in with Microsoft.</p><p><a href=\"https://meerko.ai/app/settings?connect=gmail\" style=\"display:inline-block;background:#0b0b0c;color:#ffffff;padding:10px 16px;text-decoration:none;font-weight:600\">Connect a mailbox</a></p><p>Then ask your AI something like: \"Find 20 leads that fit my ICP and draft a 3-step sequence.\" By default you approve every email before it sends.</p><p>Iker<br>Founder, Meerko</p></div>",
+      "text": "Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},\n\nMeerko sends from your own inbox, so the first step is connecting one.\n\nGmail or Google Workspace takes about two minutes with an app password. Outlook and Microsoft 365 is one click with Sign in with Microsoft.\n\nConnect a mailbox: https://meerko.ai/app/settings?connect=gmail\n\nThen ask your AI something like: \"Find 20 leads that fit my ICP and draft a 3-step sequence.\" By default you approve every email before it sends.\n\nIker\nFounder, Meerko",
+      "fromName": "Iker from Meerko",
+      "replyTo": "contact@meerko.ai"
+    },
+    {
+      "key": "onboarding-day-3-start-sequence",
+      "name": "Day 3: start your first sequence (mailbox connected)",
+      "targets": {
+        "prd": {
+          "workflowId": "01a1ca4b-0976-0000-b18f-a6d6bd32dcab",
+          "actionId": "email_2a"
+        },
+        "dev": {
+          "workflowId": "01a20e2e-5170-0000-9aff-816cac26c976",
+          "actionId": "email_2a"
+        }
+      },
+      "subject": "Your mailbox is ready. Start your first sequence",
+      "preheader": "One message to your AI gets it going.",
+      "html": "<div style=\"font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#0b0b0c;max-width:560px\"><p>Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},</p><p>Your mailbox is connected, so you're one step from your first sequence. Ask your AI:</p><p>\"Find 20 leads that fit my ICP, find their emails, and draft a 3-step sequence for them.\"</p><p>You'll see every email before it goes out. A new mailbox starts with a few sends a day and ramps up on its own, so it stays out of spam.</p><p><a href=\"https://meerko.ai/app\" style=\"display:inline-block;background:#0b0b0c;color:#ffffff;padding:10px 16px;text-decoration:none;font-weight:600\">Open Meerko</a></p><p>Iker<br>Founder, Meerko</p></div>",
+      "text": "Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},\n\nYour mailbox is connected, so you're one step from your first sequence. Ask your AI:\n\n\"Find 20 leads that fit my ICP, find their emails, and draft a 3-step sequence for them.\"\n\nYou'll see every email before it goes out. A new mailbox starts with a few sends a day and ramps up on its own, so it stays out of spam.\n\nOpen Meerko: https://meerko.ai/app\n\nIker\nFounder, Meerko",
+      "fromName": "Iker from Meerko",
+      "replyTo": "contact@meerko.ai"
+    },
+    {
+      "key": "onboarding-day-3-two-steps",
+      "name": "Day 3: two steps to your first sequence (no mailbox)",
+      "targets": {
+        "prd": {
+          "workflowId": "01a1ca4b-0976-0000-b18f-a6d6bd32dcab",
+          "actionId": "email_2b"
+        },
+        "dev": {
+          "workflowId": "01a20e2e-5170-0000-9aff-816cac26c976",
+          "actionId": "email_2b"
+        }
+      },
+      "subject": "Your first sequence is two steps away",
+      "preheader": "Connect a mailbox, then ask your AI.",
+      "html": "<div style=\"font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#0b0b0c;max-width:560px\"><p>Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},</p><p>Getting your first sequence out takes two steps:</p><p>1. Connect the mailbox you'll send from: about two minutes for Gmail, one click for Outlook.</p><p><a href=\"https://meerko.ai/app/settings?connect=gmail\" style=\"display:inline-block;background:#0b0b0c;color:#ffffff;padding:10px 16px;text-decoration:none;font-weight:600\">Connect a mailbox</a></p><p>2. Ask your AI: \"Find 20 leads that fit my ICP and draft a 3-step sequence.\" You approve every email before it sends.</p><p>Iker<br>Founder, Meerko</p></div>",
+      "text": "Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},\n\nGetting your first sequence out takes two steps:\n\n1. Connect the mailbox you'll send from: about two minutes for Gmail, one click for Outlook.\n\nConnect a mailbox: https://meerko.ai/app/settings?connect=gmail\n\n2. Ask your AI: \"Find 20 leads that fit my ICP and draft a 3-step sequence.\" You approve every email before it sends.\n\nIker\nFounder, Meerko",
+      "fromName": "Iker from Meerko",
+      "replyTo": "contact@meerko.ai"
+    },
+    {
+      "key": "onboarding-day-7-stuck-connecting",
+      "name": "Day 7: stuck connecting your mailbox?",
+      "targets": {
+        "prd": {
+          "workflowId": "01a1ca4b-0976-0000-b18f-a6d6bd32dcab",
+          "actionId": "email_3"
+        },
+        "dev": {
+          "workflowId": "01a20e2e-5170-0000-9aff-816cac26c976",
+          "actionId": "email_3"
+        }
+      },
+      "subject": "Stuck connecting your mailbox?",
+      "preheader": "The usual blockers, and how to get past them.",
+      "html": "<div style=\"font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#0b0b0c;max-width:560px\"><p>Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},</p><p>You haven't connected a mailbox yet, and that's where most people get stuck. The usual reasons:</p><p>- Gmail has no App passwords page: 2-Step Verification is off, or a Google Workspace admin has turned app passwords off.</p><p>- Outlook asks for an admin: your IT admin needs to approve Meerko once.</p><p><a href=\"https://meerko.ai/docs/mailboxes#no-app-password\" style=\"display:inline-block;background:#0b0b0c;color:#ffffff;padding:10px 16px;text-decoration:none;font-weight:600\">What to check, and the steps for your admin</a></p><p>Still stuck? Email contact@meerko.ai and I'll help you get connected. This is the last reminder.</p><p>Iker<br>Founder, Meerko</p></div>",
+      "text": "Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},\n\nYou haven't connected a mailbox yet, and that's where most people get stuck. The usual reasons:\n\n- Gmail has no App passwords page: 2-Step Verification is off, or a Google Workspace admin has turned app passwords off.\n\n- Outlook asks for an admin: your IT admin needs to approve Meerko once.\n\nWhat to check, and the steps for your admin: https://meerko.ai/docs/mailboxes#no-app-password\n\nStill stuck? Email contact@meerko.ai and I'll help you get connected. This is the last reminder.\n\nIker\nFounder, Meerko",
+      "fromName": "Iker from Meerko",
+      "replyTo": "contact@meerko.ai"
+    },
+    {
+      "key": "approval-waiting",
+      "name": "Emails waiting for approval",
+      "targets": {
+        "dev": {
+          "workflowId": "01a20e2d-461b-0000-ca80-6c31d0f5e301",
+          "actionId": "email_approval"
+        }
+      },
+      "subject": "Your first emails are waiting for your OK",
+      "preheader": "Nothing sends until you approve it.",
+      "html": "<div style=\"font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#0b0b0c;max-width:560px\"><p>Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},</p><p>You started a sequence yesterday, but none of its emails have gone out yet: Meerko waits for you to approve each one first.</p><p>Read and approve them in the sequence, or ask your AI: \"Show me the emails waiting for approval and approve the ones that look right.\"</p><p><a href=\"https://meerko.ai/app/sequences/{{ event.properties.sequence_id }}\" style=\"display:inline-block;background:#0b0b0c;color:#ffffff;padding:10px 16px;text-decoration:none;font-weight:600\">Review the emails</a></p><p>Approving an email sends it when its step is due; each follow-up waits for its own approval. If you'd rather Meerko send on its own, change it in Settings, under Sending.</p><p>Iker<br>Founder, Meerko</p></div>",
+      "text": "Hi {{ person.properties.name | split: ' ' | first | default: 'there' }},\n\nYou started a sequence yesterday, but none of its emails have gone out yet: Meerko waits for you to approve each one first.\n\nRead and approve them in the sequence, or ask your AI: \"Show me the emails waiting for approval and approve the ones that look right.\"\n\nReview the emails: https://meerko.ai/app/sequences/{{ event.properties.sequence_id }}\n\nApproving an email sends it when its step is due; each follow-up waits for its own approval. If you'd rather Meerko send on its own, change it in Settings, under Sending.\n\nIker\nFounder, Meerko",
+      "fromName": "Iker from Meerko",
+      "replyTo": "contact@meerko.ai"
+    },
+    {
+      "key": "mailbox-disconnected",
+      "name": "Mailbox disconnected: sending stopped",
+      "targets": {
+        "dev": {
+          "workflowId": "01a20e2d-8681-0000-5495-43131d2b5454",
+          "actionId": "email_disconnected"
+        }
+      },
+      "subject": "Sending stopped: reconnect {{ event.properties.mailbox }}",
+      "preheader": "Meerko can't sign in to this mailbox anymore.",
+      "html": "<div style=\"margin:0;padding:32px 16px;background:#f6f6f3;font-family:system-ui,-apple-system,sans-serif;color:#0b0b0c\"><div style=\"max-width:520px;margin:0 auto;background:#ffffff;padding:32px;border:1px solid #e3e3dc\"><p style=\"margin:0 0 20px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#6b6b63\">Meerko</p><h1 style=\"margin:0 0 16px;font-size:22px;line-height:1.25\">Your mailbox lost its connection</h1><p style=\"margin:0 0 16px;font-size:15px;line-height:1.6\">Meerko can no longer sign in to {{ event.properties.mailbox }}, so nothing is sending from it and its replies aren't being read. This usually means its password or app password changed, or its access was revoked.</p><p style=\"margin:0 0 16px;font-size:15px;line-height:1.6\">Your other mailboxes keep sending. Reconnect this one and its emails pick up where they stopped.</p><p style=\"margin:8px 0 24px\"><a href=\"https://meerko.ai/app/settings#mailboxes\" style=\"display:inline-block;background:#0b0b0c;color:#a8f326;padding:13px 20px;font-size:14px;font-weight:600;text-decoration:none\">Reconnect the mailbox</a></p><p style=\"margin:0;font-size:13px;line-height:1.6;color:#6b6b63\">You get this because you own the Meerko workspace this mailbox is in. <a href=\"{{ unsubscribe_url }}\" style=\"color:#6b6b63\">Unsubscribe from these emails</a>.</p></div></div>",
+      "text": "Your mailbox lost its connection\n\nMeerko can no longer sign in to {{ event.properties.mailbox }}, so nothing is sending from it and its replies aren't being read. This usually means its password or app password changed, or its access was revoked.\n\nYour other mailboxes keep sending. Reconnect this one and its emails pick up where they stopped.\n\nReconnect the mailbox: https://meerko.ai/app/settings#mailboxes\n\nYou get this because you own the Meerko workspace this mailbox is in.\n\nUnsubscribe from these emails: {{ unsubscribe_url }}",
+      "fromName": "Meerko",
+      "replyTo": null
+    },
+    {
+      "key": "credits-low",
+      "name": "Credits running low",
+      "targets": {
+        "dev": {
+          "workflowId": "01a20e2c-861f-0000-f274-a0ac7ecbd068",
+          "actionId": "email_credits"
+        }
+      },
+      "subject": "You have {{ event.properties.balance }} Meerko credits left",
+      "preheader": "Add credits before lead search and enrichment stop.",
+      "html": "<div style=\"margin:0;padding:32px 16px;background:#f6f6f3;font-family:system-ui,-apple-system,sans-serif;color:#0b0b0c\"><div style=\"max-width:520px;margin:0 auto;background:#ffffff;padding:32px;border:1px solid #e3e3dc\"><p style=\"margin:0 0 20px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#6b6b63\">Meerko</p><h1 style=\"margin:0 0 16px;font-size:22px;line-height:1.25\">Your credits are running low</h1><p style=\"margin:0 0 16px;font-size:15px;line-height:1.6\">Your workspace has {{ event.properties.balance }} credits left. A found email costs 5, a verification 1 and each search result 1; misses are free.</p><p style=\"margin:0 0 16px;font-size:15px;line-height:1.6\">When they run out, lead search and enrichment stop until you add more. Sequences already running keep sending: sending uses no credits.</p><p style=\"margin:0 0 16px;font-size:15px;line-height:1.6\">Add a credit pack, or move to Pro for credits every month.</p><p style=\"margin:8px 0 24px\"><a href=\"https://meerko.ai/app/settings#billing\" style=\"display:inline-block;background:#0b0b0c;color:#a8f326;padding:13px 20px;font-size:14px;font-weight:600;text-decoration:none\">Add credits</a></p><p style=\"margin:0;font-size:13px;line-height:1.6;color:#6b6b63\">You get this because you own the Meerko workspace these credits belong to. <a href=\"{{ unsubscribe_url }}\" style=\"color:#6b6b63\">Unsubscribe from these emails</a>.</p></div></div>",
+      "text": "Your credits are running low\n\nYour workspace has {{ event.properties.balance }} credits left. A found email costs 5, a verification 1 and each search result 1; misses are free.\n\nWhen they run out, lead search and enrichment stop until you add more. Sequences already running keep sending: sending uses no credits.\n\nAdd a credit pack, or move to Pro for credits every month.\n\nAdd credits: https://meerko.ai/app/settings#billing\n\nYou get this because you own the Meerko workspace these credits belong to.\n\nUnsubscribe from these emails: {{ unsubscribe_url }}",
+      "fromName": "Meerko",
+      "replyTo": null
+    }
+  ]
+}

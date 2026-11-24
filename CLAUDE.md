@@ -53,6 +53,17 @@ in-process). No surface talks to the database or core directly, so there's no se
 - The gate: `pnpm typecheck` (includes `docs:reference --check` and `api:spec --check`) and
   `pnpm --filter @meerko/api test` (`spec.test.ts`, `capabilities.test.ts`). The API deploy runs both.
 
+## Lifecycle emails
+
+The emails PostHog Workflows send to Meerko Cloud's users (welcome, onboarding nudges, sending stopped, credits low)
+live in `apps/api/src/lifecycle/`, and **git is the only writer of their copy**: `pnpm --filter @meerko/api
+posthog-emails [--env dev|prd]` compares PostHog with git, `--apply` overwrites PostHog (an edit made in PostHog's editor
+is lost), and the lifecycle test keeps `apps/api/posthog/email-templates.json` equal to the modules
+(`UPDATE_LIFECYCLE_EMAILS=1 pnpm --filter @meerko/api exec vitest run src/lifecycle` regenerates it). The workflow graph
+(trigger, waits) is built in PostHog, dev first, and its step ids go in each email's `targets`. Copy is public-facing:
+it needs Iker's OK before a prd workflow is enabled. Transactional mail (sign-in links, the digest, mailbox holds) stays
+in core's `SystemMailer`.
+
 ## This tree is shared
 
 Several sessions share this checkout, one `.git` and one HEAD. If any session runs `git checkout`,
