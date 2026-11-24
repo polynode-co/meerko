@@ -271,6 +271,8 @@ const PROVIDER_NAMES = { icypeas: "Icypeas", firecrawl: "Firecrawl", generect: "
 const SCOPE_HEADER = "x-meerko-scope";
 // Meerko Cloud's domain verification token for the ChatGPT plugin. OpenAI fetches it with no sign-in: it is public.
 const OPENAI_APPS_CHALLENGE = "2JsDp1zUCAMKcGRm0X8dImMgNlqtsMZdA6P1PLtKR24";
+// Meerko Cloud's claim on its hosted connector in Glama's directory. Glama fetches it with no sign-in: it is public.
+const GLAMA_CLAIM = "glama_claim_d2pSv0D3Pap1oPTQHcxPi6rAkKDrg8nR";
 
 async function parse<T extends z.ZodType>(schema: T, data: unknown): Promise<z.infer<T>> {
   const result = await schema.safeParseAsync(data);
@@ -353,6 +355,11 @@ export interface AppDeps {
    * plugin (MEERKO_OPENAI_APPS_CHALLENGE). Defaults to Meerko Cloud's, which is public by design.
    */
   openaiAppsChallenge?: string;
+  /**
+   * The claim Glama reads at /.well-known/glama.json to verify who owns the hosted connector it lists
+   * (MEERKO_GLAMA_CLAIM). Defaults to Meerko Cloud's, which is public by design.
+   */
+  glamaClaim?: string;
   /** PostHog product events, errors and MCP analytics; a no-op when unset (tests, self-hosting without a key). */
   analytics?: Analytics;
   /** Stripe on Meerko Cloud: plans, credit packs and plan limits. Unset (self-hosting) turns all of it off. */
@@ -873,6 +880,10 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     c.json({ resource: `${issuer(c)}/${path}`, authorization_servers: [issuer(c)], bearer_methods_supported: ["header"], resource_name: name });
   // OpenAI's domain verification for the ChatGPT plugin: the token as plain text and nothing else, with no sign-in.
   app.get("/.well-known/openai-apps-challenge", (c) => c.text(deps.openaiAppsChallenge || OPENAI_APPS_CHALLENGE));
+  // Glama's claim file for the hosted connector: this JSON and nothing else, with no sign-in.
+  app.get("/.well-known/glama.json", (c) =>
+    c.json({ $schema: "https://glama.ai/mcp/schemas/connector.json", claim: deps.glamaClaim || GLAMA_CLAIM }),
+  );
 
   app.get("/.well-known/oauth-protected-resource", resourceMetadata("mcp", "Meerko"));
   app.get("/.well-known/oauth-protected-resource/mcp", resourceMetadata("mcp", "Meerko"));

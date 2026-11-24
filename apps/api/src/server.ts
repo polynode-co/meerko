@@ -60,6 +60,7 @@ const app = createApp(createDb(), {
   signup: process.env.MEERKO_SIGNUP === "open" ? "open" : ("invite" satisfies SignupMode),
   publicUrl,
   openaiAppsChallenge: process.env.MEERKO_OPENAI_APPS_CHALLENGE,
+  glamaClaim: process.env.MEERKO_GLAMA_CLAIM,
   analytics,
   billing,
 });
