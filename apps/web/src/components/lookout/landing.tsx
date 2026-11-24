@@ -114,7 +114,7 @@ function Video() {
         See Meerko catch a reply while your agent is closed.
       </h2>
       <div className="w-full max-w-[960px] pt-3 lg:pt-5">
-        <VideoPlayer src={src} poster="/landing/lookout-night.jpg" duration={clock} title="Meerko catches a reply while your agent is closed" />
+        <VideoPlayer src={src} poster={site.demoVideoPosterUrl} captions={site.demoVideoCaptionsUrl || undefined} duration={clock} title="Meerko catches a reply while your agent is closed" />
       </div>
       <div className="flex max-w-[680px] flex-col gap-1 pt-2.5 text-[14px] leading-normal lg:pt-3.5 lg:text-[15px]">
         <p className="text-lk-dim">A real run with demo data: a reply lands, Meerko wakes your agent, its draft waits for you.</p>
