@@ -58,6 +58,8 @@ claude mcp add --transport http --scope user meerko http://localhost:8787/mcp
 # then run /mcp in Claude Code and authenticate
 ```
 
+On Meerko Cloud the server is `https://api.meerko.ai/mcp`: nothing to build. An agent installing Meerko for you should read [`llms-install.md`](llms-install.md).
+
 ChatGPT, Grok, Codex and Cursor connect the same way, by URL. Without Google or email sign-in configured, send an API key instead: `--header "Authorization: Bearer mk_..."`. The server also runs locally over stdio: `claude mcp add meerko -- npx tsx /absolute/path/to/meerko/packages/mcp/src/index.ts` (it uses the CLI's saved login).
 
 - **Tools:** workspaces, tables and rows, lead search, ICP and enrichment, mailboxes, sequences, replies and drafts, pipeline and CRM sync, credits and routines. Your agent lists them all; the [MCP tools reference](https://meerko.ai/docs/mcp-tools) describes each one and keeps the count.
