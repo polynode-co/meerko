@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "ai.meerko/meerko",
+  "title": "Meerko",
+  "description": "Find leads, verify work emails, send sequences from your own inbox and draft answers to replies.",
+  "version": "1.0.0",
+  "websiteUrl": "https://meerko.ai",
+  "repository": {
+    "url": "https://github.com/polynode-co/meerko",
+    "source": "github",
+    "id": "1455677810",
+    "subfolder": "packages/mcp"
+  },
+  "icons": [
+    {
+      "src": "https://meerko.ai/meerko-icon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": ["any"]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.meerko.ai/mcp"
+    }
+  ]
+}
