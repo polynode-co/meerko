@@ -21,6 +21,7 @@
   },
   "exports": {
     "./server": "./src/server.ts",
-    "./annotations": "./src/annotations.ts"
+    "./annotations": "./src/annotations.ts",
+    "./analytics": "./src/analytics.ts"
   }
 }

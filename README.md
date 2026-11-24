@@ -75,7 +75,7 @@ Meerko Cloud uses [PostHog](https://posthog.com) (EU cloud), with one project pe
 
 - **Web:** pageviews, clicks, session replays (inputs and dashboard data masked) and errors (`apps/web/src/instrumentation-client.ts`).
 - **API:** product events such as `sign_up`, `leads_searched` and `sequence_started` (`apps/api/src/analytics.ts`), and unexpected errors.
-- **MCP:** the hosted `/mcp` uses [PostHog MCP Analytics](https://posthog.com/docs/mcp-analytics) (`@posthog/mcp`): every tool call with its arguments, result, duration, client and the intent the agent states. It adds `context`, `conversation_id` and `llm_model` arguments to each tool, which the docs reference leaves out. The stdio server does the same only when `POSTHOG_API_KEY` is set.
+- **MCP:** the hosted `/mcp` uses [PostHog MCP Analytics](https://posthog.com/docs/mcp-analytics) (`@posthog/mcp`): every tool call with its arguments, result, duration and client. Its injected `context`, `conversation_id` and `llm_model` arguments are turned off, so every tool's schema is the one in the docs reference. The stdio server does the same only when `POSTHOG_API_KEY` is set.
 
 ## Repository layout
 

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { instrument } from "@posthog/mcp";
 import { createServer as createMcpServer, DRAFTER_PROMPTS, DRAFTER_TOOLS } from "@meerko/mcp/server";
+import { MCP_ANALYTICS_OPTIONS } from "@meerko/mcp/analytics";
 import { MeerkoClient } from "@meerko/sdk";
 import {
   addColumn,
@@ -997,10 +998,13 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     };
     const client = new MeerkoClient({ apiUrl: issuer(c), apiKey: token, fetch: inProcess as typeof fetch });
     const server = createMcpServer(() => client, drafter ? { only: { tools: DRAFTER_TOOLS, prompts: DRAFTER_PROMPTS } } : {});
-    // PostHog MCP analytics ($mcp_tool_call, sessions, intent, errors). Instrumented here, not in createServer,
-    // so the tool reference generated from packages/mcp keeps the schemas without PostHog's injected arguments.
+    // PostHog MCP analytics ($mcp_tool_call, sessions, errors). Instrumented here, not in createServer, so the docs
+    // reference built from packages/mcp has no analytics in it. MCP_ANALYTICS_OPTIONS keeps every tool's schema as
+    // declared: no injected `context`/`llm_model`/`conversation_id` arguments (their text tripped ChatGPT's approval
+    // classifier).
     if (analytics.posthog) {
       instrument(server, analytics.posthog, {
+        ...MCP_ANALYTICS_OPTIONS,
         // The same person as on the web dashboard (user id), so agent and dashboard activity join up.
         identify: async () => ({
           distinctId: auth.actor?.id ?? auth.workspaceId,
