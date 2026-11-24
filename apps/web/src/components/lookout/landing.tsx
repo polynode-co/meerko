@@ -29,6 +29,10 @@ function Head({ n, name, children, id }: { n: string; name: string; children: Re
   );
 }
 
+// The video's length, said two ways from the one number in lib/site.ts: "Watch · 30 seconds" and "0:30".
+const watch = `Watch · ${site.demoVideoSeconds} seconds`;
+const clock = `${Math.floor(site.demoVideoSeconds / 60)}:${String(site.demoVideoSeconds % 60).padStart(2, "0")}`;
+
 // ------------------------------------------------------------------ hero
 
 function Hero() {
@@ -93,7 +97,7 @@ function Hero() {
       </div>
 
       <a href="#watch" className={`${chip} absolute bottom-[30px] left-1/2 -translate-x-1/2 whitespace-nowrap transition hover:text-lk-lime lg:bottom-10`}>
-        ↓ Watch · 60 seconds
+        ↓ {watch}
       </a>
     </section>
   );
@@ -105,12 +109,12 @@ function Video() {
   const src = site.demoVideoUrl || undefined;
   return (
     <section id="watch" aria-labelledby="watch-title" className="mx-auto flex max-w-[1440px] flex-col items-center gap-4 px-5 pt-16 text-center lg:gap-5 lg:px-16 lg:pt-24">
-      <span className="font-plex text-[11px] font-semibold tracking-[1.5px] text-lk-lime uppercase lg:text-[13px]">Watch · 60 seconds</span>
+      <span className="font-plex text-[11px] font-semibold tracking-[1.5px] text-lk-lime uppercase lg:text-[13px]">{watch}</span>
       <h2 id="watch-title" className="max-w-[760px] text-[26px] leading-[1.15] font-semibold tracking-[-0.5px] text-lk-fg lg:text-[40px] lg:tracking-[-0.8px]">
         See Meerko catch a reply while your agent is closed.
       </h2>
       <div className="w-full max-w-[960px] pt-3 lg:pt-5">
-        <VideoPlayer src={src} poster="/landing/lookout-night.jpg" duration="1:00" title="Meerko catches a reply while your agent is closed" />
+        <VideoPlayer src={src} poster="/landing/lookout-night.jpg" duration={clock} title="Meerko catches a reply while your agent is closed" />
       </div>
       <div className="flex max-w-[680px] flex-col gap-1 pt-2.5 text-[14px] leading-normal lg:pt-3.5 lg:text-[15px]">
         <p className="text-lk-dim">A real run with demo data: a reply lands, Meerko wakes your agent, its draft waits for you.</p>
