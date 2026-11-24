@@ -42,7 +42,15 @@ export interface LifecycleEmail {
   /** The plain-text alternative. */
   text: string;
   sender: EmailSender;
+  /**
+   * PostHog's message category for the step (`message_category_type`). `marketing` respects the recipient's
+   * unsubscribe; `transactional` always sends, for notices about the account's own state (decided on #38: mailbox
+   * disconnected and credits low).
+   */
+  category: MessageCategory;
 }
+
+export type MessageCategory = "marketing" | "transactional";
 
 /** The From display name and reply-to for each sender. The sync writes both on every step. */
 export const SENDERS: Record<EmailSender, { name: string; replyTo: string | null }> = {

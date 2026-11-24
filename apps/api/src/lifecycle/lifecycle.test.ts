@@ -33,9 +33,14 @@ describe.each(LIFECYCLE_EMAILS.map((e) => [e.key, e] as const))("%s", (_key, ema
       expect(email.html).toContain("<p>Iker<br>Founder, Meerko</p>");
       expect(email.html).not.toContain(">Meerko</p><h1");
     } else {
-      expect(email.html).toContain("{{ unsubscribe_url }}");
-      expect(email.text).toContain("Unsubscribe from these emails: {{ unsubscribe_url }}");
+      expect(email.html).toContain(">Meerko</p><h1");
     }
+  });
+
+  it("offers an unsubscribe only when it's marketing (a transactional email always sends)", () => {
+    const offers = email.html.includes("{{ unsubscribe_url }}") || email.text.includes("{{ unsubscribe_url }}");
+    if (email.category === "transactional") expect(offers).toBe(false);
+    else if (email.sender === "meerko") expect(offers).toBe(true);
   });
 
   it("has a plain-text alternative without markup", () => {
@@ -54,6 +59,11 @@ describe.each(LIFECYCLE_EMAILS.map((e) => [e.key, e] as const))("%s", (_key, ema
   });
 });
 
+it("sends the account-state notices as transactional, the rest as marketing (#38)", () => {
+  const transactional = LIFECYCLE_EMAILS.filter((e) => e.category === "transactional").map((e) => e.key);
+  expect(transactional).toEqual(["mailbox-disconnected", "credits-low"]);
+});
+
 it("has a unique key per email", () => {
   const keys = LIFECYCLE_EMAILS.map((e) => e.key);
   expect(new Set(keys).size).toBe(keys.length);
@@ -70,15 +80,16 @@ const email: SyncEmail = {
   text: "new",
   fromName: "Meerko",
   replyTo: null,
+  category: "marketing",
 };
 
-function fakePostHog(step: Record<string, unknown>, opts: { stagesDraft?: boolean; draft?: unknown; type?: string } = {}) {
+function fakePostHog(step: Record<string, unknown>, opts: { stagesDraft?: boolean; draft?: unknown; type?: string; category?: string } = {}) {
   const calls: { method: string; path: string; body?: unknown }[] = [];
   let draft = opts.draft ?? null;
   const flow = () => ({
     updated_at: "t0",
     draft,
-    actions: [{ id: "email_1", type: opts.type ?? "function_email", config: { inputs: { email: { value: step } } } }],
+    actions: [{ id: "email_1", type: opts.type ?? "function_email", config: { message_category_type: opts.category ?? "marketing", inputs: { email: { value: step } } } }],
   });
   const api: PostHogApi = {
     get: async (path) => (calls.push({ method: "GET", path }), flow()),
@@ -138,6 +149,21 @@ describe("syncLifecycleEmails", () => {
     const [r] = await syncLifecycleEmails([email], api, { apply: true });
     expect(r).toEqual({ key: "k", status: "updated", problems: ["subject differs"] });
     expect((calls.find((c) => c.method === "PATCH")!.body as { email_patch: object }).email_patch).not.toHaveProperty("from");
+  });
+
+  it("reports a step in the wrong message category, and says it can't fix it", async () => {
+    const transactional: SyncEmail = { ...email, category: "transactional" };
+    const check = fakePostHog(live());
+    expect((await syncLifecycleEmails([transactional], check.api, { apply: false }))[0]).toEqual({
+      key: "k",
+      status: "drifted",
+      problems: ["message category is marketing in PostHog, transactional in git; set it on the step in PostHog"],
+    });
+    const apply = fakePostHog(live());
+    expect((await syncLifecycleEmails([transactional], apply.api, { apply: true }))[0]!.status).toBe("error");
+    expect(apply.calls.some((c) => c.method !== "GET")).toBe(false);
+    const right = fakePostHog(live(), { category: "transactional" });
+    expect((await syncLifecycleEmails([transactional], right.api, { apply: true }))[0]!.status).toBe("in_sync");
   });
 
   it("skips an email not wired in the env", async () => {

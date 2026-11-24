@@ -18,6 +18,8 @@ export interface SyncEmail {
   text: string;
   fromName: string;
   replyTo: string | null;
+  /** The step's `message_category_type`: marketing respects unsubscribes, transactional always sends. */
+  category: "marketing" | "transactional";
 }
 
 export interface PostHogApi {
@@ -46,7 +48,7 @@ interface StepEmail {
 interface Flow {
   draft?: unknown;
   updated_at?: string;
-  actions?: Array<{ id: string; type?: string; config?: { inputs?: { email?: { value?: StepEmail } } } }>;
+  actions?: Array<{ id: string; type?: string; config?: { message_category_type?: string; inputs?: { email?: { value?: StepEmail } } } }>;
 }
 interface PublishPreview {
   confirm_token?: string;
@@ -109,7 +111,12 @@ export function designOperations(design: Design | undefined, html: string): unkn
 function stepOf(flow: Flow, actionId: string) {
   const action = (flow.actions ?? []).find((a) => a.id === actionId);
   if (!action) throw new Error(`workflow has no step "${actionId}"; it was renamed or removed`);
-  return { email: action.config?.inputs?.email?.value ?? {}, sandbox: action.type === "email_sandbox" };
+  return {
+    email: action.config?.inputs?.email?.value ?? {},
+    sandbox: action.type === "email_sandbox",
+    // PostHog treats a step without one as marketing.
+    category: action.config?.message_category_type ?? "marketing",
+  };
 }
 
 /** A publish that only changes email content deletes no step and orphans no variable. */
@@ -125,8 +132,12 @@ async function syncOne(api: PostHogApi, email: SyncEmail, apply: boolean): Promi
   const flow = (await api.get(path)) as Flow;
   const live = stepOf(flow, target.actionId);
   const problems = compareEmail(email, live.email, live.sandbox);
-  if (problems.length === 0) return { key, status: "in_sync", problems };
-  if (!apply) return { key, status: "drifted", problems };
+  // The step-email endpoint writes the message, not the step's category, so a wrong category is reported, never
+  // fixed here: set it on the step in PostHog (or with workflows-patch-graph).
+  const categoryProblem = live.category === email.category ? null : `message category is ${live.category} in PostHog, ${email.category} in git; set it on the step in PostHog`;
+  if (problems.length === 0 && !categoryProblem) return { key, status: "in_sync", problems };
+  if (!apply) return { key, status: "drifted", problems: categoryProblem ? [...problems, categoryProblem] : problems };
+  if (problems.length === 0) return { key, status: "error", problems: [categoryProblem!] };
 
   // Someone is mid-edit in PostHog: patching would compose with their draft and publishing would ship it.
   if (flow.draft) return { key, status: "error", problems: [...problems, "workflow has an unpublished draft; not touching it"] };
@@ -151,6 +162,7 @@ async function syncOne(api: PostHogApi, email: SyncEmail, apply: boolean): Promi
     }
     await api.post(`${path}publish/`, { confirm: true, confirm_token: preview.confirm_token, sandbox_sender_warned: false });
   }
+  if (categoryProblem) return { key, status: "error", problems: [...problems, categoryProblem] };
   return { key, status: "updated", problems };
 }
 
