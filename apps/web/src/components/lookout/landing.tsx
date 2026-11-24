@@ -111,13 +111,13 @@ function Video() {
     <section id="watch" aria-labelledby="watch-title" className="mx-auto flex max-w-[1440px] flex-col items-center gap-4 px-5 pt-16 text-center lg:gap-5 lg:px-16 lg:pt-24">
       <span className="font-plex text-[11px] font-semibold tracking-[1.5px] text-lk-lime uppercase lg:text-[13px]">{watch}</span>
       <h2 id="watch-title" className="max-w-[760px] text-[26px] leading-[1.15] font-semibold tracking-[-0.5px] text-lk-fg lg:text-[40px] lg:tracking-[-0.8px]">
-        See Meerko catch a reply while your agent is closed.
+        See Meerko in {site.demoVideoSeconds} seconds.
       </h2>
       <div className="w-full max-w-[960px] pt-3 lg:pt-5">
-        <VideoPlayer src={src} poster={site.demoVideoPosterUrl} captions={site.demoVideoCaptionsUrl || undefined} duration={clock} title="Meerko catches a reply while your agent is closed" />
+        <VideoPlayer src={src} poster={site.demoVideoPosterUrl} captions={site.demoVideoCaptionsUrl || undefined} duration={clock} title={`Meerko in ${site.demoVideoSeconds} seconds`} />
       </div>
       <div className="flex max-w-[680px] flex-col gap-1 pt-2.5 text-[14px] leading-normal lg:pt-3.5 lg:text-[15px]">
-        <p className="text-lk-dim">A real run with demo data: a reply lands, Meerko wakes your agent, its draft waits for you.</p>
+        <p className="text-lk-dim">Find the leads, send from your own inbox, approve every reply.</p>
         <a href={site.signupUrl} className="text-lk-lime underline-offset-4 hover:underline">
           Try it on your own leads →
         </a>
