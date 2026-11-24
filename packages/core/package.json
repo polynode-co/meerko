@@ -11,6 +11,7 @@
     "invite": "tsx --env-file=../../.env src/invite.ts",
     "seed-reviewer": "tsx --env-file=../../.env src/seed-reviewer.ts",
     "reviewer-link": "tsx --env-file=../../.env src/reviewer-link.ts",
+    "add-member": "tsx --env-file=../../.env src/add-member.ts",
     "test": "vitest run",
     "typecheck": "tsc -p ."
   },

@@ -19,6 +19,7 @@
     "db:invite": "pnpm --filter @meerko/core invite",
     "db:seed-reviewer": "pnpm --filter @meerko/core seed-reviewer",
     "db:reviewer-link": "pnpm --filter @meerko/core reviewer-link",
+    "db:add-member": "pnpm --filter @meerko/core add-member",
     "meerko": "tsx packages/cli/src/index.ts",
     "docs:reference": "tsx scripts/docs-reference.mts",
     "api:spec": "tsx scripts/openapi.mts",
