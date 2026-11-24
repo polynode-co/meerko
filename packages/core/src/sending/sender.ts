@@ -63,6 +63,8 @@ export interface SenderDeps {
   fetch?: typeof fetch;
   imap?: ImapConnectors;
   microsoft?: MicrosoftOAuth;
+  /** Checked before each mailbox: true stops the pass, leaving the rest for the next tick. */
+  stop?: () => boolean;
 }
 
 // ---------- Unsubscribe tokens ----------
@@ -105,6 +107,8 @@ export interface TickResult {
   deferred: number;
   failed: number;
   skippedMailboxes: { mailboxId: string; reason: "daily_limit" | "spacing" | "error" }[];
+  /** Mailboxes with due work left for the next tick because the tick's time budget ran out. */
+  unreachedMailboxes?: number;
 }
 
 /**
@@ -129,7 +133,11 @@ export async function runSendTick(db: Db, deps: SenderDeps): Promise<TickResult>
     .innerJoin(workspaces, eq(sequences.workspaceId, workspaces.id))
     .where(and(eq(enrollments.state, "active"), lte(enrollments.nextSendAt, now), eq(sequences.status, "active"), eq(mailboxes.status, "active"), isNull(mailboxes.heldAt), sendable()));
 
-  for (const mb of due) {
+  for (const [i, mb] of due.entries()) {
+    if (deps.stop?.()) {
+      result.unreachedMailboxes = due.length - i;
+      break;
+    }
     const [{ sentToday, lastSentAt }] = (await db
       .select({
         sentToday: sql<number>`count(*) filter (where ${messages.sentAt} >= ${new Date(now.getTime() - DAY_MS).toISOString()})::int`,

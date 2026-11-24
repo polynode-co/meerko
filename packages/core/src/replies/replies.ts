@@ -41,6 +41,13 @@ export interface ReplyDeps {
   fetch?: typeof fetch;
   imap?: ImapConnectors;
   microsoft?: MicrosoftOAuth;
+  /**
+   * Checked before each mailbox: true stops the scan, leaving the mailboxes not reached for the next tick. With it,
+   * the scan starts at a random mailbox, so a slow one early in the list can't keep the later ones from ever being
+   * scanned.
+   */
+  stop?: () => boolean;
+  random?: () => number;
 }
 
 export interface ReplyTickResult {
@@ -49,6 +56,10 @@ export interface ReplyTickResult {
   bounces: number;
   unsubscribes: number;
   outOfOffice: number;
+  /** Mailboxes left for the next tick because the tick's time budget ran out. */
+  unscannedMailboxes?: number;
+  /** The mailbox that took longest to scan, to find a slow one from the tick's log line. */
+  slowest?: { mailboxId: string; ms: number };
 }
 
 interface Watched {
@@ -70,8 +81,15 @@ export async function runReplyTick(db: Db, deps: ReplyDeps): Promise<ReplyTickRe
   const result: ReplyTickResult = { scanned: 0, replies: 0, bounces: 0, unsubscribes: 0, outOfOffice: 0 };
   const watchFrom = new Date(now.getTime() - WATCH_DAYS * 24 * 60 * 60_000).toISOString();
 
-  const boxes = await db.select().from(mailboxes).where(eq(mailboxes.status, "active"));
-  for (const mb of boxes) {
+  const all = await db.select().from(mailboxes).where(eq(mailboxes.status, "active"));
+  const offset = deps.stop && all.length ? Math.floor((deps.random ?? Math.random)() * all.length) % all.length : 0;
+  const boxes = [...all.slice(offset), ...all.slice(0, offset)];
+  for (const [i, mb] of boxes.entries()) {
+    if (deps.stop?.()) {
+      result.unscannedMailboxes = boxes.length - i;
+      break;
+    }
+    const began = Date.now();
     let client: MailClient | undefined;
     // Opened only when the mailbox has something to check.
     const open = () => (client ??= mailClient(mb, { box: deps.box!, oauth: deps.oauth, microsoft: deps.microsoft, fetch: deps.fetch, imap: deps.imap, db }));
@@ -82,6 +100,8 @@ export async function runReplyTick(db: Db, deps: ReplyDeps): Promise<ReplyTickRe
       else throw err;
     } finally {
       await client?.close();
+      const ms = Date.now() - began;
+      if (!result.slowest || ms > result.slowest.ms) result.slowest = { mailboxId: mb.id, ms };
     }
   }
   return result;

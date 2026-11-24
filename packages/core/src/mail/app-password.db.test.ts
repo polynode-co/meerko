@@ -77,6 +77,20 @@ describe.skipIf(!process.env.DATABASE_URL)("app-password mailboxes (db)", () => 
     expect(en!.state).toBe("active");
   });
 
+  it("leaves sending and the reply scan for the next tick once the tick's budget is spent", async () => {
+    const g = fakeGmail();
+    const spent = await runSendTick(db, { box, imap: g.connectors, publicUrl: "https://m.ai", now: () => MON_1030, random: () => 0, stop: () => true });
+    expect(spent.sent).toBe(0);
+    expect(spent.unreachedMailboxes).toBeGreaterThanOrEqual(1);
+    expect(g.outbox).toHaveLength(0);
+    const scan = await runReplyTick(db, { box, imap: g.connectors, now: () => later(31), stop: () => true });
+    expect(scan.scanned).toBe(0);
+    expect(scan.unscannedMailboxes).toBeGreaterThanOrEqual(1);
+    // The next tick, with time left, does both.
+    expect(await runSendTick(db, { box, imap: g.connectors, publicUrl: "https://m.ai", now: () => MON_1030, random: () => 0, stop: () => false })).toMatchObject({ sent: 1 });
+    expect((await runReplyTick(db, { box, imap: g.connectors, now: () => later(31), stop: () => false })).unscannedMailboxes).toBeUndefined();
+  });
+
   it("stores exactly one credential per mailbox", async () => {
     await expect(db.insert(mailboxes).values({ workspaceId: ws, provider: "gmail_imap", email: "none@meerko.ai" })).rejects.toThrow();
     await expect(
