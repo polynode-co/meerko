@@ -47,6 +47,11 @@ describe("MCP tool annotations", async () => {
     expect(tools.find((t) => t.name === "manage_routine")?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: true });
   });
 
+  // The contacts it creates and overwrites are in the user's HubSpot or Attio, where Meerko can't undo them (#20).
+  it("marks sync_crm as destructive and open-world", () => {
+    expect(tools.find((t) => t.name === "sync_crm")?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: true });
+  });
+
   it("says in draft_reply's title that it can send", () => {
     expect(tools.find((t) => t.name === "draft_reply")?.title).toBe("Draft (or send) a reply");
   });

@@ -1503,7 +1503,7 @@
         "annotations": {
           "title": "Push leads to the CRM",
           "readOnlyHint": false,
-          "destructiveHint": false,
+          "destructiveHint": true,
           "openWorldHint": true
         },
         "inputSchema": {
