@@ -9,14 +9,17 @@ import type { LifecycleEmail } from "./types.ts";
  * - mailbox disconnected: a working mailbox lost its sign-in, so its sequences stop and its replies go unread;
  * - credits low: the balance crossed CREDITS_LOW_AT, before search and enrichment stop.
  *
- * Unpublished in prd until Iker approves the copy and creates the prd workflows (copy the dev graph, then add the
- * prd ids here). The dev workflows, created 2026-11-24, are drafts: dev has no email sender, so nothing sends there.
+ * Copy approved by Iker on #38 (2026-11-24). The prd workflows were created from the dev graphs that day as drafts,
+ * enabled only after the events they trigger on reach prd. The dev workflows are drafts too: dev has no email sender.
  */
 
 export const welcome: LifecycleEmail = {
   key: "welcome",
   name: "Welcome",
-  targets: { dev: { workflowId: "01a20e2d-0591-0000-1334-f40ebf559f32", actionId: "email_welcome" } },
+  targets: {
+    dev: { workflowId: "01a20e2d-0591-0000-1334-f40ebf559f32", actionId: "email_welcome" },
+    prd: { workflowId: "01a20e43-fc0e-0000-6694-2f17618cfe1e", actionId: "email_welcome" },
+  },
   sender: "iker",
   category: "marketing",
   subject: "Welcome to Meerko",
@@ -34,7 +37,10 @@ export const welcome: LifecycleEmail = {
 export const approvalWaiting: LifecycleEmail = {
   key: "approval-waiting",
   name: "Emails waiting for approval",
-  targets: { dev: { workflowId: "01a20e2d-461b-0000-ca80-6c31d0f5e301", actionId: "email_approval" } },
+  targets: {
+    dev: { workflowId: "01a20e2d-461b-0000-ca80-6c31d0f5e301", actionId: "email_approval" },
+    prd: { workflowId: "01a20e44-3275-0000-69c0-bf6d14c66325", actionId: "email_approval" },
+  },
   sender: "iker",
   category: "marketing",
   subject: "Your first emails are waiting for your OK",
@@ -51,7 +57,10 @@ export const approvalWaiting: LifecycleEmail = {
 export const mailboxDisconnected: LifecycleEmail = {
   key: "mailbox-disconnected",
   name: "Mailbox disconnected: sending stopped",
-  targets: { dev: { workflowId: "01a20e2d-8681-0000-5495-43131d2b5454", actionId: "email_disconnected" } },
+  targets: {
+    dev: { workflowId: "01a20e2d-8681-0000-5495-43131d2b5454", actionId: "email_disconnected" },
+    prd: { workflowId: "01a20e43-bafb-0000-7036-e5a8cdec7ca1", actionId: "email_disconnected" },
+  },
   sender: "meerko",
   category: "transactional",
   subject: "Sending stopped: reconnect {{ event.properties.mailbox }}",
@@ -71,7 +80,10 @@ export const mailboxDisconnected: LifecycleEmail = {
 export const creditsLow: LifecycleEmail = {
   key: "credits-low",
   name: "Credits running low",
-  targets: { dev: { workflowId: "01a20e2c-861f-0000-f274-a0ac7ecbd068", actionId: "email_credits" } },
+  targets: {
+    dev: { workflowId: "01a20e2c-861f-0000-f274-a0ac7ecbd068", actionId: "email_credits" },
+    prd: { workflowId: "01a20e43-5f82-0000-c0bc-627018c08ce9", actionId: "email_credits" },
+  },
   sender: "meerko",
   category: "transactional",
   subject: "You have {{ event.properties.balance }} Meerko credits left",

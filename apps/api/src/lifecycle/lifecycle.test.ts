@@ -168,7 +168,9 @@ describe("syncLifecycleEmails", () => {
 
   it("skips an email not wired in the env", async () => {
     const { api, calls } = fakePostHog(live());
-    const templates = JSON.parse(renderArtifact()).templates as ArtifactEmail[];
+    const templates = (JSON.parse(renderArtifact()).templates as ArtifactEmail[]).map((t) =>
+      t.key === "welcome" ? { ...t, targets: { dev: t.targets.dev } } : t,
+    );
     const results = await syncLifecycleEmails(syncEmails(templates, "prd"), api, { apply: false });
     expect(results.find((r) => r.key === "welcome")).toEqual({ key: "welcome", status: "unpublished", problems: [] });
     expect(calls.length).toBe(results.filter((r) => r.status !== "unpublished").length);
