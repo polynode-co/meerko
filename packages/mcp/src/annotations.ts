@@ -5,9 +5,13 @@ import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
  * directory require (claude.com/docs/connectors/building/submission, developers.openai.com/apps-sdk/app-submission-guidelines).
  *
  * - readOnlyHint: true only if the tool changes nothing. Searches that save rows, or spend credits, are writes.
- * - destructiveHint: true for deletes, overwrites of the user's content, and sends that can't be taken back.
+ * - destructiveHint: true for deletes, overwrites of the user's content (a setting or a score the tool replaces
+ *   counts, even when the user can set it again), and sends that can't be taken back.
  * - openWorldHint: true when the tool reaches outside the user's Meerko account: the lead database, the public
- *   DNS, or real people's inboxes.
+ *   DNS, real people's inboxes, or a webhook or AI routine the user connected.
+ *
+ * A hint describes the worst a tool can do with any input, not what it does by default: OpenAI's scan compares the
+ * hints with every action a tool has (#16).
  *
  * `annotations.test.ts` fails when a tool is added to server.ts without an entry here.
  */
@@ -19,7 +23,7 @@ const destructive = (title: string, openWorld = false): Entry => ({ title, readO
 
 export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   // Autopilot
-  manage_routine: destructive("Manage Autopilot routines"), // delete
+  manage_routine: destructive("Manage Autopilot routines", true), // delete; run_now calls the user's Claude routine or webhook
   start_routine_run: write("Start an Autopilot run"),
 
   // Workspaces
@@ -32,12 +36,12 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   // Tables
   list_tables: read("List lead tables"),
   create_table: write("Create a lead table"),
-  add_column: write("Add a column"),
+  add_column: destructive("Add a column"), // adding it again replaces an AI column's instruction
   get_pending_cells: read("Get cells waiting for the agent"),
   read_website: read("Read a website", true), // fetches any public site
   get_icp: read("Get the ideal customer profile"),
-  set_icp: write("Set the ideal customer profile"),
-  review_icp_fit: write("Adjust ICP fit scores"),
+  set_icp: destructive("Set the ideal customer profile"), // replaces the whole profile and rescores every lead
+  review_icp_fit: destructive("Adjust ICP fit scores"), // overwrites a row's earlier adjustment and note
   update_rows: destructive("Update rows"), // overwrites cell values
   import_rows: write("Import rows"),
   query_rows: read("Query rows"),
@@ -47,7 +51,7 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   // Leads and enrichment: the lead database is outside the account, and results cost credits
   find_people: write("Find people", true),
   find_companies: write("Find companies", true),
-  enrich_rows: write("Find and verify emails", true),
+  enrich_rows: destructive("Find and verify emails", true), // overwrite replaces earlier results; credits spent don't come back
   get_credits: read("Show credit balance"),
 
   // Mailboxes
@@ -74,7 +78,7 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   // Replies and pipeline
   list_replies: read("List replies"),
   classify_reply: write("Classify a reply"),
-  draft_reply: destructive("Draft a reply", true), // sent at once in a workspace that sends reply drafts automatically
+  draft_reply: destructive("Draft (or send) a reply", true), // sent at once in a workspace that sends reply drafts automatically
   list_drafts: read("List reply drafts"),
   approve_draft: destructive("Approve and send a reply", true), // sends the reply
   discard_draft: destructive("Discard a reply draft"),

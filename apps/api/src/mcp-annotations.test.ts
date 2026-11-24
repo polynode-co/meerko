@@ -35,4 +35,19 @@ describe("MCP tool annotations", async () => {
       expect(tools.find((t) => t.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: true });
     }
   });
+
+  // OpenAI's MCP scan compares each hint with everything the tool can do, not with what it does by default (#16).
+  it("marks tools that overwrite or replace the user's data as destructive", () => {
+    for (const name of ["add_column", "set_icp", "review_icp_fit", "enrich_rows", "update_rows", "update_sequence"]) {
+      expect(tools.find((t) => t.name === name)?.annotations, name).toMatchObject({ readOnlyHint: false, destructiveHint: true });
+    }
+  });
+
+  it("marks manage_routine as open-world: run_now calls the user's Claude routine or webhook", () => {
+    expect(tools.find((t) => t.name === "manage_routine")?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: true });
+  });
+
+  it("says in draft_reply's title that it can send", () => {
+    expect(tools.find((t) => t.name === "draft_reply")?.title).toBe("Draft (or send) a reply");
+  });
 });

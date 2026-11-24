@@ -80,6 +80,15 @@ describe("the ChatGPT plugin package", async () => {
     }
   });
 
+  // A reason written for the old value of a hint argues against the new one: these are the phrases the six tools of
+  // #16 had while they were declared non-destructive, or closed-world.
+  it("gives reasons that agree with the hints", () => {
+    for (const [name, tool] of Object.entries(submission.tools)) {
+      if (tool.annotations.destructiveHint) expect(tool.justifications.destructive_justification, name).not.toMatch(/^Read-only|^Only adds|can set again|only replaces/i);
+      if (tool.annotations.openWorldHint) expect(tool.justifications.open_world_justification, name).not.toMatch(/reaches nothing public|^(Reads|Changes|Writes|Deletes) only/i);
+    }
+  });
+
   it("gives a reason for every hint", () => {
     for (const [name, tool] of Object.entries(submission.tools)) {
       expect(Object.keys(tool.justifications).sort(), name).toEqual(["destructive_justification", "open_world_justification", "read_only_justification"]);

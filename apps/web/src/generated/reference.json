@@ -179,7 +179,7 @@
         "annotations": {
           "title": "Add a column",
           "readOnlyHint": false,
-          "destructiveHint": false,
+          "destructiveHint": true,
           "openWorldHint": false
         },
         "inputSchema": {
@@ -511,7 +511,7 @@
         "annotations": {
           "title": "Set the ideal customer profile",
           "readOnlyHint": false,
-          "destructiveHint": false,
+          "destructiveHint": true,
           "openWorldHint": false
         },
         "inputSchema": {
@@ -587,7 +587,7 @@
         "annotations": {
           "title": "Adjust ICP fit scores",
           "readOnlyHint": false,
-          "destructiveHint": false,
+          "destructiveHint": true,
           "openWorldHint": false
         },
         "inputSchema": {
@@ -668,7 +668,7 @@
         "annotations": {
           "title": "Find and verify emails",
           "readOnlyHint": false,
-          "destructiveHint": false,
+          "destructiveHint": true,
           "openWorldHint": true
         },
         "inputSchema": {
@@ -1342,10 +1342,10 @@
       },
       {
         "name": "draft_reply",
-        "title": "Draft a reply",
+        "title": "Draft (or send) a reply",
         "description": "Save a draft answer to a reply. Nothing is sent: the user reviews it first, unless the workspace sends reply drafts automatically, in which case it goes at once and the result has `sent`.\nThe body goes as written: Gmail doesn't add the user's signature to emails sent through Meerko, so the sign-off is part of the body. Drafting again for the same reply replaces the pending draft.",
         "annotations": {
-          "title": "Draft a reply",
+          "title": "Draft (or send) a reply",
           "readOnlyHint": false,
           "destructiveHint": true,
           "openWorldHint": true
@@ -1606,7 +1606,7 @@
           "title": "Manage Autopilot routines",
           "readOnlyHint": false,
           "destructiveHint": true,
-          "openWorldHint": false
+          "openWorldHint": true
         },
         "inputSchema": {
           "type": "object",
