@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { instrument } from "@posthog/mcp";
 import { PostHog } from "posthog-node";
 import { MeerkoClient } from "@meerko/sdk";
+import { MCP_ANALYTICS_OPTIONS } from "./analytics.ts";
 import { createServer } from "./server.ts";
 
 let client: MeerkoClient | undefined;
@@ -17,6 +18,7 @@ if (key) {
   const posthog = new PostHog(key, { host: process.env.POSTHOG_HOST || "https://eu.i.posthog.com", flushAt: 1, flushInterval: 0 });
   let workspace: Promise<{ id: string; name: string } | null> | undefined;
   instrument(server, posthog, {
+    ...MCP_ANALYTICS_OPTIONS,
     // The key acts on one workspace; look it up once.
     identify: async () => {
       workspace ??= getClient()
