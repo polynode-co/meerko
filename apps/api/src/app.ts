@@ -44,6 +44,7 @@ import {
   unsubscribe,
   updateSequence,
   runWorkerTick,
+  TICK_BUDGET_MS,
   createOAuthState,
   deleteMailbox,
   deleteProviderKey,
@@ -487,7 +488,22 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     const result = await runWorkerTick(
       db,
       { box, oauth: deps.googleOAuth, microsoft: deps.microsoftOAuth, publicUrl: deps.tick.publicUrl, fetch: deps.gmailFetch, imap: deps.imap, mailer: deps.mailer, ...hookDeps() },
-      { replies: c.req.query("replies") !== "0" },
+      // Stops starting new work at the budget, well inside Cloud Scheduler's 180s attempt deadline.
+      { replies: c.req.query("replies") !== "0", budgetMs: TICK_BUDGET_MS },
+    );
+    // One structured line per tick (Cloud Run parses it into jsonPayload), so a slow step shows in Logs Explorer.
+    console.log(
+      JSON.stringify({
+        message: `tick: ${result.ms}ms`,
+        event: "tick_finished",
+        ms: result.ms,
+        steps: result.steps,
+        skipped: result.skipped,
+        unscannedMailboxes: result.replies?.unscannedMailboxes,
+        slowestMailbox: result.replies?.slowest,
+        unreachedMailboxes: result.send.unreachedMailboxes,
+        sent: result.send.sent,
+      }),
     );
     if (result.replyError) {
       console.error("reply scan failed:", result.replyError);
