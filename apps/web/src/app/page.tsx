@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { JsonLd, faqJsonLd } from "@/components/json-ld";
+import { JsonLd } from "@/components/json-ld";
 import { LookoutLanding } from "@/components/lookout/landing";
-import { faqs } from "@/components/lookout/landing-more";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
@@ -27,8 +26,8 @@ export default function Home() {
   return (
     <>
       <LookoutLanding />
+      {/* No FAQPage here: the questions moved to /pricing, and FAQ markup must match questions shown on the page. */}
       <JsonLd data={app} />
-      <JsonLd data={faqJsonLd(faqs)} />
     </>
   );
 }
