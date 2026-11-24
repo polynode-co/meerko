@@ -400,11 +400,11 @@
       }
     },
     "sync_crm": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": false },
+      "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": true },
       "justifications": {
         "read_only_justification": "Creates or updates contacts in the CRM the user connected (HubSpot or Attio) from the table's leads.",
         "open_world_justification": "Writes to a third-party CRM, which is outside Meerko, with the access the user granted in the dashboard.",
-        "destructive_justification": "Contacts are matched by email and created or updated with the lead's fields; it deletes no contact and sends no message."
+        "destructive_justification": "Creates contacts in the user's HubSpot or Attio (in Attio also a company record when none has the lead's domain), and for a contact it matches by email it overwrites the fields the lead has a value for (name, job title, company, and in HubSpot the Lead status); the CRM's earlier values are not kept by Meerko, and Meerko cannot undo the push. A lead's empty fields overwrite nothing, no contact is deleted and no message is sent."
       }
     }
   },

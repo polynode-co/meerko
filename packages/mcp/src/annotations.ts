@@ -6,9 +6,10 @@ import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
  *
  * - readOnlyHint: true only if the tool changes nothing. Searches that save rows, or spend credits, are writes.
  * - destructiveHint: true for deletes, overwrites of the user's content (a setting or a score the tool replaces
- *   counts, even when the user can set it again), and sends that can't be taken back.
+ *   counts, even when the user can set it again, and so does a record the tool overwrites in a service the user
+ *   connected, like a CRM contact), and sends that can't be taken back.
  * - openWorldHint: true when the tool reaches outside the user's Meerko account: the lead database, the public
- *   DNS, real people's inboxes, or a webhook or AI routine the user connected.
+ *   DNS, real people's inboxes, or a CRM, webhook or AI routine the user connected.
  *
  * A hint describes the worst a tool can do with any input, not what it does by default: OpenAI's scan compares the
  * hints with every action a tool has (#16).
@@ -84,5 +85,5 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   discard_draft: destructive("Discard a reply draft"),
   pipeline: read("Show the pipeline"),
   move_stage: write("Move leads to a pipeline stage"),
-  sync_crm: write("Push leads to the CRM", true), // writes contacts into HubSpot or Attio
+  sync_crm: destructive("Push leads to the CRM", true), // creates contacts in HubSpot or Attio and overwrites the fields of the ones it matches
 };
