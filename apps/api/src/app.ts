@@ -93,6 +93,10 @@ import {
   updateMailbox,
   EncryptionNotConfiguredError,
   getBalance,
+  billingWorkspaceOf,
+  CREDITS_LOW_AT,
+  claimMailboxDisconnects,
+  workspaceOwnerIds,
   getProviderKey,
   FirecrawlClient,
   readWebsite,
@@ -506,6 +510,19 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       await analytics.captureException(result.holdError, undefined, { $exception_fingerprint: "api.tick.mailbox_hold" });
     }
     if (result.holds?.held) console.log(`mailbox holds: ${result.holds.held} mailboxes put on hold`);
+    // Mailboxes that lost their connection this pass, told to PostHog once each: the "sending stopped" lifecycle
+    // email (apps/api/src/lifecycle) goes to the owners from there. Left unclaimed when PostHog is off.
+    if (analytics.posthog) {
+      try {
+        for (const d of await claimMailboxDisconnects(db)) {
+          for (const ownerId of d.ownerIds) {
+            await analytics.capture({ distinctId: ownerId, event: EVENTS.mailboxDisconnected, workspaceId: d.workspaceId, properties: { provider: d.provider, mailbox: d.email } });
+          }
+        }
+      } catch (err) {
+        await analytics.captureException(err, undefined, { $exception_fingerprint: "api.tick.mailbox_disconnects" });
+      }
+    }
     if (result.slackError) {
       console.error("slack notify failed:", result.slackError);
       await analytics.captureException(result.slackError, undefined, { $exception_fingerprint: "api.tick.slack" });
@@ -1087,6 +1104,23 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   /** Who an event is about: the person behind a session or an OAuth app, or the workspace for API keys. */
   const actor = (c: { var: Env["Variables"] }) => c.var.actorId;
 
+  /** The balance before metered work, or null when the work isn't metered (own keys, self-hosting). */
+  const balanceBefore = async (workspaceId: string, policy: CreditPolicy) => (policy.enabled ? getBalance(db, workspaceId) : null);
+  /**
+   * Metered work that took the balance from CREDITS_LOW_AT or more to under it: one `credits_low` event per owner of
+   * the paying workspace, for the "credits running low" lifecycle email. Only the crossing counts, so it fires once
+   * per top-up rather than on every search after.
+   */
+  const reportCreditsLow = async (workspaceId: string, before: number | null) => {
+    if (before === null || before < CREDITS_LOW_AT || !analytics.posthog) return;
+    const balance = await getBalance(db, workspaceId);
+    if (balance >= CREDITS_LOW_AT) return;
+    const payer = await billingWorkspaceOf(db, workspaceId);
+    for (const ownerId of await workspaceOwnerIds(db, payer)) {
+      await analytics.capture({ distinctId: ownerId, event: EVENTS.creditsLow, workspaceId: payer, properties: { balance, threshold: CREDITS_LOW_AT } });
+    }
+  };
+
   v1.get("/me", (c) => c.json({ user: c.var.user, workspace: { id: c.var.workspaceId, name: c.var.workspaceName } }));
 
   // --- Workspaces (brands). A person moves between theirs; an API key stays in the one it was made in. ---
@@ -1419,8 +1453,10 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       const fits = rowsAtLeast(icp, candidates, input.min_icp_score);
       rowIds = rowIds ? fits.filter((id) => rowIds!.includes(id)) : fits;
     }
+    const before = await balanceBefore(c.var.workspaceId, enrichment.credits);
     const result = await enrichRows(db, c.var.workspaceId, c.req.param("id"), enrichment.providers, { ...input, rowIds }, enrichment.credits);
     await analytics.capture({ distinctId: actor(c), event: EVENTS.rowsEnriched, workspaceId: c.var.workspaceId, properties: { fields: input.fields, limit: input.limit } });
+    await reportCreditsLow(c.var.workspaceId, before);
     return c.json(result);
   });
 
@@ -1474,6 +1510,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     v1.post(`/search/${kind}`, async (c) => {
       const input = await parse(searchInput, await c.req.json());
       const icy = await icypeasFor(c.var.workspaceId);
+      const before = await balanceBefore(c.var.workspaceId, icy.credits);
       const result = await searchLeads(
         db,
         c.var.workspaceId,
@@ -1482,6 +1519,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
         icy.credits,
       );
       await analytics.capture({ distinctId: actor(c), event: EVENTS.leadsSearched, workspaceId: c.var.workspaceId, properties: { kind, limit: input.limit ?? null } });
+      await reportCreditsLow(c.var.workspaceId, before);
       return c.json(result, 201);
     });
   }
@@ -1607,7 +1645,9 @@ export function createApp(db: Db, deps: AppDeps = {}) {
 
   v1.post("/sequences/:id/start", async (c) => {
     const sequence = await setSequenceStatus(db, c.var.workspaceId, c.req.param("id"), "active");
-    await analytics.capture({ distinctId: actor(c), event: EVENTS.sequenceStarted, workspaceId: c.var.workspaceId });
+    // `approval` lets the "emails waiting for approval" lifecycle email skip workspaces that send on their own.
+    const approval = (await getSendingMode(db, c.var.workspaceId)).sequence_emails;
+    await analytics.capture({ distinctId: actor(c), event: EVENTS.sequenceStarted, workspaceId: c.var.workspaceId, properties: { approval, sequence_id: sequence.id } });
     return c.json({ sequence });
   });
   v1.delete("/sequences/:id", async (c) => c.json(await deleteSequence(db, c.var.workspaceId, c.req.param("id"))));

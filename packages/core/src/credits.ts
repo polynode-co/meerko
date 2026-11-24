@@ -11,6 +11,11 @@ export const CREDIT_PRICES: Record<EnrichField, number> = { email: 5, email_veri
 /** Per person/company returned by a lead search (Icypeas charges us per result too). Counts are free. */
 export const SEARCH_RESULT_CREDITS = 1;
 export const FREE_TIER_CREDITS = 200;
+/**
+ * A balance under this is "running low" (a fifth of the free tier: 8 emails found): metered work that crosses it sends
+ * the `credits_low` event behind the lifecycle email that says so.
+ */
+export const CREDITS_LOW_AT = 40;
 
 export class InsufficientCreditsError extends Error {
   constructor(readonly balance: number, readonly needed: number) {

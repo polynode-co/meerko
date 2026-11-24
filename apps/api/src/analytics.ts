@@ -10,6 +10,8 @@ export const EVENTS = {
   apiKeyCreated: "api_key_created",
   aiClientConnected: "ai_client_connected",
   mailboxConnected: "mailbox_connected",
+  mailboxDisconnected: "mailbox_disconnected",
+  creditsLow: "credits_low",
   leadsSearched: "leads_searched",
   sendingModeSet: "sending_mode_set",
   emailsApproved: "emails_approved",

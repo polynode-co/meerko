@@ -310,6 +310,11 @@ export const mailboxes = pgTable(
     status: text("status").$type<"active" | "error">().notNull().default("active"),
     lastError: text("last_error"),
     /**
+     * When the API told PostHog this mailbox lost its connection (the `mailbox_disconnected` event behind the
+     * "sending stopped" email). Cleared each time a working mailbox goes to `error`, so every disconnect is told once.
+     */
+    disconnectReportedAt: timestamp("disconnect_reported_at", { withTimezone: true }),
+    /**
      * Set when Meerko put the mailbox on hold itself (too many hard bounces, or providers rejecting its mail as spam):
      * it sends nothing until a person resumes it. See core/sending/mailbox-hold.ts.
      */
