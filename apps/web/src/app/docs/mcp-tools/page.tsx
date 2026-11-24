@@ -96,9 +96,9 @@ export default function Page() {
           seen the preview or the draft and said yes.
         </p>
         <p>
-          Every tool also carries a title and the standard MCP hints: read-only, destructive (it sends, deletes or overwrites), and open-world
-          (it reaches outside your account: the lead database, DNS or someone&apos;s inbox). Claude, ChatGPT and other clients use them to ask
-          you before running a destructive tool.
+          Every tool also carries a title and the standard MCP hints: read-only, destructive (it sends, deletes, overwrites or, for{" "}
+          <C>enrich_rows</C>, spends credits), and open-world (it reaches outside your account: the lead database, DNS, someone&apos;s inbox
+          or a webhook you connected). Claude, ChatGPT and other clients use them to ask you before running a destructive tool.
         </p>
       </Callout>
 

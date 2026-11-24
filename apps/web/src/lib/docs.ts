@@ -107,11 +107,22 @@ export function toolByName(name: string) {
   return tool;
 }
 
-/** Tools whose description tells the agent to wait for the user's explicit OK. */
-/** Tools that send real email or can lead to one: destructive and reaching outside the account (annotations.ts). */
-export const needsApproval = (tool: McpTool) => !!tool.annotations.destructiveHint && !!tool.annotations.openWorldHint;
-/** Tools that delete or overwrite the user's own data. */
-export const cantUndo = (tool: McpTool) => !!tool.annotations.destructiveHint && !tool.annotations.openWorldHint;
+/**
+ * Tools that send real email or can lead to one. They are named here because the hints can't tell them apart from
+ * the rest: enrich_rows and manage_routine are destructive and open-world too, and send no email.
+ * apps/api/src/mcp-annotations.test.ts holds the same list.
+ */
+const EMAIL_TOOLS = ["send_test_email", "enroll_rows", "start_sequence", "approve_emails", "draft_reply", "approve_draft"];
+{
+  const wrong = EMAIL_TOOLS.filter((name) => {
+    const hints = mcp.tools.find((t) => t.name === name)?.annotations;
+    return !hints?.destructiveHint || !hints.openWorldHint;
+  });
+  if (wrong.length) throw new Error(`lib/docs.ts EMAIL_TOOLS: not a destructive, open-world MCP tool: ${wrong}`);
+}
+export const needsApproval = (tool: McpTool) => EMAIL_TOOLS.includes(tool.name);
+/** The other destructive tools: they delete or overwrite the user's own data, or spend credits. */
+export const cantUndo = (tool: McpTool) => !!tool.annotations.destructiveHint && !needsApproval(tool);
 
 /** An entry in the docs search. */
 export interface SearchEntry {
