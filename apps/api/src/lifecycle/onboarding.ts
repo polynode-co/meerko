@@ -23,6 +23,7 @@ export const onboardingConnectMailbox: LifecycleEmail = {
   name: "Day 1: connect your mailbox",
   targets: at("email_1"),
   sender: "iker",
+  category: "marketing",
   subject: "Connect a mailbox to send your first sequence",
   preheader: "Two minutes with Gmail, one click with Outlook.",
   ...ikerNote([
@@ -39,6 +40,7 @@ export const onboardingStartSequence: LifecycleEmail = {
   name: "Day 3: start your first sequence (mailbox connected)",
   targets: at("email_2a"),
   sender: "iker",
+  category: "marketing",
   subject: "Your mailbox is ready. Start your first sequence",
   preheader: "One message to your AI gets it going.",
   ...ikerNote([
@@ -55,6 +57,7 @@ export const onboardingTwoSteps: LifecycleEmail = {
   name: "Day 3: two steps to your first sequence (no mailbox)",
   targets: at("email_2b"),
   sender: "iker",
+  category: "marketing",
   subject: "Your first sequence is two steps away",
   preheader: "Connect a mailbox, then ask your AI.",
   ...ikerNote([
@@ -71,6 +74,7 @@ export const onboardingStuckConnecting: LifecycleEmail = {
   name: "Day 7: stuck connecting your mailbox?",
   targets: at("email_3"),
   sender: "iker",
+  category: "marketing",
   subject: "Stuck connecting your mailbox?",
   preheader: "The usual blockers, and how to get past them.",
   ...ikerNote([

@@ -18,6 +18,7 @@ export const welcome: LifecycleEmail = {
   name: "Welcome",
   targets: { dev: { workflowId: "01a20e2d-0591-0000-1334-f40ebf559f32", actionId: "email_welcome" } },
   sender: "iker",
+  category: "marketing",
   subject: "Welcome to Meerko",
   preheader: "What Meerko does, and what to do first.",
   ...ikerNote([
@@ -35,6 +36,7 @@ export const approvalWaiting: LifecycleEmail = {
   name: "Emails waiting for approval",
   targets: { dev: { workflowId: "01a20e2d-461b-0000-ca80-6c31d0f5e301", actionId: "email_approval" } },
   sender: "iker",
+  category: "marketing",
   subject: "Your first emails are waiting for your OK",
   preheader: "Nothing sends until you approve it.",
   ...ikerNote([
@@ -51,6 +53,7 @@ export const mailboxDisconnected: LifecycleEmail = {
   name: "Mailbox disconnected: sending stopped",
   targets: { dev: { workflowId: "01a20e2d-8681-0000-5495-43131d2b5454", actionId: "email_disconnected" } },
   sender: "meerko",
+  category: "transactional",
   subject: "Sending stopped: reconnect {{ event.properties.mailbox }}",
   preheader: "Meerko can't sign in to this mailbox anymore.",
   ...meerkoNotice({
@@ -61,6 +64,7 @@ export const mailboxDisconnected: LifecycleEmail = {
       button("Reconnect the mailbox", `${SETTINGS_URL}#mailboxes`),
     ],
     why: "You get this because you own the Meerko workspace this mailbox is in.",
+    unsubscribe: false,
   }),
 };
 
@@ -69,6 +73,7 @@ export const creditsLow: LifecycleEmail = {
   name: "Credits running low",
   targets: { dev: { workflowId: "01a20e2c-861f-0000-f274-a0ac7ecbd068", actionId: "email_credits" } },
   sender: "meerko",
+  category: "transactional",
   subject: "You have {{ event.properties.balance }} Meerko credits left",
   preheader: "Add credits before lead search and enrichment stop.",
   ...meerkoNotice({
@@ -80,5 +85,6 @@ export const creditsLow: LifecycleEmail = {
       button("Add credits", `${SETTINGS_URL}#billing`),
     ],
     why: "You get this because you own the Meerko workspace these credits belong to.",
+    unsubscribe: false,
   }),
 };

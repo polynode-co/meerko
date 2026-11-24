@@ -6,7 +6,7 @@
  *   activation nudges. It is byte for byte the layout the onboarding workflow already sends, so bringing those emails
  *   into git changed nothing that goes out.
  * - `meerkoNotice`: Meerko's branded card (the digest's and the sign-in email's look), one button, and a footer that
- *   says why it came, with PostHog's unsubscribe link. For product notifications.
+ *   says why it came (with PostHog's unsubscribe link when it's marketing). For product notifications.
  *
  * Text is escaped for HTML (`&`, `<`, `>` only, so Liquid and quotes pass through untouched); Liquid tags are filled in
  * by PostHog at send.
@@ -45,7 +45,11 @@ export function ikerNote(blocks: Block[]): { html: string; text: string } {
   };
 }
 
-export function meerkoNotice(input: { headline: string; blocks: Block[]; why: string }): { html: string; text: string } {
+/**
+ * `unsubscribe`: only a marketing notice carries PostHog's unsubscribe link. A transactional one (it reports the
+ * account's own state, decided on #38) always sends, so offering an unsubscribe it ignores would mislead.
+ */
+export function meerkoNotice(input: { headline: string; blocks: Block[]; why: string; unsubscribe: boolean }): { html: string; text: string } {
   const body = input.blocks
     .map((b) =>
       "p" in b
@@ -53,8 +57,10 @@ export function meerkoNotice(input: { headline: string; blocks: Block[]; why: st
         : `<p style="margin:8px 0 24px"><a href="${attr(b.href)}" style="display:inline-block;background:#0b0b0c;color:#a8f326;padding:13px 20px;font-size:14px;font-weight:600;text-decoration:none">${esc(b.button)}</a></p>`,
     )
     .join("");
-  // PostHog's unsubscribe link is the only switch for these: Settings > Notifications covers the digest, not them.
-  const footer = `${esc(input.why)} <a href="${attr(UNSUBSCRIBE_URL)}" style="color:#6b6b63">Unsubscribe from these emails</a>.`;
+  // PostHog's unsubscribe link is the only switch for marketing ones: Settings > Notifications covers the digest.
+  const footer = input.unsubscribe
+    ? `${esc(input.why)} <a href="${attr(UNSUBSCRIBE_URL)}" style="color:#6b6b63">Unsubscribe from these emails</a>.`
+    : esc(input.why);
   return {
     html:
       `<div style="margin:0;padding:32px 16px;background:#f6f6f3;font-family:system-ui,-apple-system,sans-serif;color:#0b0b0c">` +
@@ -68,7 +74,7 @@ export function meerkoNotice(input: { headline: string; blocks: Block[]; why: st
       input.headline,
       ...textOf(input.blocks),
       input.why,
-      `Unsubscribe from these emails: ${UNSUBSCRIBE_URL}`,
+      ...(input.unsubscribe ? [`Unsubscribe from these emails: ${UNSUBSCRIBE_URL}`] : []),
     ].join("\n\n"),
   };
 }
