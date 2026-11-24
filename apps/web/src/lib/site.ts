@@ -12,4 +12,7 @@ export const site = {
   contactEmail: "contact@meerko.ai",
   // Self-hosting starts from the repo (not on npm yet).
   installCommand: "git clone https://github.com/polynode-co/meerko",
+  // The landing page's 60-second video (a file under /public or a full URL). Empty until it's recorded: the
+  // player then shows its poster with the play button disabled.
+  demoVideoUrl: process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || "",
 };

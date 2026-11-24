@@ -25,23 +25,3 @@ export function LookoutCommand({ command }: { command: string }) {
     </div>
   );
 }
-
-/** A lime button that copies a prompt to paste into an agent. */
-export function CopyPromptButton({ text, label }: { text: string; label: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={() =>
-        navigator.clipboard?.writeText(text).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1800);
-        })
-      }
-      className="inline-flex items-center gap-2.5 bg-lk-lime px-4 py-[13px] font-plex text-[13px] font-semibold tracking-[0.8px] text-lk-bg uppercase transition hover:brightness-110"
-    >
-      {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-      {copied ? "Copied: paste it into your agent" : label}
-    </button>
-  );
-}
