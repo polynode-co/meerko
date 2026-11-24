@@ -48,6 +48,26 @@ describe("the ChatGPT plugin's domain verification", () => {
   });
 });
 
+// Glama verifies who owns the hosted connector the same way: one unauthenticated fetch, no database.
+describe("Glama's connector claim file", () => {
+  const PATH = "/.well-known/glama.json";
+
+  it("serves the claim as JSON and nothing else, with no sign-in", async () => {
+    const res = await createApp(undefined as never).request(PATH);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toMatch(/^application\/json/);
+    expect(await res.json()).toEqual({
+      $schema: "https://glama.ai/mcp/schemas/connector.json",
+      claim: "glama_claim_d2pSv0D3Pap1oPTQHcxPi6rAkKDrg8nR",
+    });
+  });
+
+  it("serves another claim from MEERKO_GLAMA_CLAIM", async () => {
+    const res = await createApp(undefined as never, { glamaClaim: "glama_claim_other" }).request(PATH);
+    expect(await res.json()).toEqual({ $schema: "https://glama.ai/mcp/schemas/connector.json", claim: "glama_claim_other" });
+  });
+});
+
 describe("the ChatGPT plugin package", async () => {
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
   const server = createServer(() => {
