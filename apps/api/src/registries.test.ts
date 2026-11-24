@@ -42,6 +42,22 @@ describe("server.json, the official MCP Registry listing", () => {
   });
 });
 
+// .mcp.json is what Cursor Directory reads from the repo root to list the server: one entry under `mcpServers`, whose
+// `url` must be public https. Cursor signs in with OAuth by itself, so the entry carries no header and no key.
+describe(".mcp.json, the Cursor Directory listing", () => {
+  it("describes the hosted server, the same one server.json lists", () => {
+    expect(json(".mcp.json")).toEqual({ mcpServers: { meerko: { type: "http", url: json("server.json").remotes[0].url } } });
+  });
+});
+
+// The README badge is the backlink the awesome-remote-mcp-servers list checks for before it takes an entry.
+describe("the Glama badge in the README", () => {
+  it("links to the connector listing named in server.json", () => {
+    const listing = `https://glama.ai/mcp/connectors/${json("server.json").name}`;
+    expect(readFileSync(`${root}README.md`, "utf8")).toContain(`<a href="${listing}"><img src="${listing}/badges/score.svg"`);
+  });
+});
+
 describe("glama.json", () => {
   it("names the GitHub users who may maintain the Glama listing", () => {
     expect(json("glama.json")).toEqual({ $schema: "https://glama.ai/mcp/schemas/server.json", maintainers: ["iker-gonzalez"] });

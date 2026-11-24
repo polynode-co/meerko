@@ -10,7 +10,8 @@ publishing.
 | Registry | File in this repo | State | What is left |
 |---|---|---|---|
 | [Official MCP Registry](#official-mcp-registry) | `server.json` | Not published | Add a DNS record on `meerko.ai`, then `mcp-publisher publish` |
-| [Glama](#glama) | `glama.json` | Not listed | Arrives by itself from the official registry; then claim it and add a test account |
+| [Glama](#glama) | `glama.json`, the badge in `README.md` | Connector [listed](https://glama.ai/mcp/connectors/ai.meerko/meerko) and claimed; not in Servers | Add a test account (step 3), then the Servers listing (step 5) |
+| [Cursor Directory](#cursor-directory) | `.mcp.json` | Not listed | Submit the repository at cursor.directory |
 | [PulseMCP](#pulsemcp) | none | Not listed | Nothing to do: submissions are paused and it reads the official registry |
 | [Smithery](#smithery) | none | Not listed | Nothing to do: it no longer takes submissions |
 
@@ -175,6 +176,35 @@ Who: `iker-gonzalez`, signed in to glama.ai.
 5. For the Servers directory: on [Servers](https://glama.ai/mcp/servers) click **Add MCP Server** and give the
    repository URL, the name and the one-liner. With `glama.json` on the default branch (`dev`), `iker-gonzalez` can
    then edit the listing under **Admin → Listing**.
+
+### The badge
+
+The README carries the connector's score badge, linked to the connector listing:
+
+```html
+<a href="https://glama.ai/mcp/connectors/ai.meerko/meerko"><img src="https://glama.ai/mcp/connectors/ai.meerko/meerko/badges/score.svg" alt="Meerko MCP connector on Glama"></a>
+```
+
+It is the backlink [awesome-remote-mcp-servers](https://github.com/punkpeye/awesome-remote-mcp-servers/blob/main/CONTRIBUTING.md)
+asks for, the list for hosted servers, which is where Meerko goes: each entry there carries this same badge.
+[awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers/blob/main/CONTRIBUTING.md) lists servers you
+install and run, and checks for a backlink to a `glama.ai/mcp/servers` listing instead. Meerko has none until step 5,
+and `https://glama.ai/mcp/servers/polynode-co/meerko/badges/score.svg` reads "not listed" until then; add that badge
+next to this one once the listing exists.
+
+## Cursor Directory
+
+Source: [cursor/community-plugins](https://github.com/cursor/community-plugins), the code behind cursor.directory
+(`packages/plugins/src/github.ts` reads the repository, `packages/plugins/src/mcp-config.ts` checks the setup).
+
+Cursor Directory lists a GitHub repository by reading plugin files from the root of its default branch. For an MCP
+server that is `.mcp.json` (or `mcp.json`): every entry under `mcpServers` becomes a listed server, and a remote one
+is kept only if its `url` is public `https`. Ours has one entry, the hosted server, with no headers: Cursor registers
+itself and signs in with OAuth on first use. `"type": "http"` is for Claude Code, which reads the same file as the
+project's MCP servers and offers this one to anyone who opens the repo in it.
+
+Who: a maintainer, signed in to cursor.directory. Submit the repository URL there; `.mcp.json` has to be on `dev`, the
+default branch, first.
 
 ## PulseMCP
 
