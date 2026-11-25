@@ -216,13 +216,13 @@ export async function startCheckout(db: Db, cfg: BillingConfig, workspaceId: str
   // promotion codes, so an annual checkout with the offer doesn't take codes.
   const founding = annual && (await foundingOfferFor(db, cfg, workspaceId)) !== null;
   const customer = await ensureCustomer(db, cfg, workspaceId, email);
-  const settings = `${cfg.appUrl.replace(/\/$/, "")}/app/settings`;
+  const page = billingPage(cfg);
   const metadata = { workspace_id: workspaceId, kind: input.kind };
   const common = {
     customer,
     client_reference_id: workspaceId,
     metadata,
-    cancel_url: settings,
+    cancel_url: `${page}#billing`,
     // With Stripe Tax on, the address typed at checkout is the one tax is worked out from.
     ...(cfg.automaticTax ? { automatic_tax: { enabled: true }, customer_update: { address: "auto" as const, name: "auto" as const } } : {}),
     tax_id_collection: { enabled: true },
@@ -235,7 +235,7 @@ export async function startCheckout(db: Db, cfg: BillingConfig, workspaceId: str
           mode: "subscription",
           line_items: [{ price: annual ? cfg.prices.proAnnual! : cfg.prices.pro, quantity: 1 }],
           subscription_data: { metadata },
-          success_url: `${settings}?billing=pro`,
+          success_url: `${page}?billing=pro#billing`,
         })
       : await cfg.stripe.checkout.sessions.create({
           ...common,
@@ -250,11 +250,14 @@ export async function startCheckout(db: Db, cfg: BillingConfig, workspaceId: str
           payment_intent_data: { metadata },
           // A receipt is not an invoice; businesses need one for VAT.
           invoice_creation: { enabled: true, invoice_data: { metadata } },
-          success_url: `${settings}?billing=credits`,
+          success_url: `${page}?billing=credits#billing`,
         });
   if (!session.url) throw new Error("Stripe returned a Checkout session without a URL");
   return session.url;
 }
+
+/** The dashboard's Settings page, whose billing section Stripe Checkout and the portal send people back to. */
+export const billingPage = (cfg: Pick<BillingConfig, "appUrl">) => `${cfg.appUrl.replace(/\/$/, "")}/app/workspace`;
 
 /** Stripe's customer portal: card, invoices, cancelling Pro. */
 export async function openPortal(db: Db, cfg: BillingConfig, workspaceId: string) {
@@ -262,7 +265,7 @@ export async function openPortal(db: Db, cfg: BillingConfig, workspaceId: string
   if (!customerId) throw new BillingError("Nothing to manage yet: this workspace hasn't bought anything.");
   const session = await cfg.stripe.billingPortal.sessions.create({
     customer: customerId,
-    return_url: `${cfg.appUrl.replace(/\/$/, "")}/app/settings`,
+    return_url: `${billingPage(cfg)}#billing`,
     ...(cfg.portalConfiguration ? { configuration: cfg.portalConfiguration } : {}),
   });
   return session.url;
