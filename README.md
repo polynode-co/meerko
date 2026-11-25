@@ -2,7 +2,7 @@
 
 <h1 align="center">Meerko</h1>
 <p align="center"><b>The open-source GTM agent.</b> Always on the lookout for your next customer.</p>
-<p align="center"><a href="https://glama.ai/mcp/connectors/ai.meerko/meerko"><img src="https://glama.ai/mcp/connectors/ai.meerko/meerko/badges/score.svg" alt="Meerko MCP connector on Glama"></a> <a href="https://glama.ai/mcp/servers/polynode-co/meerko"><img src="https://glama.ai/mcp/servers/polynode-co/meerko/badges/score.svg" alt="Meerko MCP server on Glama"></a></p>
+<p align="center"><a href="https://glama.ai/mcp/connectors/ai.meerko/meerko"><img src="https://glama.ai/mcp/connectors/ai.meerko/meerko/badges/score.svg" alt="Meerko MCP connector on Glama"></a> <a href="https://glama.ai/mcp/servers/polynode-co/meerko"><img src="https://glama.ai/mcp/servers/polynode-co/meerko/badges/score.svg" alt="Meerko MCP server on Glama"></a> <a href="https://mcpservers.org/servers/polynode-co/meerko"><img src="https://mcpservers.org/badge.svg" alt="Listed on mcpservers.org"></a></p>
 
 Meerko is an agent-native outbound engine for GTM engineers. You drive it from your terminal or from your coding agent (Claude Code, Cursor, Codex) over MCP:
 
