@@ -345,7 +345,7 @@ program
   .action(async (opts: { table?: string }) => {
     const p = await MeerkoClient.fromEnv().pipeline(opts.table);
     if (json()) return console.log(JSON.stringify(p, null, 2));
-    console.log(STAGES.map((s) => `${s} ${p.stages[s]}`).join("  ·  ") + `   (${p.total} leads)`);
+    console.log(STAGES.map((s) => `${s} ${p.stages[s]}`).join("  ·  ") + `   (${p.total} leads, ${p.replied} replied)`);
   });
 
 program

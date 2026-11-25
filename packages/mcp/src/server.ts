@@ -579,7 +579,7 @@ The body goes as written: Gmail doesn't add the user's signature to emails sent 
   tool(
     "pipeline",
     {
-      description: `Lead counts per stage (${STAGES.join(" → ")}), for one table or the whole workspace. Meerko moves leads to contacted when the first email is sent and to replied when they answer; meeting, won and lost are set by hand.`,
+      description: `Lead counts per stage (${STAGES.join(" → ")}), for one table or the whole workspace. Meerko moves leads to contacted when the first email is sent and to replied when they answer; meeting, won and lost are set by hand. \`replied\` counts the people who replied, each once, including leads since moved on.`,
       inputSchema: { table_id: z.string().optional() },
     },
     ({ table_id }) => run(() => client().pipeline(table_id)),

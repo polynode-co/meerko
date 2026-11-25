@@ -31,6 +31,14 @@ describe("parsing", () => {
     expect(stripQuoted("Call me\n\n-----Original Message-----\nFrom: Iker")).toBe("Call me");
     expect(stripQuoted("Yes\n> quoted line\nThanks")).toBe("Yes\nThanks");
   });
+
+  it("keeps a reply written under the quote", () => {
+    expect(stripQuoted("On Mon, 5 Oct 2026 at 10:30, Iker <i@x.com> wrote:\n> Hi Pia\n> Worth a call?\n\nYes, Tuesday works.\n-- \nPia")).toBe("Yes, Tuesday works.\n-- \nPia");
+    // A top-posted reply still drops everything under the quote line.
+    expect(stripQuoted("Sure.\n\nOn Mon, 5 Oct 2026 at 10:30, Iker <i@x.com> wrote:\n> Hi\n\nmore quoted")).toBe("Sure.");
+    // Nothing written at all stays empty, so the inbox can say so instead of showing the quote.
+    expect(stripQuoted("On Mon, 5 Oct 2026 at 10:30, Iker <i@x.com> wrote:\n> Hi")).toBe("");
+  });
 });
 
 describe("classifyByRules", () => {

@@ -4,7 +4,8 @@ import { createDb, dataTables, enrollments, eq, mailboxes, messages, suppression
 import { GMAIL_SCOPES, GoogleOAuth, type GmailMessage } from "../mail/gmail.ts";
 import { SecretBox } from "../provider-keys.ts";
 import { runSendTick } from "../sending/sender.ts";
-import { createSequence, enrollRows, sequenceStats, setSequenceStatus } from "../sequences.ts";
+import { pipelineSummary } from "../pipeline.ts";
+import { createSequence, deleteSequence, enrollRows, sequenceStats, setSequenceStatus } from "../sequences.ts";
 import { createTable, insertRows } from "../tables.ts";
 import { approveDraft, discardDraft, draftReply, listDrafts } from "./drafts.ts";
 import { classifyReply, listReplies, ReplyError, runReplyTick } from "./replies.ts";
@@ -128,6 +129,23 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     expect(await listReplies(db, ws)).toEqual([]);
     expect((await listReplies(db, ws, { intent: "interested" })).length).toBe(1);
     expect((await sequenceStats(db, ws, seqId)).states).toMatchObject({ replied: 1 });
+  });
+
+  it("keeps a reply's conversation and its count once its sequence is deleted", async () => {
+    deliver({ from: "Pia Moll <pia@slalom.example>", thread: threadOf["pia@slalom.example"]!, text: "Yes, let's talk Tuesday." });
+    await scan();
+    for (const id of [seqId, otherSeqId]) {
+      await setSequenceStatus(db, ws, id, "paused");
+      await deleteSequence(db, ws, id);
+    }
+
+    const [reply] = await listReplies(db, ws, { needsYou: true });
+    expect(reply).toMatchObject({ from: "pia@slalom.example", enrollmentId: null, sequenceName: null, body: "Yes, let's talk Tuesday." });
+    // The email it answered is still in the thread, found through the mailbox thread.
+    expect(reply!.thread.map((t) => [t.direction, t.step])).toEqual([["out", 0], ["in", null]]);
+    expect(reply!.thread[0]!.subject).toBe("Quick question, Pia");
+    // Still one person who replied.
+    expect((await pipelineSummary(db, ws)).replied).toBe(1);
   });
 
   it("handles bounces, unsubscribe requests and out-of-office replies by rule", async () => {

@@ -288,8 +288,9 @@ export interface ListRepliesOptions {
   /** Include out-of-office, bounces and unsubscribes (hidden by default). */
   includeAutomatic?: boolean;
   /**
-   * What waits on the person: unclassified replies, plus unhandled ones with a draft to approve (an agent that
-   * labels a reply and drafts an answer hasn't finished with it until someone sends or discards the draft).
+   * What waits on the person: replies nobody has handled yet that are unclassified or have a draft to approve (an
+   * agent that labels a reply and drafts an answer hasn't finished with it until someone sends or discards the
+   * draft). A reply answered from Meerko is handled, labelled or not.
    */
   needsYou?: boolean;
   limit?: number;
@@ -302,12 +303,12 @@ export async function listReplies(db: Db, workspaceId: string, opts: ListReplies
   if (opts.intent) conds.push(eq(messages.intent, opts.intent));
   else if (opts.needsYou) {
     conds.push(
-      sql`(${messages.intent} is null or (${messages.handledAt} is null and exists (select 1 from ${replyDrafts} where ${replyDrafts.replyId} = ${messages.id} and ${replyDrafts.status} = 'pending')))`,
+      sql`${messages.handledAt} is null and (${messages.intent} is null or exists (select 1 from ${replyDrafts} where ${replyDrafts.replyId} = ${messages.id} and ${replyDrafts.status} = 'pending'))`,
     );
   } else if (opts.unclassified ?? true) conds.push(sql`${messages.intent} is null`);
   if (!opts.includeAutomatic && !opts.intent) conds.push(sql`coalesce(${messages.intent}, '') not in ('bounce', 'out_of_office', 'unsubscribe')`);
 
-  const replies = await db
+  const found = await db
     .select({
       id: messages.id,
       from: messages.fromEmail,
@@ -317,6 +318,9 @@ export async function listReplies(db: Db, workspaceId: string, opts: ListReplies
       receivedAt: messages.sentAt,
       handledAt: messages.handledAt,
       enrollmentId: messages.enrollmentId,
+      mailboxId: messages.mailboxId,
+      threadId: messages.gmailThreadId,
+      step: messages.step,
       sequenceId: enrollments.sequenceId,
       sequenceName: sequences.name,
       row: tableRows.data,
@@ -329,26 +333,42 @@ export async function listReplies(db: Db, workspaceId: string, opts: ListReplies
     .orderBy(desc(messages.sentAt))
     .limit(Math.min(opts.limit ?? 25, 100));
 
-  const ids = replies.map((r) => r.enrollmentId).filter((v): v is string => !!v);
+  const historyCols = {
+    enrollmentId: messages.enrollmentId,
+    mailboxId: messages.mailboxId,
+    threadId: messages.gmailThreadId,
+    id: messages.id,
+    direction: messages.direction,
+    step: messages.step,
+    subject: messages.subject,
+    body: messages.body,
+    sentAt: messages.sentAt,
+  };
+  const ids = [...new Set(found.map((r) => r.enrollmentId).filter((v): v is string => !!v))];
   const history = ids.length
+    ? await db.select(historyCols).from(messages).where(sql`${messages.enrollmentId} in ${ids}`).orderBy(asc(messages.sentAt))
+    : [];
+  // A reply no longer tied to a lead (its sequence or row was deleted) keeps its email thread: the messages
+  // in the same mailbox thread, which still hold the email it answered.
+  const loose = [...new Set(found.filter((r) => !r.enrollmentId && r.threadId).map((r) => r.threadId!))];
+  const looseHistory = loose.length
     ? await db
-        .select({
-          enrollmentId: messages.enrollmentId,
-          id: messages.id,
-          direction: messages.direction,
-          step: messages.step,
-          subject: messages.subject,
-          body: messages.body,
-          sentAt: messages.sentAt,
-        })
+        .select(historyCols)
         .from(messages)
-        .where(sql`${messages.enrollmentId} in ${ids}`)
+        .where(and(eq(messages.workspaceId, workspaceId), sql`${messages.gmailThreadId} in ${loose}`))
         .orderBy(asc(messages.sentAt))
     : [];
-  return replies.map((r) => ({
-    ...r,
-    thread: history.filter((h) => h.enrollmentId === r.enrollmentId).map(({ enrollmentId: _, ...h }) => h),
-  }));
+  return found.map(({ mailboxId, threadId, step, ...r }) => {
+    const thread = r.enrollmentId
+      ? history.filter((h) => h.enrollmentId === r.enrollmentId)
+      : threadId
+        ? looseHistory.filter((h) => h.threadId === threadId && h.mailboxId === mailboxId)
+        : [];
+    // Never an empty conversation: the reply itself is always in its thread.
+    const own = { id: r.id, direction: "in" as const, step, subject: r.subject, body: r.body, sentAt: r.receivedAt };
+    const messagesInThread = thread.some((h) => h.id === r.id) ? thread : [...thread, own].sort((a, b) => a.sentAt.getTime() - b.sentAt.getTime());
+    return { ...r, thread: messagesInThread.map(({ id, direction, step, subject, body, sentAt }) => ({ id, direction, step, subject, body, sentAt })) };
+  });
 }
 
 export class ReplyError extends Error {}

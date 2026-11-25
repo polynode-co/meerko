@@ -3369,7 +3369,7 @@
                 "false"
               ]
             },
-            "description": "Unclassified replies plus unhandled ones with a draft waiting: what waits on the person"
+            "description": "What waits on the person: unhandled replies that are unclassified or have a draft waiting"
           },
           {
             "name": "limit",

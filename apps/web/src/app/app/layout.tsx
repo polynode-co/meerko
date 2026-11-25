@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PostHogIdentify } from "@/components/analytics/posthog-identify";
 import { Sidebar } from "@/components/app/sidebar";
 import { TopBar } from "@/components/app/top-bar";
+import { needYouCount } from "@/lib/inbox";
 import { load } from "@/lib/meerko";
 
 export const metadata: Metadata = { title: "Meerko", robots: { index: false } };
@@ -19,7 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         workspaces={workspaces}
         userEmail={me.user?.email ?? null}
         mailboxNeedsReconnect={mailbox?.status === "error"}
-        inboxCount={replies.length}
+        inboxCount={needYouCount(replies)}
         credits={credits}
       />
       <PostHogIdentify user={me.user} workspace={me.workspace} />

@@ -49,16 +49,34 @@ export function bodyText(msg: GmailMessage): string {
 const QUOTE_INTRO = /^\s*(On\b.+wrote:|El\b.+escribi[oó]:|Le\b.+a écrit\s?:|Am\b.+schrieb.+:|Em\b.+escreveu:|Il\b.+ha scritto:)\s*$/im;
 const OUTLOOK_SEPARATOR = /^\s*(-{2,}\s*Original Message\s*-{2,}|_{10,}|From:\s.+|De:\s.+)$/im;
 
-/** Just the new text of a reply: drops the quoted history and ">" lines. */
-export function stripQuoted(text: string): string {
-  let body = text.replace(/\r\n/g, "\n");
-  for (const re of [QUOTE_INTRO, OUTLOOK_SEPARATOR]) {
-    const m = body.match(re);
-    if (m?.index !== undefined) body = body.slice(0, m.index);
-  }
-  return body
+const unquoted = (text: string) =>
+  text
     .split("\n")
-    .filter((line) => !line.startsWith(">"))
+    .filter((line) => !line.trimStart().startsWith(">"))
     .join("\n")
     .trim();
+
+/** A signature starts at "-- " (or "--", or "-- Name" on one line). Only what the person wrote above it counts. */
+const SIGNATURE = /^\s*--\s*($|\S.*$)/m;
+const withoutSignature = (text: string) => {
+  const m = text.match(SIGNATURE);
+  return (m?.index !== undefined ? text.slice(0, m.index) : text).trim();
+};
+
+/**
+ * Just the new text of a reply: drops the quoted history and ">" lines. A reply written under the quote
+ * (bottom-posted) keeps the person's text: when nothing but a signature sits above the "On … wrote:" line,
+ * the unquoted lines after it are what they wrote.
+ */
+export function stripQuoted(text: string): string {
+  let body = text.replace(/\r\n/g, "\n");
+  const intro = body.match(QUOTE_INTRO);
+  if (intro?.index !== undefined) {
+    const above = body.slice(0, intro.index);
+    const below = unquoted(body.slice(intro.index + intro[0].length));
+    body = !withoutSignature(unquoted(above)) && below ? below : above;
+  }
+  const outlook = body.match(OUTLOOK_SEPARATOR);
+  if (outlook?.index !== undefined) body = body.slice(0, outlook.index);
+  return unquoted(body);
 }

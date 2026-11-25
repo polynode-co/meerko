@@ -184,7 +184,7 @@ export const listRepliesQuery = z.object({
   intent: z.string().optional(),
   unclassified: z.enum(["true", "false"]).optional(),
   include_automatic: z.enum(["true", "false"]).optional(),
-  needs_you: z.enum(["true", "false"]).optional().describe("Unclassified replies plus unhandled ones with a draft waiting: what waits on the person"),
+  needs_you: z.enum(["true", "false"]).optional().describe("What waits on the person: unhandled replies that are unclassified or have a draft waiting"),
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 export const classifyInput = z.object({ intent: z.enum(AGENT_INTENTS), handled: z.boolean().optional() });
@@ -523,7 +523,14 @@ export const Credits = z.object({
   plan: z.enum(["free", "pro"]).optional(),
   buy_url: z.string().optional().describe("Where a person tops up"),
 });
-export const Pipeline = z.object({ tableId: z.string().nullable(), stages: z.record(stage, z.number()), total: z.number() });
+export const Pipeline = z.object({
+  tableId: z.string().nullable(),
+  stages: z.record(stage, z.number()),
+  total: z.number(),
+  replied: z
+    .number()
+    .describe("People who replied (not auto-replies, bounces or unsubscribes), each counted once, including leads since moved past the replied stage"),
+});
 export const ProviderKey = z.object({ provider: z.string(), last4: z.string(), createdAt: ts });
 export const Url = z.object({ url: z.string() });
 

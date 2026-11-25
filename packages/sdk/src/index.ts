@@ -955,10 +955,13 @@ export class MeerkoClient {
     return this.request<{ moved: number }>("POST", `/tables/${tableId}/rows/stage`, { row_ids: rowIds, stage });
   }
 
-  /** Lead counts per stage, for one table or the whole workspace. */
+  /**
+   * Lead counts per stage, for one table or the whole workspace. `replied` is the people who replied, each once,
+   * including leads since moved past the replied stage.
+   */
   pipeline(tableId?: string) {
     const qs = tableId ? `?table_id=${encodeURIComponent(tableId)}` : "";
-    return this.request<{ tableId: string | null; stages: Record<Stage, number>; total: number }>("GET", `/pipeline${qs}`);
+    return this.request<{ tableId: string | null; stages: Record<Stage, number>; total: number; replied: number }>("GET", `/pipeline${qs}`);
   }
 
   listProviderKeys() {

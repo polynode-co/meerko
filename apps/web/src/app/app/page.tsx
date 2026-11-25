@@ -2,46 +2,44 @@ import { Mail, Waves } from "lucide-react";
 import Link from "next/link";
 import { STAGES } from "@meerko/sdk";
 import { buttonClass, Card, CardHead, Count, EmptyState, headLink, intentTone, label, monoLabel, Page, PageHeader, Pill, type PillTone } from "@/components/app/ui";
+import { conversations, needYouCount } from "@/lib/inbox";
 import { load } from "@/lib/meerko";
 
 // "WS · Overview v3 (Antwork v3 pattern, 2026-11-12)" (DzBNk) in docs/design/meerko.pen.
 
-type Need = { who: string; sub: string; pill: [string, PillTone]; state: string; action: string; primary: boolean; warn?: boolean };
+type Need = { who: string; sub: string; pill: [string, PillTone]; state: string; action: string; primary: boolean; warn?: boolean; href: string };
 
 export default async function OverviewPage() {
   const [pipeline, sequences, replies, drafts, mailboxes] = await load((c) =>
-    Promise.all([c.pipeline(), c.listSequences(), c.listReplies({ limit: 100 }), c.listDrafts(), c.listMailboxes()]),
+    // The same list the Inbox's "Needs you" tab and the sidebar badge count.
+    Promise.all([c.pipeline(), c.listSequences(), c.listReplies({ needsYou: true, limit: 100 }), c.listDrafts(), c.listMailboxes()]),
   );
   const stats = await load((c) => Promise.all(sequences.map((s) => c.sequenceStats(s.id))));
 
-  const draftFor = new Set(drafts.map((d) => d.replyId));
+  // One row per conversation waiting on the person, as in the Inbox.
+  const waiting = conversations(replies, drafts).filter((c) => c.open > 0);
   const needs: Need[] = [
-    ...drafts.map((d) => ({
-      who: d.to,
-      sub: d.intent ? label(d.intent) : "reply",
-      pill: [d.intent ? label(d.intent) : "reply", d.intent ? intentTone[d.intent] ?? "neutral" : "neutral"] as [string, PillTone],
-      state: "Draft ready",
-      action: "Review",
-      primary: true,
-    })),
-    ...replies
-      .filter((r) => !draftFor.has(r.id))
-      .map((r) => ({
-        who: r.from,
-        sub: r.sequenceName ?? "reply",
-        pill: [r.intent ? label(r.intent) : "new reply", r.intent ? intentTone[r.intent] ?? "neutral" : "neutral"] as [string, PillTone],
-        state: r.intent ? "Reply needed" : "Not sorted yet",
-        action: "Reply",
-        primary: false,
-      })),
+    ...waiting.map(({ latest: r, draft }) => {
+      const intent = draft?.intent ?? r.intent;
+      return {
+        who: r.row?.first_name ? `${r.row.first_name} ${r.row.last_name ?? ""}`.trim() : r.from,
+        sub: r.sequenceName ?? r.from,
+        pill: [intent ? label(intent) : "new reply", intent ? intentTone[intent] ?? "neutral" : "neutral"] as [string, PillTone],
+        state: draft ? "Draft ready" : intent ? "Reply needed" : "Not sorted yet",
+        action: draft ? "Review" : "Reply",
+        primary: !!draft,
+        href: `/app/inbox?reply=${r.id}`,
+      };
+    }),
     ...mailboxes
       .filter((m) => m.status === "error")
-      .map((m) => ({ who: m.email, sub: "Mailbox", pill: ["lost access", "red"] as [string, PillTone], state: "Sending paused", action: "Reconnect", primary: false, warn: true })),
+      .map((m) => ({ who: m.email, sub: "Mailbox", pill: ["lost access", "red"] as [string, PillTone], state: "Sending paused", action: "Reconnect", primary: false, warn: true, href: "/app/settings" })),
   ];
+  const needYou = needYouCount(replies);
 
   const sent = stats.reduce((n, s) => n + s.emailsSent, 0);
-  const enrolled = stats.reduce((n, s) => n + s.enrolled, 0);
-  const replied = stats.reduce((n, s) => n + (s.states.replied ?? 0), 0);
+  // People who replied, each once: the same number whatever happened to their sequence or stage since.
+  const replied = pipeline.replied;
   const sending = sequences.filter((s) => s.status === "active").length;
   const max = Math.max(1, ...STAGES.map((s) => pipeline.stages[s]));
   const contacted = STAGES.filter((s) => s !== "new").reduce((n, s) => n + pipeline.stages[s], 0);
@@ -50,7 +48,7 @@ export default async function OverviewPage() {
   const metrics: [string, string, boolean][] = [
     ["Emails sent", sent.toLocaleString("en"), false],
     ["Replies", replied.toLocaleString("en"), false],
-    ["Reply rate", enrolled ? `${((replied / enrolled) * 100).toFixed(1)}%` : "—", false],
+    ["Reply rate", contacted ? `${((Math.min(replied, contacted) / contacted) * 100).toFixed(1)}%` : "—", false],
     ["Meetings", pipeline.stages.meeting.toLocaleString("en"), true],
     ["Won", pipeline.stages.won.toLocaleString("en"), true],
   ];
@@ -76,7 +74,7 @@ export default async function OverviewPage() {
           <CardHead
             title={
               <>
-                Needs you {needs.length > 0 && <Count>{needs.length}</Count>}
+                Needs you {needYou > 0 && <Count>{needYou}</Count>}
               </>
             }
           >
@@ -102,7 +100,7 @@ export default async function OverviewPage() {
                   <Pill tone={n.pill[1]}>{n.pill[0]}</Pill>
                 </span>
                 <span className="hidden w-[120px] font-mono text-[11px] text-lk-muted md:block">{n.state}</span>
-                <Link href={n.warn ? "/app/settings" : "/app/inbox"} className={`${buttonClass(n.primary ? "primary" : "secondary", "sm")} w-[84px]`}>
+                <Link href={n.href} className={`${buttonClass(n.primary ? "primary" : "secondary", "sm")} w-[84px]`}>
                   {n.action}
                 </Link>
               </div>
