@@ -14,7 +14,7 @@
   "dependencies": {
     "@meerko/sdk": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.32.1",
-    "@posthog/mcp": "0.22.1",
+    "@posthog/mcp": "1.6.0",
     "posthog-node": "^5.55.0",
     "tsx": "^4.23.15",
     "zod": "^4.6.5"
