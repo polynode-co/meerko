@@ -125,7 +125,7 @@ export default function Page() {
         emails?</a>
       </p>
       <p>
-        Search results and email lookups use credits: a found email costs 8, a verification 1 and a search result 1. Sending, replies and
+        Search results and email lookups use credits: a found email costs 5, a verification 1 and a search result 1. Sending, replies and
         drafts are free, and so are misses. See <a href="/docs/credits" className="text-accent hover:underline">credits</a>.
       </p>
 
