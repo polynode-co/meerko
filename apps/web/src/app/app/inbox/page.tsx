@@ -116,7 +116,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                 const r = c.latest;
                 const on = c.key === current?.key;
                 const messages = r.thread.length || 1;
-                const said = preview(r.body);
+                const said = preview(r.body, r.subject);
                 return (
                   <Link
                     key={c.key}
