@@ -61,8 +61,8 @@ importers:
         version: 4.6.7
     devDependencies:
       stripe:
-        specifier: ^22.6.2
-        version: 22.6.2(@types/node@26.6.10)
+        specifier: ^23.2.0
+        version: 23.2.0(@types/node@26.6.10)
 
   apps/web:
     dependencies:
@@ -80,7 +80,7 @@ importers:
         version: 16.4.6(@types/node@26.6.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       posthog-js:
         specifier: ^1.438.2
-        version: 1.454.6(@types/react@19.3.2)(react@19.3.1)
+        version: 1.454.7(@types/react@19.3.2)(react@19.3.1)
       posthog-node:
         specifier: ^5.55.0
         version: 5.74.0
@@ -96,7 +96,7 @@ importers:
     devDependencies:
       '@posthog/nextjs-config':
         specifier: ^1.11.1
-        version: 1.12.2(next@16.4.6(@types/node@26.6.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(posthog-js@1.454.6(@types/react@19.3.2)(react@19.3.1))(webpack@5.111.1(esbuild@0.28.2))
+        version: 1.12.2(next@16.4.6(@types/node@26.6.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(posthog-js@1.454.7(@types/react@19.3.2)(react@19.3.1))(webpack@5.111.1(esbuild@0.28.2))
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.5
@@ -158,8 +158,8 @@ importers:
         specifier: ^10.0.14
         version: 10.6.1
       stripe:
-        specifier: ^22.6.2
-        version: 22.6.2(@types/node@26.6.10)
+        specifier: ^23.2.0
+        version: 23.2.0(@types/node@26.6.10)
     devDependencies:
       '@types/mailparser':
         specifier: ^3.9.0
@@ -964,6 +964,9 @@ packages:
 
   '@posthog/types@1.427.1':
     resolution: {integrity: sha512-Kx9hWf6Au64CrBLafscANAeswkRFUMs4zlU9/gwB2Hf/9ggU9YNjbw/MQA5tt7cbzTCkh+4fNIPjQeJz7/j63w==}
+
+  '@posthog/types@1.427.2':
+    resolution: {integrity: sha512-86GJtdFt7zkk6tDpCFKfxyTtuXyLpiWPmTn5nlLDGlxGeky4s4l2fiWSRvYi6Lfn5MRrjiHE24RgKR4A75K+xA==}
 
   '@posthog/webpack-plugin@1.8.1':
     resolution: {integrity: sha512-dV91fUcS41iAKXLiP1Dk/H9qHwE2v+RflfoMT6HVZ69pBY2aoLiW53DcKy1r75cx2KXWEpQhstUiy3G0w4kJwg==}
@@ -2214,8 +2217,8 @@ packages:
     resolution: {integrity: sha512-1kJDojqNZC+iTHHXh6eif0J98LUtyLAePe/qkW1GK35eh2JixlsAiIKq3FGI+xqI+SUGTNodzf7TScVeIIyUug==}
     engines: {node: '>=18'}
 
-  posthog-js@1.454.6:
-    resolution: {integrity: sha512-nmCgDhVmW9yIHBQk2aoeZuRFEbXWnsPXZV1AheEEF8Ws4uDsmbx4kP3xHeRxgVn0SFUmEWJlm/wlpCJw7Gq9GA==}
+  posthog-js@1.454.7:
+    resolution: {integrity: sha512-0FAVeK/icE22odsJ7Fs+aio6yTpMeF5DmC4IrNRWYzgf3h4kmUrK68aR4SygPl9T6aM+05m9naf8LmmUP9E6nA==}
     peerDependencies:
       '@types/react': '>=16.8.0'
       react: '>=16.8.0'
@@ -2421,11 +2424,11 @@ packages:
   std-env@4.3.0:
     resolution: {integrity: sha512-OtU/EgQ1kIm5KwqQpBC6ZEMXrZRui11w8zgfTWp8cdO9B8OaPsbA8bTHO2P+HNo1VlUTGMVBwPhydu6poeXiag==}
 
-  stripe@22.6.2:
-    resolution: {integrity: sha512-PwRE2scocvXqDKPiskMa5vRJEAEkq46W69XyUYmAwrNSLr675lQnfqLwnsndAWizwgihOWw/irLmoFRo3ez7ew==}
-    engines: {node: '>=18'}
+  stripe@23.2.0:
+    resolution: {integrity: sha512-0W0J4yA9qFO2rnF61v8Y62OiO2SmAR+Cv04VJaFUMpCxiq8lG5bxEYbeSMSpMDR9ofFZGd+Z/iUIgSFbOolmUw==}
+    engines: {node: '>=20'}
     peerDependencies:
-      '@types/node': '>=18'
+      '@types/node': '>=20'
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -3112,7 +3115,7 @@ snapshots:
   '@posthog/browser-common@0.14.0':
     dependencies:
       '@posthog/core': 1.69.2
-      '@posthog/types': 1.427.1
+      '@posthog/types': 1.427.2
       dompurify: 3.5.0
       preact: 10.29.8
     transitivePeerDependencies:
@@ -3137,13 +3140,13 @@ snapshots:
     optionalDependencies:
       '@modelcontextprotocol/sdk': 1.32.2(zod@4.6.7)
 
-  '@posthog/nextjs-config@1.12.2(next@16.4.6(@types/node@26.6.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(posthog-js@1.454.6(@types/react@19.3.2)(react@19.3.1))(webpack@5.111.1(esbuild@0.28.2))':
+  '@posthog/nextjs-config@1.12.2(next@16.4.6(@types/node@26.6.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(posthog-js@1.454.7(@types/react@19.3.2)(react@19.3.1))(webpack@5.111.1(esbuild@0.28.2))':
     dependencies:
       '@posthog/cli': 0.19.4
       '@posthog/plugin-utils': 2.0.1
       '@posthog/webpack-plugin': 1.8.1(webpack@5.111.1(esbuild@0.28.2))
       next: 16.4.6(@types/node@26.6.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      posthog-js: 1.454.6(@types/react@19.3.2)(react@19.3.1)
+      posthog-js: 1.454.7(@types/react@19.3.2)(react@19.3.1)
       semver: 7.8.5
     transitivePeerDependencies:
       - webpack
@@ -3155,6 +3158,8 @@ snapshots:
   '@posthog/types@1.415.1': {}
 
   '@posthog/types@1.427.1': {}
+
+  '@posthog/types@1.427.2': {}
 
   '@posthog/webpack-plugin@1.8.1(webpack@5.111.1(esbuild@0.28.2))':
     dependencies:
@@ -4195,11 +4200,11 @@ snapshots:
 
   postgres@4.1.1: {}
 
-  posthog-js@1.454.6(@types/react@19.3.2)(react@19.3.1):
+  posthog-js@1.454.7(@types/react@19.3.2)(react@19.3.1):
     dependencies:
       '@posthog/browser-common': 0.14.0
       '@posthog/core': 1.69.2
-      '@posthog/types': 1.427.1
+      '@posthog/types': 1.427.2
       core-js: 3.50.0
       dompurify: 3.5.0
       fflate: 0.4.9
@@ -4439,7 +4444,7 @@ snapshots:
 
   std-env@4.3.0: {}
 
-  stripe@22.6.2(@types/node@26.6.10):
+  stripe@23.2.0(@types/node@26.6.10):
     optionalDependencies:
       '@types/node': 26.6.10
 
