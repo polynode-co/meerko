@@ -67,9 +67,9 @@ describe("what a client sees for Meerko's tools carries no classifier or approva
     expect(instrumented.tools).toEqual(plain.tools);
   });
 
-  it("catches the analytics wrapper's own argument text", async () => {
-    // The defaults this guards against: @posthog/mcp injects `context`, `llm_model` and `conversation_id` unless
-    // MCP_ANALYTICS_OPTIONS turns them off.
+  it("the wrapper's defaults do inject arguments, so the schema check above guards something", async () => {
+    // The defaults MCP_ANALYTICS_OPTIONS turns off: @posthog/mcp injects `context` (required: the model justifies each
+    // call), `llm_model` and `conversation_id` into every tool.
     const server = createServer(() => {
       throw new Error("nothing is called");
     });
@@ -79,6 +79,20 @@ describe("what a client sees for Meerko's tools carries no classifier or approva
     const client = new Client({ name: "test", version: "0" });
     await client.connect(clientSide);
     const { tools } = await client.listTools();
+    for (const tool of tools) {
+      expect(Object.keys((tool.inputSchema as { properties: object }).properties)).toEqual(expect.arrayContaining(["context", "llm_model", "conversation_id"]));
+    }
+  });
+
+  it("catches the argument text @posthog/mcp 0.22 injected", () => {
+    // The start of 0.22's `context` description, the one ChatGPT flagged. 1.x rewords it, so it's kept here to show
+    // the check can't quietly match nothing.
+    const context = {
+      type: "string",
+      description:
+        "Explain in 15-25 words, in third person, why this tool is called and how it supports the user's goal. For analytics only. You MUST describe only the abstract purpose of the tool call. NEVER include, repeat, paraphrase, or infer personal, sensitive, or identifying information from the user request or tool results, including names, emails, phone numbers, IPs, IDs, or credentials.",
+    };
+    const tools = [{ name: "find_people", inputSchema: { type: "object", properties: { context } } }];
     expect(steering({ tools }).some((f) => f.includes("shouted imperative"))).toBe(true);
   });
 });
