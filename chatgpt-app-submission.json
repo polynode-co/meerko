@@ -151,6 +151,22 @@
         "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
       }
     },
+    "get_lead": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads one lead with its sequences and the emails already sent to it or received from it, changing nothing.",
+        "open_world_justification": "Reads only the user's own Meerko workspace.",
+        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
+      }
+    },
+    "rename_table": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Changes a lead table's name.",
+        "open_world_justification": "The name is only shown inside the user's own Meerko account.",
+        "destructive_justification": "Changes a label only; no lead, sequence or email is removed or sent, and the name can be changed back."
+      }
+    },
     "delete_rows": {
       "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
       "justifications": {

@@ -4,7 +4,7 @@ import { Check, Globe, Mail, Settings2, TriangleAlert, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import type { DomainHealth, Mailbox, MailboxAssignment, SequencePool } from "@meerko/sdk";
 import { updatePool } from "@/app/app/actions";
-import { buttonClass, Card, CardHead, monoLabel, Pill, th } from "@/components/app/ui";
+import { buttonClass, Card, CardHead, monoLabel, Pill } from "@/components/app/ui";
 
 const domainOf = (email: string) => email.split("@")[1]!;
 
@@ -111,42 +111,41 @@ export function MailboxPoolCard({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[400px] text-left">
-          <thead>
-            <tr className="border-b border-lk-line">
-              <th className={th}>Mailbox</th>
-              <th className={th}>Status</th>
-              <th className={`${th} !text-right`}>Today</th>
-              <th className={`${th} !text-right`}>Leads</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pool.mailboxes.map((m) => (
-              <tr key={m.id} className="border-b border-lk-line last:border-0">
-                <td className="px-4 py-3">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <MailIcon provider={providerOf(m.id)} />
-                    <span className="truncate font-mono text-[12px] text-lk-fg">{m.email}</span>
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <StatusPill status={m.status} rampDay={m.rampDay} held={m.held} />
-                </td>
-                <td className="px-4 py-3 text-right font-mono text-[12px] whitespace-nowrap text-lk-fg">
+      {/* A list, not a table: a long address truncates instead of pushing the card into a horizontal scroll. */}
+      <ul>
+        {pool.mailboxes.map((m) => (
+          <li key={m.id} className="flex flex-col gap-1.5 border-b border-lk-line px-4 py-3 last:border-0">
+            <span className="flex min-w-0 items-center gap-2">
+              <MailIcon provider={providerOf(m.id)} />
+              <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-lk-fg" title={m.email}>
+                {m.email}
+              </span>
+              <span className="shrink-0">
+                <StatusPill status={m.status} rampDay={m.rampDay} held={m.held} />
+              </span>
+            </span>
+            <span className="flex flex-wrap gap-x-4 gap-y-0.5 pl-[26px] font-mono text-[11.5px] text-lk-muted">
+              <span>
+                <span className="text-lk-fg">
                   {m.sentToday} / {m.effectiveLimit}
-                </td>
-                <td className="px-4 py-3 text-right font-mono text-[12px] text-lk-fg">{m.leads}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </span>{" "}
+                today
+              </span>
+              <span>
+                <span className="text-lk-fg">{m.leads.toLocaleString("en")}</span> {m.leads === 1 ? "lead" : "leads"}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
 
       {poolDomains.map((d) => (
         <div key={d.domain} className="flex flex-wrap items-center gap-3 border-t border-lk-line bg-ws-head px-4 py-2.5">
           <span className={monoLabel}>Domain</span>
-          <span className="flex-1 font-mono text-[12px] text-lk-fg">{d.domain}</span>
+          {/* Room for most domains on one line; the checks wrap below before a long one is cut. */}
+          <span className="min-w-0 flex-[1_1_13rem] truncate font-mono text-[12px] text-lk-fg" title={d.domain}>
+            {d.domain}
+          </span>
           <DomainChecks d={d} />
           {missingOf(d).length > 0 && (
             <a href="/guides/email-deliverability" className="text-[12.5px] font-semibold text-ws-red hover:underline">

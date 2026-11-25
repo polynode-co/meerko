@@ -186,13 +186,16 @@ export interface IcypeasCompany {
   foundedYear?: number;
 }
 
-/** Strips scheme, `www.` and paths so "https://www.acme.com/es" becomes "acme.com". */
 /**
  * Hosts that aren't the company's own: social networks, marketplaces, link-in-bio pages, app stores, webmail and
  * site builders' shared domains. Small brands often list one as their "website"; nobody has a work email there, so
- * email finding falls back to the company name instead.
+ * new leads keep it as a profile link (`profile_url`), never as the domain, and email finding skips a lead whose
+ * only site is one (a lookup there is a certain miss, and Icypeas charges for misses).
+ *
+ * The dashboard keeps a copy (PLATFORM_HOSTS in @meerko/sdk/constants), to show old rows' platform domains as
+ * links; enrichment.test.ts keeps the two equal.
  */
-const PLATFORM_HOSTS = [
+export const PLATFORM_HOSTS = [
   "instagram.com", "facebook.com", "fb.com", "linkedin.com", "twitter.com", "x.com", "tiktok.com", "youtube.com", "youtu.be",
   "pinterest.com", "threads.net", "snapchat.com", "t.me", "wa.me", "whatsapp.com", "linktr.ee", "linktree.com", "beacons.ai",
   "bio.link", "lnk.bio", "campsite.bio", "etsy.com", "amazon.com", "ebay.com", "depop.com", "vinted.com", "shopify.com",
@@ -204,20 +207,46 @@ const PLATFORM_HOSTS = [
 
 export const isPlatformHost = (host: string) => PLATFORM_HOSTS.some((p) => host === p || host.endsWith(`.${p}`));
 
-/** The company's own domain from a website value, or null (no website, or a platform like instagram.com). */
-export function toDomain(website: string | undefined | null): string | null {
-  if (!website) return null;
-  const host = website
+/** Strips scheme, `www.` and paths so "https://www.acme.com/es" becomes "acme.com". */
+const hostOf = (website: string) =>
+  website
     .trim()
     .replace(/^https?:\/\//i, "")
     .replace(/^www\./i, "")
     .split(/[/?#]/)[0]!
     .toLowerCase();
+
+/** The company's own domain from a website value, or null (no website, or a platform like instagram.com). */
+export function toDomain(website: string | undefined | null): string | null {
+  if (!website) return null;
+  const host = hostOf(website);
   return host.includes(".") && !isPlatformHost(host) ? host : null;
 }
 
+/** The website as a link when it's a platform page (an Instagram profile, an App Store listing), else null. */
+export function toProfileUrl(website: string | undefined | null): string | null {
+  if (!website?.trim()) return null;
+  const host = hostOf(website);
+  if (!host.includes(".") || !isPlatformHost(host)) return null;
+  return /^https?:\/\//i.test(website.trim()) ? website.trim() : `https://${website.trim()}`;
+}
+
+const SITE_KEYS = ["domain", "website", "company_domain", "profile_url", "company_profile_url"] as const;
+
+/**
+ * Where a row's company can be emailed: its own domain, or null. `platformOnly` when the row's only site is a
+ * platform page (instagram.com, linktr.ee…), so an email lookup would be a certain miss.
+ */
+export function rowDomain(row: Record<string, unknown>): { domain: string | null; platformOnly: boolean } {
+  const sites = SITE_KEYS.map((k) => row[k]).filter((v): v is string => typeof v === "string" && !!v.trim());
+  const domain = sites.map(toDomain).find((d) => d !== null) ?? null;
+  return { domain, platformOnly: !domain && sites.some((s) => toProfileUrl(s) !== null) };
+}
+
 export function personToRow(p: IcypeasPerson): Record<string, unknown> {
+  const profile = toProfileUrl(p.lastCompanyWebsite);
   return {
+    ...(profile ? { company_profile_url: profile } : {}),
     first_name: p.firstname,
     last_name: p.lastname,
     title: p.lastJobTitle ?? null,
@@ -232,9 +261,11 @@ export function personToRow(p: IcypeasPerson): Record<string, unknown> {
 }
 
 export function companyToRow(c: IcypeasCompany): Record<string, unknown> {
+  const profile = toProfileUrl(c.website);
   return {
     company: c.name,
     domain: toDomain(c.website),
+    ...(profile ? { profile_url: profile } : {}),
     industry: c.industry ?? null,
     // `headcountRange` sometimes contradicts the actual count, so only use it as a fallback.
     employees: c.numberOfEmployees ?? c.headcountRange?.lte ?? null,
@@ -264,7 +295,9 @@ export function icypeasProvider(client: IcypeasClient, opts: { ownKey?: boolean 
       if (field === "email") {
         const firstname = pick(row, "first_name", "firstname");
         const lastname = pick(row, "last_name", "lastname");
-        const domainOrCompany = toDomain(pick(row, "domain", "website", "company_domain")) ?? pick(row, "company");
+        const { domain, platformOnly } = rowDomain(row);
+        if (platformOnly) throw new MissingInputError("the company's only site is a social or marketplace page, where nobody has a work email");
+        const domainOrCompany = domain ?? pick(row, "company");
         if (!(firstname || lastname) || !domainOrCompany) {
           throw new MissingInputError("email search needs a first or last name plus a domain or company");
         }

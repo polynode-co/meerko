@@ -290,6 +290,30 @@ tables
   });
 
 tables
+  .command("lead <tableId> <rowId>")
+  .description("show one lead: every field, its sequences, and the emails sent to it or received from it")
+  .action(async (tableId: string, rowId: string) => {
+    const lead = await MeerkoClient.fromEnv().getLead(tableId, rowId);
+    if (json()) return console.log(JSON.stringify(lead, null, 2));
+    console.log(`Stage: ${lead.row.stage}${lead.row.icp?.score != null ? ` · fit ${lead.row.icp.score}` : ""}`);
+    for (const [key, value] of Object.entries(lead.row.data)) {
+      if (value !== null && value !== undefined && value !== "") console.log(`${key}: ${typeof value === "object" ? JSON.stringify(value) : String(value)}`);
+    }
+    for (const s of lead.sequences) console.log(`\nIn "${s.sequenceName}": ${s.state}, ${s.stepsSent} sent`);
+    for (const m of lead.emails) {
+      console.log(`\n${m.direction === "out" ? "→ sent" : "← reply"} ${new Date(m.sentAt).toLocaleString()}${m.subject ? ` · ${m.subject}` : ""}\n${m.body}`);
+    }
+  });
+
+tables
+  .command("rename <tableId> <name>")
+  .description("rename a table")
+  .action(async (tableId: string, name: string) => {
+    const table = await MeerkoClient.fromEnv().renameTable(tableId, name);
+    console.log(json() ? JSON.stringify(table, null, 2) : `Renamed to ${table.name}.`);
+  });
+
+tables
   .command("delete-rows <tableId> <rowIds...>")
   .description("delete leads by row id (their sequences stop; sent emails and do-not-email entries stay)")
   .action(async (tableId: string, rowIds: string[]) => {
