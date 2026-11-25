@@ -11,9 +11,18 @@ describe("preview", () => {
     expect(preview("Yes please\n\nSent from my iPhone")).toBe("Yes please");
   });
 
-  it("falls back to the first real line when only a signature is left", () => {
-    expect(preview("-- \nPia Moll, Head of Sales\nlinkedin.com/in/pia")).toBe("Pia Moll, Head of Sales");
-    expect(preview("\n-- Pia Moll, Head of Sales, LinkedIn")).toBe("Pia Moll, Head of Sales, LinkedIn");
+  it("never shows a signature: the delimiter ends the message", () => {
+    // Seen on prd: a fresh email whose words are its subject, and whose body is only a signature.
+    const sig = "-- \nPia Moll, (she/her)\n\nHead of Sales\n\nLinkedIn: linkedin.com/in/pia\nGitHub: github.com/pia";
+    expect(preview(sig, "test")).toBe("test");
+    expect(preview(sig.replace("-- \n", "--\n"), "test")).toBe("test");
+    expect(preview(`test\n--\n${sig.slice(4)}`)).toBe("test");
+    expect(preview("\n-- Pia Moll, Head of Sales, LinkedIn")).toBeNull();
+    // Our own subject in a "Re:" isn't what they wrote.
+    expect(preview(sig, "Re: Quick question, Pia")).toBeNull();
+    // Text written under ">" lines still counts; a signature after the quote doesn't.
+    expect(preview("> Worth a call?\n\nYes, Tuesday.")).toBe("Yes, Tuesday.");
+    expect(preview("> Worth a call?\n\n-- \nPia")).toBeNull();
   });
 
   it("never shows the quoted earlier email as what they wrote", () => {
@@ -30,6 +39,12 @@ describe("preview", () => {
 describe("splitQuoted", () => {
   it("folds a one-line signature away", () => {
     expect(splitQuoted("Happy to talk.\n-- Pia Moll, LinkedIn")).toEqual({ text: "Happy to talk.", quoted: "-- Pia Moll, LinkedIn" });
+  });
+
+  it("gives a signature-only body no text of its own, the signature folded", () => {
+    expect(splitQuoted("-- \nPia Moll\nHead of Sales")).toEqual({ text: "", quoted: "-- \nPia Moll\nHead of Sales" });
+    // A cut that isn't a signature still never hides everything.
+    expect(splitQuoted("> Hi Pia")).toEqual({ text: "> Hi Pia", quoted: "" });
   });
 });
 

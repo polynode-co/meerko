@@ -79,26 +79,34 @@ export function splitQuoted(body: string): { text: string; quoted: string } {
   const lines = body.replace(/\r\n/g, "\n").split("\n");
   const cut = writtenEnd(lines);
   const text = lines.slice(0, cut).join("\n").trim();
-  // Never hide everything: if the cut leaves nothing, show the whole body.
-  if (!text) return { text: body.trim(), quoted: "" };
+  if (!text) {
+    // A signature always ends the message: a body that is only a signature has no text of its own.
+    const sig = lines.findIndex((l) => l.trim());
+    if (sig !== -1 && isSignatureLine(lines[sig])) return { text: "", quoted: body.trim() };
+    // Otherwise never hide everything: if the cut leaves nothing, show the whole body.
+    return { text: body.trim(), quoted: "" };
+  }
   return { text, quoted: lines.slice(cut).join("\n").trim() };
 }
 
 /**
  * The line a conversation list shows for a reply: what the person wrote, without quoted history or signature.
- * When they wrote nothing above those, the first real line outside the quote (a signature line loses its "-- ").
- * Null when the body has no text at all, so the list never shows an empty quote.
+ * When they wrote nothing above those, text written under ">"-quoted lines; a signature ("-- " on its own line,
+ * or with the name on it) and a quote header always end the message, so neither is ever shown. Failing that, the
+ * subject of a fresh email (not a "Re:" of ours), since it's their words. Null when there's nothing to show, so
+ * the list never shows an empty quote or a signature.
  */
-export function preview(body: string): string | null {
+export function preview(body: string, subject?: string | null): string | null {
   const lines = body.replace(/\r\n/g, "\n").split("\n");
   const written = lines.slice(0, writtenEnd(lines)).join("\n").trim();
   if (written) return written;
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].trim().startsWith(">")) continue;
     // Under a quote header everything is the earlier message, quoted or not (HTML mail drops the ">").
-    if (isQuoteLine(lines, i)) break;
-    const line = lines[i].trim().replace(/^--\s*/, "").trim();
+    if (isSignatureLine(lines[i]) || isQuoteLine(lines, i)) break;
+    const line = lines[i].trim();
     if (line) return line;
   }
-  return null;
+  const own = subject?.trim();
+  return own && !/^(re|aw|sv|antw|r)\s*:/i.test(own) ? own : null;
 }
