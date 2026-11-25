@@ -26,6 +26,8 @@ const NO_IDS: SentIds = { id: null, threadId: null };
 
 export class GmailImapClient implements MailClient {
   private session?: Promise<ImapSession>;
+  /** The connection behind `session`, from before it finishes opening, so `abort` can drop one stuck opening. */
+  private connection?: ImapSession;
   private transport?: SmtpTransport;
   /** UID in All Mail of each message id this client has seen, so getMessage needn't search for it. */
   private readonly uids = new Map<string, number>();
@@ -111,7 +113,19 @@ export class GmailImapClient implements MailClient {
   async close() {
     const session = this.session;
     this.session = undefined;
+    this.connection = undefined;
     if (session) await (await session.catch(() => null))?.logout().catch(() => {});
+    this.transport?.close();
+    this.transport = undefined;
+  }
+
+  abort() {
+    try {
+      this.connection?.close();
+    } catch {
+      // Already closed.
+    }
+    this.session = this.connection = undefined;
     this.transport?.close();
     this.transport = undefined;
   }
@@ -123,7 +137,7 @@ export class GmailImapClient implements MailClient {
   /** One IMAP session per client, with All Mail open read-only: every message is there, whatever its labels. */
   private imap() {
     this.session ??= (async () => {
-      const imap = this.connect.imap({ user: this.account.login, pass: this.account.password }, SERVERS.imap);
+      const imap = (this.connection = this.connect.imap({ user: this.account.login, pass: this.account.password }, SERVERS.imap));
       // ImapFlow emits connection errors as events; the next command reports them.
       imap.on("error", () => {});
       await guard(() => imap.connect());

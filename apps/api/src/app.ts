@@ -45,6 +45,7 @@ import {
   updateSequence,
   runWorkerTick,
   TICK_BUDGET_MS,
+  MAILBOX_SCAN_TIMEOUT_MS,
   createOAuthState,
   deleteMailbox,
   deleteProviderKey,
@@ -504,10 +505,15 @@ export function createApp(db: Db, deps: AppDeps = {}) {
         skipped: result.skipped,
         unscannedMailboxes: result.replies?.unscannedMailboxes,
         slowestMailbox: result.replies?.slowest,
+        timedOutMailboxes: result.replies?.timedOutMailboxes,
         unreachedMailboxes: result.send.unreachedMailboxes,
         sent: result.send.sent,
       }),
     );
+    // Its own line, so a mail server that stops answering can be found (and alerted on) apart from slow ticks.
+    for (const mailboxId of result.replies?.timedOutMailboxes ?? []) {
+      console.warn(JSON.stringify({ message: `reply scan timed out: ${mailboxId}`, event: "reply_scan_timed_out", mailboxId, limitMs: MAILBOX_SCAN_TIMEOUT_MS }));
+    }
     if (result.replyError) {
       console.error("reply scan failed:", result.replyError);
       await analytics.captureException(result.replyError, undefined, { $exception_fingerprint: "api.tick.replies" });

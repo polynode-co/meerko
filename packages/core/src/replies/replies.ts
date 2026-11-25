@@ -33,6 +33,13 @@ import { AGENT_INTENTS, classifyByRules, type AgentIntent, type RuleIntent } fro
 const OVERLAP_MS = 60 * 60_000;
 /** Only threads with an email sent in this window are watched. */
 const WATCH_DAYS = 60;
+/**
+ * The longest one mailbox's scan may take before it's dropped for this tick (scans take a few seconds). A mail server
+ * that stops answering would otherwise hold the whole tick past Cloud Scheduler's deadline.
+ */
+export const MAILBOX_SCAN_TIMEOUT_MS = 30_000;
+
+class ScanTimedOut extends Error {}
 
 export interface ReplyDeps {
   box: SecretBox | null;
@@ -48,6 +55,8 @@ export interface ReplyDeps {
    */
   stop?: () => boolean;
   random?: () => number;
+  /** Overrides MAILBOX_SCAN_TIMEOUT_MS (tests). */
+  mailboxTimeoutMs?: number;
 }
 
 export interface ReplyTickResult {
@@ -60,6 +69,11 @@ export interface ReplyTickResult {
   unscannedMailboxes?: number;
   /** The mailbox that took longest to scan, to find a slow one from the tick's log line. */
   slowest?: { mailboxId: string; ms: number };
+  /**
+   * Mailboxes whose scan ran past MAILBOX_SCAN_TIMEOUT_MS and was dropped. They stay active and keep their last check
+   * time, so the next tick scans the same mail again.
+   */
+  timedOutMailboxes?: string[];
 }
 
 interface Watched {
@@ -91,15 +105,33 @@ export async function runReplyTick(db: Db, deps: ReplyDeps): Promise<ReplyTickRe
     }
     const began = Date.now();
     let client: MailClient | undefined;
-    // Opened only when the mailbox has something to check.
-    const open = () => (client ??= mailClient(mb, { box: deps.box!, oauth: deps.oauth, microsoft: deps.microsoft, fetch: deps.fetch, imap: deps.imap, db }));
+    const dropped = new AbortController();
+    // Opened only when the mailbox has something to check, and never once its scan was dropped.
+    const open = () => {
+      dropped.signal.throwIfAborted();
+      return (client ??= mailClient(mb, { box: deps.box!, oauth: deps.oauth, microsoft: deps.microsoft, fetch: deps.fetch, imap: deps.imap, db }));
+    };
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      await scanMailbox(db, mb, open, now, watchFrom, result);
+      const scanning = scanMailbox(db, mb, open, now, watchFrom, result, dropped.signal);
+      // A dropped scan may still fail later, once its connection is gone; nothing waits for it then.
+      scanning.catch(() => {});
+      const limit = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new ScanTimedOut()), deps.mailboxTimeoutMs ?? MAILBOX_SCAN_TIMEOUT_MS);
+      });
+      await Promise.race([scanning, limit]);
     } catch (err) {
-      if (err instanceof GmailError && err.needsReconnect) await markMailboxError(db, mb.id, err.message);
+      if (err instanceof ScanTimedOut) {
+        // Not an error of the mailbox's: it stays active, keeps its last check time, and the next tick tries again.
+        dropped.abort();
+        client?.abort?.();
+        (result.timedOutMailboxes ??= []).push(mb.id);
+      } else if (err instanceof GmailError && err.needsReconnect) await markMailboxError(db, mb.id, err.message);
       else throw err;
     } finally {
-      await client?.close();
+      clearTimeout(timer);
+      // A server that stopped answering won't answer a sign-out either: a dropped scan's connection was closed above.
+      if (!dropped.signal.aborted) await client?.close();
       const ms = Date.now() - began;
       if (!result.slowest || ms > result.slowest.ms) result.slowest = { mailboxId: mb.id, ms };
     }
@@ -109,8 +141,9 @@ export async function runReplyTick(db: Db, deps: ReplyDeps): Promise<ReplyTickRe
 
 type MailboxRow = typeof mailboxes.$inferSelect;
 
-async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: Date, watchFrom: string, result: ReplyTickResult) {
-  await fillMissingThreadIds(db, mb.id, open, watchFrom);
+/** `dropped` aborts once the tick gave up on this scan: it then stops before its next step, and records no check time. */
+async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: Date, watchFrom: string, result: ReplyTickResult, dropped: AbortSignal) {
+  await fillMissingThreadIds(db, mb.id, open, watchFrom, dropped);
   // Threads this mailbox started for a sequence, with the first step's subject.
   const watched = await db
     .selectDistinctOn([enrollments.id], {
@@ -160,6 +193,7 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
   );
 
   for (const { id, threadId, refs } of ids) {
+    dropped.throwIfAborted();
     if (known.has(id)) continue;
     result.scanned++;
     let target = byThread.get(threadId) ?? refs?.map((r) => byThread.get(r)).find(Boolean);
@@ -177,6 +211,7 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
     else if (intent === "out_of_office") result.outOfOffice++;
     else result.replies++;
   }
+  dropped.throwIfAborted();
   await db.update(mailboxes).set({ repliesCheckedAt: now }).where(eq(mailboxes.id, mb.id));
 }
 
@@ -184,7 +219,7 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
  * Over IMAP a sent email's Gmail ids come from finding its copy, which can lag the send. Looks up the
  * ones still missing, so their threads are watched for replies.
  */
-async function fillMissingThreadIds(db: Db, mailboxId: string, open: () => MailClient, watchFrom: string) {
+async function fillMissingThreadIds(db: Db, mailboxId: string, open: () => MailClient, watchFrom: string, dropped: AbortSignal) {
   const missing = await db
     .select({ id: messages.id, enrollmentId: messages.enrollmentId, rfcMessageId: messages.rfcMessageId })
     .from(messages)
@@ -202,6 +237,7 @@ async function fillMissingThreadIds(db: Db, mailboxId: string, open: () => MailC
   if (!client.findByMessageId) return;
   for (const m of missing) {
     const found = await client.findByMessageId(m.rfcMessageId!);
+    dropped.throwIfAborted();
     if (!found.id || !found.threadId) continue;
     await db.update(messages).set({ gmailId: found.id, gmailThreadId: found.threadId }).where(eq(messages.id, m.id));
     if (m.enrollmentId) {

@@ -7,7 +7,7 @@ import { GmailError, type GmailMessage } from "./gmail.ts";
 
 export type ImapSession = Pick<
   ImapFlow,
-  "connect" | "logout" | "list" | "mailboxOpen" | "noop" | "search" | "fetch" | "fetchOne" | "append" | "capabilities" | "on"
+  "connect" | "logout" | "close" | "list" | "mailboxOpen" | "noop" | "search" | "fetch" | "fetchOne" | "append" | "capabilities" | "on"
 >;
 
 export interface SmtpTransport {
@@ -35,10 +35,16 @@ export interface ImapConnectors {
   resolve?(host: string): Promise<string[]>;
 }
 
+/**
+ * IMAP timeouts, shorter than ImapFlow's defaults (90s to connect, 5 minutes of silence), which let one mail server
+ * that stops answering hold a tick past its deadline. The reply scan's own limit per mailbox is shorter still.
+ */
+const IMAP_TIMEOUTS = { connectionTimeout: 30_000, greetingTimeout: 16_000, socketTimeout: 60_000 };
+
 // TLS always: implicit on 993 and 465, STARTTLS (required) on 587. The certificate is checked against the host name.
 export const defaultConnectors: ImapConnectors = {
   imap: (auth, server) =>
-    new ImapFlow({ host: server.address ?? server.host, servername: server.host, port: server.port, secure: true, auth, logger: false }),
+    new ImapFlow({ host: server.address ?? server.host, servername: server.host, port: server.port, secure: true, auth, logger: false, ...IMAP_TIMEOUTS }),
   smtp: (auth, server) =>
     nodemailer.createTransport({
       host: server.address ?? server.host,

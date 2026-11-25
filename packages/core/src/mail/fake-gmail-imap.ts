@@ -60,6 +60,7 @@ export function fakeGmail(opts: { gmail?: boolean; authFails?: boolean; indexAft
         logout: async () => {
           loggedOut = true;
         },
+        close: () => {},
         list: async () => [{ path: "[Gmail]/All Mail", specialUse: "\\All" }, { path: "INBOX", specialUse: "\\Inbox" }],
         mailboxOpen: async (_path: string, o?: { readOnly?: boolean }) => {
           openedReadOnly = !!o?.readOnly;
