@@ -33,7 +33,7 @@ jobs:
     name: promote gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: ./scripts/promote-gate.test.sh
 
   # Every pull request, forks included: typecheck and the unit tests. It uses no secrets, and the
@@ -43,7 +43,7 @@ jobs:
     name: typecheck and tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
