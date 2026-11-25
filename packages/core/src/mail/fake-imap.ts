@@ -66,6 +66,7 @@ export function fakeImap(opts: { authFails?: boolean; filesSent?: boolean; addre
           if (opts.authFails) throw authError;
         },
         logout: async () => {},
+        close: () => {},
         list: async () => [{ path: "INBOX", specialUse: "\\Inbox" }, ...(opts.noSentFolder ? [] : [{ path: "Sent", specialUse: "\\Sent" }])],
         mailboxOpen: async (path: string) => {
           selected = path;

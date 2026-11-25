@@ -45,6 +45,11 @@ export interface MailClient {
   /** Looks up a sent message's Gmail ids by its Message-ID. Only IMAP needs it, after a send it couldn't resolve. */
   findByMessageId?(rfcMessageId: string): Promise<SentIds>;
   close(): Promise<void>;
+  /**
+   * Drops the client's connections at once, without signing out, for a server that stopped answering (a sign-out
+   * would wait on it too). Commands still waiting on them fail. Clients with no connection to drop leave it out.
+   */
+  abort?(): void;
 }
 
 export interface MailDeps {

@@ -53,6 +53,8 @@ export async function resolveMailServer(server: { host: string; port: number }, 
 
 export class ImapClient implements MailClient {
   private session?: Promise<ImapSession>;
+  /** The connection behind `session`, from before it finishes opening, so `abort` can drop one stuck opening. */
+  private connection?: ImapSession;
   private transport?: Promise<SmtpTransport>;
   private sentFolder?: string | null;
   /** INBOX UID and thread of each message this client listed, so getMessage needn't search. */
@@ -150,10 +152,23 @@ export class ImapClient implements MailClient {
   async close() {
     const session = this.session;
     this.session = undefined;
+    this.connection = undefined;
     if (session) await (await session.catch(() => null))?.logout().catch(() => {});
     const transport = this.transport;
     this.transport = undefined;
     (await transport?.catch(() => null))?.close();
+  }
+
+  abort() {
+    try {
+      this.connection?.close();
+    } catch {
+      // Already closed.
+    }
+    this.session = this.connection = undefined;
+    const transport = this.transport;
+    this.transport = undefined;
+    void transport?.then((t) => t.close()).catch(() => {});
   }
 
   /** Waits for the provider to file the sent email; if it doesn't, appends it to Sent, marked read. */
@@ -191,7 +206,7 @@ export class ImapClient implements MailClient {
 
   private imap() {
     this.session ??= (async () => {
-      const imap = this.connect.imap({ user: this.account.login, pass: this.account.password }, await this.resolve("imap"));
+      const imap = (this.connection = this.connect.imap({ user: this.account.login, pass: this.account.password }, await this.resolve("imap")));
       // ImapFlow emits connection errors as events; the next command reports them.
       imap.on("error", () => {});
       await this.guard(() => imap.connect());

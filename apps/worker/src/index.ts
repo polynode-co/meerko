@@ -48,6 +48,7 @@ if (!box) {
         { replies: ticks++ % REPLY_EVERY_TICKS === 0 },
       );
       if (replyError) console.error("reply scan failed:", replyError);
+      if (r?.timedOutMailboxes) console.warn(`replies: scan of mailboxes ${r.timedOutMailboxes.join(", ")} timed out; retried next pass`);
       if (routineError) console.error("autopilot failed:", routineError);
       if (slackError) console.error("slack notify failed:", slackError);
       if (digestError) console.error("digest failed:", digestError);

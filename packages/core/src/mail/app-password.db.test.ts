@@ -7,6 +7,7 @@ import { runSendTick } from "../sending/sender.ts";
 import { createSequence, enrollRows, setSequenceStatus } from "../sequences.ts";
 import { createTable, insertRows } from "../tables.ts";
 import { fakeGmail } from "./fake-gmail-imap.ts";
+import type { ImapConnectors, ImapSession } from "./imap-common.ts";
 
 // Months after the other db tests' dates, so the reply scan here never watches their mailboxes.
 const MON_1030 = new Date("2027-06-07T08:30:00Z");
@@ -89,6 +90,71 @@ describe.skipIf(!process.env.DATABASE_URL)("app-password mailboxes (db)", () => 
     // The next tick, with time left, does both.
     expect(await runSendTick(db, { box, imap: g.connectors, publicUrl: "https://m.ai", now: () => MON_1030, random: () => 0, stop: () => false })).toMatchObject({ sent: 1 });
     expect((await runReplyTick(db, { box, imap: g.connectors, now: () => later(31), stop: () => false })).unscannedMailboxes).toBeUndefined();
+  });
+
+  it("drops a mailbox whose server stops answering, scans the others, and retries it on the next tick", async () => {
+    const g = fakeGmail();
+    // While `hang` is on, the second mailbox's IMAP server stops answering: its commands, and a sign-out, wait until
+    // the connection is dropped.
+    let hang = false;
+    const dropped: string[] = [];
+    const connectors: ImapConnectors = {
+      ...g.connectors,
+      imap: (auth, server) => {
+        const session = g.connectors.imap(auth, server);
+        if (auth.user !== "olga@polynode.co") return session;
+        const waiting: (() => void)[] = [];
+        const stuck =
+          <A extends unknown[], T>(fn: (...args: A) => Promise<T>) =>
+          (...args: A) =>
+            hang ? new Promise<T>((_, reject) => waiting.push(() => reject(new Error("Connection closed")))) : fn(...args);
+        return {
+          ...session,
+          noop: stuck(session.noop),
+          search: stuck(session.search),
+          logout: stuck(session.logout),
+          close: () => {
+            dropped.push(auth.user);
+            for (const fail of waiting.splice(0)) fail();
+          },
+        } as ImapSession;
+      },
+    };
+    const [other] = await db
+      .insert(mailboxes)
+      .values({ workspaceId: ws, provider: "gmail_imap", email: "olga@meerko.ai", login: "olga@polynode.co", encryptedPassword: box.encrypt("abcdabcdabcdabcd") })
+      .returning();
+    const table = await createTable(db, ws, { name: "more leads" });
+    await insertRows(db, ws, table.id, [{ first_name: "Noa", email: "noa@webon.example" }]);
+    const seq = await createSequence(db, ws, { tableId: table.id, mailboxIds: [other!.id], name: "More", steps: [{ subject: "Hi {{first_name}}", body: "Hi" }] });
+    await enrollRows(db, ws, seq.id, { now: MON_1030 });
+    await setSequenceStatus(db, ws, seq.id, "active");
+    expect(await runSendTick(db, { box, imap: connectors, publicUrl: "https://m.ai", now: () => MON_1030, random: () => 0 })).toMatchObject({ sent: 2 });
+
+    // Pia answers the first mailbox's email.
+    const [out] = await db.select().from(messages).where(eq(messages.mailboxId, mailboxId));
+    const sentCopy = g.all.find((m) => m.messageId === out!.rfcMessageId)!;
+    g.store(
+      `From: Pia <pia@slalom.example>\r\nSubject: Re: Quick question, Pia\r\nMessage-ID: <r2@slalom.example>\r\nIn-Reply-To: ${out!.rfcMessageId}\r\n\r\nSure.`,
+      sentCopy.threadId,
+    );
+
+    hang = true;
+    const began = Date.now();
+    const scan = await runReplyTick(db, { box, imap: connectors, now: () => later(31), mailboxTimeoutMs: 200 });
+    expect(Date.now() - began).toBeLessThan(5_000);
+    expect(scan).toMatchObject({ replies: 1, timedOutMailboxes: [other!.id], slowest: { mailboxId: other!.id } });
+    expect(scan.slowest!.ms).toBeGreaterThanOrEqual(200);
+    expect(dropped).toEqual(["olga@polynode.co"]);
+    const checked = async (id: string) => (await db.select().from(mailboxes).where(eq(mailboxes.id, id)))[0]!;
+    expect(await checked(other!.id)).toMatchObject({ status: "active", lastError: null, repliesCheckedAt: null });
+    expect((await checked(mailboxId)).repliesCheckedAt).toEqual(later(31));
+
+    // The server answers again: the next tick scans the mailbox.
+    hang = false;
+    const next = await runReplyTick(db, { box, imap: connectors, now: () => later(32) });
+    expect(next.timedOutMailboxes).toBeUndefined();
+    expect((await checked(other!.id)).repliesCheckedAt).toEqual(later(32));
   });
 
   it("stores exactly one credential per mailbox", async () => {
