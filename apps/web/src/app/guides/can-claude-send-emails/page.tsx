@@ -64,7 +64,7 @@ export default function Page() {
         ],
         [
           "Can ChatGPT send emails the same way?",
-          "Yes, through a custom MCP server. You add Meerko's server URL in ChatGPT Plugins, and ChatGPT asks before running a tool marked as one that sends email.",
+          "Yes. ChatGPT can send single emails from a connected Gmail or Outlook, and runs Meerko sequences through a custom MCP server added in ChatGPT Plugins. Our guide on whether ChatGPT can send emails has the details.",
         ],
         [
           "Does Claude send from my own address?",
@@ -128,6 +128,7 @@ export default function Page() {
           below.<Cite s={S.customConnectors} /> In ChatGPT, go to <strong className="text-fg">ChatGPT Plugins</strong>, select the plus
           button, then <strong className="text-fg">Add custom MCP server</strong>, and choose OAuth.<Cite s={S.chatgptConnect} /> Full
           steps: <a href="/docs/claude" className={link}>Claude setup</a> and <a href="/docs/chatgpt" className={link}>ChatGPT setup</a>.
+          For what ChatGPT sends without Meerko, see <a href="/guides/can-chatgpt-send-emails" className={link}>Can ChatGPT send emails?</a>
         </li>
         <li>
           Connect your mailbox. Gmail and Google Workspace connect with an app password, Outlook and Microsoft 365 with Sign in with
