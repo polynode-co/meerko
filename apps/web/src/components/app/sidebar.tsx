@@ -12,6 +12,20 @@ import { WorkspaceSwitcher } from "@/components/app/workspace-switcher";
 
 // "WS3/Sidebar" (UG9by) in docs/design/meerko.pen. Below `lg` it folds into a top bar with a menu.
 
+/**
+ * Forget the signed-in person, keep the visitor's cookie answer. reset() also clears the stored answer, which drops
+ * an accepted visitor back to cookieless and makes the banner ask again (seen on Antwork with the same posthog-js);
+ * signing out isn't a cookie answer, so it goes straight back. reset() clears `app_user_id` with the other super
+ * properties. The internal-browser flag lives outside PostHog (lib/internal-visitor.ts) and stays.
+ */
+function signOutOfPostHog() {
+  if (!posthog.__loaded) return;
+  const consent = posthog.get_explicit_consent_status();
+  posthog.reset();
+  if (consent === "granted") posthog.opt_in_capturing({ captureEventName: false });
+  else if (consent === "denied") posthog.opt_out_capturing();
+}
+
 const nav = [
   { href: "/app", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/app/inbox", label: "Inbox", icon: Inbox, badge: "inbox" as const },
@@ -129,7 +143,7 @@ export function Sidebar({ workspace, workspaces, userEmail, mailboxNeedsReconnec
               {userEmail ?? "API key"}
             </span>
             {/* reset() so whoever signs in next on this browser isn't merged into this person. */}
-            <form action={logout} onSubmit={() => posthog.reset()}>
+            <form action={logout} onSubmit={signOutOfPostHog}>
               <button aria-label="Sign out" title="Sign out" className="rounded p-1 text-lk-dim hover:bg-ws-soft hover:text-lk-fg">
                 <LogOut className="size-3.5" />
               </button>

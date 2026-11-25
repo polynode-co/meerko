@@ -8,6 +8,9 @@ import { visitorRegion } from "@/lib/visitor-region";
 /** Fired by "Cookie settings" in the footer to ask again. */
 const REOPEN = "meerko:cookie-settings";
 
+/** Fired once the cookie answer has been applied to PostHog, so a signed-in session identifies again (PostHogIdentify). */
+export const COOKIE_CHOSEN = "meerko:cookie-chosen";
+
 /**
  * The cookie banner. PostHog runs cookieless until the visitor chooses (instrumentation-client.ts:
  * cookieless_mode "on_reject" with opt-out by default), so visits are counted either way. "Accept" turns on
@@ -25,7 +28,10 @@ export function CookieBanner() {
       // Only where the law asks for consent (lib/consent-region.ts); elsewhere PostHog's cookie goes on without
       // a banner. If the check failed, ask.
       if (consent) setOpen(true);
-      else posthog.opt_in_capturing({ captureEventName: false });
+      else {
+        posthog.opt_in_capturing({ captureEventName: false });
+        window.dispatchEvent(new Event(COOKIE_CHOSEN));
+      }
     });
     const reopen = () => setOpen(true);
     window.addEventListener(REOPEN, reopen);
@@ -37,6 +43,7 @@ export function CookieBanner() {
     else posthog.opt_out_capturing();
     // After the switch, so a "No thanks" is still counted (cookieless).
     posthog.capture("cookie_consent_chosen", { choice: accepted ? "accepted" : "rejected", page: window.location.pathname });
+    window.dispatchEvent(new Event(COOKIE_CHOSEN));
     setOpen(false);
   };
 

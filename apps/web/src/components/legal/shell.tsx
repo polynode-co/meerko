@@ -4,7 +4,7 @@ import { LkToc } from "@/components/lookout/marketing/toc";
 
 // The legal pages (/privacy, /terms), from the .pen design "LK · Legal template" (liF7V).
 
-export const LEGAL_UPDATED = "3 November 2026";
+export const LEGAL_UPDATED = "25 November 2026";
 
 /** Who runs Meerko Cloud: the same company as Antwork (its privacy and terms pages say the same). */
 export const LEGAL_ENTITY = {
