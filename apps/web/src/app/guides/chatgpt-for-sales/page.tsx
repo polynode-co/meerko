@@ -3,11 +3,12 @@ import { Callout, citer, GuideShell, H2, Sample } from "@/components/lookout/doc
 import { mcpUrl } from "@/lib/meerko";
 import { mcp } from "@/lib/docs";
 
-// Targets "chatgpt connectors" (720/mo, KD 6), "chatgpt mcp" (720, KD 6) and "chatgpt for sales" (140) (DataForSEO, US, Nov 2026).
+// Targets "chatgpt connectors" (720/mo, KD 6) and "chatgpt mcp" (720, KD 6) (DataForSEO, US, Nov 2026). "chatgpt for sales"
+// belongs to /chatgpt, the landing page, so this guide's title leads with connectors and links there; the URL stays.
 export const metadata: Metadata = {
-  title: "ChatGPT for Sales: ChatGPT Connectors and Custom MCP Servers | Meerko",
+  title: "ChatGPT Connectors and Custom MCP Servers, for Sales Tools | Meerko",
   description:
-    "How ChatGPT connectors and custom MCP servers work, how to add one, and how to use ChatGPT for sales: lead lists, sequences and replies.",
+    "How ChatGPT connectors and custom MCP servers work, how to add one, and what a sales MCP server does in ChatGPT: lead lists, sequences and replies.",
   alternates: { canonical: "/guides/chatgpt-for-sales" },
 };
 
@@ -29,13 +30,14 @@ export default function Page() {
     <GuideShell
       slug="chatgpt-for-sales"
       eyebrow="Guide · AI agents"
-      h1="ChatGPT for sales: ChatGPT connectors and custom MCP servers"
+      h1="ChatGPT connectors and custom MCP servers, for sales"
       description={metadata.description as string}
       lead={
         <p>
           ChatGPT connects to outside tools through MCP servers, which it now packages as plugins. Add a custom MCP server with sales
           tools and ChatGPT can search for leads, write a sequence and draft reply answers, asking before it runs anything that sends
-          email.
+          email. For the short version with the Meerko plugin, see{" "}
+          <a href="/chatgpt" className="text-accent hover:underline">ChatGPT for sales</a>.
         </p>
       }
       toc={[

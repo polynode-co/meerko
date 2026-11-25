@@ -15,7 +15,8 @@ export default function Page() {
       lead={
         <p>
           Meerko&apos;s MCP server is a remote server that signs you in with OAuth, the way the MCP spec describes. Any client that supports
-          remote servers and OAuth can connect with just the URL.
+          remote servers and OAuth can connect with just the URL. Using Claude or ChatGPT? See{" "}
+          <L href="/claude">Claude for sales</L> and <L href="/chatgpt">ChatGPT for sales</L>.
         </p>
       }
       toc={[

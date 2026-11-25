@@ -136,6 +136,8 @@ export function LkFooter() {
     ["Docs", site.docsUrl],
     ["Guides", "/guides"],
     ["Integrations", "/integrations"],
+    ["Claude", "/claude"],
+    ["ChatGPT", "/chatgpt"],
     ["GitHub", site.githubUrl],
     ["Privacy", "/privacy"],
     ["Terms", "/terms"],
@@ -165,6 +167,8 @@ export function LkFooter() {
 }
 
 const directory: [string, string, string][] = [
+  ["Claude", "Claude for sales", "/claude"],
+  ["ChatGPT", "ChatGPT for sales", "/chatgpt"],
   ["Docs", "Quick start · MCP tools", site.docsUrl],
   ["Guides", "Cold email · deliverability", "/guides"],
   ["Integrations", "Gmail · Outlook · Slack", "/integrations"],
@@ -181,7 +185,7 @@ export function LkLandscapeFooter() {
     <footer className="overflow-hidden bg-lk-bg">
       <div className="mx-auto flex max-w-[1440px] flex-col items-center gap-10 px-6 pt-24 pb-14 lg:px-36 lg:pt-[120px]">
         <p className={`${kicker} text-center`}>Always on the lookout for your next customer</p>
-        <nav aria-label="Footer" className="grid w-full max-w-[960px] grid-cols-2 gap-x-6 gap-y-9 lg:grid-cols-4">
+        <nav aria-label="Footer" className="grid w-full max-w-[1100px] grid-cols-2 gap-x-6 gap-y-9 lg:grid-cols-5">
           {directory.map(([name, caption, href]) => (
             <a key={name} href={href} className="group flex flex-col items-center gap-2 text-center">
               <span className="text-[24px] font-medium tracking-[-0.8px] text-lk-fg transition group-hover:text-lk-lime sm:text-[28px]">{name}</span>

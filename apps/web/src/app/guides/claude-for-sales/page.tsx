@@ -3,11 +3,12 @@ import { Callout, citer, GuideShell, H2, Sample } from "@/components/lookout/doc
 import { mcpUrl } from "@/lib/meerko";
 import { mcp } from "@/lib/docs";
 
-// Targets "claude connectors" (3.6k/mo, KD 13), "claude sales" (260) and "claude for sales" (210) (DataForSEO, US, Nov 2026).
+// Targets "claude connectors" (3.6k/mo, KD 13) (DataForSEO, US, Nov 2026). "claude for sales" and "claude sales" belong to
+// /claude, the landing page, so this guide's title leads with connectors and links there; the URL stays.
 export const metadata: Metadata = {
-  title: "Claude for Sales: Using Claude Connectors for Outbound | Meerko",
+  title: "Claude Connectors: What They Are and How to Add One for Sales | Meerko",
   description:
-    "What Claude connectors are, how to add a custom connector, and how to use Claude for sales: lead lists, sequences and replies, with prompts you can copy.",
+    "What Claude connectors are, how to add a custom connector, and how a sales connector works in Claude: lead lists, sequences and replies, with prompts you can copy.",
   alternates: { canonical: "/guides/claude-for-sales" },
 };
 
@@ -31,12 +32,13 @@ export default function Page() {
     <GuideShell
       slug="claude-for-sales"
       eyebrow="Guide · AI agents"
-      h1="Claude for sales: using Claude connectors for outbound"
+      h1="Claude connectors: what they are and how to use one for sales"
       description={metadata.description as string}
       lead={
         <p>
           Claude connectors link Claude to outside tools through remote MCP servers. Add a sales connector and Claude can build a lead
-          list, write a sequence and work through replies in a normal chat, while you approve anything that emails a real person.
+          list, write a sequence and work through replies in a normal chat, while you approve anything that emails a real person. For the
+          short version with the setup on one page, see <a href="/claude" className="text-accent hover:underline">Claude for sales</a>.
         </p>
       }
       toc={[

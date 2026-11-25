@@ -9,11 +9,14 @@ export const proPrices = { month: 49, year: 490 } as const;
 /** 50% off the first year of annual Pro, for the first 50 customers, until the end of 2026 (the Stripe coupon). */
 export const foundingOffer = { percentOff: 50, places: 50, until: "Dec 31, 2026", endsAt: "2026-12-31T23:59:59Z" } as const;
 
+/** The credits a new Cloud workspace starts with (core credits.ts). */
+export const FREE_CREDITS = 200;
+
 export const freePlan = {
   name: "Free",
   price: "$0",
   per: "to start",
-  sub: "200 credits included, once",
+  sub: `${FREE_CREDITS} credits included, once`,
   features: ["Hosted and maintained", "1 mailbox", "Managed enrichment", "Every agent tool: MCP, CLI, API"],
   cta: "Start free",
   href: site.signupUrl,

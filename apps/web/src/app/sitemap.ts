@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { assistantPages } from "@/lib/assistant-pages";
 import { alternatives, guides, versusPages } from "@/lib/content";
 import { docHref, docPages } from "@/lib/docs";
 import { integrationPages } from "@/lib/integrations";
@@ -9,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { path: "/", changeFrequency: "weekly", priority: 1 },
     { path: "/pricing", changeFrequency: "monthly", priority: 0.8 },
+    ...Object.keys(assistantPages).map((slug) => ({ path: `/${slug}`, changeFrequency: "monthly", priority: 0.8 })),
     ...docPages.map((p) => ({ path: docHref(p.slug), changeFrequency: "weekly", priority: p.slug ? 0.6 : 0.8 })),
     { path: "/guides", changeFrequency: "weekly", priority: 0.7 },
     { path: "/alternatives", changeFrequency: "monthly", priority: 0.7 },
