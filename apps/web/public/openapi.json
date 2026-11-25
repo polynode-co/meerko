@@ -307,6 +307,74 @@
           }
         }
       },
+      "patch": {
+        "operationId": "renameTable",
+        "tags": [
+          "tables"
+        ],
+        "summary": "Rename a table",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "description": "The table's new name"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rename a table",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "table": {
+                      "$ref": "#/components/schemas/Table"
+                    }
+                  },
+                  "required": [
+                    "table"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "operationId": "deleteTable",
         "tags": [
@@ -794,6 +862,55 @@
                     "updated",
                     "addedColumns"
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tables/{id}/rows/{rowId}": {
+      "get": {
+        "operationId": "getLead",
+        "tags": [
+          "tables"
+        ],
+        "summary": "One lead: its row, the sequences it's in, and every email sent to it or received from it",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rowId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One lead: its row, the sequences it's in, and every email sent to it or received from it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lead"
                 }
               }
             }
@@ -5232,6 +5349,9 @@
           "note",
           "reason"
         ]
+      },
+      "Lead": {
+        "$ref": "#/components/schemas/Lead"
       },
       "Mailbox": {
         "type": "object",

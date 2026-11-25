@@ -1,4 +1,4 @@
-import { and, dataTables, desc, eq, inArray, sequences, sql, tableRows, type ColumnDef, type Db, type Stage } from "@meerko/db";
+import { and, dataTables, desc, enrollments, eq, inArray, messages, sequences, sql, tableRows, type ColumnDef, type Db, type Stage } from "@meerko/db";
 import { coerceRow, inferNewColumns, normalizeRow, toColumnKey } from "./columns.ts";
 import { renderTemplate } from "./template.ts";
 
@@ -25,6 +25,67 @@ export async function createTable(
   const columns = (input.columns ?? []).map((c) => ({ ...c, key: toColumnKey(c.name) }));
   const [table] = await db.insert(dataTables).values({ workspaceId, name: input.name, columns }).returning();
   return table!;
+}
+
+export async function renameTable(db: Db, workspaceId: string, tableId: string, name: string) {
+  const [table] = await db
+    .update(dataTables)
+    .set({ name: name.trim() })
+    .where(and(eq(dataTables.workspaceId, workspaceId), eq(dataTables.id, tableId)))
+    .returning();
+  if (!table) throw new NotFoundError(`Table ${tableId} not found`);
+  return table;
+}
+
+/**
+ * One lead (row) with what happened to it: each sequence it's in, and every email sent to it or received from it,
+ * oldest first.
+ */
+export async function getLead(db: Db, workspaceId: string, tableId: string, rowId: string) {
+  await getTable(db, workspaceId, tableId);
+  const [row] = await db
+    .select({ id: tableRows.id, data: tableRows.data, stage: tableRows.stage, stageChangedAt: tableRows.stageChangedAt, createdAt: tableRows.createdAt, icpAdjust: tableRows.icpAdjust, icpNote: tableRows.icpNote })
+    .from(tableRows)
+    .where(and(eq(tableRows.tableId, tableId), eq(tableRows.id, rowId)));
+  if (!row) throw new NotFoundError(`Row ${rowId} not found`);
+  const enrolled = await db
+    .select({
+      enrollmentId: enrollments.id,
+      sequenceId: sequences.id,
+      sequenceName: sequences.name,
+      state: enrollments.state,
+      stepsSent: enrollments.nextStep,
+      nextSendAt: enrollments.nextSendAt,
+      email: enrollments.email,
+    })
+    .from(enrollments)
+    .innerJoin(sequences, eq(sequences.id, enrollments.sequenceId))
+    .where(and(eq(enrollments.rowId, rowId), eq(sequences.workspaceId, workspaceId)))
+    .orderBy(enrollments.createdAt);
+  const emails = enrolled.length
+    ? await db
+        .select({
+          id: messages.id,
+          enrollmentId: messages.enrollmentId,
+          direction: messages.direction,
+          step: messages.step,
+          from: messages.fromEmail,
+          to: messages.toEmail,
+          subject: messages.subject,
+          body: messages.body,
+          intent: messages.intent,
+          sentAt: messages.sentAt,
+        })
+        .from(messages)
+        .where(and(eq(messages.workspaceId, workspaceId), inArray(messages.enrollmentId, enrolled.map((e) => e.enrollmentId))))
+        .orderBy(messages.sentAt)
+    : [];
+  const sequenceOf = new Map(enrolled.map((e) => [e.enrollmentId, e.sequenceName]));
+  return {
+    row,
+    sequences: enrolled.map(({ enrollmentId: _, ...e }) => e),
+    emails: emails.map(({ enrollmentId, ...m }) => ({ ...m, sequenceName: (enrollmentId && sequenceOf.get(enrollmentId)) || null })),
+  };
 }
 
 export async function addColumn(db: Db, workspaceId: string, tableId: string, column: Omit<ColumnDef, "key">) {

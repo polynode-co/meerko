@@ -615,6 +615,22 @@ The body goes as written: Gmail doesn't add the user's signature to emails sent 
   );
 
   tool(
+    "rename_table",
+    { description: "Rename a table (a list of leads).", inputSchema: { table_id: z.string(), name: z.string().min(1).max(120) } },
+    ({ table_id, name }) => run(() => client().renameTable(table_id, name)),
+  );
+
+  tool(
+    "get_lead",
+    {
+      description:
+        "One lead (row) in full: every field, its stage and ICP fit, the sequences it's in and where it is in each, and every email sent to it or received from it, oldest first.",
+      inputSchema: { table_id: z.string(), row_id: z.string() },
+    },
+    ({ table_id, row_id }) => run(() => client().getLead(table_id, row_id)),
+  );
+
+  tool(
     "delete_table",
     {
       description:

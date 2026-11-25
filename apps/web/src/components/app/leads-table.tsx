@@ -1,10 +1,11 @@
 "use client";
 
 import { Loader, Sparkles, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import type { Row } from "@meerko/sdk";
-import { STAGES } from "@meerko/sdk/constants";
+import { isPlatformHost, siteHost, STAGES } from "@meerko/sdk/constants";
 import { deleteRows, moveStage } from "@/app/app/actions";
+import { LeadPanel, type LeadField } from "./lead-panel";
 import { ScoreRing } from "./score-ring";
 import { buttonClass, Pill, stageTone, thText } from "./ui";
 
@@ -35,10 +36,26 @@ function Cell({ col, data }: { col: LeadColumn; data: Record<string, unknown> })
     );
   }
   if (col.kind === "company") {
+    const domain = str(data.domain);
+    // Older leads can hold a platform page (instagram.com, linktr.ee) as their domain: show it as the profile link it is.
+    const platform = domain && isPlatformHost(siteHost(domain));
     return (
       <div className="flex flex-col gap-0.5">
         <span className="text-[13px] text-lk-fg">{str(data.company) || "—"}</span>
-        {!!data.domain && <span className="font-mono text-[11px] text-lk-dim">{str(data.domain)}</span>}
+        {platform ? (
+          <a
+            href={/^https?:\/\//i.test(domain) ? domain : `https://${domain}`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="font-mono text-[11px] text-ws-blue hover:underline"
+            title="A profile page, not the company's own site"
+          >
+            {siteHost(domain)} profile ↗
+          </a>
+        ) : (
+          domain && <span className="font-mono text-[11px] text-lk-dim">{domain}</span>
+        )}
       </div>
     );
   }
@@ -81,7 +98,7 @@ function Cell({ col, data }: { col: LeadColumn; data: Record<string, unknown> })
   if (/^https?:\/\//.test(value)) {
     const host = (value.match(/^https?:\/\/(?:www\.)?([^/?#]+)/i)?.[1] ?? "link").toLowerCase();
     return (
-      <a href={value} target="_blank" rel="noreferrer" className="text-[13px] whitespace-nowrap text-ws-blue hover:underline">
+      <a href={value} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-[13px] whitespace-nowrap text-ws-blue hover:underline">
         {host.endsWith("linkedin.com") ? "LinkedIn" : host} ↗
       </a>
     );
@@ -89,8 +106,12 @@ function Cell({ col, data }: { col: LeadColumn; data: Record<string, unknown> })
   return <span className="line-clamp-2 text-[13px] text-lk-fg">{value || <span className="text-lk-dim">—</span>}</span>;
 }
 
-export function LeadsTable({ tableId, columns, rows }: { tableId: string; columns: LeadColumn[]; rows: Row[] }) {
+export function LeadsTable({ tableId, columns, rows, fields }: { tableId: string; columns: LeadColumn[]; rows: Row[]; fields: LeadField[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // The lead open in the side panel.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const open = rows.find((r) => r.id === openId);
+  const close = useCallback(() => setOpenId(null), []);
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const toggle = (id: string) => setSelected((s) => (s.has(id) ? new Set([...s].filter((x) => x !== id)) : new Set(s).add(id)));
@@ -184,12 +205,19 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
               </tr>
             )}
             {rows.map((r) => (
-              <tr key={r.id} className={`border-b border-lk-line last:border-0 ${selected.has(r.id) ? "bg-lk-frame" : "hover:bg-lk-frame"}`}>
-                <td className="py-2.5 pr-2 pl-4 align-middle">
+              <tr
+                key={r.id}
+                onClick={() => setOpenId(r.id)}
+                onKeyDown={(e) => e.key === "Enter" && e.target === e.currentTarget && setOpenId(r.id)}
+                tabIndex={0}
+                className={`cursor-pointer border-b border-lk-line last:border-0 ${selected.has(r.id) || openId === r.id ? "bg-lk-frame" : "hover:bg-lk-frame"}`}
+              >
+                {/* The checkbox cell selects; anywhere else on the row opens the lead. */}
+                <td className="py-2.5 pr-2 pl-4 align-middle" onClick={(e) => e.stopPropagation()}>
                   <input type="checkbox" aria-label="Select row" checked={selected.has(r.id)} onChange={() => toggle(r.id)} className="size-3.5 accent-lk-fg" />
                 </td>
                 {scored && (
-                  <td className="py-2.5 pr-1 pl-2 align-middle">
+                  <td className="py-2.5 pr-1 pl-2 align-middle" onClick={(e) => e.stopPropagation()}>
                     <ScoreRing fit={r.icp} />
                   </td>
                 )}
@@ -206,6 +234,7 @@ export function LeadsTable({ tableId, columns, rows }: { tableId: string; column
           </tbody>
         </table>
       </div>
+      {open && <LeadPanel tableId={tableId} row={open} fields={fields} onClose={close} />}
     </div>
   );
 }

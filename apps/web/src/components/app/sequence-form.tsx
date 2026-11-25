@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, Plus, Trash2 } from "lucide-react";
+import { Info, Plus, Trash2, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createSequence } from "@/app/app/actions";
@@ -10,8 +10,12 @@ type Step = { subject: string; body: string; delay_days: number };
 export type FormTable = { id: string; name: string; rowCount: number; columns: { key: string; name: string }[] };
 export type FormMailbox = { id: string; email: string; status: string };
 
-const FIRST: Step = { subject: "", body: "Hi {{first_name}},\n\n", delay_days: 0 };
-const FOLLOW_UP: Step = { subject: "", body: "Hi {{first_name}},\n\n", delay_days: 3 };
+// The greeting a new email starts with: by first name only when the table has one (a companies-only table doesn't).
+const greeting = (table?: FormTable) => (table?.columns.some((c) => c.key === "first_name") ? "Hi {{first_name}},\n\n" : "Hi,\n\n");
+// Columns that aren't for writing with: enrichment verdicts and internal identifiers.
+const NOT_PLACEHOLDERS = /^(email_certainty|email_verification|phone_type)$|(^|_)(urn|uuid)$/;
+const VAR_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
+const varsIn = (text: string) => [...new Set([...text.matchAll(VAR_RE)].map((m) => m[1]!))];
 const HOURS = Array.from({ length: 25 }, (_, h) => h);
 const box = "rounded-md border border-lk-line bg-white px-2.5 py-[7px] font-mono text-[12.5px] text-lk-fg focus:border-lk-fg focus:outline-none";
 
@@ -24,7 +28,7 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
   const [name, setName] = useState("");
   const [tableId, setTableId] = useState(defaultTableId ?? tables[0]?.id ?? "");
   const [mailboxIds, setMailboxIds] = useState(() => mailboxes.filter((m) => m.status === "active").slice(0, 1).map((m) => m.id));
-  const [steps, setSteps] = useState<Step[]>([FIRST]);
+  const [steps, setSteps] = useState<Step[]>(() => [{ subject: "", body: greeting(tables.find((t) => t.id === tableId)), delay_days: 0 }]);
   const [startHour, setStartHour] = useState(9);
   const [endHour, setEndHour] = useState(17);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +37,19 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
   const focused = useRef<{ step: number; key: "subject" | "body"; el: HTMLInputElement | HTMLTextAreaElement } | null>(null);
 
   const table = tables.find((t) => t.id === tableId);
-  const placeholders = useMemo(() => table?.columns.map((c) => c.key) ?? [], [table]);
+  const placeholders = useMemo(() => table?.columns.map((c) => c.key).filter((k) => !NOT_PLACEHOLDERS.test(k)) ?? [], [table]);
+  const columnKeys = useMemo(() => new Set(table?.columns.map((c) => c.key)), [table]);
+  // A table without an email column has nobody to send to yet.
+  const noEmail = !!table && !columnKeys.has("email");
+  const people = !!table && (columnKeys.has("first_name") || columnKeys.has("last_name"));
+  const unknownIn = (text: string) => varsIn(text).filter((v) => !columnKeys.has(v));
+  // Switching tables swaps an untouched greeting for the new table's.
+  const chooseTable = (id: string) => {
+    const before = greeting(table);
+    const after = greeting(tables.find((t) => t.id === id));
+    setSteps((all) => all.map((s) => (s.body === before ? { ...s, body: after } : s)));
+    setTableId(id);
+  };
   // The browser's time zone; set after hydration, since the server renders in its own (UTC on Cloud Run).
   const [timezone, setTimezone] = useState("UTC");
   useEffect(() => setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone), []);
@@ -101,7 +117,7 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
             </label>
             <label className="flex flex-col gap-1.5">
               <span className={fieldLabel}>Send to the people in</span>
-              <select value={tableId} onChange={(e) => setTableId(e.target.value)} className={field}>
+              <select value={tableId} onChange={(e) => chooseTable(e.target.value)} className={field}>
                 {tables.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name} · {t.rowCount.toLocaleString("en")} {t.rowCount === 1 ? "row" : "rows"}
@@ -109,7 +125,30 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
                 ))}
               </select>
             </label>
-            <fieldset className="flex flex-col gap-2">
+            {noEmail && (
+              <div role="status" className="flex gap-2.5 rounded-md border border-[#f3e2a6] bg-ws-acc-soft px-3 py-2.5 text-[12.5px] text-lk-fg">
+                <TriangleAlert className="mt-px size-[14px] shrink-0 text-ws-acc-ink" />
+                <span className="flex flex-col gap-1.5">
+                  <span>
+                    <span className="font-semibold">Nobody to email yet.</span> {table!.name} has no email column, so starting this sequence would send
+                    nothing.
+                  </span>
+                  <span className="flex flex-wrap gap-x-3 gap-y-1">
+                    {people ? (
+                      <Link href={`/app/leads/${table!.id}`} className="font-semibold underline underline-offset-2">
+                        Find their emails
+                      </Link>
+                    ) : (
+                      <Link href="/app/leads/find" className="font-semibold underline underline-offset-2">
+                        Find people at these companies
+                      </Link>
+                    )}
+                  </span>
+                </span>
+              </div>
+            )}
+            {/* min-w-0: a fieldset is as wide as its content by default, so a long address would spill out of the card. */}
+            <fieldset className="flex min-w-0 flex-col gap-2">
               <legend className={`${fieldLabel} pb-1.5`}>Send from</legend>
               {mailboxes.map((m) => (
                 <label key={m.id} className="flex items-center gap-2.5">
@@ -220,13 +259,25 @@ export function SequenceForm({ tables, mailboxes, defaultTableId }: { tables: Fo
                 aria-label={`Email ${i + 1}`}
                 className={`${field} p-3 font-mono !text-[12.5px] leading-[21px]`}
               />
+              {table && unknownIn(`${s.subject}\n${s.body}`).length > 0 && (
+                <p role="alert" className="flex items-start gap-2 text-[12.5px] text-ws-red">
+                  <TriangleAlert className="mt-px size-[14px] shrink-0" />
+                  <span>
+                    {unknownIn(`${s.subject}\n${s.body}`)
+                      .map((v) => `{{${v}}}`)
+                      .join(", ")}{" "}
+                    {unknownIn(`${s.subject}\n${s.body}`).length === 1 ? "isn't a column" : "aren't columns"} in {table.name}, so everyone would be skipped. Use one
+                    of the placeholders above, or remove it.
+                  </span>
+                </p>
+              )}
             </div>
           ))}
 
           {steps.length < 10 && (
             <button
               type="button"
-              onClick={() => setSteps((all) => [...all, FOLLOW_UP])}
+              onClick={() => setSteps((all) => [...all, { subject: "", body: greeting(table), delay_days: 3 }])}
               className="flex w-full items-center justify-center gap-2 px-4 py-3 text-[12.5px] font-semibold text-lk-muted transition hover:bg-lk-frame hover:text-lk-fg"
             >
               <Plus className="size-[14px]" /> Add a follow-up

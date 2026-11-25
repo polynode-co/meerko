@@ -23,6 +23,7 @@ export const updateRowsInput = z.object({
   updates: z.array(z.object({ id: z.string(), data: jsonObject })).max(1000),
 });
 export const createTableInput = z.object({ name: z.string().min(1), columns: z.array(columnInput).optional() });
+export const renameTableInput = z.object({ name: z.string().trim().min(1).max(120).describe("The table's new name") });
 export const insertRowsInput = z.object({ rows: z.array(jsonObject).max(10_000) });
 export const deleteRowsInput = z.object({ row_ids: z.array(z.string()).min(1).max(1000) });
 export const moveStageInput = z.object({ row_ids: z.array(z.string()).min(1).max(1000), stage: z.enum(STAGES) });
@@ -253,6 +254,37 @@ export const IcpFit = z.object({
   reason: z.string().nullable().describe("One line on why: the agent's note, else what matched and what didn't"),
 });
 export const Row = z.object({ id: z.string(), data: jsonObject, stage, stageChangedAt: nts, createdAt: ts, icp: IcpFit.describe("How well the lead fits the workspace ICP") });
+export const Lead = z.object({
+  row: Row,
+  sequences: z
+    .array(
+      z.object({
+        sequenceId: z.string(),
+        sequenceName: z.string(),
+        state: z.enum(["active", "completed", "replied", "unsubscribed", "bounced", "stopped", "failed"]),
+        stepsSent: z.number(),
+        nextSendAt: nts,
+        email: z.string(),
+      }),
+    )
+    .describe("The sequences this lead is enrolled in"),
+  emails: z
+    .array(
+      z.object({
+        id: z.string(),
+        direction: z.enum(["in", "out"]).describe("out: sent to the lead; in: their reply"),
+        step: z.number().nullable(),
+        from: z.string(),
+        to: z.string(),
+        subject: z.string().nullable(),
+        body: z.string(),
+        intent: z.string().nullable(),
+        sentAt: ts,
+        sequenceName: z.string().nullable(),
+      }),
+    )
+    .describe("Every email sent to the lead or received from them, oldest first"),
+});
 export const PendingCells = z.object({
   column: z.string(),
   prompt: z.string(),

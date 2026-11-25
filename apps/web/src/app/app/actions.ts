@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { parse as parseCsv } from "csv-parse/sync";
-import { MAIL_PROVIDERS, MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type MailProviderId, type MailServers, type ReplyIntent, type SequenceStep, type Stage } from "@meerko/sdk";
+import { MAIL_PROVIDERS, MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type Lead, type MailProviderId, type MailServers, type ReplyIntent, type SequenceStep, type Stage } from "@meerko/sdk";
 import { apiUrl, meerko, safeNext, SESSION_COOKIE, setSessionCookie } from "@/lib/meerko";
 import { buildLeadQuery, defaultTableName } from "@/lib/lead-query";
 import { site } from "@/lib/site";
@@ -336,6 +336,31 @@ export async function disconnectMailbox(mailboxId: string): Promise<ActionResult
 /** Lifts the hold Meerko put on a mailbox after too many bounces or spam rejections. */
 export async function resumeMailbox(mailboxId: string): Promise<ActionResult> {
   return run((c) => c.updateMailbox(mailboxId, { resume: true }).then((m) => `${m.email} is sending again.`), ["/app/settings"]);
+}
+
+/** Creates an empty table and opens it, to add leads to by hand or with the agent. */
+export async function createTable(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const name = String(form.get("name") ?? "").trim();
+  if (!name) return { ok: false, error: "Give the table a name" };
+  let id = "";
+  const res = await run(async (c) => void (id = (await c.createTable({ name })).id), ["/app/leads"]);
+  if (res.ok) redirect(`/app/leads/${id}`);
+  return res;
+}
+
+export async function renameTable(tableId: string, name: string): Promise<ActionResult> {
+  if (!name.trim()) return { ok: false, error: "Give the table a name" };
+  return run((c) => c.renameTable(tableId, name.trim()).then((t) => `Renamed to ${t.name}`), ["/app/leads", `/app/leads/${tableId}`, "/app/sequences"]);
+}
+
+/** One lead with its sequences and emails, for the lead panel. */
+export async function getLead(tableId: string, rowId: string): Promise<{ ok: true; lead: Lead } | { ok: false; error: string }> {
+  try {
+    return { ok: true, lead: await (await meerko()).getLead(tableId, rowId) };
+  } catch (err) {
+    if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
+    throw err;
+  }
 }
 
 /** Deletes a table, then leaves its (now missing) page for the list of tables. */

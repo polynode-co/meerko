@@ -1560,6 +1560,62 @@
         }
       },
       {
+        "name": "rename_table",
+        "title": "Rename a table",
+        "description": "Rename a table (a list of leads).",
+        "annotations": {
+          "title": "Rename a table",
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          },
+          "required": [
+            "table_id",
+            "name"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "get_lead",
+        "title": "Get a lead and its emails",
+        "description": "One lead (row) in full: every field, its stage and ICP fit, the sequences it's in and where it is in each, and every email sent to it or received from it, oldest first.",
+        "annotations": {
+          "title": "Get a lead and its emails",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "table_id": {
+              "type": "string"
+            },
+            "row_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "table_id",
+            "row_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
         "name": "delete_table",
         "title": "Delete a table",
         "description": "Permanently delete a table with all its rows and its paused or draft sequences. Refused while one of its sequences is active (pause it first). Confirm with the user before deleting.",
@@ -1908,6 +1964,18 @@
             "required": false
           }
         ]
+      },
+      {
+        "usage": "meerko tables lead <tableId> <rowId>",
+        "group": "tables",
+        "description": "show one lead: every field, its sequences, and the emails sent to it or received from it",
+        "options": []
+      },
+      {
+        "usage": "meerko tables rename <tableId> <name>",
+        "group": "tables",
+        "description": "rename a table",
+        "options": []
       },
       {
         "usage": "meerko tables delete-rows <tableId> <rowIds...>",

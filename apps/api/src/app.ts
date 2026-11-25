@@ -119,6 +119,8 @@ import {
   setProviderKey,
   getPendingCells,
   getTable,
+  getLead,
+  renameTable,
   IcypeasError,
   insertRows,
   listTables,
@@ -219,6 +221,7 @@ import {
   createApiKeyInput,
   createSequenceInput,
   createTableInput,
+  renameTableInput,
   deleteRowsInput,
   draftInput,
   sendingModeInput,
@@ -1367,6 +1370,17 @@ export function createApp(db: Db, deps: AppDeps = {}) {
   });
 
   v1.get("/tables/:id", async (c) => c.json({ table: await getTable(db, c.var.workspaceId, c.req.param("id")) }));
+
+  v1.patch("/tables/:id", async (c) => {
+    const { name } = await parse(renameTableInput, await c.req.json());
+    return c.json({ table: await renameTable(db, c.var.workspaceId, c.req.param("id"), name) });
+  });
+
+  v1.get("/tables/:id/rows/:rowId", async (c) => {
+    const [lead, icp] = await Promise.all([getLead(db, c.var.workspaceId, c.req.param("id"), c.req.param("rowId")), getIcp(db, c.var.workspaceId)]);
+    const { icpAdjust, icpNote, ...row } = lead.row;
+    return c.json({ ...lead, row: { ...row, icp: scoreRow(icp, row.data, { adjust: icpAdjust, note: icpNote }) } });
+  });
 
   v1.post("/tables/:id/columns", async (c) => {
     const input = await parse(columnInput, await c.req.json());

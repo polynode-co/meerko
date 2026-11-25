@@ -10,10 +10,16 @@ export function EnrollButton({ sequenceId, tableName }: { sequenceId: string; ta
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
   return (
-    <div className="flex flex-wrap items-center justify-end gap-3">
-      <button disabled={pending} onClick={() => start(async () => setResult(await enrollTable(sequenceId)))} className={buttonClass("secondary", "sm")}>
-        <UserPlus />
-        {pending ? "Adding…" : `Add everyone from ${tableName}`}
+    // A long table name truncates on a phone instead of pushing the button out of the card.
+    <div className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-3">
+      <button
+        disabled={pending}
+        onClick={() => start(async () => setResult(await enrollTable(sequenceId)))}
+        className={`${buttonClass("secondary", "sm")} max-w-full`}
+        title={`Add everyone from ${tableName}`}
+      >
+        <UserPlus className="shrink-0" />
+        <span className="truncate">{pending ? "Adding…" : `Add everyone from ${tableName}`}</span>
       </button>
       {result && <span role="status" className={`text-[12.5px] ${result.ok ? "text-ws-green" : "text-ws-red"}`}>{result.ok ? result.message : result.error}</span>}
     </div>

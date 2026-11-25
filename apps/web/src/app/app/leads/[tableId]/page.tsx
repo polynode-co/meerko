@@ -13,6 +13,8 @@ const PAGE = 50;
 // "WS · Lead table" (fyeZC) in docs/design/meerko.pen.
 // Shown inside the Name/Company/Email cells instead of as their own columns.
 const MERGED = new Set(["first_name", "last_name", "title", "company", "domain", "email", "email_certainty", "email_verification"]);
+// Internal identifiers (a LinkedIn "Company URN") mean nothing to a person: left out of the table, shown in the lead panel.
+const INTERNAL = /(^|_)(urn|uuid)$/;
 
 export default async function TablePage({
   params,
@@ -45,7 +47,7 @@ export default async function TablePage({
     ...(keys.has("company") ? [{ key: "company", name: "Company", kind: "company" as const }] : []),
     ...(keys.has("email") || keys.has("email_certainty") ? [{ key: "email", name: "Email", kind: "email" as const }] : []),
     ...table.columns
-      .filter((c) => !MERGED.has(c.key))
+      .filter((c) => !MERGED.has(c.key) && !INTERNAL.test(c.key))
       .map((c) => ({ key: c.key, name: c.name, kind: c.prompt ? ("ai" as const) : ("plain" as const), prompt: c.prompt })),
   ];
   const aiPending = columns
@@ -114,7 +116,7 @@ export default async function TablePage({
       </div>
 
       <Card>
-        <LeadsTable tableId={tableId} columns={columns} rows={rows} />
+        <LeadsTable tableId={tableId} columns={columns} rows={rows} fields={table.columns.map((c) => ({ key: c.key, name: c.name }))} />
       </Card>
 
       {aiPending.length > 0 && (

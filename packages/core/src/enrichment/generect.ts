@@ -1,4 +1,4 @@
-import { toDomain } from "./icypeas.ts";
+import { rowDomain } from "./icypeas.ts";
 import { MissingInputError, type EnrichField, type EnrichmentProvider, type EnrichResult } from "./types.ts";
 
 // REST contract: https://docs.generect.com/api-reference/introduction. Auth is `Token <key>`; every path needs its trailing slash.
@@ -153,7 +153,7 @@ function personFor(field: "email" | "phone", row: Record<string, unknown>): Gene
   if (linkedinUrl) return { linkedinUrl };
   const firstName = pick(row, "first_name", "firstname");
   const lastName = pick(row, "last_name", "lastname");
-  const domain = toDomain(pick(row, "domain", "website", "company_domain")) ?? undefined;
+  const domain = rowDomain(row).domain ?? undefined;
   const company = pick(row, "company") ?? undefined;
   if (field === "email" && !(firstName && lastName && domain)) {
     throw new MissingInputError("email search needs a LinkedIn URL, or a first and last name plus a domain");

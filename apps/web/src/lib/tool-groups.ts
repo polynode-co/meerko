@@ -4,7 +4,7 @@
 /** How the reference groups the MCP tools. Every tool must be in exactly one group. */
 export const toolGroups: { id: string; label: string; page: string; tools: string[] }[] = [
   { id: "workspaces", label: "Workspaces", page: "workspaces", tools: ["whoami", "list_workspaces", "switch_workspace", "create_workspace", "rename_workspace"] },
-  { id: "tables", label: "Tables", page: "tables", tools: ["list_tables", "create_table", "add_column", "get_pending_cells", "update_rows", "import_rows", "query_rows", "delete_rows", "delete_table"] },
+  { id: "tables", label: "Tables", page: "tables", tools: ["list_tables", "create_table", "rename_table", "add_column", "get_pending_cells", "update_rows", "import_rows", "query_rows", "get_lead", "delete_rows", "delete_table"] },
   { id: "leads", label: "Leads", page: "finding-leads", tools: ["read_website", "get_icp", "set_icp", "review_icp_fit", "find_people", "find_companies", "enrich_rows"] },
   { id: "mailboxes", label: "Mailboxes", page: "mailboxes", tools: ["connect_gmail", "list_mailboxes", "update_mailbox", "send_test_email", "check_domains"] },
   {

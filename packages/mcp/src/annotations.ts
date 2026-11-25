@@ -46,6 +46,8 @@ export const TOOL_ANNOTATIONS: Record<string, Entry> = {
   update_rows: destructive("Update rows"), // overwrites cell values
   import_rows: write("Import rows"),
   query_rows: read("Query rows"),
+  get_lead: read("Get a lead and its emails"),
+  rename_table: write("Rename a table"),
   delete_rows: destructive("Delete rows"),
   delete_table: destructive("Delete a table"),
 

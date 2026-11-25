@@ -25,6 +25,31 @@ export interface IcpFit {
   reason: string | null;
 }
 export interface Row { id: string; data: Record<string, unknown>; stage: Stage; stageChangedAt: string | null; createdAt: string; icp?: IcpFit }
+/** One lead with its history: the sequences it's in and every email to or from it, oldest first. */
+export interface Lead {
+  row: Row;
+  sequences: {
+    sequenceId: string;
+    sequenceName: string;
+    state: "active" | "completed" | "replied" | "unsubscribed" | "bounced" | "stopped" | "failed";
+    stepsSent: number;
+    nextSendAt: string | null;
+    email: string;
+  }[];
+  emails: {
+    id: string;
+    /** out: sent to the lead; in: their reply. */
+    direction: "in" | "out";
+    step: number | null;
+    from: string;
+    to: string;
+    subject: string | null;
+    body: string;
+    intent: string | null;
+    sentAt: string;
+    sequenceName: string | null;
+  }[];
+}
 
 /** Who a brand sells to. Every lead is scored against it. */
 export interface Icp {
@@ -676,6 +701,15 @@ export class MeerkoClient {
 
   createTable(input: { name: string; columns?: { name: string; type?: ColumnType }[] }) {
     return this.request<{ table: Table }>("POST", "/tables", input).then((r) => r.table);
+  }
+
+  renameTable(id: string, name: string) {
+    return this.request<{ table: Table }>("PATCH", `/tables/${id}`, { name }).then((r) => r.table);
+  }
+
+  /** One lead: its row, the sequences it's in, and every email sent to it or received from it. */
+  getLead(tableId: string, rowId: string) {
+    return this.request<Lead>("GET", `/tables/${tableId}/rows/${rowId}`);
   }
 
   addColumn(tableId: string, column: { name: string; type?: ColumnType; prompt?: string }) {

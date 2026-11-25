@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { companyToRow, IcypeasClient, IcypeasError, icypeasProvider, personToRow, toDomain } from "./icypeas.ts";
+// Relative, not @meerko/sdk: core doesn't depend on the SDK, it only checks the copy.
+import { PLATFORM_HOSTS as SDK_PLATFORM_HOSTS } from "../../../sdk/src/constants.ts";
+import { companyToRow, IcypeasClient, IcypeasError, icypeasProvider, personToRow, PLATFORM_HOSTS, toDomain } from "./icypeas.ts";
 import { MissingInputError, type EnrichmentProvider } from "./types.ts";
 import { runWaterfall } from "./waterfall.ts";
 
@@ -109,14 +111,28 @@ describe("icypeasProvider", () => {
     expect(await icypeasProvider(client(miss.fn)).enrich("email", row)).toMatchObject({ value: null, providerCost: 0 });
   });
 
-  it("searches by company name when the domain is a platform like instagram.com", async () => {
-    const hit = fakeFetch({
-      "/email-search": [queued],
-      "/bulk-single-searchs/read": [readItem("DEBITED", [{ email: "nora@brightkitchen.example", certainty: "very_sure" }])],
-    });
-    const row = { first_name: "Nora", last_name: "Whitlock", domain: "instagram.com", company: "Bright Kitchen with Nora" };
+  it("skips a lead whose only site is a platform like instagram.com, so no lookup is paid for", async () => {
+    const { fn, calls } = fakeFetch({});
+    for (const row of [
+      { first_name: "Nora", last_name: "Whitlock", domain: "instagram.com", company: "Bright Kitchen with Nora" },
+      { first_name: "Nora", last_name: "Whitlock", profile_url: "https://linktr.ee/brightkitchen", company: "Bright Kitchen with Nora" },
+    ]) {
+      await expect(icypeasProvider(client(fn)).enrich("email", row)).rejects.toBeInstanceOf(MissingInputError);
+    }
+    expect(calls).toHaveLength(0);
+  });
+
+  it("uses the real domain when a row has one besides a platform page", async () => {
+    const hit = fakeFetch({ "/email-search": [queued], "/bulk-single-searchs/read": [readItem("DEBITED_NOT_FOUND")] });
+    const row = { first_name: "Nora", last_name: "Whitlock", domain: "brightkitchen.example", profile_url: "https://instagram.com/brightkitchen" };
     await icypeasProvider(client(hit.fn)).enrich("email", row);
-    expect(hit.calls[0]!.body.domainOrCompany).toBe("Bright Kitchen with Nora");
+    expect(hit.calls[0]!.body.domainOrCompany).toBe("brightkitchen.example");
+  });
+
+  it("still searches by company name when a row has no site at all", async () => {
+    const hit = fakeFetch({ "/email-search": [queued], "/bulk-single-searchs/read": [readItem("DEBITED_NOT_FOUND")] });
+    await icypeasProvider(client(hit.fn)).enrich("email", { first_name: "Nora", last_name: "Whitlock", company: "Bright Kitchen" });
+    expect(hit.calls[0]!.body.domainOrCompany).toBe("Bright Kitchen");
   });
 
   it("rejects rows without enough input", async () => {
@@ -212,5 +228,21 @@ describe("row mapping", () => {
         urn: "urn:li:fs_salesCompany:37050282",
       }),
     ).toMatchObject({ employees: 11, founded_year: null, company_urn: "37050282" });
+  });
+
+  it("keeps a platform 'website' as a profile link and leaves the domain empty", () => {
+    expect(companyToRow({ name: "Bright Kitchen", website: "instagram.com/brightkitchen" })).toMatchObject({
+      domain: null,
+      profile_url: "https://instagram.com/brightkitchen",
+    });
+    expect(companyToRow({ name: "Acme", website: "https://acme.example" })).not.toHaveProperty("profile_url");
+    expect(personToRow({ firstname: "Nora", lastname: "W", lastCompanyWebsite: "https://linktr.ee/bk" })).toMatchObject({
+      domain: null,
+      company_profile_url: "https://linktr.ee/bk",
+    });
+  });
+
+  it("keeps the dashboard's copy of the platform hosts equal to core's", () => {
+    expect(SDK_PLATFORM_HOSTS).toEqual(PLATFORM_HOSTS);
   });
 });
