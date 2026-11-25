@@ -1,10 +1,33 @@
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { monoLabel } from "@/components/app/ui";
 
 /**
- * Pieces shared by the Connections page and its cards ("WS3 · Connections" f5ab4v and its modals in meerko.pen).
- * Candidates for components/app/ui.tsx once the WS3 rebuild settles. Interactive pieces are in ./dialog.tsx.
+ * Pieces shared by the Connections and Settings pages and their cards ("WS3 · Connections" f5ab4v and its modals in
+ * meerko.pen). Candidates for components/app/ui.tsx once the WS3 rebuild settles. Interactive pieces are in ./dialog.tsx.
  */
+
+/** The page's sections as in-page links: a column beside them on desktop, a scrolling row above them on a phone. */
+export function SectionNav({ label, items }: { label: string; items: [id: string, name: string, icon: LucideIcon, count?: number][] }) {
+  return (
+    <nav aria-label={label} className="-mx-5 overflow-x-auto px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0">
+      <ul className="flex gap-1 lg:sticky lg:top-6 lg:flex-col lg:gap-0.5">
+        {items.map(([id, name, Icon, count]) => (
+          <li key={id}>
+            <a
+              href={`#${id}`}
+              className="flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] whitespace-nowrap text-lk-muted transition hover:bg-lk-frame hover:text-lk-fg"
+            >
+              <Icon className="size-[15px] shrink-0" />
+              <span className="flex-1">{name}</span>
+              {!!count && <span className="font-mono text-[10.5px] text-lk-dim">{count}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
 
 /** A section of the Connections page: a title with a short mono note, actions on the right, its card(s) below. */
 export function SectionHead({ title, note, children }: { title: ReactNode; note?: ReactNode; children?: ReactNode }) {

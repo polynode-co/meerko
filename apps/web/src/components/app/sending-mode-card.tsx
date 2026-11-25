@@ -25,7 +25,15 @@ export function SendingModeCard({ mode, canManage }: { mode: SendingMode; canMan
 
   return (
     <section id="sending-mode" className="scroll-mt-6">
-      <SectionHead title="Sending" note={modes.size > 1 ? "mixed mode" : modes.has("approve") ? "approve mode" : "sends on its own"} />
+      <SectionHead title="Sending" note={
+          modes.size > 1
+            ? current.sequence_emails === "approve"
+              ? "you approve sequence emails · answers send on their own"
+              : "sequence emails send on their own · you approve answers"
+            : modes.has("approve")
+              ? "you approve every email"
+              : "sends on its own"
+        } />
       <div className="border-y border-lk-line">
         {CHOICES.map((c) => (
           <fieldset key={c.key} disabled={!canManage || pending} className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-lk-line py-2.5 last:border-0">

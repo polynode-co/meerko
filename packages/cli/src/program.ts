@@ -17,6 +17,7 @@ import {
   REPLY_INTENTS,
   STAGES,
   writeStoredConfig,
+  type LocationCheck,
   type MailProviderId,
   type MailServers,
   type ReplyIntent,
@@ -384,12 +385,24 @@ program
     if (kind !== "people" && kind !== "companies") throw new Error("kind must be `people` or `companies`");
     const client = MeerkoClient.fromEnv();
     const query = JSON.parse(opts.query);
+    // "Spain → ES" for the countries, a warning for anything that isn't one (a typo, or a city matched as text).
+    const locations = (checks: LocationCheck[]) => {
+      for (const l of checks)
+        console.error(
+          l.country
+            ? `location "${l.value}" → ${l.country}`
+            : `location "${l.value}" isn't a country, so it's matched as text${l.suggestion ? `; did you mean ${l.suggestion}?` : ""}`,
+        );
+    };
     if (opts.count) {
-      const total = await client.countLeads(kind, query);
-      return console.log(json() ? JSON.stringify({ total }) : `${total} ${kind} match.`);
+      const res = await client.checkLeads(kind, query);
+      if (json()) return console.log(JSON.stringify(res));
+      locations(res.locations);
+      return console.log(`${res.total} ${kind} match.`);
     }
     const res = await client.searchLeads(kind, { query, limit: Number(opts.limit), tableId: opts.table, tableName: opts.name });
     if (json()) return console.log(JSON.stringify(res, null, 2));
+    locations(res.locations ?? []);
     console.log(
       `Saved ${res.inserted} of ${res.total} matching ${kind} to "${res.tableName}" (${res.tableId}).` +
         (res.creditsSpent ? ` ${res.creditsSpent} credits.` : "") +

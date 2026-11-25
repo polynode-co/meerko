@@ -291,6 +291,13 @@ export const PendingCells = z.object({
   remaining: z.number(),
   rows: z.array(z.object({ id: z.string(), instruction: z.string(), data: jsonObject })),
 });
+const LocationCheck = z.object({
+  value: z.string(),
+  country: z.string().nullable().describe("The alpha-2 code the value names (Spain, España and ES are all ES); null when it isn't a country, so it's matched as text"),
+  suggestion: z.string().optional().describe("When country is null: the country the value is a likely typo of"),
+});
+const locations = z.array(LocationCheck).describe("How each location value in the query was read");
+export const CountResult = z.object({ total: z.number(), locations });
 export const SearchResult = z.object({
   tableId: z.string(),
   tableName: z.string(),
@@ -298,6 +305,7 @@ export const SearchResult = z.object({
   inserted: z.number(),
   addedColumns: z.array(Column),
   creditsSpent: z.number(),
+  locations,
   cappedByCredits: z.boolean().optional(),
 });
 export const EnrichResult = z.object({

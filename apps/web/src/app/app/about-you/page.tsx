@@ -4,7 +4,7 @@ import { saveProfile } from "@/app/app/actions";
 import { buttonClass, Card, monoLabel, Page, PageHeader } from "@/components/app/ui";
 import { safeNext } from "@/lib/meerko";
 
-// "WS3 · About you" (Y0Vfe) in docs/design/meerko.pen: the questions card; the Ideal customer form stays on Connections.
+// "WS3 · About you" (Y0Vfe) in docs/design/meerko.pen: the questions card; the Ideal customer form stays on Settings.
 
 export const metadata: Metadata = { title: "Welcome — Meerko", robots: { index: false } };
 

@@ -17,7 +17,7 @@ async function run(fn: () => Promise<unknown>) {
 }
 
 const filterGuide = `Filters are objects keyed by field. Text fields take {include?: string[], exclude?: string[]}; numeric fields take range operators {">=": n, "<=": n}.
-Location takes alpha-2 country codes ("ES", "US"). Titles match as written, so a search across languages and acronyms lists each variant (["CTO", "Chief Technology Officer", "Director de Tecnología"]).`;
+Location takes countries as alpha-2 codes or names in any language ("ES", "Spain" and "España" search the same), or a city or region as text; the result's \`locations\` says how each value was read, and one with country null and a suggestion is likely a typo. Titles match as written, so a search across languages and acronyms lists each variant (["CTO", "Chief Technology Officer", "Director de Tecnología"]).`;
 
 const leadSearchInput = {
   limit: z.number().int().min(1).max(1000).optional().describe("Max results to fetch (default 25). Each result costs 1 credit (none with your own Icypeas key); count first."),
@@ -201,7 +201,7 @@ People fields: currentJobTitle, pastJobTitle, firstname, lastname, location, key
     ({ query, count_only, limit, table_id, table_name }) =>
       run(() =>
         count_only
-          ? client().countLeads("people", query).then((total) => ({ total }))
+          ? client().checkLeads("people", query)
           : client().searchLeads("people", { query, limit, tableId: table_id, tableName: table_name }),
       ),
   );
@@ -218,7 +218,7 @@ Each company's company_urn works as the currentCompanyUrn filter of a people sea
     ({ query, count_only, limit, table_id, table_name }) =>
       run(() =>
         count_only
-          ? client().countLeads("companies", query).then((total) => ({ total }))
+          ? client().checkLeads("companies", query)
           : client().searchLeads("companies", { query, limit, tableId: table_id, tableName: table_name }),
       ),
   );

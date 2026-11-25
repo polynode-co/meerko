@@ -147,7 +147,7 @@ export default function Page() {
         head={["Credential", "Where"]}
         rows={[
           [<C key="d">{drafterUrl}</C>, "The drafts-only MCP server, for a Claude Code routine's connector. It offers only the reply tools and start_routine_run."],
-          ["Drafts-only API key", <>Create one under <L href="/app/settings">Connections → API keys</L> for anything you call with a webhook.</>],
+          ["Drafts-only API key", <>Create one under <L href="/app/workspace#api-keys">Settings → API keys</L> for anything you call with a webhook.</>],
         ]}
       />
       <p>

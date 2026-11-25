@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Inbox, LayoutDashboard, LogOut, Menu, Plug, Send, Sparkles, Table2, X } from "lucide-react";
+import { Bot, Inbox, LayoutDashboard, LogOut, Menu, Plug, Send, Settings, Sparkles, Table2, X } from "lucide-react";
 import Link from "next/link";
 import posthog from "posthog-js";
 import { usePathname } from "next/navigation";
@@ -21,6 +21,7 @@ const nav = [
   { href: "/app/autopilot", label: "Autopilot", icon: Bot },
   { section: "Workspace" },
   { href: "/app/settings", label: "Connections", icon: Plug },
+  { href: "/app/workspace", label: "Settings", icon: Settings },
 ] as const;
 
 export interface SidebarProps {
@@ -112,7 +113,7 @@ export function Sidebar({ workspace, workspaces, userEmail, mailboxNeedsReconnec
         </nav>
 
         <div className="flex flex-col gap-2.5 border-t border-lk-line p-3">
-          <Link href="/app/settings#billing" className="flex flex-col gap-1.5 rounded-lg border border-lk-line bg-white p-2.5 transition hover:border-lk-gray">
+          <Link href="/app/workspace#billing" className="flex flex-col gap-1.5 rounded-lg border border-lk-line bg-white p-2.5 transition hover:border-lk-gray">
             <span className="flex items-center justify-between">
               <span className="font-mono text-[10px] tracking-[1px] text-lk-dim uppercase">Credits</span>
               <span className="font-mono text-[12px] font-semibold text-lk-fg">{credits.enabled ? (credits.balance ?? 0).toLocaleString("en") : "your keys"}</span>

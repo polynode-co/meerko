@@ -39,7 +39,7 @@ export default function Page() {
       <H2 id="fit">Fit scores</H2>
       <p>
         Tell Meerko who you sell to, your ideal customer profile (ICP), and every lead in every table gets a fit score from 0 to 100. Set
-        it in <L href="/app/settings#icp">Settings → Ideal customer</L>, or let your agent save it with <Tool name="set_icp" /> after
+        it in <L href="/app/workspace#icp">Settings → Ideal customer</L>, or let your agent save it with <Tool name="set_icp" /> after
         reading your website. The score is plain rules, so it&apos;s instant and free: industry 30, job title 25, company size 20,
         country 15 and keywords 10, counting only what your ICP sets and the lead has; anything you rule out caps a lead at 10. Hover a
         score to see why.
@@ -64,7 +64,8 @@ export default function Page() {
       <p>
         The same search is on <L href="/app/leads/find">Leads → Find leads</L>. Pick People or Companies, fill in the filters (job titles
         and titles to exclude, location, industry, keywords and headcount), then press <strong className="text-fg">Count matches</strong> to
-        see how many there are, for free. When the count looks right, set how many to save (up to 1,000), choose a table or name a new
+        see how many there are, for free. Under the location it shows what it read: a country by name or code (Spain, España, ES) is the
+        whole country, and anything else is matched as text, with a warning when it looks like a misspelt country. When the count looks right, set how many to save (up to 1,000), choose a table or name a new
         one, and press <strong className="text-fg">Find and add</strong>. The rows land in the table, ready for{" "}
         <strong className="text-fg">Find &amp; verify emails</strong>.
       </p>

@@ -1,7 +1,7 @@
 import type { Db } from "@meerko/db";
 import { chargeCredits, getBalance, InsufficientCreditsError, SEARCH_RESULT_CREDITS, type CreditPolicy } from "./credits.ts";
 import { companyToRow, personToRow, type IcypeasClient, type IcypeasQuery } from "./enrichment/icypeas.ts";
-import { countryNames } from "./icp.ts";
+import { checkLocation, countryCode, countryNames, type LocationCheck } from "./countries.ts";
 import { createTable, getTable, insertRows } from "./tables.ts";
 
 export type LeadKind = "people" | "companies";
@@ -15,28 +15,58 @@ export interface SearchLeadsInput {
   tableName?: string;
 }
 
+const isLocation = (key: string) => /(^|\.)location$/i.test(key);
+
+/** The string values of a query's location filters, include and exclude, in order and once each. */
+function locationValues(query: IcypeasQuery) {
+  const values = new Set<string>();
+  for (const [key, filter] of Object.entries(query)) {
+    if (!isLocation(key) || !filter || typeof filter !== "object") continue;
+    for (const side of ["include", "exclude"] as const) {
+      const v = (filter as Record<string, unknown>)[side];
+      if (Array.isArray(v)) for (const s of v) if (typeof s === "string" && s.trim()) values.add(s.trim());
+    }
+  }
+  return [...values];
+}
+
 /**
- * Icypeas matches location as text, so a bare "ES" finds "Dar es Salaam" and misses most of Spain. Swap each
- * alpha-2 code in a location filter for the country's names (English, Spanish, French, German, ...).
+ * Icypeas matches location as text, so a bare "ES" finds "Dar es Salaam" and misses most of Spain, and "Spain" misses
+ * the profiles that say "España". Swap each country in a location filter, as a code or a name in any language, for all
+ * of the country's names (English, Spanish, French, German, ...). Anything else (a city, a region) stays as it is.
  */
 export function expandCountryCodes(query: IcypeasQuery): IcypeasQuery {
   const out: IcypeasQuery = { ...query };
   for (const [key, filter] of Object.entries(query)) {
-    if (!/(^|\.)location$/i.test(key) || !filter || typeof filter !== "object") continue;
+    if (!isLocation(key) || !filter || typeof filter !== "object") continue;
     const f = { ...(filter as Record<string, unknown>) };
     for (const side of ["include", "exclude"] as const) {
       const values = f[side];
       if (!Array.isArray(values)) continue;
-      f[side] = [...new Set(values.flatMap((v) => (typeof v === "string" && /^[A-Za-z]{2}$/.test(v.trim()) && countryNames(v.trim()).length ? countryNames(v.trim()) : [v])))];
+      f[side] = [
+        ...new Set(
+          values.flatMap((v) => {
+            const code = typeof v === "string" ? countryCode(v) : null;
+            // The value itself is one of the names, or a code or alias that as text matches the wrong places.
+            return code ? countryNames(code) : [v];
+          }),
+        ),
+      ];
     }
     out[key] = f as IcypeasQuery[string];
   }
   return out;
 }
 
-export function countLeads(icypeas: IcypeasClient, kind: LeadKind, query: IcypeasQuery) {
-  query = expandCountryCodes(query);
-  return kind === "people" ? icypeas.countPeople(query) : icypeas.countCompanies(query);
+/** How each location value in a search was read, so a surface can show "Spain → ES" or flag "Spian". */
+export function locationChecks(query: IcypeasQuery): LocationCheck[] {
+  return locationValues(query).map(checkLocation);
+}
+
+export async function countLeads(icypeas: IcypeasClient, kind: LeadKind, query: IcypeasQuery) {
+  const expanded = expandCountryCodes(query);
+  const total = kind === "people" ? await icypeas.countPeople(expanded) : await icypeas.countCompanies(expanded);
+  return { total, locations: locationChecks(query) };
 }
 
 /** Runs an Icypeas people/company search and writes the results into a table as rows. */
@@ -75,6 +105,7 @@ export async function searchLeads(
     inserted,
     addedColumns,
     creditsSpent,
+    locations: locationChecks(input.query),
     // Set when the balance, not `limit`, capped the results.
     ...(limit < input.limit && inserted === limit ? { cappedByCredits: true } : {}),
   };

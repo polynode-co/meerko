@@ -109,7 +109,7 @@ function RoutineForm({ routine, hasReplies, onDone, panel = false }: { routine?:
             placeholder="Find 10 new leads that match my ICP, find their emails, and add the ones with verified emails to my Q4 sequence. Tell me what you added."
             className={`${field} leading-[1.55]`}
           />
-          <span className="text-[12px] text-lk-dim">Your AI gets it from start_routine_run on every run, with nobody to ask.</span>
+          <span className="text-[12px] text-lk-dim">Your AI reads this brief at the start of every run, with nobody there to ask, so say everything it needs.</span>
         </label>
         <fieldset className="flex flex-col gap-1.5">
           <legend className={`${fieldLabel} mb-1.5`}>When</legend>
@@ -344,8 +344,8 @@ function HowItRuns({ routine, canSetTrigger }: { routine: Routine; canSetTrigger
               <>
                 <p className="text-[12.5px] leading-[1.5] text-lk-muted">
                   Meerko POSTs a signed <span className="font-mono">{routine.when === "replies" ? "replies.waiting" : "routine.due"}</span> event with the
-                  routine and its brief. Point it at the Claude Agent SDK, a CI job or n8n; for replies, give that agent a drafts-only API key (Connections →
-                  API keys).
+                  routine and its brief. Point it at the Claude Agent SDK, a CI job or n8n; for replies, give that agent a drafts-only API key (Settings → API
+                  keys).
                 </p>
                 <label className="flex flex-col gap-1.5">
                   <span className={fieldLabel}>Webhook URL</span>

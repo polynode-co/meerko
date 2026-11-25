@@ -1534,7 +1534,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
     v1.post(`/search/${kind}/count`, async (c) => {
       const { query } = await parse(countInput, await c.req.json());
       const icy = await icypeasFor(c.var.workspaceId);
-      return c.json({ total: await countLeads(icy.client, kind, query as IcypeasQuery) });
+      return c.json(await countLeads(icy.client, kind, query as IcypeasQuery));
     });
 
     v1.post(`/search/${kind}`, async (c) => {

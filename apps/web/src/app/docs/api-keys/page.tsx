@@ -36,7 +36,7 @@ export default function Page() {
 
       <H2 id="create">Creating a key</H2>
       <p>
-        In the dashboard, open <L href="/app/settings">Connections → API keys</L>, name the key and create it. Keys start with <C>mk_</C>{" "}
+        In the dashboard, open <L href="/app/workspace#api-keys">Settings → API keys</L>, name the key and create it. Keys start with <C>mk_</C>{" "}
         and are shown once, so copy it straight away. Creating and revoking keys needs you signed in to the dashboard with Google.
         Self-hosted installs also get a key from <C>pnpm db:seed</C>.
       </p>

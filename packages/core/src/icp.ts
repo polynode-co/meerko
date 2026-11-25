@@ -3,6 +3,7 @@
 // a self-hosted install. The agent can then nudge a row's score with a reason (setIcpReview), which is the judgement
 // rules can't make ("a denim factory, not a fashion brand").
 import { and, eq, tableRows, workspaces, type Db } from "@meerko/db";
+import { countryNames } from "./countries.ts";
 import { getTable } from "./tables.ts";
 
 /** Validated in apps/api/src/v1/schemas.ts (icpInput). */
@@ -46,27 +47,6 @@ const WEIGHTS = { industry: 30, title: 25, headcount: 20, country: 15, keywords:
 const text = (v: unknown) => (typeof v === "string" ? v : typeof v === "number" ? String(v) : "");
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
 const has = (haystack: string, needle: string) => norm(haystack).includes(norm(needle));
-
-/** Country names a location string may use for an alpha-2 code: English, Spanish, French, German, Portuguese, Italian, Dutch. */
-export const countryNames = (() => {
-  const cache = new Map<string, string[]>();
-  return (code: string) => {
-    const c = code.toUpperCase();
-    if (!cache.has(c)) {
-      const names = new Set<string>([c === "US" ? "United States" : "", c === "GB" ? "United Kingdom" : "", c === "GB" ? "England" : ""].filter(Boolean));
-      for (const lang of ["en", "es", "fr", "de", "pt", "it", "nl"]) {
-        try {
-          const n = new Intl.DisplayNames([lang], { type: "region" }).of(c);
-          if (n && n !== c) names.add(n);
-        } catch {
-          // Unknown code: no names.
-        }
-      }
-      cache.set(c, [...names]);
-    }
-    return cache.get(c)!;
-  };
-})();
 
 const num = (v: unknown) => {
   const n = typeof v === "number" ? v : Number(text(v).replace(/[^\d.]/g, ""));

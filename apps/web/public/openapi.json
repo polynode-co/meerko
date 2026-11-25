@@ -1168,15 +1168,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "total": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "total"
-                  ]
+                  "$ref": "#/components/schemas/CountResult"
                 }
               }
             }
@@ -1311,15 +1303,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "total": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "total"
-                  ]
+                  "$ref": "#/components/schemas/CountResult"
                 }
               }
             }
@@ -5050,6 +5034,9 @@
           "createdAt",
           "lastUsedAt"
         ]
+      },
+      "CountResult": {
+        "$ref": "#/components/schemas/CountResult"
       },
       "Credits": {
         "$ref": "#/components/schemas/Credits"
