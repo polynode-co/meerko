@@ -101,6 +101,13 @@ export const guides: GuideEntry[] = [
     crossLinks: ["gtm-engineer"],
   },
   {
+    slug: "claude-crm",
+    topic: "AI agents",
+    title: "Claude as a CRM for outbound",
+    summary: "How Claude works with HubSpot and Attio, and an outbound pipeline in Claude that syncs contacts to them.",
+    crossLinks: ["cold-email-follow-up"],
+  },
+  {
     slug: "apollo-mcp",
     topic: "AI agents",
     title: "Apollo MCP server: what it does",
