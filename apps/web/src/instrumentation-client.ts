@@ -1,4 +1,5 @@
 import posthog from "posthog-js";
+import { createBeforeSend } from "@/lib/posthog-before-send";
 import { visitorRegion } from "@/lib/visitor-region";
 
 // PostHog in the browser (same setup as antwork): pageviews, replay with inputs masked, uncaught errors.
@@ -7,9 +8,6 @@ import { visitorRegion } from "@/lib/visitor-region";
 const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const appEnv = process.env.NEXT_PUBLIC_APP_ENV || "local";
 const release = process.env.NEXT_PUBLIC_COMMIT_SHA;
-
-/** Which part of the site an event came from; the marketing site and the dashboard share one origin. */
-const surfaceFor = (pathname: string) => (pathname === "/app" || pathname.startsWith("/app/") || pathname.startsWith("/oauth/") ? "app" : "marketing");
 
 // Init waits for /consent-region (one small same-origin request) so the first pageview already carries
 // `country`. PostHog drops the IP of cookieless events before its own GeoIP runs, so without this, visitors
@@ -45,18 +43,8 @@ function startPostHog(key: string, country: string | null) {
         capture_console_errors: false,
       },
       capture_performance: { network_timing: true, web_vitals: false },
-      // Stamped here rather than with register(), which reset() clears on sign-out.
-      before_send: (event) => {
-        if (!event) return null;
-        event.properties = {
-          ...event.properties,
-          app_env: appEnv,
-          surface: surfaceFor(window.location.pathname),
-          ...(country ? { country } : {}),
-          ...(release ? { $release: release } : {}),
-        };
-        return event;
-      },
+      // app_env, surface, country, release and is_internal on every event (lib/posthog-before-send.ts).
+      before_send: createBeforeSend({ appEnv, country, release, pathname: () => window.location.pathname }),
     });
   } catch (err) {
     console.error("PostHog failed to start:", err);

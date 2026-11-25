@@ -234,7 +234,9 @@ export default function PrivacyPage() {
           UK and Switzerland we only set the analytics cookie if you accept it in the cookie banner; elsewhere it&apos;s set on your
           first visit, and you can turn it off with &ldquo;Cookie settings&rdquo;. If you say no, PostHog still counts your visit without storing anything in your browser:
           it recognises the same visitor for one day from a hash of the IP address and browser, salted daily on PostHog&apos;s
-          servers, so there are no session recordings and no link between visits on different days. Change your choice any time with
+          servers, so there are no session recordings and no link between visits on different days. While you&apos;re signed in to the
+          dashboard, those visits also carry your Meerko account ID, held in the page&apos;s memory rather than stored in your browser,
+          so we can see how the product is used. Change your choice any time with
           &ldquo;Cookie settings&rdquo; at the bottom of every page.
         </p>
         <Table
