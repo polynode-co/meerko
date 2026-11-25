@@ -82,14 +82,14 @@ export const guides: GuideEntry[] = [
   {
     slug: "claude-for-sales",
     topic: "AI agents",
-    title: "Claude for sales: connectors for outbound",
+    title: "Claude connectors for sales",
     summary: "Find leads, send sequences and answer replies from a Claude chat, with a connector.",
     crossLinks: ["claude-code-for-sales", "cold-email-follow-up"],
   },
   {
     slug: "chatgpt-for-sales",
     topic: "AI agents",
-    title: "ChatGPT for sales: connectors and MCP",
+    title: "ChatGPT connectors and MCP for sales",
     summary: "How to connect ChatGPT to your outbound tools with a custom MCP server.",
     crossLinks: ["cold-email-templates"],
   },

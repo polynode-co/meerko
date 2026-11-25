@@ -210,9 +210,9 @@ const box: Record<Tone, string> = {
 };
 const nodeName: Record<Tone, string> = { plain: "text-lk-dim", lime: "text-lk-lime", solid: "text-lk-bg" };
 
-// Where each chip leads: our own setup page for that agent, mailbox or channel.
+// Where each chip leads: our own page for that agent, mailbox or channel (Claude and ChatGPT: their "for sales" pages).
 const worksWith: [string, [string, string][]][] = [
-  ["Works in", [["Claude", "/docs/claude"], ["ChatGPT", "/docs/chatgpt"], ["Claude Code", "/docs/claude-code"], ["Cursor", "/docs/codex-cursor"], ["Codex", "/docs/codex-cursor"]]],
+  ["Works in", [["Claude", "/claude"], ["ChatGPT", "/chatgpt"], ["Claude Code", "/docs/claude-code"], ["Cursor", "/docs/codex-cursor"], ["Codex", "/docs/codex-cursor"]]],
   ["Sends from", [["Gmail", "/integrations/gmail"], ["Outlook", "/integrations/outlook"]]],
   ["Approve in", [["Slack", "/docs/slack"]]],
 ];
