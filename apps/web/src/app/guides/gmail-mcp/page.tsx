@@ -15,6 +15,7 @@ const S = {
   claudeDocs: { label: "Claude docs: Gmail connector", url: "https://claude.com/docs/connectors/google/gmail" },
   googleMcp: { label: "Google for Developers: Gmail MCP reference", url: "https://developers.google.com/workspace/gmail/api/reference/mcp" },
   grok: { label: "xAI docs: Grok connectors", url: "https://docs.x.ai/grok/connectors" },
+  openaiNotes: { label: "OpenAI Help Center: ChatGPT release notes", url: "https://help.openai.com/en/articles/6825453-chatgpt-release-notes" },
   community: { label: "GitHub: GongRzhe/Gmail-MCP-Server", url: "https://github.com/GongRzhe/Gmail-MCP-Server" },
 } satisfies Record<string, Source>;
 const sources: Source[] = Object.values(S);
@@ -124,8 +125,10 @@ export default function Page() {
       <H2 id="others">Grok and community servers</H2>
       <p>
         Grok lists Gmail and Google Calendar among its built-in connectors, which sign in with OAuth.<Cite s={S.grok} /> xAI&apos;s page
-        doesn&apos;t say what the Gmail connector can do beyond that, so we won&apos;t guess. (We couldn&apos;t check OpenAI&apos;s help
-        pages on ChatGPT&apos;s Gmail app for this guide either.)
+        doesn&apos;t say what the Gmail connector can do beyond that, so we won&apos;t guess. ChatGPT, once you connect Gmail or
+        Outlook, can draft an email and send it from the chat when you choose to, on the web on Plus, Pro, Business and Enterprise plans.
+        <Cite s={S.openaiNotes} /> More in{" "}
+        <a href="/guides/can-chatgpt-send-emails" className="text-accent hover:underline">Can ChatGPT send emails?</a>
       </p>
       <p>
         Community servers fill the gaps. GongRzhe&apos;s Gmail-MCP-Server runs locally (with npx or Docker) using your own Google Cloud

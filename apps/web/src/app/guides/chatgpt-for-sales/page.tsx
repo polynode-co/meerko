@@ -129,7 +129,8 @@ export default function Page() {
       ))}
       <p>
         Meerko watches your inbox when ChatGPT is closed, so replies are waiting, labelled, the next time you ask. Replies and unsubscribes
-        stop the sequence for that person.
+        stop the sequence for that person. What ChatGPT can send with and without an MCP server is in{" "}
+        <a href="/guides/can-chatgpt-send-emails" className="text-accent hover:underline">Can ChatGPT send emails?</a>
       </p>
 
       <H2 id="safety">Confirmations and write actions</H2>
