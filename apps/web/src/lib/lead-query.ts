@@ -67,7 +67,8 @@ export function defaultTableName(kind: LeadKind, form: LeadForm, today = new Dat
     return items.length ? items.slice(0, n).join(", ") + (items.length > n ? "…" : "") : "";
   };
   const what = kind === "people" ? short(form.titles) || short(form.keywords) || short(form.industry, 1) : short(form.names) || short(form.industry, 1) || short(form.keywords);
-  const where = short(form.location, 3).toUpperCase();
+  // "es" reads as ES, but "Spain" stays Spain.
+  const where = short(list(form.location).map((l) => (/^[a-z]{2}$/i.test(l) ? l.toUpperCase() : l)), 3);
   const name = [what, where].filter(Boolean).join(" · ");
   if (name) return name.slice(0, 80);
   return `${kind === "people" ? "People" : "Companies"} · ${today.toISOString().slice(0, 10)}`;

@@ -65,12 +65,25 @@ export interface Icp {
 export type LeadKind = "people" | "companies";
 /** Icypeas filters, e.g. { currentJobTitle: { include: ["CTO"] }, "currentCompany.headcount": { ">=": 20 } }. */
 export type LeadQuery = Record<string, Record<string, unknown>>;
+/** How one location value of a search was read. */
+export interface LocationCheck {
+  value: string;
+  /** The alpha-2 code it names ("Spain", "España" and "ES" are all ES); null when it isn't a country, so it's matched as text. */
+  country: string | null;
+  /** When `country` is null: the country the value is a likely typo of. */
+  suggestion?: string;
+}
+export interface CountResult {
+  total: number;
+  locations: LocationCheck[];
+}
 export interface SearchResult {
   tableId: string;
   tableName: string;
   total: number;
   inserted: number;
   addedColumns: Column[];
+  locations: LocationCheck[];
 }
 
 export type EnrichField = "email" | "email_verification" | "phone";
@@ -722,7 +735,12 @@ export class MeerkoClient {
 
   /** Free: how many leads match, before spending credits on a search. */
   countLeads(kind: LeadKind, query: LeadQuery) {
-    return this.request<{ total: number }>("POST", `/search/${kind}/count`, { query }).then((r) => r.total);
+    return this.checkLeads(kind, query).then((r) => r.total);
+  }
+
+  /** Free: how many leads match, and how each location value was read ("Spain" → ES; "Spian" isn't a country). */
+  checkLeads(kind: LeadKind, query: LeadQuery) {
+    return this.request<CountResult>("POST", `/search/${kind}/count`, { query });
   }
 
   /** Searches people or companies and writes the results into `tableId`, or a new table named `tableName`. */

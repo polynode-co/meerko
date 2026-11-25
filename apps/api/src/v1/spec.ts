@@ -79,9 +79,9 @@ export const V1: Operation[] = [
   { method: "get", path: "/pipeline", id: "getPipeline", tag: "tables", summary: "Rows per pipeline stage, for one table or all", access: "any", query: s.pipelineQuery, response: s.Pipeline },
 
   // --- leads ---
-  { method: "post", path: "/search/people/count", id: "countPeople", tag: "leads", summary: "Count people matching a search (free)", access: "any", body: s.countInput, response: obj({ total: z.number() }) },
+  { method: "post", path: "/search/people/count", id: "countPeople", tag: "leads", summary: "Count people matching a search (free)", access: "any", body: s.countInput, response: s.CountResult },
   { method: "post", path: "/search/people", id: "searchPeople", tag: "leads", summary: "Find people and add them to a table (spends credits)", access: "any", body: s.searchInput, status: 201, response: s.SearchResult },
-  { method: "post", path: "/search/companies/count", id: "countCompanies", tag: "leads", summary: "Count companies matching a search (free)", access: "any", body: s.countInput, response: obj({ total: z.number() }) },
+  { method: "post", path: "/search/companies/count", id: "countCompanies", tag: "leads", summary: "Count companies matching a search (free)", access: "any", body: s.countInput, response: s.CountResult },
   { method: "get", path: "/icp", id: "getIcp", tag: "leads", summary: "The workspace's ideal customer profile (ICP)", description: "Null until one is set. Every row read is scored against it.", access: "any", response: obj({ icp: s.Icp.nullable() }) },
   { method: "put", path: "/icp", id: "setIcp", tag: "leads", summary: "Set the ideal customer profile; every lead is rescored against it", access: "any", body: s.icpInput, response: obj({ icp: s.Icp }) },
   { method: "delete", path: "/icp", id: "clearIcp", tag: "leads", summary: "Remove the ideal customer profile (scores go blank)", access: "any", response: obj({ cleared: z.boolean() }) },

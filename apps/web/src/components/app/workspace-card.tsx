@@ -5,7 +5,7 @@ import { renameWorkspace } from "@/app/app/actions";
 import { SectionHead } from "@/app/app/settings/parts";
 import { buttonClass, field } from "@/components/app/ui";
 
-/** Connections → Workspace: this brand's name. Owners can rename it. */
+/** Settings → Workspace: this brand's name. Owners can rename it. */
 export function WorkspaceCard({ id, name, canManage }: { id: string; name: string; canManage: boolean }) {
   const [state, rename, renaming] = useActionState(renameWorkspace, null);
   return (

@@ -36,7 +36,7 @@ export const proPlan = {
   ],
   cta: "Get Pro",
   // Sign in (or up), then upgrade from settings, where Checkout starts (monthly or yearly).
-  href: `${site.signupUrl}?next=${encodeURIComponent("/app/settings#billing")}`,
+  href: `${site.signupUrl}?next=${encodeURIComponent("/app/workspace#billing")}`,
 };
 
 export const pricingFaq = [

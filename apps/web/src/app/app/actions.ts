@@ -4,7 +4,21 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { parse as parseCsv } from "csv-parse/sync";
-import { MAIL_PROVIDERS, MeerkoApiError, MeerkoClient, REPLY_INTENTS, STAGES, type Lead, type MailProviderId, type MailServers, type ReplyIntent, type SequenceStep, type Stage } from "@meerko/sdk";
+import {
+  MAIL_PROVIDERS,
+  MeerkoApiError,
+  MeerkoClient,
+  REPLY_INTENTS,
+  STAGES,
+  type Lead,
+  type LeadKind,
+  type LocationCheck,
+  type MailProviderId,
+  type MailServers,
+  type ReplyIntent,
+  type SequenceStep,
+  type Stage,
+} from "@meerko/sdk";
 import { apiUrl, meerko, safeNext, SESSION_COOKIE, setSessionCookie } from "@/lib/meerko";
 import { buildLeadQuery, defaultTableName } from "@/lib/lead-query";
 import { site } from "@/lib/site";
@@ -76,14 +90,14 @@ export async function renameWorkspace(_: unknown, form: FormData): Promise<Actio
   return run((c) => c.renameWorkspace(id, name).then((w) => `Renamed to ${w.name}`), ["/app"]);
 }
 
-/** The new key is returned once, for the Connections page to show; only its prefix is stored. */
+/** The new key is returned once, for the Settings page to show; only its prefix is stored. */
 export async function createApiKey(_: unknown, form: FormData): Promise<ActionResult & { key?: string }> {
   const name = String(form.get("name") ?? "").trim();
   if (!name) return { ok: false, error: "Give the key a name, like the machine or agent that will use it" };
   const scope = form.get("scope") === "replies" ? "replies" : "full";
   try {
     const { key } = await (await meerko()).createApiKey(name, scope);
-    revalidatePath("/app/settings");
+    revalidatePath("/app/workspace");
     return { ok: true, key };
   } catch (err) {
     if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
@@ -263,16 +277,16 @@ export async function saveProviderKey(_: unknown, form: FormData): Promise<Actio
   if (!isProvider(provider)) return { ok: false, error: "Pick Icypeas, Firecrawl or Generect" };
   if (key.length < 8) return { ok: false, error: "Paste the full API key" };
   const name = PROVIDER_NAMES[provider];
-  return run((c) => c.setProviderKey(provider, key).then((r) => `${name} key …${r.last4} saved. Lookups through it cost no credits.`), ["/app/settings"]);
+  return run((c) => c.setProviderKey(provider, key).then((r) => `${name} key …${r.last4} saved. Lookups through it cost no credits.`), ["/app/workspace"]);
 }
 
 export async function removeProviderKey(provider: string) {
   if (!isProvider(provider)) return { ok: false, error: "Unknown provider" } as ActionResult;
-  return run((c) => c.deleteProviderKey(provider).then(() => "Key removed"), ["/app/settings"]);
+  return run((c) => c.deleteProviderKey(provider).then(() => "Key removed"), ["/app/workspace"]);
 }
 
 export async function revokeApiKey(id: string) {
-  return run((c) => c.revokeApiKey(id).then(() => "Key revoked"), ["/app/settings"]);
+  return run((c) => c.revokeApiKey(id).then(() => "Key revoked"), ["/app/workspace"]);
 }
 
 /** Saves a sequence's mailbox pool and how new leads are spread over it. */
@@ -443,12 +457,12 @@ export async function saveIcp(_: ActionResult | null, form: FormData): Promise<A
           exclude: icpList(form.get("exclude")),
         })
         .then(() => "Saved. Every lead is rescored."),
-    ["/app/settings", "/app/leads", "/app"],
+    ["/app/workspace", "/app/leads", "/app"],
   );
 }
 
 export async function clearIcp() {
-  return run((c) => c.clearIcp().then(() => "ICP removed."), ["/app/settings", "/app/leads"]);
+  return run((c) => c.clearIcp().then(() => "ICP removed."), ["/app/workspace", "/app/leads"]);
 }
 
 /** Connects an inbox with an app password: Gmail, a preset provider or any IMAP/SMTP server. A refusal comes back as the form's error. */
@@ -495,14 +509,14 @@ export async function connectGmail() {
   redirect(url);
 }
 
-/** Sends the browser to a Stripe page, or back to Connections with the API's reason when it refused. */
+/** Sends the browser to a Stripe page, or back to Settings with the API's reason when it refused. */
 async function toStripe(fn: (c: MeerkoClient) => Promise<string>) {
   let url: string;
   try {
     url = await fn(await meerko());
   } catch (err) {
     if (!(err instanceof MeerkoApiError)) throw err;
-    url = `/app/settings?billing_error=${encodeURIComponent(err.message)}#billing`;
+    url = `/app/workspace?billing_error=${encodeURIComponent(err.message)}#billing`;
   }
   redirect(url);
 }
@@ -651,7 +665,7 @@ export async function addLead(_: ActionResult | null, form: FormData): Promise<A
   return { ok: true, message: `Added ${[row.first_name, row.last_name].filter(Boolean).join(" ") || row.email}` };
 }
 
-export type FindLeadsResult = ActionResult & { total?: number };
+export type FindLeadsResult = ActionResult & { kind?: LeadKind; total?: number; locations?: LocationCheck[] };
 
 /**
  * The "Find leads" form. `intent=count` asks how many match (free); `intent=add` saves up to `limit` of them into a
@@ -665,8 +679,8 @@ export async function findLeads(_: FindLeadsResult | null, form: FormData): Prom
 
   if (form.get("intent") === "count") {
     try {
-      const total = await (await meerko()).countLeads(kind, built.query);
-      return { ok: true, total };
+      const { total, locations } = await (await meerko()).checkLeads(kind, built.query);
+      return { ok: true, kind, total, locations };
     } catch (err) {
       if (err instanceof MeerkoApiError) return { ok: false, error: err.message };
       throw err;

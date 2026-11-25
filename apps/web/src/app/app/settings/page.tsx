@@ -1,8 +1,7 @@
-import { Bell, Bot, Building2, CreditCard, Database, KeyRound, Mail, Send, Target, Wrench, type LucideIcon } from "lucide-react";
+import { Bell, Bot, Database, Mail, Send, Settings, type LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { buttonClass, Card, Notice, Page, PageHeader, Pill } from "@/components/app/ui";
-import { ApiKeysCard } from "@/components/app/api-keys-card";
-import { BillingCard } from "@/components/app/billing-card";
 import { DisconnectMailbox } from "@/components/app/disconnect-mailbox";
 import { ResumeMailbox } from "@/components/app/resume-mailbox";
 import { TestEmail } from "@/components/app/test-email";
@@ -11,35 +10,36 @@ import { SlackCard } from "@/components/app/slack-card";
 import { CrmCard } from "@/components/app/crm-card";
 import { SendingModeCard } from "@/components/app/sending-mode-card";
 import { DigestCard } from "@/components/app/digest-card";
-import { ProviderKeysCard } from "@/components/app/provider-keys-card";
 import { MailboxConnect } from "@/components/app/mailbox-connect";
-import { WorkspaceCard } from "@/components/app/workspace-card";
-import { IcpCard } from "@/components/app/icp-card";
-import { load, mcpUrl, publicApiUrl } from "@/lib/meerko";
-import { headBand, row, SectionHead } from "./parts";
+import { load, mcpUrl } from "@/lib/meerko";
+import { MovedToSettings } from "./moved";
+import { headBand, row, SectionHead, SectionNav } from "./parts";
 
-// "WS3 · Connections (2026-11-12)" (f5ab4v) in docs/design/meerko.pen.
+// "WS3 · Connections (2026-11-12)" (f5ab4v) in docs/design/meerko.pen. Ideal customer, API keys, provider keys,
+// billing and the workspace moved to Settings (/app/workspace); old links to them are sent there.
 
 type Search = { gmail_connected?: string; gmail_error?: string; billing?: string; billing_error?: string; connect?: string; email?: string; slack?: string };
 
 const providerIcon = { gmail: "bg-ws-red-soft text-ws-red", gmail_imap: "bg-ws-red-soft text-ws-red", outlook: "bg-ws-blue-soft text-ws-blue", imap: "bg-ws-soft text-lk-muted" } as const;
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Search> }) {
-  // The API's Gmail OAuth callback, and Stripe Checkout, redirect back here with the outcome.
+  // The API's Gmail OAuth callback redirects back here with the outcome.
   // `?connect=gmail` (from an agent's connect_gmail, or Reconnect) opens the mailbox form.
   const { gmail_connected, gmail_error, billing: paid, billing_error, connect, email, slack } = await searchParams;
-  const [mailboxes, credits, keys, apiKeys, apps, me, billing, connectOptions, slackState, icp, sendingMode, crm] = await load((c) =>
+  // Stripe Checkout still comes back here (core's billing URLs); billing lives on Settings now.
+  if (paid || billing_error) {
+    const q = new URLSearchParams({ ...(paid ? { billing: paid } : {}), ...(billing_error ? { billing_error } : {}) });
+    redirect(`/app/workspace?${q}#billing`);
+  }
+  const [mailboxes, credits, apps, me, billing, connectOptions, slackState, sendingMode, crm] = await load((c) =>
     Promise.all([
       c.listMailboxes(),
       c.getCredits(),
-      c.listProviderKeys(),
-      c.listApiKeys(),
       c.listConnectedApps(),
       c.me(),
       c.getBilling(),
       c.mailboxConnectOptions(),
       c.getSlack(),
-      c.getIcp(),
       c.getSendingMode(),
       c.getCrm(),
     ]),
@@ -66,11 +66,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     ["sending-mode", "Sending", Send],
     ["notifications", "Notifications", Bell],
     ["crm", "CRM", Database],
-    ["icp", "Ideal customer", Target],
-    ["api-keys", "API keys", KeyRound, apiKeys.length],
-    ["provider-keys", "Provider keys", Wrench],
-    ...(billing.enabled ? [["billing", "Billing", CreditCard] as [string, string, LucideIcon]] : []),
-    ...(me.user ? [["workspace", "Workspace", Building2] as [string, string, LucideIcon]] : []),
   ];
 
   return (
@@ -91,23 +86,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       )}
       {gmail_error && <Notice ok={false}>Mailbox not connected: {gmail_error}</Notice>}
 
+      <MovedToSettings />
+
       <div className="grid gap-6 lg:grid-cols-[176px_minmax(0,1fr)] lg:gap-10">
-        <nav aria-label="Connections" className="-mx-5 overflow-x-auto px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0">
-          <ul className="flex gap-1 lg:sticky lg:top-6 lg:flex-col lg:gap-0.5">
-            {nav.map(([id, name, Icon, count]) => (
-              <li key={id}>
-                <a
-                  href={`#${id}`}
-                  className="flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] whitespace-nowrap text-lk-muted transition hover:bg-lk-frame hover:text-lk-fg"
-                >
-                  <Icon className="size-[15px] shrink-0" />
-                  <span className="flex-1">{name}</span>
-                  {!!count && <span className="font-mono text-[10.5px] text-lk-dim">{count}</span>}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <SectionNav label="Connections" items={nav} />
 
         <div className="flex min-w-0 flex-col gap-9">
           <section id="mailboxes" className="scroll-mt-6">
@@ -215,34 +197,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <CrmCard connection={crm} canManage={!!me.user} />
           </div>
 
-          <IcpCard icp={icp} />
-
-          <ApiKeysCard keys={apiKeys} apiUrl={publicApiUrl()} canManage={!!me.user} />
-
-          <ProviderKeysCard keys={keys} title={billing.enabled ? "Provider keys" : "Credits & provider keys"} locked={billing.enabled && billing.plan === "free"}>
-            {billing.enabled && billing.plan === "free" ? (
-              <>
-                Your own keys are a Pro feature on Meerko Cloud; on Free, lookups run on Meerko&apos;s keys and your credits. Upgrade below, or{" "}
-                <a href="/docs/self-hosting" className="text-lk-fg underline underline-offset-2">
-                  self-host Meerko
-                </a>{" "}
-                to use your own keys for free.
-              </>
-            ) : billing.enabled ? (
-              "Your own keys run lookups with no Meerko credits charged."
-            ) : credits.enabled ? (
-              <>
-                Balance <span className="font-mono font-semibold text-lk-fg">{(credits.balance ?? 0).toLocaleString("en")} credits</span>. Found emails cost 5,
-                verifications 1, search results 1, phone numbers 80; misses are free. Your own keys skip credits.
-              </>
-            ) : (
-              "Credits are off on this install: searches and enrichment use your own provider keys."
-            )}
-          </ProviderKeysCard>
-
-          {billing.enabled && <BillingCard billing={billing} canManage={me.user?.role === "owner"} paid={paid} error={billing_error} />}
-
-          {me.user && <WorkspaceCard id={me.workspace.id} name={me.workspace.name} canManage={me.user.role === "owner"} />}
+          <Link
+            href="/app/workspace"
+            className="flex items-center gap-3 rounded-lg border border-lk-line bg-lk-frame px-4 py-3 text-[13px] text-lk-muted transition hover:border-lk-gray hover:text-lk-fg"
+          >
+            <Settings className="size-4 shrink-0" />
+            <span className="flex-1">
+              Ideal customer, API keys, provider keys{billing.enabled ? ", billing" : ""} and the workspace name are in <span className="font-semibold text-lk-fg">Settings</span>.
+            </span>
+            <span aria-hidden>→</span>
+          </Link>
         </div>
       </div>
     </Page>

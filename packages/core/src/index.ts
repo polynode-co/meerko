@@ -7,6 +7,7 @@ export * from "./enrichment/generect.ts";
 export * from "./enrichment/icypeas.ts";
 export * from "./enrichment/types.ts";
 export * from "./enrichment/waterfall.ts";
+export * from "./countries.ts";
 export * from "./search.ts";
 export * from "./website.ts";
 export * from "./icp.ts";

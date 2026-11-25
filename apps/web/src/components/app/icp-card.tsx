@@ -9,7 +9,7 @@ import { buttonClass, Card, field, fieldLabel } from "@/components/app/ui";
 
 const joined = (v?: string[]) => (v ?? []).join(", ");
 
-/** Connections → Ideal customer: who this brand sells to. Every lead in every table is scored 0-100 against it. */
+/** Settings → Ideal customer: who this brand sells to. Every lead in every table is scored 0-100 against it. */
 export function IcpCard({ icp }: { icp: Icp | null }) {
   const [state, save, saving] = useActionState(saveIcp, null);
   const [clearing, startClear] = useTransition();
@@ -22,7 +22,7 @@ export function IcpCard({ icp }: { icp: Icp | null }) {
   );
   return (
     <section id="icp" className="scroll-mt-6">
-      <SectionHead title="Ideal customer" note="your agent reads it with get_icp" />
+      <SectionHead title="Ideal customer" note="who your AI looks for · every lead is scored against it" />
       <p className="-mt-1 mb-2.5 max-w-[760px] text-[12.5px] leading-relaxed text-lk-muted">
         Every lead gets a 0–100 fit score: industry 30, title 25, size 20, country 15, keywords 10. Anything ruled out caps it at 10.
       </p>
