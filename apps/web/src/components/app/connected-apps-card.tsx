@@ -9,7 +9,19 @@ import { outcome, row, SectionHead } from "@/app/app/settings/parts";
 import { buttonClass, Card, formatWhen, headLink, monoLabel } from "@/components/app/ui";
 
 /** Connections → Your agent: agents and the CLI that signed in with OAuth. Disconnecting ends their access at once. */
-export function ConnectedAppsCard({ apps, canManage, mcpUrl }: { apps: ConnectedApp[]; canManage: boolean; /** Meerko's MCP address, shown under the list. */ mcpUrl?: string }) {
+export function ConnectedAppsCard({
+  apps,
+  canManage,
+  mcpUrl,
+  connect = [],
+}: {
+  apps: ConnectedApp[];
+  canManage: boolean;
+  /** Meerko's MCP address, shown under the list. */
+  mcpUrl?: string;
+  /** One-click ways in: Claude's add-connector form (filled in) and the ChatGPT plugin. */
+  connect?: { label: string; href: string }[];
+}) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
   return (
@@ -55,6 +67,15 @@ export function ConnectedAppsCard({ apps, canManage, mcpUrl }: { apps: Connected
             )}
           </div>
         ))}
+        {connect.length > 0 && (
+          <div className="flex flex-wrap gap-2 border-t border-lk-line px-4 py-3 first:border-0">
+            {connect.map((c) => (
+              <a key={c.href} href={c.href} target="_blank" rel="noopener" className={buttonClass("secondary", "sm")}>
+                {c.label}
+              </a>
+            ))}
+          </div>
+        )}
         {mcpUrl && (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-lk-line bg-lk-frame px-4 py-3 first:border-0">
             <span className={monoLabel}>MCP address</span>

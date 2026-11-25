@@ -3,7 +3,7 @@ import { CodeBlock } from "@/components/lookout/docs/code-block";
 import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
 import { C, Callout, H2, L, Step } from "@/components/lookout/docs/ui";
 import { mcp } from "@/lib/docs";
-import { mcpUrl } from "@/lib/meerko";
+import { addToClaudeUrl, mcpUrl } from "@/lib/meerko";
 import { docsSources } from "@/lib/sources";
 
 export const metadata = docsMetadata("claude", "Connect Meerko to Claude (web, desktop and mobile) | Meerko docs");
@@ -30,6 +30,11 @@ export default function Page() {
       ]}
     >
       <Step n={1} id="add" title="Add the connector">
+        <p>
+          <L href={addToClaudeUrl()}>Connect Claude to Meerko</L>: Claude&apos;s <strong className="text-fg">Add custom connector</strong>{" "}
+          form opens with the name and URL filled in. Keep the detected sign-in settings (OAuth) and click{" "}
+          <strong className="text-fg">Add</strong>. Or add it by hand:
+        </p>
         <ol className="flex list-decimal flex-col gap-1.5 pl-6">
           <li>
             In Claude, open <strong className="text-fg">Customize → Connectors</strong>.

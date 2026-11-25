@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MeerkoApiError, MeerkoClient } from "@meerko/sdk";
+import { claudeAddConnectorUrl } from "./claude-connector";
 
 /**
  * Holds the dashboard's credential: a session token (`ms_…`) from Google or an email link, or an API key
@@ -53,3 +54,6 @@ export const safeNext = (next: string | null | undefined) => (next && /^\/(?![/\
 
 /** The hosted MCP endpoint that agents connect to (they sign in with OAuth). */
 export const mcpUrl = () => new URL("/mcp", publicApiUrl()).toString();
+
+/** Claude's add-connector form, filled in with Meerko's name and this install's MCP URL. */
+export const addToClaudeUrl = () => claudeAddConnectorUrl(mcpUrl());

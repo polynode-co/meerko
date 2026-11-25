@@ -1,11 +1,12 @@
 import { ArrowDown, ArrowRight, Bot, Check, CircleCheck, Mail, Repeat, Reply, Zap } from "lucide-react";
 import Image from "next/image";
+import { connectCtas } from "@/lib/assistant-pages";
 import { mcpUrl } from "@/lib/meerko";
 import { proPlan, proPrices } from "@/lib/pricing";
 import { site } from "@/lib/site";
 import { LogoMark } from "../ui/brand";
 import { LookoutCommand } from "./copy-command";
-import { LimeButton, LkLandscapeFooter, LkNav, PaperButton, Window, label } from "./kit";
+import { GhostButton, LimeButton, LkLandscapeFooter, LkNav, PaperButton, Window, label } from "./kit";
 import { VideoPlayer } from "./video-player";
 
 // The landing page from the .pen design "Landing v2.1": a centred hero one screen tall, the video, five short
@@ -433,6 +434,14 @@ function Start() {
       <div className="mt-4 flex w-full max-w-[820px] flex-col gap-3.5 bg-[radial-gradient(ellipse_50%_50%_at_50%_50%,var(--color-lk-frame)_0%,var(--color-lk-ink)_100%)] p-5 text-left outline outline-1 -outline-offset-1 outline-lk-gray sm:gap-5 sm:p-8 lg:mt-0">
         <span className="font-plex text-[11px] tracking-[0.8px] text-lk-dim sm:text-[12.5px]">IN YOUR TERMINAL</span>
         <LookoutCommand command={`claude mcp add --transport http --scope user meerko ${mcpUrl()}`} />
+        <span className="font-plex text-[11px] tracking-[0.8px] text-lk-dim sm:text-[12.5px]">OR IN YOUR CHAT APP</span>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          {connectCtas.map((c) => (
+            <GhostButton key={c.href} href={c.href} className="text-center">
+              {c.label}
+            </GhostButton>
+          ))}
+        </div>
         <span className="font-plex text-[11px] tracking-[0.8px] text-lk-dim sm:text-[12.5px]">OR IN THE BROWSER</span>
         <LimeButton href={site.signupUrl} className="px-[18px] py-4 text-center sm:text-right">
           Start free with 200 credits →

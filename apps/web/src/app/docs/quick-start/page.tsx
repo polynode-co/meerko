@@ -2,7 +2,7 @@ import { Server } from "lucide-react";
 import { CodeBlock } from "@/components/lookout/docs/code-block";
 import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
 import { AskAgent, C, Callout, L, Step } from "@/components/lookout/docs/ui";
-import { mcpUrl } from "@/lib/meerko";
+import { addToClaudeUrl, mcpUrl } from "@/lib/meerko";
 
 export const metadata = docsMetadata("quick-start", "Meerko Cloud quick start | Meerko docs");
 
@@ -47,7 +47,9 @@ export default function Page() {
         <CodeBlock title="bash" code={add} lines={[{ text: `$ ${add}` }]} />
         <p>
           Then run <C>/mcp</C> in Claude Code, pick <C>meerko</C> and sign in: your browser opens, you continue with Google and click{" "}
-          <strong className="text-fg">Allow</strong>. Working in a chat app instead? See <L href="/docs/claude">Claude</L> and <L href="/docs/chatgpt">ChatGPT</L>. Another agent? See{" "}
+          <strong className="text-fg">Allow</strong>. Working in Claude on the web or desktop instead?{" "}
+          <L href={addToClaudeUrl()}>Connect Claude to Meerko</L>: Claude&apos;s add-connector form opens with the name and URL filled in, so
+          you only click Add (<L href="/docs/claude">the steps</L>). ChatGPT? See <L href="/docs/chatgpt">ChatGPT</L>. Another agent? See{" "}
           <L href="/docs/codex-cursor">Codex & Cursor</L> and{" "}
           <L href="/docs/mcp-clients">other clients</L>.
         </p>

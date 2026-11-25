@@ -7,6 +7,7 @@ import { MeerkoApiError } from "@meerko/sdk";
 import { CopyButton } from "@/app/app/settings/dialog";
 import { buttonClass, Card, field, monoLabel, Notice, Page, PageHeader } from "@/components/app/ui";
 import { SiteChip } from "@/components/app/site-badge";
+import { connectCtas } from "@/lib/assistant-pages";
 import { mcpUrl, meerko, SESSION_COOKIE } from "@/lib/meerko";
 import { siteHost, siteName } from "@/lib/site-hint";
 
@@ -91,7 +92,14 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className={stepTitle(false)}>Connect your AI</span>
               <span className={stepSub}>Add Meerko to the assistant you already use; it signs in with this account</span>
-              <span className="mt-2 flex flex-wrap gap-1.5 xl:hidden">
+              <span className="mt-2 flex flex-wrap gap-1.5">
+                {connectCtas.map((c) => (
+                  <a key={c.href} href={c.href} target="_blank" rel="noopener" className={buttonClass("primary", "sm")}>
+                    {c.label}
+                  </a>
+                ))}
+              </span>
+              <span className="mt-1.5 flex flex-wrap gap-1.5 xl:hidden">
                 {agents.map(([name, href]) => (
                   <a key={name} href={href} target="_blank" rel="noreferrer" className={buttonClass("secondary", "sm")}>
                     {name} ↗
