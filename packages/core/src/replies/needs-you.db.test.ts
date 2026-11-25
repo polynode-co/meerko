@@ -37,4 +37,19 @@ describe.skipIf(!process.env.DATABASE_URL)("Needs you (db)", () => {
     expect(await needs()).toEqual(["fresh@a.example"]);
     void labelled;
   });
+
+  it("lets an unlabelled reply go once it's answered", async () => {
+    const answered = await reply("answered@a.example");
+    await reply("waiting@a.example");
+    // What approving a draft does: the reply is handled, its intent untouched.
+    await db.update(messages).set({ handledAt: new Date() }).where(eq(messages.id, answered));
+    expect(await needs()).toEqual(["waiting@a.example"]);
+  });
+
+  it("gives a reply tied to no lead or thread a conversation of its own", async () => {
+    const id = await reply("loose@a.example");
+    const [r] = await listReplies(db, ws, { needsYou: true });
+    expect(r!.enrollmentId).toBeNull();
+    expect(r!.thread).toEqual([{ id, direction: "in", step: null, subject: "Re: hi", body: "Tell me more", sentAt: r!.receivedAt }]);
+  });
 });

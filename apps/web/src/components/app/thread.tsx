@@ -68,7 +68,11 @@ export function Thread({ messages, prospect, highlightId }: { messages: ThreadMe
                   <span className="text-lk-dim">{when(m.sentAt)}</span>
                 </div>
                 {subject && <p className="text-[13.5px] font-semibold">{subject}</p>}
-                <p className="text-[14px] leading-[1.6] break-words whitespace-pre-line">{text}</p>
+                {text ? (
+                  <p className="text-[14px] leading-[1.6] break-words whitespace-pre-line">{text}</p>
+                ) : (
+                  <p className="text-[13px] text-lk-muted italic">No message text</p>
+                )}
                 <Folded quoted={quoted} />
               </div>
             )}

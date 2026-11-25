@@ -32,6 +32,14 @@ export function conversations(replies: Reply[], drafts: Draft[]): Conversation[]
     .sort((a, b) => b.latest.receivedAt.localeCompare(a.latest.receivedAt));
 }
 
+/**
+ * How many conversations wait on the person, from `listReplies({ needsYou: true })`. The sidebar badge, the Inbox
+ * header and its tab, and the Overview's "Needs you" all show this one number.
+ */
+export function needYouCount(needsYouReplies: Reply[]): number {
+  return conversations(needsYouReplies, []).filter((c) => c.open > 0).length;
+}
+
 // Where an email client starts quoting the previous message, in the languages Meerko's users write in.
 const QUOTE_HEADERS = [
   /^On .+wrote:\s*$/i,
@@ -46,6 +54,22 @@ const QUOTE_HEADERS = [
   /^(From|De|Von):\s.+$/i,
 ];
 
+// Where a signature starts: the "-- " delimiter (alone, or with the name on the same line) and mobile footers.
+const SIGNATURES = [/^--(\s|$)/, /^(Sent from my|Enviado desde mi|Envoyé de mon|Von meinem|Inviato da)\b/i];
+
+const isQuoteLine = (lines: string[], i: number) => {
+  const line = lines[i].trim();
+  const joined = `${line} ${lines[i + 1]?.trim() ?? ""}`.trim();
+  return line.startsWith(">") || QUOTE_HEADERS.some((re) => re.test(line) || re.test(joined));
+};
+const isSignatureLine = (line: string) => SIGNATURES.some((re) => re.test(line.trim()));
+
+/** Where what the person wrote ends: the first quote header, quoted line or signature. */
+function writtenEnd(lines: string[]) {
+  const cut = lines.findIndex((l, i) => isSignatureLine(l) || isQuoteLine(lines, i));
+  return cut === -1 ? lines.length : cut;
+}
+
 /**
  * Splits an email body into what the person wrote and what follows: the quoted earlier message and the
  * signature ("-- " delimiter). Quote headers often wrap over two lines, so a header is matched on the
@@ -53,17 +77,28 @@ const QUOTE_HEADERS = [
  */
 export function splitQuoted(body: string): { text: string; quoted: string } {
   const lines = body.replace(/\r\n/g, "\n").split("\n");
-  let cut = lines.length;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    const joined = `${line} ${lines[i + 1]?.trim() ?? ""}`.trim();
-    if (line === "--" || line === "-- " || line.startsWith(">") || QUOTE_HEADERS.some((re) => re.test(line) || re.test(joined))) {
-      cut = i;
-      break;
-    }
-  }
+  const cut = writtenEnd(lines);
   const text = lines.slice(0, cut).join("\n").trim();
   // Never hide everything: if the cut leaves nothing, show the whole body.
   if (!text) return { text: body.trim(), quoted: "" };
   return { text, quoted: lines.slice(cut).join("\n").trim() };
+}
+
+/**
+ * The line a conversation list shows for a reply: what the person wrote, without quoted history or signature.
+ * When they wrote nothing above those, the first real line outside the quote (a signature line loses its "-- ").
+ * Null when the body has no text at all, so the list never shows an empty quote.
+ */
+export function preview(body: string): string | null {
+  const lines = body.replace(/\r\n/g, "\n").split("\n");
+  const written = lines.slice(0, writtenEnd(lines)).join("\n").trim();
+  if (written) return written;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim().startsWith(">")) continue;
+    // Under a quote header everything is the earlier message, quoted or not (HTML mail drops the ">").
+    if (isQuoteLine(lines, i)) break;
+    const line = lines[i].trim().replace(/^--\s*/, "").trim();
+    if (line) return line;
+  }
+  return null;
 }

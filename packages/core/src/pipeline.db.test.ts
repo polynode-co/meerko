@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { createDb, eq, workspaces, type Db } from "@meerko/db";
+import { createDb, eq, messages, workspaces, type Db } from "@meerko/db";
 import { advanceStage, moveStage, pipelineSummary } from "./pipeline.ts";
 import { createTable, insertRows, queryRows } from "./tables.ts";
 
@@ -27,8 +27,20 @@ describe.skipIf(!process.env.DATABASE_URL)("pipeline (db)", () => {
     expect((await queryRows(db, ws!.id, t.id, { stage: "won" })).map((r) => r.data.n)).toEqual(["b"]);
 
     const summary = await pipelineSummary(db, ws!.id, t.id);
-    expect(summary).toEqual({ tableId: t.id, total: 3, stages: { new: 0, contacted: 0, replied: 1, meeting: 0, won: 1, lost: 1 } });
+    expect(summary).toEqual({ tableId: t.id, total: 3, stages: { new: 0, contacted: 0, replied: 1, meeting: 0, won: 1, lost: 1 }, replied: 0 });
     expect((await pipelineSummary(db, ws!.id)).total).toBe(3);
+
+    // `replied` counts people who replied, once each, whatever their stage; automatic mail doesn't count.
+    const inbound = (fromEmail: string, intent: string | null = null) =>
+      db.insert(messages).values({ workspaceId: ws!.id, direction: "in", fromEmail, toEmail: "me@meerko.test", body: "hi", intent });
+    await inbound("pia@a.example");
+    await inbound("Pia@a.example", "interested");
+    await inbound("won@a.example", "interested");
+    await inbound("away@a.example", "out_of_office");
+    await inbound("mailer-daemon@a.example", "bounce");
+    expect((await pipelineSummary(db, ws!.id)).replied).toBe(2);
+    // For one table, only replies still tied to its leads.
+    expect((await pipelineSummary(db, ws!.id, t.id)).replied).toBe(0);
 
     // Rows from another table are never touched.
     const other = await createTable(db, ws!.id, { name: "other" });

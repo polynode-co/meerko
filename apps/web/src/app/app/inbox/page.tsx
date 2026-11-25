@@ -4,7 +4,7 @@ import type { Reply } from "@meerko/sdk";
 import { DraftPanel } from "@/components/app/draft-panel";
 import { Thread } from "@/components/app/thread";
 import { AgentHint, EmptyState, formatWhen, headLink, intentTone, label, Page, PageHeader, Pill } from "@/components/app/ui";
-import { conversations, splitQuoted } from "@/lib/inbox";
+import { conversations, needYouCount, preview } from "@/lib/inbox";
 import { load } from "@/lib/meerko";
 
 // "WS3 · Inbox" (xhEIF) and "WS3 · Inbox empty" (LyBVE) in docs/design/meerko.pen: one entry per conversation on the
@@ -24,7 +24,14 @@ type View = keyof typeof views;
 export default async function InboxPage({ searchParams }: { searchParams: Promise<{ view?: string; reply?: string }> }) {
   const sp = await searchParams;
   const view: View = sp.view && sp.view in views ? (sp.view as View) : "needs";
-  const [replies, drafts] = await load((c) => Promise.all([c.listReplies({ ...views[view].opts, limit: 100 }), c.listDrafts()]));
+  const [replies, drafts, waiting] = await load((c) =>
+    Promise.all([
+      c.listReplies({ ...views[view].opts, limit: 100 }),
+      c.listDrafts(),
+      // The "need you" number is the same in every tab, and the same as the sidebar's and the Overview's.
+      view === "needs" ? null : c.listReplies({ ...views.needs.opts, limit: 100 }),
+    ]),
+  );
   const convs = conversations(replies, drafts);
   // `?reply=` (also what Slack links to) opens the conversation that reply belongs to.
   const current = convs.find((c) => c.replies.some((r) => r.id === sp.reply)) ?? convs[0];
@@ -47,7 +54,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
       .map((w) => w[0])
       .join("")
       .toUpperCase();
-  const needYou = convs.filter((c) => c.open > 0).length;
+  const needYou = needYouCount(waiting ?? replies);
   const ready = convs.filter((c) => c.draft).length;
 
   return (
@@ -67,7 +74,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                 }`}
               >
                 {views[v].label}
-                {v === "needs" && view === "needs" && needYou > 0 && <span className="font-mono text-[10.5px] font-normal text-lk-dim">{needYou}</span>}
+                {v === "needs" && needYou > 0 && <span className="font-mono text-[10.5px] font-normal text-lk-dim">{needYou}</span>}
               </Link>
             ))}
           </nav>
@@ -109,6 +116,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                 const r = c.latest;
                 const on = c.key === current?.key;
                 const messages = r.thread.length || 1;
+                const said = preview(r.body);
                 return (
                   <Link
                     key={c.key}
@@ -123,8 +131,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                       {!!r.row?.company && <span className="truncate text-[12px] text-lk-dim">{String(r.row.company)}</span>}
                       <span className="ml-auto shrink-0 font-mono text-[10.5px] text-lk-dim">{formatWhen(r.receivedAt)}</span>
                     </span>
-                    <span className={`line-clamp-2 pl-[13px] text-[12.5px] leading-[1.45] ${c.open ? "text-lk-fg" : "text-lk-muted"}`}>
-                      “{splitQuoted(r.body).text}”
+                    <span className={`line-clamp-2 pl-[13px] text-[12.5px] leading-[1.45] ${said && c.open ? "text-lk-fg" : "text-lk-muted"}`}>
+                      {said ? `“${said}”` : <span className="italic">No message text{r.subject ? ` · ${r.subject}` : ""}</span>}
                     </span>
                     <span className="flex min-w-0 flex-wrap items-center gap-1.5 pl-[13px]">
                       <Pill tone={r.intent ? intentTone[r.intent] : "neutral"}>{r.intent ? label(r.intent) : "unclassified"}</Pill>
