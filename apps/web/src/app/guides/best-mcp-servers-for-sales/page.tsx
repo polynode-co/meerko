@@ -129,9 +129,10 @@ export default function Page() {
         analytics.<Cite s={S.apollo} />
       </p>
       <p>
-        Enrichment, search and validation use Apollo credits; contact, sequence and email actions don&apos;t. Free accounts registered with
-        a personal email can&apos;t use search or enrichment through it. Apollo itself recommends requiring approval for tools that spend
-        credits.<Cite s={S.apollo} />
+        Enrichment, company search and validation use Apollo credits; people search, contact, sequence and email actions don&apos;t. Free
+        accounts registered with a personal email can&apos;t use search or enrichment through it. Apollo itself recommends requiring
+        approval for tools that spend credits.<Cite s={S.apollo} /> Setup and a side-by-side with Meerko are in the{" "}
+        <a href="/guides/apollo-mcp" className="text-accent hover:underline">Apollo MCP guide</a>.
       </p>
 
       <H2 id="clay">Clay MCP</H2>

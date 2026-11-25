@@ -101,6 +101,13 @@ export const guides: GuideEntry[] = [
     crossLinks: ["gtm-engineer"],
   },
   {
+    slug: "apollo-mcp",
+    topic: "AI agents",
+    title: "Apollo MCP server: what it does",
+    summary: "What Apollo's MCP server does in Claude or ChatGPT, what uses credits, and an open-source option that also sends.",
+    crossLinks: ["cold-email-follow-up", "gmail-sending-limits"],
+  },
+  {
     slug: "gmail-mcp",
     topic: "AI agents",
     title: "Gmail MCP: email from your AI assistant",
