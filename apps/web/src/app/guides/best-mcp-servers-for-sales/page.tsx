@@ -118,7 +118,8 @@ export default function Page() {
       </p>
       <p>
         HubSpot also has a separate developer MCP server that runs locally through the HubSpot CLI, for building on its developer platform
-        rather than working the CRM.<Cite s={S.hubspot} />
+        rather than working the CRM.<Cite s={S.hubspot} /> How HubSpot and Attio fit with an outbound pipeline in Claude is in{" "}
+        <a href="/guides/claude-crm" className="text-accent hover:underline">Claude as a CRM</a>.
       </p>
 
       <H2 id="apollo">Apollo MCP</H2>

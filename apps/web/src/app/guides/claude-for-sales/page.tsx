@@ -122,7 +122,8 @@ export default function Page() {
         sequence for that person. For the emails themselves, start from the{" "}
         <a href="/guides/cold-email-templates" className="text-accent hover:underline">cold email templates</a>. What Claude can send with
         and without a connector is in <a href="/guides/can-claude-send-emails" className="text-accent hover:underline">Can Claude send
-        emails?</a>
+        emails?</a> For the pipeline and HubSpot or Attio sync, see{" "}
+        <a href="/guides/claude-crm" className="text-accent hover:underline">Claude as a CRM</a>.
       </p>
       <p>
         Search results and email lookups use credits: a found email costs 5, a verification 1 and a search result 1. Sending, replies and
