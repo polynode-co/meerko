@@ -120,7 +120,9 @@ export default function Page() {
       <p>
         Meerko checks your inbox for replies every minute on Meerko Cloud, even when Claude is closed. Replies and unsubscribes stop the
         sequence for that person. For the emails themselves, start from the{" "}
-        <a href="/guides/cold-email-templates" className="text-accent hover:underline">cold email templates</a>.
+        <a href="/guides/cold-email-templates" className="text-accent hover:underline">cold email templates</a>. What Claude can send with
+        and without a connector is in <a href="/guides/can-claude-send-emails" className="text-accent hover:underline">Can Claude send
+        emails?</a>
       </p>
       <p>
         Search results and email lookups use credits: a found email costs 8, a verification 1 and a search result 1. Sending, replies and

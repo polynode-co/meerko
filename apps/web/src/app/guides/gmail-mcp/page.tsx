@@ -104,7 +104,9 @@ export default function Page() {
       <p>
         Anthropic&apos;s separate connector docs page describes it more narrowly: it says Claude reads and searches email only and
         can&apos;t create, send or modify messages.<Cite s={S.claudeDocs} /> The two pages disagree as of today, so check the permissions
-        Google shows when you connect. The help center notes that Google&apos;s consent screen mentions sending.<Cite s={S.claudeHelp} />
+        Google shows when you connect. The help center notes that Google&apos;s consent screen mentions sending.<Cite s={S.claudeHelp} />{" "}
+        For the short answer on sending, see{" "}
+        <a href="/guides/can-claude-send-emails" className="text-accent hover:underline">Can Claude send emails?</a>
       </p>
       <p>
         On Team and Enterprise plans an Owner enables the connector first, and decides whether members may let sends run without asking

@@ -108,6 +108,13 @@ export const guides: GuideEntry[] = [
     crossLinks: ["gmail-sending-limits", "email-deliverability"],
   },
   {
+    slug: "can-claude-send-emails",
+    topic: "AI agents",
+    title: "Can Claude send emails?",
+    summary: "The direct answer, what Claude's Gmail connector can do, and how to send and follow up from Claude or ChatGPT.",
+    crossLinks: ["cold-email-follow-up", "gmail-sending-limits"],
+  },
+  {
     slug: "grok-connectors",
     topic: "AI agents",
     title: "Grok connectors and custom MCP servers",
