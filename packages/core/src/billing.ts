@@ -65,7 +65,7 @@ export interface BillingConfig {
 }
 
 /** The pinned API version, so objects have the shape this file expects whatever the account's default is. */
-export const STRIPE_API_VERSION = "2026-08-26.dahlia" as const;
+export const STRIPE_API_VERSION = "2026-11-18.endive" as const;
 
 export function stripeFromEnv(env: NodeJS.ProcessEnv = process.env): BillingConfig | undefined {
   const { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PRO, STRIPE_PRICE_CREDITS, MEERKO_APP_URL } = env;
