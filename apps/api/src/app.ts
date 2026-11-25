@@ -1413,7 +1413,7 @@ export function createApp(db: Db, deps: AppDeps = {}) {
       enabled: credits.enabled,
       balance: credits.enabled ? await getBalance(db, c.var.workspaceId) : null,
       // Where a person tops up; agents can hand this link over when a lookup runs out.
-      ...(deps.billing ? { plan: (await getBilling(db, c.var.workspaceId)).plan, buy_url: `${deps.appUrl}/app/settings#billing` } : {}),
+      ...(deps.billing ? { plan: (await getBilling(db, c.var.workspaceId)).plan, buy_url: `${deps.appUrl}/app/workspace#billing` } : {}),
     }),
   );
 

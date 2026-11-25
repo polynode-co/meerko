@@ -84,6 +84,11 @@ describe.skipIf(!process.env.DATABASE_URL)("billing (db)", () => {
     const creditCheckout = calls.filter((c) => c.path === "/v1/checkout/sessions")[1]!.body;
     expect(decodeURIComponent(creditCheckout)).toContain("line_items[0][quantity]=3");
     expect(decodeURIComponent(creditCheckout)).toContain(`metadata[workspace_id]=${workspaceId}`);
+    // Back to the billing section of Settings, whichever way Checkout ends.
+    const proCheckout = decodeURIComponent(calls.filter((c) => c.path === "/v1/checkout/sessions")[0]!.body);
+    expect(proCheckout).toContain("success_url=https://app.example/app/workspace?billing=pro#billing");
+    expect(proCheckout).toContain("cancel_url=https://app.example/app/workspace#billing");
+    expect(decodeURIComponent(creditCheckout)).toContain("success_url=https://app.example/app/workspace?billing=credits#billing");
     const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, workspaceId));
     expect(ws!.stripeCustomerId).toBe(customer);
   });
@@ -193,10 +198,12 @@ describe.skipIf(!process.env.DATABASE_URL)("billing (db)", () => {
   it("opens the customer portal for the workspace's customer", async () => {
     const res = await authed("/v1/billing/portal", { method: "POST" });
     expect(await res.json()).toEqual({ url: "https://billing.stripe.test/p" });
+    const portal = decodeURIComponent(calls.filter((c) => c.path === "/v1/billing_portal/sessions").at(-1)!.body);
+    expect(portal).toContain("return_url=https://app.example/app/workspace#billing");
   });
 
   it("reports the plan and where to buy on GET /v1/credits", async () => {
     const res = await authed("/v1/credits");
-    expect(await res.json()).toMatchObject({ enabled: true, plan: "pro", buy_url: "https://app.example/app/settings#billing" });
+    expect(await res.json()).toMatchObject({ enabled: true, plan: "pro", buy_url: "https://app.example/app/workspace#billing" });
   });
 });

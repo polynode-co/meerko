@@ -26,7 +26,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   // The API's Gmail OAuth callback redirects back here with the outcome.
   // `?connect=gmail` (from an agent's connect_gmail, or Reconnect) opens the mailbox form.
   const { gmail_connected, gmail_error, billing: paid, billing_error, connect, email, slack } = await searchParams;
-  // Stripe Checkout still comes back here (core's billing URLs); billing lives on Settings now.
+  // Stripe now returns to Settings itself; this catches Checkout sessions started before that, and old links.
   if (paid || billing_error) {
     const q = new URLSearchParams({ ...(paid ? { billing: paid } : {}), ...(billing_error ? { billing_error } : {}) });
     redirect(`/app/workspace?${q}#billing`);
