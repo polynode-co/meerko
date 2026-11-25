@@ -1,7 +1,7 @@
 import { CodeBlock } from "@/components/lookout/docs/code-block";
 import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
 import { C, Fields, H2, L } from "@/components/lookout/docs/ui";
-import { mcpUrl } from "@/lib/meerko";
+import { addToClaudeUrl, mcpUrl } from "@/lib/meerko";
 import { docsSources } from "@/lib/sources";
 
 export const metadata = docsMetadata("mcp-clients", "Connect Meerko to Gemini CLI and other MCP clients | Meerko docs");
@@ -15,8 +15,9 @@ export default function Page() {
       lead={
         <p>
           Meerko&apos;s MCP server is a remote server that signs you in with OAuth, the way the MCP spec describes. Any client that supports
-          remote servers and OAuth can connect with just the URL. Using Claude or ChatGPT? See{" "}
-          <L href="/claude">Claude for sales</L> and <L href="/chatgpt">ChatGPT for sales</L>.
+          remote servers and OAuth can connect with just the URL. Using Claude? <L href={addToClaudeUrl()}>Connect Claude to Meerko</L>{" "}
+          opens Claude&apos;s add-connector form already filled in. More in <L href="/claude">Claude for sales</L> and{" "}
+          <L href="/chatgpt">ChatGPT for sales</L>.
         </p>
       }
       toc={[

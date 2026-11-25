@@ -9,6 +9,7 @@
 // lib/pricing.ts. Facts about Claude and ChatGPT themselves cite their makers' help pages (`sources`).
 
 import { mcp, needsApproval } from "@/lib/docs";
+import { addToClaudeUrl } from "@/lib/meerko";
 import { FREE_CREDITS, proPrices } from "@/lib/pricing";
 import { docsSources } from "@/lib/sources";
 
@@ -19,8 +20,6 @@ export interface Source {
 
 export type AssistantSlug = "claude" | "chatgpt";
 
-/** Claude's add-connector form, opened directly (claude.ai, any plan). */
-export const CLAUDE_ADD_CONNECTOR_URL = "https://claude.ai/customize/connectors?modal=add-custom-connector";
 /** Meerko's listing in ChatGPT's plugin directory. */
 export const CHATGPT_PLUGIN_URL = "https://chatgpt.com/plugins/plugin_asdk_app_6b0463cf58c081919496d0d2f27ecaf0";
 
@@ -104,7 +103,7 @@ export const assistantPages: Record<AssistantSlug, AssistantPage> = {
       "Connect Meerko to Claude and run outbound from a chat: find and verify leads, send sequences from your own Gmail or Outlook with your approval, and sync contacts to HubSpot or Attio.",
     h1: "Claude for sales: find leads, send sequences and run your pipeline from Claude",
     lede: `Add Meerko as a connector and Claude gets ${toolCount} tools for outbound: it finds the people you sell to, verifies their work emails, sends a sequence from your own Gmail or Outlook and catches every reply. You approve each email before it goes.`,
-    cta: { label: "Add Meerko to Claude →", href: CLAUDE_ADD_CONNECTOR_URL },
+    cta: { label: "Connect Claude to Meerko →", href: addToClaudeUrl() },
     question: "Can Claude do your sales outreach?",
     answer: `Yes, with Meerko connected. Claude writes the emails and decides who to target; Meerko gives it ${toolCount} tools to find and verify leads, send sequences from your own Gmail, Google Workspace or Outlook inbox, detect replies and track the pipeline. It works in Claude on the web, the desktop and mobile apps, and Claude Code.`,
     only: [
@@ -128,10 +127,14 @@ export const assistantPages: Record<AssistantSlug, AssistantPage> = {
       steps: [
         {
           title: "Open Connectors",
-          body: "In Claude, go to Customize → Connectors, click + Add, then Add custom connector. The button above opens that form.",
-          link: { href: CLAUDE_ADD_CONNECTOR_URL, label: "Open in Claude" },
+          body: "The button above opens Claude's Add custom connector form with Meerko's name and URL already filled in. Or go to Customize → Connectors, click + Add, then Add custom connector.",
+          link: { href: addToClaudeUrl(), label: "Open in Claude" },
         },
-        { title: "Paste the URL", body: "Name it Meerko, paste the server URL and click Continue, then Add. Keep the detected OAuth sign-in.", copyUrl: true },
+        {
+          title: "Paste the URL",
+          body: "The form opened from here comes filled in: click Add and keep the detected OAuth sign-in. Opened it yourself? Name it Meerko and paste the server URL.",
+          copyUrl: true,
+        },
         { title: "Sign in", body: "Claude sends you to Meerko: continue with Google and click Allow. Your Meerko account is made here if you don't have one." },
         { title: "Ask", body: "In a chat, open + → Connectors and check Meerko is on. Then ask in plain language." },
       ],
@@ -214,7 +217,7 @@ export const assistantPages: Record<AssistantSlug, AssistantPage> = {
       "Can ChatGPT send emails? Yes, with the Meerko plugin: from your own Gmail or Outlook, each one approved by you. Find leads, run sequences and answer replies from a ChatGPT chat.",
     h1: "ChatGPT for sales: find leads, send emails and follow up from ChatGPT",
     lede: `Add the Meerko plugin and ChatGPT gets ${toolCount} tools for outbound: it finds the people you sell to, verifies their work emails, sends a sequence from your own Gmail or Outlook and drafts answers to every reply. You approve each email before it goes.`,
-    cta: { label: "Get the ChatGPT plugin →", href: CHATGPT_PLUGIN_URL },
+    cta: { label: "Connect ChatGPT to Meerko →", href: CHATGPT_PLUGIN_URL },
     question: "Can ChatGPT send emails?",
     answer:
       "Yes, through Meerko. With the Meerko plugin, ChatGPT sends from your own Gmail, Google Workspace, Outlook or IMAP mailbox, so emails sit in your Sent folder and replies land in your inbox. Each email waits for your approval before it goes, and sending stays inside the daily limit you set for the mailbox (50 by default).",
@@ -299,3 +302,6 @@ export const assistantPages: Record<AssistantSlug, AssistantPage> = {
     docs: "/docs/chatgpt",
   },
 };
+
+/** "Connect Claude to Meerko" and "Connect ChatGPT to Meerko": the pages' main buttons, also on the landing page and in the app. */
+export const connectCtas = [assistantPages.claude.cta, assistantPages.chatgpt.cta];

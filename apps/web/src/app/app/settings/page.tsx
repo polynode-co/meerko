@@ -11,6 +11,7 @@ import { CrmCard } from "@/components/app/crm-card";
 import { SendingModeCard } from "@/components/app/sending-mode-card";
 import { DigestCard } from "@/components/app/digest-card";
 import { MailboxConnect } from "@/components/app/mailbox-connect";
+import { connectCtas } from "@/lib/assistant-pages";
 import { load, mcpUrl } from "@/lib/meerko";
 import { MovedToSettings } from "./moved";
 import { headBand, row, SectionHead, SectionNav } from "./parts";
@@ -168,7 +169,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </Card>
           </section>
 
-          <ConnectedAppsCard apps={apps} canManage={!!me.user} mcpUrl={mcpUrl()} />
+          <ConnectedAppsCard apps={apps} canManage={!!me.user} mcpUrl={mcpUrl()} connect={connectCtas} />
 
           <SendingModeCard mode={sendingMode} canManage={!!me.user} />
 
