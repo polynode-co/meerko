@@ -40,6 +40,15 @@ const WATCH_DAYS = 60;
 export const MAILBOX_SCAN_TIMEOUT_MS = 30_000;
 /** Header fetches run at once, for mail whose sender the listing didn't give (the Gmail API lists ids only). */
 const SENDER_LOOKUPS_AT_ONCE = 8;
+/**
+ * A sent email whose copy the sender couldn't find (over IMAP) is looked for again a minute after it went out, then
+ * after twice as long on each miss: the tenth and last look is about 8.5 hours after the send. Gmail indexes a sent
+ * copy within seconds, so one still missing by then won't turn up, and a reply to it is matched by its sender.
+ */
+const THREAD_LOOKUP_FIRST_WAIT_MINUTES = 1;
+export const MAX_THREAD_LOOKUPS = 10;
+/** Looks for sent copies per mailbox and tick, each a few round trips, so a backlog can't fill the scan's time. */
+const THREAD_LOOKUPS_PER_TICK = 5;
 
 class ScanTimedOut extends Error {}
 
@@ -179,8 +188,9 @@ async function scanMailbox(
     stats.stage = next;
     stepBegan = Date.now();
   };
-  await fillMissingThreadIds(db, mb.id, open, watchFrom, dropped);
-  // Threads this mailbox started for a sequence, with the first step's subject.
+  await fillMissingThreadIds(db, mb.id, open, now, watchFrom, dropped);
+  // Threads this mailbox started for a sequence, with the first step's subject. A lead whose sent copy was never
+  // found has no thread id, and is still watched: a reply from them is matched by its sender.
   const watched = await db
     .selectDistinctOn([enrollments.id], {
       enrollmentId: enrollments.id,
@@ -198,7 +208,6 @@ async function scanMailbox(
       and(
         // The mailbox this lead was emailed from (rotation spreads a sequence over several).
         eq(enrollments.mailboxId, mb.id),
-        isNotNull(enrollments.gmailThreadId),
         sql`exists (select 1 from ${messages} where ${messages.enrollmentId} = ${enrollments.id} and ${messages.sentAt} >= ${watchFrom})`,
       ),
     );
@@ -208,7 +217,7 @@ async function scanMailbox(
   const byEmail = new Map<string, Watched>();
   for (const w of watched) {
     const entry = { enrollmentId: w.enrollmentId, workspaceId: w.workspaceId, email: w.email, originalSubject: w.originalSubject ?? "" };
-    byThread.set(w.threadId!, entry);
+    if (w.threadId) byThread.set(w.threadId, entry);
     // Generic IMAP replies are matched by the Message-IDs they answer.
     for (const id of w.messageIds) byThread.set(id, entry);
     byEmail.set(w.email, entry);
@@ -286,10 +295,11 @@ async function eachAtMost<T>(items: T[], limit: number, fn: (item: T) => Promise
 }
 
 /**
- * Over IMAP a sent email's Gmail ids come from finding its copy, which can lag the send. Looks up the
- * ones still missing, so their threads are watched for replies.
+ * Over IMAP a sent email's Gmail ids come from finding its copy, which can lag the send. Looks up the ones still
+ * missing whose next look is due (see THREAD_LOOKUP_FIRST_WAIT_MINUTES), so their threads are watched for replies.
  */
-async function fillMissingThreadIds(db: Db, mailboxId: string, open: () => MailClient, watchFrom: string, dropped: AbortSignal) {
+async function fillMissingThreadIds(db: Db, mailboxId: string, open: () => MailClient, now: Date, watchFrom: string, dropped: AbortSignal) {
+  const due = sql`${messages.sentAt} + interval '${sql.raw(String(THREAD_LOOKUP_FIRST_WAIT_MINUTES))} minute' * power(2, ${messages.threadLookups})`;
   const missing = await db
     .select({ id: messages.id, enrollmentId: messages.enrollmentId, rfcMessageId: messages.rfcMessageId })
     .from(messages)
@@ -300,15 +310,26 @@ async function fillMissingThreadIds(db: Db, mailboxId: string, open: () => MailC
         isNull(messages.gmailThreadId),
         isNotNull(messages.rfcMessageId),
         sql`${messages.sentAt} >= ${watchFrom}`,
+        sql`${messages.threadLookups} < ${MAX_THREAD_LOOKUPS}`,
+        sql`${due} <= ${now.toISOString()}::timestamptz`,
       ),
-    );
+    )
+    // The longest overdue first.
+    .orderBy(asc(due))
+    .limit(THREAD_LOOKUPS_PER_TICK);
   if (!missing.length) return;
   const client = open();
   if (!client.findByMessageId) return;
   for (const m of missing) {
     const found = await client.findByMessageId(m.rfcMessageId!);
     dropped.throwIfAborted();
-    if (!found.id || !found.threadId) continue;
+    if (!found.id || !found.threadId) {
+      await db
+        .update(messages)
+        .set({ threadLookups: sql`${messages.threadLookups} + 1` })
+        .where(eq(messages.id, m.id));
+      continue;
+    }
     await db.update(messages).set({ gmailId: found.id, gmailThreadId: found.threadId }).where(eq(messages.id, m.id));
     if (m.enrollmentId) {
       await db

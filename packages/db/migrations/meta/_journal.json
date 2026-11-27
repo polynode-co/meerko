@@ -218,6 +218,13 @@
       "when": 1795533688537,
       "tag": "0030_mailbox_disconnect_reported",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795793854424,
+      "tag": "0031_thread_lookups",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@
 // back in that inbox and no real person is ever emailed.
 import { and, dataTables, enrollments, eq, mailboxes, messages, replyDrafts, sql, tableRows, workspaces, type Db } from "@meerko/db";
 import { grantCredits } from "./credits.ts";
+import { MAX_THREAD_LOOKUPS } from "./replies/replies.ts";
 import { createSequence, setSequenceStatus } from "./sequences.ts";
 import { createTable, insertRows } from "./tables.ts";
 
@@ -128,6 +129,8 @@ export async function seedReviewerWorkspace(db: Db, workspaceId: string, now = n
       direction: "out",
       step: 0,
       rfcMessageId: rfc,
+      // Never sent, so no mail server has a copy: the reply scan mustn't look for one.
+      threadLookups: MAX_THREAD_LOOKUPS,
       fromEmail: mailbox.email,
       toEmail: emailOf(lead),
       subject,
