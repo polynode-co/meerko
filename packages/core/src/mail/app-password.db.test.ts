@@ -157,6 +157,30 @@ describe.skipIf(!process.env.DATABASE_URL)("app-password mailboxes (db)", () => 
     expect((await checked(other!.id)).repliesCheckedAt).toEqual(later(32));
   });
 
+  it("finds a lead writing in a new thread among lots of unrelated mail, without fetching each one's headers on every tick", async () => {
+    const g = fakeGmail();
+    expect(await runSendTick(db, { box, imap: g.connectors, publicUrl: "https://m.ai", now: () => MON_1030, random: () => 0 })).toMatchObject({ sent: 1 });
+    g.fetchOnes.length = 0;
+    for (let i = 0; i < 300; i++) g.store(`From: News ${i} <news${i}@lists.example>\r\nSubject: Issue ${i}\r\nMessage-ID: <n${i}@lists.example>\r\n\r\nNews`);
+    // Pia writes in fresh, not in the thread of the email she got.
+    g.store("From: Pia <Pia@slalom.example>\r\nSubject: Another thing\r\nMessage-ID: <fresh@slalom.example>\r\n\r\nCan we talk on Friday?");
+
+    const first = await runReplyTick(db, { box, imap: g.connectors, now: () => later(31) });
+    expect(first).toMatchObject({ scanned: 301, replies: 1 });
+    expect(first.slowest).toMatchObject({ mailboxId, stage: "done", listed: 301, fresh: 301, senderLookups: 0, recorded: 1 });
+    // Only Pia's email was fetched on its own, in full; the senders came with the listing.
+    expect(g.fetchOnes).toEqual(["source"]);
+    const [en] = await db.select().from(enrollments).where(eq(enrollments.mailboxId, mailboxId));
+    expect(en!.state).toBe("replied");
+
+    // The next tick lists the same unrelated mail again, still without a fetch per message.
+    const second = await runReplyTick(db, { box, imap: g.connectors, now: () => later(32) });
+    expect(second).toMatchObject({ replies: 0, slowest: { listed: 301, fresh: 300, senderLookups: 0, recorded: 0 } });
+    expect(g.fetchOnes).toEqual(["source"]);
+    const stored = await db.select().from(messages).where(eq(messages.mailboxId, mailboxId));
+    expect(stored.filter((m) => m.direction === "in").map((m) => m.fromEmail)).toEqual(["pia@slalom.example"]);
+  });
+
   it("stores exactly one credential per mailbox", async () => {
     await expect(db.insert(mailboxes).values({ workspaceId: ws, provider: "gmail_imap", email: "none@meerko.ai" })).rejects.toThrow();
     await expect(

@@ -153,7 +153,7 @@ export class OutlookClient implements MailClient {
       $top: "50",
       $select: "id,internetMessageId,from,receivedDateTime,internetMessageHeaders",
     });
-    const found: (InboundRef & { graphId: string; report: boolean })[] = [];
+    const found: (InboundRef & { graphId: string; report: boolean; from: string })[] = [];
     let next: string | undefined = `/mailFolders/inbox/messages?${params}`;
     while (next && found.length < max) {
       const page: { value: GraphMessage[]; "@odata.nextLink"?: string } = await this.call("GET", next);
@@ -163,7 +163,8 @@ export class OutlookClient implements MailClient {
         const get = (name: string) => headers.filter((h) => h.name.toLowerCase() === name).map((h) => h.value).join(" ");
         const id = m.internetMessageId ?? `<graph-${m.id}@outlook.invalid>`;
         const refs = messageIds(`${get("references")} ${get("in-reply-to")}`);
-        found.push({ id, threadId: refs[0] ?? id, refs, graphId: m.id, report: /multipart\/report/i.test(get("content-type")) });
+        const from = m.from?.emailAddress?.address?.trim().toLowerCase() ?? "";
+        found.push({ id, threadId: refs[0] ?? id, refs, from, graphId: m.id, report: /multipart\/report/i.test(get("content-type")) });
         this.seen.set(id, { graphId: m.id, threadId: refs[0] ?? id, headers, receivedAt: m.receivedDateTime });
       }
       next = page["@odata.nextLink"];
@@ -175,7 +176,7 @@ export class OutlookClient implements MailClient {
       m.threadId = m.refs[0] ?? m.id;
       this.seen.set(m.id, { ...this.seen.get(m.id)!, threadId: m.threadId });
     }
-    return found.slice(0, max).map(({ id, threadId, refs }) => ({ id, threadId, refs }));
+    return found.slice(0, max).map(({ id, threadId, refs, from }) => ({ id, threadId, refs, from }));
   }
 
   async getMessage(id: string, format: "full" | "metadata" = "full"): Promise<GmailMessage> {

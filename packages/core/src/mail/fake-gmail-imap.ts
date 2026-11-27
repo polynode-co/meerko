@@ -7,6 +7,8 @@ export function fakeGmail(opts: { gmail?: boolean; authFails?: boolean; indexAft
   const all: Stored[] = [];
   const outbox: { envelope: { from: string; to: string[] }; raw: string }[] = [];
   const searches: unknown[] = [];
+  /** What each single-message fetch asked for: one round trip each. */
+  const fetchOnes: ("headers" | "source" | "ids")[] = [];
   let lookups = 0;
   /** Set `indexing` to false to make sent mail unfindable by Message-ID for a while. */
   const state = { indexing: true };
@@ -80,6 +82,7 @@ export function fakeGmail(opts: { gmail?: boolean; authFails?: boolean; indexAft
           return all.filter((m) => !new RegExp(`^From:.*${me}`, "mi").test(m.source)).map((m) => m.uid);
         },
         fetchOne: async (uid: string, query: { source?: boolean; headers?: boolean | string[] }) => {
+          fetchOnes.push(query.source ? "source" : query.headers ? "headers" : "ids");
           const m = all.find((x) => x.uid === Number(uid));
           return m ? toFetched(m, query) : false;
         },
@@ -95,6 +98,7 @@ export function fakeGmail(opts: { gmail?: boolean; authFails?: boolean; indexAft
     connectors,
     outbox,
     searches,
+    fetchOnes,
     store,
     get loggedOut() {
       return loggedOut;

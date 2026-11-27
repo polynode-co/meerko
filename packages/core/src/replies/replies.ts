@@ -18,7 +18,7 @@ import {
   type Db,
   type SQL,
 } from "@meerko/db";
-import { mailClient, type MailClient } from "../mail/client.ts";
+import { mailClient, type InboundRef, type MailClient } from "../mail/client.ts";
 import { GmailError, type GmailMessage, type GoogleOAuth } from "../mail/gmail.ts";
 import type { ImapConnectors } from "../mail/imap-common.ts";
 import { addressOf, bodyText, header, stripQuoted } from "../mail/parse.ts";
@@ -38,8 +38,27 @@ const WATCH_DAYS = 60;
  * that stops answering would otherwise hold the whole tick past Cloud Scheduler's deadline.
  */
 export const MAILBOX_SCAN_TIMEOUT_MS = 30_000;
+/** Header fetches run at once, for mail whose sender the listing didn't give (the Gmail API lists ids only). */
+const SENDER_LOOKUPS_AT_ONCE = 8;
 
 class ScanTimedOut extends Error {}
+
+/** Where one mailbox's scan spent its time, for the tick's log line. Counts and timings only: no addresses or subjects. */
+export interface ScanStats {
+  /** The step the scan was on when it ended: "done", or the one it was dropped in. */
+  stage: "threads" | "list" | "senders" | "record" | "done";
+  /** Messages the listing returned, and how many of them weren't stored already. */
+  listed: number;
+  fresh: number;
+  /** Header-only fetches, each one round trip, for mail outside watched threads whose sender the listing didn't give. */
+  senderLookups: number;
+  /** Messages fetched in full and recorded. */
+  recorded: number;
+  /** Milliseconds per finished step: filling in thread ids, the listing, sender lookups, recording. */
+  steps: { threads: number; list: number; senders: number; record: number };
+}
+
+const newStats = (): ScanStats => ({ stage: "threads", listed: 0, fresh: 0, senderLookups: 0, recorded: 0, steps: { threads: 0, list: 0, senders: 0, record: 0 } });
 
 export interface ReplyDeps {
   box: SecretBox | null;
@@ -67,8 +86,8 @@ export interface ReplyTickResult {
   outOfOffice: number;
   /** Mailboxes left for the next tick because the tick's time budget ran out. */
   unscannedMailboxes?: number;
-  /** The mailbox that took longest to scan, to find a slow one from the tick's log line. */
-  slowest?: { mailboxId: string; ms: number };
+  /** The mailbox that took longest to scan, and where its time went, to find a slow one from the tick's log line. */
+  slowest?: { mailboxId: string; ms: number } & ScanStats;
   /**
    * Mailboxes whose scan ran past MAILBOX_SCAN_TIMEOUT_MS and was dropped. They stay active and keep their last check
    * time, so the next tick scans the same mail again.
@@ -112,8 +131,9 @@ export async function runReplyTick(db: Db, deps: ReplyDeps): Promise<ReplyTickRe
       return (client ??= mailClient(mb, { box: deps.box!, oauth: deps.oauth, microsoft: deps.microsoft, fetch: deps.fetch, imap: deps.imap, db }));
     };
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const stats = newStats();
     try {
-      const scanning = scanMailbox(db, mb, open, now, watchFrom, result, dropped.signal);
+      const scanning = scanMailbox(db, mb, open, now, watchFrom, result, stats, dropped.signal);
       // A dropped scan may still fail later, once its connection is gone; nothing waits for it then.
       scanning.catch(() => {});
       const limit = new Promise<never>((_, reject) => {
@@ -133,7 +153,8 @@ export async function runReplyTick(db: Db, deps: ReplyDeps): Promise<ReplyTickRe
       // A server that stopped answering won't answer a sign-out either: a dropped scan's connection was closed above.
       if (!dropped.signal.aborted) await client?.close();
       const ms = Date.now() - began;
-      if (!result.slowest || ms > result.slowest.ms) result.slowest = { mailboxId: mb.id, ms };
+      // A copy: a dropped scan may still update its own stats until it reaches its next step.
+      if (!result.slowest || ms > result.slowest.ms) result.slowest = { mailboxId: mb.id, ms, ...stats, steps: { ...stats.steps } };
     }
   }
   return result;
@@ -142,7 +163,22 @@ export async function runReplyTick(db: Db, deps: ReplyDeps): Promise<ReplyTickRe
 type MailboxRow = typeof mailboxes.$inferSelect;
 
 /** `dropped` aborts once the tick gave up on this scan: it then stops before its next step, and records no check time. */
-async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: Date, watchFrom: string, result: ReplyTickResult, dropped: AbortSignal) {
+async function scanMailbox(
+  db: Db,
+  mb: MailboxRow,
+  open: () => MailClient,
+  now: Date,
+  watchFrom: string,
+  result: ReplyTickResult,
+  stats: ScanStats,
+  dropped: AbortSignal,
+) {
+  let stepBegan = Date.now();
+  const finish = (step: keyof ScanStats["steps"], next: ScanStats["stage"]) => {
+    stats.steps[step] = Date.now() - stepBegan;
+    stats.stage = next;
+    stepBegan = Date.now();
+  };
   await fillMissingThreadIds(db, mb.id, open, watchFrom, dropped);
   // Threads this mailbox started for a sequence, with the first step's subject.
   const watched = await db
@@ -166,7 +202,7 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
         sql`exists (select 1 from ${messages} where ${messages.enrollmentId} = ${enrollments.id} and ${messages.sentAt} >= ${watchFrom})`,
       ),
     );
-  if (watched.length === 0) return;
+  if (watched.length === 0) return finish("threads", "done");
 
   const byThread = new Map<string, Watched>();
   const byEmail = new Map<string, Watched>();
@@ -181,6 +217,7 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
   const earliest = Math.min(...watched.map((w) => Date.parse(w.firstSentAt)));
   const since = Math.max(earliest, (mb.repliesCheckedAt?.getTime() ?? earliest) - OVERLAP_MS);
 
+  finish("threads", "list");
   const client = open();
   const ids = await client.listInbound(new Date(since));
   const known = new Set(
@@ -192,18 +229,33 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
     ).map((m) => m.gmailId),
   );
 
-  for (const { id, threadId, refs } of ids) {
+  const fresh = ids.filter((m) => !known.has(m.id));
+  stats.listed = ids.length;
+  stats.fresh = fresh.length;
+  result.scanned += fresh.length;
+  finish("list", "senders");
+
+  // Mail outside our threads matters only if an enrolled person wrote in fresh, which its sender tells. Most
+  // listings carry the sender; for the rest, a cheap header-only fetch, a few at a time.
+  const inThread = (m: InboundRef) => byThread.get(m.threadId) ?? m.refs?.map((r) => byThread.get(r)).find(Boolean);
+  const senders = new Map(fresh.filter((m) => m.from !== undefined).map((m) => [m.id, m.from!]));
+  await eachAtMost(
+    fresh.filter((m) => !inThread(m) && m.from === undefined),
+    SENDER_LOOKUPS_AT_ONCE,
+    async ({ id }) => {
+      dropped.throwIfAborted();
+      stats.senderLookups++;
+      senders.set(id, addressOf(header(await client.getMessage(id, "metadata", ["From"]), "From")));
+    },
+  );
+  finish("senders", "record");
+
+  for (const m of fresh) {
     dropped.throwIfAborted();
-    if (known.has(id)) continue;
-    result.scanned++;
-    let target = byThread.get(threadId) ?? refs?.map((r) => byThread.get(r)).find(Boolean);
-    if (!target) {
-      // Not one of our threads: a cheap header-only fetch tells us if an enrolled person wrote in fresh.
-      const meta = await client.getMessage(id, "metadata", ["From"]);
-      target = byEmail.get(addressOf(header(meta, "From")));
-      if (!target) continue;
-    }
-    const full = await client.getMessage(id, "full");
+    const target = inThread(m) ?? byEmail.get(senders.get(m.id) ?? "");
+    if (!target) continue;
+    const full = await client.getMessage(m.id, "full");
+    stats.recorded++;
     const intent = await recordInbound(db, mb.id, mb.email, target, full);
     if (intent === undefined) continue;
     if (intent === "bounce") result.bounces++;
@@ -213,6 +265,24 @@ async function scanMailbox(db: Db, mb: MailboxRow, open: () => MailClient, now: 
   }
   dropped.throwIfAborted();
   await db.update(mailboxes).set({ repliesCheckedAt: now }).where(eq(mailboxes.id, mb.id));
+  finish("record", "done");
+}
+
+/** Runs `fn` on each item, at most `limit` at a time. The first failure stops the rest from starting, and is thrown. */
+async function eachAtMost<T>(items: T[], limit: number, fn: (item: T) => Promise<void>) {
+  let next = 0;
+  let failed = false;
+  const worker = async () => {
+    while (!failed && next < items.length) {
+      try {
+        await fn(items[next++]!);
+      } catch (err) {
+        failed = true;
+        throw err;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
 }
 
 /**

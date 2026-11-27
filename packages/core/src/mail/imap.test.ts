@@ -58,7 +58,8 @@ describe("ImapClient", () => {
     );
     const client = new ImapClient(account, f.connectors);
     const inbound = await client.listInbound(since);
-    expect(inbound).toEqual([{ id: "<r1@slalom.example>", threadId: "<m1@acme.eu>", refs: ["<m1@acme.eu>", "<m2@acme.eu>"] }]);
+    // The sender comes with the listing, so the reply tick needn't fetch each message's headers.
+    expect(inbound).toEqual([{ id: "<r1@slalom.example>", threadId: "<m1@acme.eu>", refs: ["<m1@acme.eu>", "<m2@acme.eu>"], from: "pia@slalom.example" }]);
 
     const meta = await client.getMessage("<r1@slalom.example>", "metadata", ["From"]);
     expect(header(meta, "From")).toBe("Pia Müller <Pia@slalom.example>");
@@ -88,7 +89,9 @@ describe("ImapClient", () => {
         "--b--",
       ].join("\r\n"),
     );
-    expect(await new ImapClient(account, f.connectors).listInbound(since)).toEqual([{ id: "<bounce1@mx.zoho.eu>", threadId: "<m1@acme.eu>", refs: ["<m1@acme.eu>"] }]);
+    expect(await new ImapClient(account, f.connectors).listInbound(since)).toEqual([
+      { id: "<bounce1@mx.zoho.eu>", threadId: "<m1@acme.eu>", refs: ["<m1@acme.eu>"], from: "mailer-daemon@mx.zoho.eu" },
+    ]);
   });
 
   it("asks for a reconnect when the server rejects the password", async () => {
