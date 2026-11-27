@@ -69,6 +69,58 @@ describe.skipIf(!process.env.DATABASE_URL)("app-password mailboxes (db)", () => 
     expect(reply).toMatchObject({ fromEmail: "pia@slalom.example", body: "Yes, Tuesday works.", gmailThreadId: threadHex });
   });
 
+  it("stops looking for a sent copy that never turns up, and still records the lead's reply by its sender", async () => {
+    const g = fakeGmail();
+    // Gmail never finds the sent copy by its Message-ID.
+    g.state.indexing = false;
+    expect(await runSendTick(db, { box, imap: g.connectors, publicUrl: "https://m.ai", now: () => MON_1030, random: () => 0 })).toMatchObject({ sent: 1 });
+    const lookups = () => g.searches.filter((q) => (q as { gmraw?: string }).gmraw?.startsWith("rfc822msgid:")).length;
+    const atSend = lookups();
+
+    // A tick a minute for the first hour, then one every half hour for a day.
+    const ticks = [...Array.from({ length: 60 }, (_, i) => i + 1), ...Array.from({ length: 47 }, (_, i) => 90 + i * 30)];
+    for (const m of ticks) {
+      const scan = await runReplyTick(db, { box, imap: g.connectors, now: () => later(m) });
+      expect(scan.timedOutMailboxes).toBeUndefined();
+      expect(scan.slowest).toMatchObject({ stage: "done" });
+    }
+    // Looked for after 1, 2, 4 … 512 minutes, then never again.
+    expect(lookups() - atSend).toBe(10);
+    const [out] = await db.select().from(messages).where(eq(messages.mailboxId, mailboxId));
+    expect(out).toMatchObject({ gmailThreadId: null, threadLookups: 10 });
+
+    // Pia answers; the enrollment has no thread id, so her address is what matches it.
+    g.store("From: Pia <pia@slalom.example>\r\nSubject: Re: Quick question, Pia\r\nMessage-ID: <r2@slalom.example>\r\n\r\nYes, Tuesday works.");
+    expect(await runReplyTick(db, { box, imap: g.connectors, now: () => later(24 * 60 + 30) })).toMatchObject({ replies: 1 });
+    expect(lookups() - atSend).toBe(10);
+    const [en] = await db.select().from(enrollments).where(eq(enrollments.mailboxId, mailboxId));
+    expect(en!.state).toBe("replied");
+  });
+
+  it("looks for a few missing sent copies per tick, however many there are", async () => {
+    const g = fakeGmail();
+    g.state.indexing = false;
+    expect(await runSendTick(db, { box, imap: g.connectors, publicUrl: "https://m.ai", now: () => MON_1030, random: () => 0 })).toMatchObject({ sent: 1 });
+    const [en] = await db.select().from(enrollments).where(eq(enrollments.mailboxId, mailboxId));
+    await db.insert(messages).values(
+      Array.from({ length: 20 }, (_, i) => ({
+        workspaceId: ws,
+        mailboxId,
+        enrollmentId: en!.id,
+        direction: "out" as const,
+        rfcMessageId: `<lost-${i}@meerko.ai>`,
+        fromEmail: "iker@meerko.ai",
+        toEmail: "pia@slalom.example",
+        body: "Hi",
+        sentAt: MON_1030,
+      })),
+    );
+    g.searches.length = 0;
+    const scan = await runReplyTick(db, { box, imap: g.connectors, now: () => later(31) });
+    expect(scan.slowest).toMatchObject({ stage: "done" });
+    expect(g.searches.filter((q) => (q as { gmraw?: string }).gmraw?.startsWith("rfc822msgid:"))).toHaveLength(5);
+  });
+
   it("marks the mailbox for reconnecting when Gmail rejects the app password, and leaves the lead due", async () => {
     const g = fakeGmail({ authFails: true });
     expect(await runSendTick(db, { box, imap: g.connectors, publicUrl: "https://m.ai", now: () => MON_1030, random: () => 0 })).toMatchObject({ sent: 0 });

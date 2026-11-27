@@ -5,7 +5,7 @@ import { getBalance } from "./credits.ts";
 import { fakeGmail } from "./mail/fake-gmail-imap.ts";
 import { SecretBox } from "./provider-keys.ts";
 import { approveDraft, listDrafts } from "./replies/drafts.ts";
-import { listReplies } from "./replies/replies.ts";
+import { listReplies, runReplyTick } from "./replies/replies.ts";
 import { REVIEWER_CREDITS, ReviewerSeedError, seedReviewerWorkspace } from "./reviewer-seed.ts";
 import { listSequenceRecipients, sequenceStats, listSequences } from "./sequences.ts";
 import { listTables, queryRows } from "./tables.ts";
@@ -57,5 +57,16 @@ describe.skipIf(!process.env.DATABASE_URL)("reviewer seed (db)", () => {
     const sent = await approveDraft(db, ws, draft!.id, { box, imap: g.connectors });
     expect(sent.to).toMatch(/^review\+\w+@meerko\.ai$/);
     expect(g.outbox[0]!.envelope.to).toEqual([sent.to]);
+  });
+
+  it("leaves the reply scan nothing to look up for the demo emails, which were never sent", async () => {
+    // Years after the other db tests' dates, so the scan watches only this mailbox.
+    const now = new Date("2029-01-15T09:00:00Z");
+    await db.insert(mailboxes).values({ workspaceId: ws, provider: "gmail_imap", email: "review@meerko.ai", encryptedPassword: box.encrypt("abcdabcdabcdabcd") });
+    await seedReviewerWorkspace(db, ws, now);
+    const g = fakeGmail({ me: "review@meerko.ai" });
+    const scan = await runReplyTick(db, { box, imap: g.connectors, now: () => now });
+    expect(scan.slowest).toMatchObject({ stage: "done" });
+    expect(g.searches.filter((q) => (q as { gmraw?: string }).gmraw?.startsWith("rfc822msgid:"))).toHaveLength(0);
   });
 });

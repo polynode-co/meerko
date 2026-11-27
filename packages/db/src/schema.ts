@@ -437,6 +437,11 @@ export const messages = pgTable(
     gmailId: text("gmail_id"),
     gmailThreadId: text("gmail_thread_id"),
     rfcMessageId: text("rfc_message_id"),
+    /**
+     * For outbound mail sent over IMAP whose sent copy wasn't found at send time: how many times the reply tick has
+     * looked for it since. Each miss doubles the wait before the next look, and the tick stops at a cap.
+     */
+    threadLookups: integer("thread_lookups").notNull().default(0),
     fromEmail: text("from_email").notNull(),
     toEmail: text("to_email").notNull(),
     subject: text("subject"),
