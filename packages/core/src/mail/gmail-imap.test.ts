@@ -67,6 +67,8 @@ describe("GmailImapClient", () => {
 
     const ids = await client.listMessageIds("after:1 -from:me");
     expect(ids.map((i) => i.threadId)).toEqual([BigInt("1879569508915794712").toString(16), sent.threadId]);
+    // The sender comes with the listing, so the reply tick needn't fetch each message's headers.
+    expect(ids.map((i) => i.from)).toEqual(["bob@x.com", "pia@slalom.example"]);
     expect(g.searches).toContainEqual({ gmraw: "after:1 -from:me" });
 
     const meta = await client.getMessage(ids[1]!.id, "metadata", ["From"]);

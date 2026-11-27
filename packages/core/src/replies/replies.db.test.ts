@@ -24,6 +24,8 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
   let queries: string[];
   let threadOf: Record<string, string>;
   let sends: { raw: string; threadId?: string }[];
+  /** Header-only fetches: how many, and the most at once. */
+  let lookups: { count: number; inFlight: number; most: number };
   const deliver = (m: { from: string; thread: string; subject?: string; text: string; headers?: Record<string, string> }) => {
     const headers = { From: m.from, Subject: m.subject ?? "Re: Quick question, Pia", ...m.headers };
     inbox.push({
@@ -54,6 +56,13 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     }
     const id = u.pathname.split("/").pop()!;
     if (u.searchParams.get("format") === "full") fullFetches.push(id);
+    if (u.searchParams.get("format") === "metadata") {
+      lookups.count++;
+      lookups.inFlight++;
+      lookups.most = Math.max(lookups.most, lookups.inFlight);
+      await new Promise((r) => setTimeout(r, 1));
+      lookups.inFlight--;
+    }
     return Response.json(inbox.find((m) => m.id === id));
   }) as typeof globalThis.fetch;
   const oauth = new GoogleOAuth({ clientId: "c", clientSecret: "s", redirectUri: "http://x/cb", fetch });
@@ -69,7 +78,8 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     queries = [];
     threadOf = {};
     sends = [];
-    ws = (await db.insert(workspaces).values({ name: "replies-test", approveSequenceEmails: false }).returning())[0]!.id;
+    lookups = { count: 0, inFlight: 0, most: 0 };
+    ws =(await db.insert(workspaces).values({ name: "replies-test", approveSequenceEmails: false }).returning())[0]!.id;
     const [mb] = await db
       .insert(mailboxes)
       .values({ workspaceId: ws, provider: "gmail", email: "iker@meerko.ai", encryptedRefreshToken: box.encrypt("rt") })
@@ -176,6 +186,22 @@ describe.skipIf(!process.env.DATABASE_URL)("reply detection (db)", () => {
     expect(fullFetches).toEqual(["in-1"]); // the newsletter was only checked by its From header
     const stored = await db.select().from(messages).where(eq(messages.workspaceId, ws));
     expect(stored.some((m) => m.fromEmail === "newsletter@somewhere.com")).toBe(false);
+  });
+
+  it("looks up the senders of unrelated mail a few at a time, since the Gmail API lists ids only", async () => {
+    for (let i = 0; i < 40; i++) deliver({ from: `news${i}@lists.example`, thread: `list-${i}`, subject: "Weekly digest", text: "News" });
+    deliver({ from: "Fran <fran@reply-example.com>", thread: "brand-new-thread", subject: "Your email", text: "Call me." });
+    // In a watched thread: no lookup needed.
+    deliver({ from: "pia@slalom.example", thread: threadOf["pia@slalom.example"]!, text: "Yes." });
+
+    const result = await scan();
+    expect(result).toMatchObject({ scanned: 42, replies: 2 });
+    expect(result.slowest).toMatchObject({ stage: "done", listed: 42, fresh: 42, senderLookups: 41, recorded: 2 });
+    expect(lookups.count).toBe(41);
+    expect(lookups.most).toBeGreaterThan(1);
+    expect(lookups.most).toBeLessThanOrEqual(8);
+    expect(await stateOf("fran@reply-example.com")).toBe("replied");
+    expect(await stateOf("pia@slalom.example")).toBe("replied");
   });
 
   it("sends an approved draft as a threaded reply, once, and refuses suppressed addresses", async () => {

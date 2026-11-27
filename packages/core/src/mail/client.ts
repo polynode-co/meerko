@@ -32,6 +32,11 @@ export interface InboundRef {
    * thread ids, so the reply tick matches these against the Message-IDs it sent.
    */
   refs?: string[];
+  /**
+   * The sender's address, lowercased ("" when it has no From), when the listing read it. With it, the reply tick needs
+   * no header fetch for mail outside its threads; the Gmail API lists ids only, so it leaves this out.
+   */
+  from?: string;
 }
 
 /** What sending and reply detection need from a mailbox, whichever way it's connected. */

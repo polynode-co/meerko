@@ -5,6 +5,7 @@ import type { FetchMessageObject } from "imapflow";
 import type { InboundRef, MailClient, OutgoingRaw, SentIds } from "./client.ts";
 import { GmailError, type GmailMessage } from "./gmail.ts";
 import { defaultConnectors, guardMail, parseHeaders, toPayload, type ImapConnectors, type ImapSession, type SmtpTransport } from "./imap-common.ts";
+import { addressOf } from "./parse.ts";
 
 export interface GmailAccount {
   /** The address mail is sent from. */
@@ -85,15 +86,17 @@ export class GmailImapClient implements MailClient {
     // Newest first, like the API.
     const newest = uids.sort((a, b) => b - a).slice(0, max);
     if (!newest.length) return [];
-    const out: { uid: number; id: string; threadId: string }[] = [];
+    const out: { uid: number; id: string; threadId: string; from: string }[] = [];
     await guard(async () => {
-      for await (const msg of imap.fetch(newest, { uid: true, threadId: true }, { uid: true })) {
+      // The From header comes in the same FETCH, so the reply tick needn't fetch each message's headers on its own.
+      for await (const msg of imap.fetch(newest, { uid: true, threadId: true, headers: ["from"] }, { uid: true })) {
         const ids = this.remember(msg);
-        if (ids.id && ids.threadId) out.push({ uid: msg.uid, id: ids.id, threadId: ids.threadId });
+        const from = addressOf(parseHeaders(msg.headers?.toString() ?? "").find((h) => h.name.toLowerCase() === "from")?.value);
+        if (ids.id && ids.threadId) out.push({ uid: msg.uid, id: ids.id, threadId: ids.threadId, from });
       }
     });
     // FETCH answers in mailbox order, whatever order the UIDs were asked in.
-    return out.sort((a, b) => b.uid - a.uid).map(({ id, threadId }) => ({ id, threadId }));
+    return out.sort((a, b) => b.uid - a.uid).map(({ id, threadId, from }) => ({ id, threadId, from }));
   }
 
   async getMessage(id: string, format: "full" | "metadata" = "full", metadataHeaders: string[] = []): Promise<GmailMessage> {

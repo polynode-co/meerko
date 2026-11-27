@@ -66,7 +66,8 @@ describe("OutlookClient", () => {
     );
     g.deliver("From: Ana <ana@acme.com>\r\nMessage-ID: <self@acme.com>\r\n\r\nnote to self");
     const inbound = await client.listInbound(since);
-    expect(inbound).toEqual([{ id: "<r1@slalom.example>", threadId: "<m1@acme.com>", refs: ["<m1@acme.com>"] }]);
+    // The sender comes with the listing, so the reply tick needn't fetch each message's headers.
+    expect(inbound).toEqual([{ id: "<r1@slalom.example>", threadId: "<m1@acme.com>", refs: ["<m1@acme.com>"], from: "pia@slalom.example" }]);
     expect(header(await client.getMessage("<r1@slalom.example>", "metadata"), "From")).toBe("Pia Müller <pia@slalom.example>");
     const full = await client.getMessage("<r1@slalom.example>");
     expect(full.threadId).toBe("<m1@acme.com>");
@@ -81,7 +82,12 @@ describe("OutlookClient", () => {
     );
     const inbound = await new OutlookClient(oauthFor(g.fetch), "rt-1", { email: "ana@acme.com", fetch: g.fetch }).listInbound(since);
     expect(inbound).toHaveLength(61);
-    expect(inbound.find((m) => m.id === "<ndr1@outlook.com>")).toEqual({ id: "<ndr1@outlook.com>", threadId: "<m1@acme.com>", refs: ["<m1@acme.com>"] });
+    expect(inbound.find((m) => m.id === "<ndr1@outlook.com>")).toEqual({
+      id: "<ndr1@outlook.com>",
+      threadId: "<m1@acme.com>",
+      refs: ["<m1@acme.com>"],
+      from: "postmaster@outlook.com",
+    });
   });
 
   it("says an account has no mailbox when Graph refuses mail calls but the profile loads", async () => {

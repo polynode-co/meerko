@@ -93,7 +93,7 @@ export class ImapClient implements MailClient {
     if (!newest.length) return [];
 
     const me = new Set([this.account.email, this.account.login].map((a) => a.toLowerCase()));
-    const found: { uid: number; id: string; refs: string[]; report: boolean }[] = [];
+    const found: { uid: number; id: string; refs: string[]; report: boolean; from: string }[] = [];
     await this.guard(async () => {
       const query = { uid: true, internalDate: true, envelope: true, headers: ["message-id", "references", "in-reply-to", "content-type"] };
       for await (const msg of imap.fetch(newest, query, { uid: true })) {
@@ -103,7 +103,7 @@ export class ImapClient implements MailClient {
         const headers = parseHeaders(msg.headers?.toString() ?? "");
         const get = (name: string) => headers.find((h) => h.name.toLowerCase() === name)?.value ?? "";
         const id = get("message-id").match(/<[^>]+>/)?.[0] ?? `<uid-${msg.uid}@${this.account.servers.imap.host}>`;
-        found.push({ uid: msg.uid, id, refs: messageIds(`${get("references")} ${get("in-reply-to")}`), report: /multipart\/report/i.test(get("content-type")) });
+        found.push({ uid: msg.uid, id, refs: messageIds(`${get("references")} ${get("in-reply-to")}`), report: /multipart\/report/i.test(get("content-type")), from: from ?? "" });
       }
     });
     // A bounce rarely references the email it's about, but quotes it: read its Message-ID from the body.
@@ -116,7 +116,7 @@ export class ImapClient implements MailClient {
       .map((m) => {
         const threadId = m.refs[0] ?? m.id;
         this.seen.set(m.id, { uid: m.uid, threadId });
-        return { id: m.id, threadId, refs: m.refs };
+        return { id: m.id, threadId, refs: m.refs, from: m.from };
       });
   }
 
