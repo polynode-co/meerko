@@ -79,6 +79,12 @@ export const docsSources = {
   geminiMcp: { label: "Gemini CLI docs: MCP servers", url: "https://geminicli.com/docs/tools/mcp-server/" },
   /** Checked 28 Nov 2026: Plugins → Add custom → Add MCP connector → Remote; OAuth, API key or none; the org toggle. */
   perplexityConnectors: { label: "Perplexity Help Center: Adding custom remote connectors", url: "https://www.perplexity.ai/help-center/en/articles/13915507-adding-custom-remote-connectors" },
+  /**
+   * Checked 28 Nov 2026: a .zip with plugin.json at the root, skills and remote MCP servers in mcp.json; servers with
+   * fixed headers or no type are skipped; skills need a plan with Perplexity Computer; Import plugin from GitHub takes
+   * a public repo or a plugin folder's URL; select a plugin with / to load its skills; Connect on the plugin's page signs in.
+   */
+  perplexityPlugins: { label: "Perplexity Help Center: Create or upload a custom plugin", url: "https://www.perplexity.ai/help-center/en/articles/2026100802-create-or-upload-a-custom-plugin" },
   /** Checked 28 Nov 2026: Settings → Connectors, or ask Muse; Meta doesn't review custom connectors. */
   museConnectors: { label: "Meta Help Center: How Muse works with Connectors", url: "https://www.meta.com/help/artificial-intelligence/1687253048996149/" },
   /** Checked 28 Nov 2026: "a personal AI agent available in the US and Canada". */

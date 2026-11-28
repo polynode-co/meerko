@@ -58,7 +58,9 @@ export default function Page() {
 
       <H2 id="perplexity">Perplexity</H2>
       <p>
-        Add Meerko as a custom remote connector (<L href={docsSources.perplexityConnectors.url}>Perplexity&apos;s help page</L>):
+        On a plan with Perplexity Computer, upload the <L href="/perplexity">Meerko plugin for Perplexity</L> instead: it adds the connector
+        and Meerko&apos;s skills in one go. Otherwise, add Meerko as a custom remote connector (
+        <L href={docsSources.perplexityConnectors.url}>Perplexity&apos;s help page</L>):
       </p>
       <ol className="flex list-decimal flex-col gap-1.5 pl-6">
         <li>

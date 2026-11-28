@@ -1,4 +1,5 @@
-// The two assistant landing pages, /claude and /chatgpt: "Claude for sales" and "ChatGPT for sales".
+// The assistant landing pages, /claude, /chatgpt and /perplexity: "Claude for sales", "ChatGPT for sales" and the
+// Perplexity plugin.
 //
 // Built the way Antwork's /automate/<client>/<platform> leaf pages are: few pages, each titled for the query people
 // type, the setup and example prompts on the page, a connect call to action, and at least one fact that is true of
@@ -6,10 +7,11 @@
 // there is no page per assistant × feature pair: one page per assistant carries its CRM, Gmail and lead queries.
 //
 // Every number is read from the code: the tool count from the MCP server's reference, prices and credits from
-// lib/pricing.ts. Facts about Claude and ChatGPT themselves cite their makers' help pages (`sources`).
+// lib/pricing.ts. Facts about Claude, ChatGPT and Perplexity themselves cite their makers' help pages (`sources`).
 
 import { mcp, needsApproval } from "@/lib/docs";
 import { addToClaudeUrl } from "@/lib/meerko";
+import { PERPLEXITY_PLUGIN_GITHUB, PERPLEXITY_PLUGIN_ZIP } from "@/lib/perplexity-plugin";
 import { FREE_CREDITS, proPrices } from "@/lib/pricing";
 import { docsSources } from "@/lib/sources";
 
@@ -18,13 +20,15 @@ export interface Source {
   url: string;
 }
 
-export type AssistantSlug = "claude" | "chatgpt";
+export type AssistantSlug = "claude" | "chatgpt" | "perplexity";
 
 /** Meerko's listing in ChatGPT's plugin directory. */
 export const CHATGPT_PLUGIN_URL = "https://chatgpt.com/plugins/plugin_asdk_app_6b0463cf58c081919496d0d2f27ecaf0";
 
 const toolCount = mcp.tools.length;
 const emailToolCount = mcp.tools.filter(needsApproval).length;
+/** The Perplexity plugin's skills: one per MCP prompt (scripts/perplexity-plugin.mts). */
+const skillCount = mcp.prompts.length;
 
 export interface Fact {
   title: string;
@@ -59,7 +63,7 @@ export interface AssistantPage {
   answer: string;
   /** True of this assistant and no other. */
   only: Fact[];
-  setup: { title: string; sub: string; steps: SetupStep[]; after?: string };
+  setup: { title: string; sub: string; steps: SetupStep[]; after?: string; afterLink?: { href: string; label: string } };
   /** A second way in, under the main setup (Claude Code, or ChatGPT's custom MCP server). */
   alt: { title: string; body: string; command?: string; link: { href: string; label: string } };
   /** The chat shown in the hero: an illustration, not a recording. */
@@ -67,7 +71,8 @@ export interface AssistantPage {
   prompts: { group: string; query: string; items: string[] }[];
   faq: [string, string][];
   sources: Source[];
-  guide: { href: string; label: string };
+  /** Our guide to the assistant's connectors, where there is one. */
+  guide?: { href: string; label: string };
   docs: string;
 }
 
@@ -300,6 +305,110 @@ export const assistantPages: Record<AssistantSlug, AssistantPage> = {
     sources: [docsSources.chatgptMcp],
     guide: { href: "/guides/chatgpt-for-sales", label: "ChatGPT connectors, explained" },
     docs: "/docs/chatgpt",
+  },
+
+  perplexity: {
+    slug: "perplexity",
+    name: "Perplexity",
+    integration: "perplexity",
+    queries: `"perplexity mcp" 880/mo (KD 19), "perplexity mcp server" 170 (KD 10), "perplexity connectors" 140 (KD 13, rising), "perplexity plugins" 30-70 (rising); "perplexity for sales" and "perplexity crm" show no volume (DataForSEO, US, Nov 2026)`,
+    title: "Perplexity MCP Plugin for Sales: Find Leads and Send Sequences | Meerko",
+    description: `Upload the Meerko plugin to Perplexity: Meerko's MCP server plus ${skillCount} skills to find and verify leads, send sequences from your own Gmail or Outlook with your approval, and answer replies.`,
+    h1: "The Meerko MCP plugin for Perplexity: find leads, send sequences and follow up",
+    lede: `Upload the Meerko plugin and Perplexity gets ${toolCount} tools and ${skillCount} skills for outbound: it finds the people you sell to, verifies their work emails, sends a sequence from your own Gmail or Outlook and drafts answers to every reply. You approve each email before it goes.`,
+    cta: { label: "Download the Perplexity plugin →", href: PERPLEXITY_PLUGIN_ZIP },
+    question: "Can Perplexity find leads and send emails?",
+    answer: `Yes, with the Meerko plugin. Perplexity gets Meerko's ${toolCount} tools to find and verify leads, send sequences from your own Gmail, Google Workspace or Outlook inbox, detect replies and track the pipeline, plus ${skillCount} skills that walk it through each job. By default each email waits for your approval before it goes.`,
+    only: [
+      {
+        title: "A plugin you upload",
+        body: `One zip brings Meerko's connector and ${skillCount} skills: find leads, first customers, write a sequence, triage replies and pipeline.`,
+        source: docsSources.perplexityPlugins,
+      },
+      {
+        title: "Pick it with /",
+        body: "Select the Meerko plugin with / in a chat, and Perplexity loads only its skills.",
+        source: docsSources.perplexityPlugins,
+      },
+      {
+        title: "Or import it from GitHub",
+        body: "The plugin is a public folder in Meerko's open-source repo, so you can read every file, then import it from there.",
+      },
+    ],
+    setup: {
+      title: "Add Meerko to Perplexity in four steps",
+      sub: "Plugins with skills need a Perplexity plan that includes Computer. On an organization account, uploading also needs the Upload or create personal plugins and skills permission, which an admin turns on in Roles & Permissions.",
+      steps: [
+        {
+          title: "Download the plugin",
+          body: "A zip with the plugin's manifest, Meerko's MCP server and its skills. Keep it zipped.",
+          link: { href: PERPLEXITY_PLUGIN_ZIP, label: "Download the zip" },
+        },
+        { title: "Upload it", body: "In Perplexity, open Plugins, click Add custom (top right) and choose Upload plugin or skill. Drop the zip in and click Submit." },
+        {
+          title: "Connect Meerko",
+          body: "Open the Meerko plugin and click Connect. Perplexity sends you to Meerko: continue with Google and click Allow. Your Meerko account is made here if you don't have one.",
+        },
+        { title: "Ask", body: "In a chat, type / and pick Meerko, then ask in plain language." },
+      ],
+      after: "Or skip the download: under Add custom, choose Import plugin from GitHub and paste the URL of the plugin's folder in Meerko's repo.",
+      afterLink: { href: PERPLEXITY_PLUGIN_GITHUB, label: "The plugin on GitHub" },
+    },
+    alt: {
+      title: "No plugins on your plan?",
+      body: "Add Meerko as a custom remote connector with the server URL and OAuth sign-in. You get the same tools, without the skills.",
+      link: { href: "/docs/mcp-clients#perplexity", label: "Custom connector setup" },
+    },
+    chat: {
+      window: "PERPLEXITY — NEW THREAD",
+      prompt: "Using Meerko, find 20 heads of growth at Series A fintechs in Spain and verify their emails.",
+      tools: ["Find people", "Find and verify emails"],
+      reply: "Found 20 and verified 17 work emails. They're in a table called “Fintech growth, Spain”. Want a 3-step sequence for them?",
+    },
+    prompts: [
+      {
+        group: "Find leads",
+        query: "Lead generation in Perplexity",
+        items: [
+          "Read our website and find our first 10 customers.",
+          "Find 30 heads of sales at B2B SaaS companies in Germany with 50 to 200 employees, and verify their work emails.",
+        ],
+      },
+      {
+        group: "Send emails",
+        query: "Perplexity and your Gmail or Outlook",
+        items: ["Connect my Gmail to Meerko.", "Write a 3-step sequence for that table and show me a preview. Don't start it yet."],
+      },
+      {
+        group: "Replies",
+        query: "Perplexity reads the answers",
+        items: ["Go through my new replies, label each one, and draft answers for the people who are interested.", "Show me the drafts waiting for me."],
+      },
+      {
+        group: "Pipeline and CRM",
+        query: "Perplexity as your CRM, or next to HubSpot",
+        items: ["Give me my pipeline: who replied, who booked, and the 3 things I should do next.", "Sync the contacted leads to HubSpot."],
+      },
+    ],
+    faq: [
+      [
+        "How do I add Meerko to Perplexity?",
+        "Download the Meerko plugin from this page. In Perplexity, open Plugins, click Add custom, choose Upload plugin or skill, drop the zip in and click Submit. Then open the plugin, click Connect and sign in to Meerko with Google. You can also import the plugin from GitHub instead of uploading it.",
+      ],
+      [
+        "Which Perplexity plan do I need?",
+        "Perplexity says plugins with skills need a plan that includes Perplexity Computer. On an organization account, you also need the permission to upload personal plugins. Without a plugin, you can add Meerko as a custom remote connector: the same tools, without the skills.",
+      ],
+      [
+        "What's in the plugin?",
+        `A plugin.json with its name and description, an mcp.json that points at Meerko's MCP server, and ${skillCount} skills, one per Meerko workflow, made from the same source as Meerko's MCP prompts. There's no API key or fixed header in it: you sign in with OAuth when you click Connect. All of it is in Meerko's public GitHub repo.`,
+      ],
+      crmFaq("Perplexity"),
+      sendingFaq("Perplexity"),
+      priceFaq("Perplexity"),
+    ],
+    sources: [docsSources.perplexityPlugins, docsSources.perplexityConnectors],
+    docs: "/docs/mcp-clients#perplexity",
   },
 };
 

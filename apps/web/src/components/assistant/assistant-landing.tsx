@@ -13,7 +13,7 @@ import { mcpUrl } from "@/lib/meerko";
 import { FREE_CREDITS } from "@/lib/pricing";
 import { site } from "@/lib/site";
 
-// "Claude for sales" (/claude) and "ChatGPT for sales" (/chatgpt), in the landing's Lookout kit (Landing v2.1): the
+// "Claude for sales" (/claude), "ChatGPT for sales" (/chatgpt) and the Perplexity plugin (/perplexity), in the landing's Lookout kit (Landing v2.1): the
 // hero with a chat window, then one band per question a searcher has, in the order they have it. The same sequence
 // as Antwork's /automate/<client>/<platform> leaves: the answer, the setup, what to ask, what it can and can't do, FAQ.
 // The copy lives in lib/assistant-pages.ts.
@@ -159,7 +159,19 @@ export function AssistantLanding({ slug }: { slug: AssistantSlug }) {
             </li>
           ))}
         </ol>
-        {p.setup.after && <p className="max-w-[860px] text-[15.5px] leading-[1.6] text-lk-muted">{p.setup.after}</p>}
+        {p.setup.after && (
+          <p className="max-w-[860px] text-[15.5px] leading-[1.6] text-lk-muted">
+            {p.setup.after}
+            {p.setup.afterLink && (
+              <>
+                {" "}
+                <a href={p.setup.afterLink.href} target="_blank" rel="noopener" className={link}>
+                  {p.setup.afterLink.label} →
+                </a>
+              </>
+            )}
+          </p>
+        )}
         <div className="flex flex-col gap-4 border border-dashed border-lk-gray p-6">
           <h3 className="text-[18px] font-semibold text-lk-fg">{p.alt.title}</h3>
           <p className="text-[15.5px] leading-[1.6] text-lk-muted">{p.alt.body}</p>
@@ -259,7 +271,9 @@ export function AssistantLanding({ slug }: { slug: AssistantSlug }) {
           {[
             { href: `/${other.slug}`, name: `${other.name} for sales`, text: `The same, from ${other.name}.` },
             { href: p.docs, name: `${p.name} setup docs`, text: "Every step, and how to disconnect." },
-            { href: p.guide.href, name: p.guide.label, text: "What connectors are and how they work." },
+            p.guide
+              ? { href: p.guide.href, name: p.guide.label, text: "What connectors are and how they work." }
+              : { href: "/docs/mcp-clients", name: "Other AI clients", text: "Gemini CLI, Muse, Mistral Vibe and more." },
             { href: "/docs/mcp-tools", name: "All the tools", text: `What ${p.name} can call, one by one.` },
           ].map((r) => (
             <li key={r.href}>
