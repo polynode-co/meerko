@@ -4,6 +4,7 @@ import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
 import { C, Callout, H2, L, Step } from "@/components/lookout/docs/ui";
 import { CLAUDE_PLUGIN_SERVER, CLAUDE_PLUGIN_SLASH_COMMANDS } from "@/lib/claude-plugin";
 import { mcp } from "@/lib/docs";
+import { site } from "@/lib/site";
 import { addToClaudeUrl, mcpUrl } from "@/lib/meerko";
 import { docsSources } from "@/lib/sources";
 
@@ -29,6 +30,7 @@ export default function Page() {
         ["teams", "Team and Enterprise"],
         ["manage", "Disconnect"],
         ["claude-code-plugin", "Claude Code plugin"],
+        ["data", "Data sources and opt-out"],
       ]}
     >
       <Step n={1} id="add" title="Add the connector">
@@ -116,6 +118,39 @@ export default function Page() {
         Prefer one command? <C>claude mcp add --transport http --scope user meerko {url}</C> adds just the server. Both are in the{" "}
         <L href="/docs/claude-code#plugin">Claude Code setup</L>.
       </p>
+
+      {/* The Claude Directory's policy check asks for this (polynode-co/meerko#92); the plugin README and /privacy#recipients say the same. */}
+      <H2 id="data">Data sources, legal basis and opt-out</H2>
+      <p>
+        Meerko returns named people&apos;s work emails, so here is where they come from and how a person opts out. The same facts are in the <L href="/privacy#recipients">privacy policy</L>.
+      </p>
+      <ul className="flex list-disc flex-col gap-2 pl-6">
+        <li>
+          <strong className="text-fg">Sources.</strong> Lead search and email finding run on{" "}
+          <L href={docsSources.icypeas.url}>Icypeas</L>, a B2B data provider. A data provider a workspace connects with its own API key
+          (on Pro, or self-hosted) also finds emails or phone numbers for that workspace. Users can also import their own leads (a CSV,
+          say). Meerko keeps no database of people of its own: it stores only the leads a user&apos;s searches and imports
+          put into their workspace, until they delete them or close their account.
+        </li>
+        <li>
+          <strong className="text-fg">Legal basis.</strong> The Meerko user who holds the leads, and sends the emails, is the controller
+          of that data; on Meerko Cloud, Polynode Technologies, S.L. processes it on their instructions. B2B prospecting relies on the
+          sender&apos;s legitimate interest (GDPR Art. 6(1)(f)), and a person can object to it at any time (Art. 21).
+        </li>
+        <li>
+          <strong className="text-fg">If you&apos;re listed.</strong> To be removed at the source, use{" "}
+          <L href={docsSources.icypeasOptOut.url}>Icypeas&apos;s opt-out form</L>. To ask a Meerko user
+          about the data they hold on you, contact them, or write to <L href={`mailto:${site.contactEmail}`}>{site.contactEmail}</L> and
+          we&apos;ll pass your request on.
+        </li>
+        <li>
+          <strong className="text-fg">If you got an email sent through Meerko.</strong> Every sequence email ends with an unsubscribe
+          link and carries a one-click <C>List-Unsubscribe</C> header. Either one puts your address on the sending workspace&apos;s
+          do-not-email list: its sequences to you stop at once, and from any of its mailboxes it can&apos;t put you in another sequence or
+          send you a reply. Replying stops that workspace&apos;s sequences to you, and a short opt-out reply (&quot;unsubscribe&quot;,
+          &quot;remove me&quot;, in English, Spanish, French or German) also puts you on the list.
+        </li>
+      </ul>
     </DocsShell>
   );
 }
