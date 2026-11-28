@@ -1,0 +1,22 @@
+{
+  "name": "meerko",
+  "owner": {
+    "name": "Polynode Technologies, S.L.",
+    "url": "https://meerko.ai"
+  },
+  "description": "Meerko's plugin for Claude Code: the Meerko MCP server and its sales workflows as skills.",
+  "plugins": [
+    {
+      "name": "meerko",
+      "source": {
+        "source": "git-subdir",
+        "url": "polynode-co/meerko",
+        "path": "integrations/claude-plugin",
+        "ref": "main"
+      },
+      "description": "Meerko, the open-source outbound engine: find B2B leads, verify their work emails, send email sequences from your own Gmail or Outlook, and sort and answer the replies. By default every email waits for your approval.",
+      "category": "sales",
+      "homepage": "https://meerko.ai"
+    }
+  ]
+}

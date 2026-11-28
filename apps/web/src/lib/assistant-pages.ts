@@ -10,6 +10,7 @@
 // lib/pricing.ts. Facts about Claude, ChatGPT, Perplexity and Mistral Vibe themselves cite their makers' help pages
 // (`sources`).
 
+import { CLAUDE_PLUGIN_SHELL_COMMAND } from "@/lib/claude-plugin";
 import { mcp, needsApproval } from "@/lib/docs";
 import { addToClaudeUrl } from "@/lib/meerko";
 import { PERPLEXITY_PLUGIN_GITHUB, PERPLEXITY_PLUGIN_ZIP, PLUGIN_SKILLS_GITHUB } from "@/lib/perplexity-plugin";
@@ -31,7 +32,7 @@ export const CHATGPT_PLUGIN_URL = "https://chatgpt.com/plugins/plugin_asdk_app_6
 
 const toolCount = mcp.tools.length;
 const emailToolCount = mcp.tools.filter(needsApproval).length;
-/** The Perplexity plugin's skills: one per MCP prompt (scripts/perplexity-plugin.mts). */
+/** The Perplexity and Claude plugins' skills: one per MCP prompt (scripts/perplexity-plugin.mts, scripts/claude-plugin.mts). */
 const skillCount = mcp.prompts.length;
 
 export interface Fact {
@@ -69,7 +70,14 @@ export interface AssistantPage {
   only: Fact[];
   setup: { title: string; sub: string; steps: SetupStep[]; after?: string; afterLink?: { href: string; label: string } };
   /** A second way in, under the main setup (Claude Code, or ChatGPT's custom MCP server). */
-  alt: { title: string; body: string; command?: string; link: { href: string; label: string } };
+  alt: {
+    title: string;
+    body: string;
+    command?: string;
+    /** A second command under the first, with a line saying what it adds (the Claude Code plugin). */
+    also?: { body: string; command: string };
+    link: { href: string; label: string };
+  };
   /** The chat shown in the hero: an illustration, not a recording. */
   chat: { window: string; prompt: string; tools: string[]; reply: string };
   prompts: { group: string; query: string; items: string[] }[];
@@ -154,6 +162,10 @@ export const assistantPages: Record<AssistantSlug, AssistantPage> = {
       title: "Using Claude Code?",
       body: "Add the hosted server once for every project, then run /mcp in Claude Code to sign in with your browser.",
       command: "claude mcp add --transport http --scope user meerko {url}",
+      also: {
+        body: `Or install the Meerko plugin: the same server plus ${skillCount} skills for its workflows, like /meerko:find-leads.`,
+        command: CLAUDE_PLUGIN_SHELL_COMMAND,
+      },
       link: { href: "/docs/claude-code", label: "Claude Code setup" },
     },
     chat: {

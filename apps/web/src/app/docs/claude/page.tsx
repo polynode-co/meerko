@@ -2,6 +2,7 @@ import { MessageSquare } from "lucide-react";
 import { CodeBlock } from "@/components/lookout/docs/code-block";
 import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
 import { C, Callout, H2, L, Step } from "@/components/lookout/docs/ui";
+import { CLAUDE_PLUGIN_SERVER, CLAUDE_PLUGIN_SLASH_COMMANDS } from "@/lib/claude-plugin";
 import { mcp } from "@/lib/docs";
 import { addToClaudeUrl, mcpUrl } from "@/lib/meerko";
 import { docsSources } from "@/lib/sources";
@@ -27,6 +28,7 @@ export default function Page() {
         ["use", "Use it in a chat"],
         ["teams", "Team and Enterprise"],
         ["manage", "Disconnect"],
+        ["claude-code-plugin", "Claude Code plugin"],
       ]}
     >
       <Step n={1} id="add" title="Add the connector">
@@ -98,6 +100,21 @@ export default function Page() {
         Turn Meerko off for one chat from the <strong className="text-fg">+ → Connectors</strong> menu, remove it under{" "}
         <strong className="text-fg">Customize → Connectors</strong>, or revoke Claude&apos;s access in Meerko under{" "}
         <L href="/app/settings">Connections → Connected apps</L>. Using Claude Code instead? See <L href="/docs/claude-code">Claude Code</L>.
+      </p>
+
+      <H2 id="claude-code-plugin">Claude Code plugin</H2>
+      <p>
+        In Claude Code, Meerko also installs as a plugin: the same server plus its workflows as skills (<C>/meerko:find-leads</C> and the
+        others). Type these in Claude Code, then sign in to <C>{CLAUDE_PLUGIN_SERVER}</C> from <C>/mcp</C>:
+      </p>
+      <CodeBlock
+        title="claude"
+        code={CLAUDE_PLUGIN_SLASH_COMMANDS.join("\n")}
+        lines={CLAUDE_PLUGIN_SLASH_COMMANDS.map((text) => ({ text: `› ${text}`, tone: "accent" as const }))}
+      />
+      <p>
+        Prefer one command? <C>claude mcp add --transport http --scope user meerko {url}</C> adds just the server. Both are in the{" "}
+        <L href="/docs/claude-code#plugin">Claude Code setup</L>.
       </p>
     </DocsShell>
   );

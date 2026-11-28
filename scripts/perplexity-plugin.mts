@@ -1,5 +1,6 @@
 // Writes the Meerko plugin for Perplexity from the MCP server's own workflows (packages/mcp/src/workflows.ts), so its
-// skills can't drift from the MCP prompts.
+// skills can't drift from the MCP prompts. scripts/claude-plugin.mts builds the Claude plugin from the same source
+// (scripts/plugin-files.mts holds what they share).
 //   pnpm perplexity-plugin          regenerate integrations/perplexity-plugin/ and apps/web/src/generated/perplexity-plugin.json
 //   pnpm perplexity-plugin --check  fail if either is out of date
 //
@@ -13,36 +14,18 @@
 // mcp.json with an HTTPS URL and a `type`, skills as folders holding a SKILL.md with a name and description in YAML.
 // Servers that need fixed headers, or have no `type`, are skipped without failing the upload, so Meerko's has neither:
 // it signs in with OAuth, which Perplexity's Connect button starts. At most 32 skills, 1,000 files, 20 MB, 15 servers.
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { skillText, WORKFLOWS } from "../packages/mcp/src/workflows.ts";
+import { DESCRIPTION, failOn, MCP_URL, type PluginFile, skillFile, WORKFLOWS, writeOrCheck } from "./plugin-files.mts";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const pluginDir = join(root, "integrations/perplexity-plugin");
-const jsonOut = join(root, "apps/web/src/generated/perplexity-plugin.json");
-
-/** Meerko Cloud's MCP server: the folder on GitHub points here. meerko.ai's zip swaps in its own install's URL. */
-export const MCP_URL = "https://api.meerko.ai/mcp";
-
-const description =
-  "Meerko, the open-source outbound engine: find B2B leads, verify their work emails, send email sequences from your own Gmail or Outlook, and sort and answer the replies. By default every email waits for your approval.";
+/** The folder on GitHub points at Meerko Cloud; meerko.ai's zip swaps in its own install's URL. */
+export { MCP_URL };
 
 const skill = (w: (typeof WORKFLOWS)[number]) =>
-  [
-    "---",
-    `name: meerko-${w.name}`,
-    `description: ${JSON.stringify(`${w.description} Uses the Meerko connector.`)}`,
-    "---",
-    "",
-    `# ${w.title}`,
-    "",
+  skillFile(w, {
+    name: `meerko-${w.name}`,
+    descriptionSuffix: "Uses the Meerko connector.",
     // Not Perplexity-only: Mistral Vibe takes the same SKILL.md files (meerko.ai/mistral), with Meerko added as a connector.
-    "Use the tools of the Meerko connector. If they aren't available, ask me to connect Meerko first.",
-    "",
-    skillText(w),
-    "",
-  ].join("\n");
+    toolsLine: "Use the tools of the Meerko connector. If they aren't available, ask me to connect Meerko first.",
+  });
 
 const readme = [
   "# Meerko plugin for Perplexity",
@@ -61,49 +44,21 @@ const readme = [
   "",
 ].join("\n");
 
-const files: { path: string; content: string }[] = [
-  { path: "plugin.json", content: `${JSON.stringify({ name: "meerko", description }, null, 2)}\n` },
+const files: PluginFile[] = [
+  { path: "plugin.json", content: `${JSON.stringify({ name: "meerko", description: DESCRIPTION }, null, 2)}\n` },
   { path: "mcp.json", content: `${JSON.stringify({ mcpServers: { meerko: { type: "http", url: MCP_URL } } }, null, 2)}\n` },
   ...WORKFLOWS.map((w) => ({ path: `skills/meerko-${w.name}/SKILL.md`, content: skill(w) })),
   { path: "README.md", content: readme },
 ];
 
 // ── The limits Perplexity states ──────────────────────────────────────────────
-const problems: string[] = [];
-if (description.length > 1024) problems.push(`plugin.json description is ${description.length} characters, max 1,024`);
-if (WORKFLOWS.length > 32) problems.push(`${WORKFLOWS.length} skills, max 32`);
 const bytes = files.reduce((n, f) => n + Buffer.byteLength(f.content), 0);
-if (bytes > 20 * 1024 * 1024) problems.push(`${bytes} bytes uncompressed, max 20 MB`);
-if (problems.length) {
-  console.error(`The Perplexity plugin breaks Perplexity's limits:\n${problems.map((p) => `  - ${p}`).join("\n")}`);
-  process.exit(1);
-}
+failOn("Perplexity plugin", [
+  ...(DESCRIPTION.length > 1024 ? [`plugin.json description is ${DESCRIPTION.length} characters, max 1,024`] : []),
+  ...(WORKFLOWS.length > 32 ? [`${WORKFLOWS.length} skills, max 32`] : []),
+  ...(bytes > 20 * 1024 * 1024 ? [`${bytes} bytes uncompressed, max 20 MB`] : []),
+]);
 
-const json = `${JSON.stringify({ mcpUrl: MCP_URL, files }, null, 2)}\n`;
-
-/** Every file under the folder, relative to it. */
-const onDisk = (dir: string, prefix = ""): string[] =>
-  existsSync(dir)
-    ? readdirSync(dir, { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? onDisk(join(dir, d.name), `${prefix}${d.name}/`) : [`${prefix}${d.name}`]))
-    : [];
-
-if (process.argv.includes("--check")) {
-  const stale: string[] = [];
-  const read = (p: string) => (existsSync(p) ? readFileSync(p, "utf8") : null);
-  for (const f of files) if (read(join(pluginDir, f.path)) !== f.content) stale.push(`integrations/perplexity-plugin/${f.path}`);
-  for (const p of onDisk(pluginDir)) if (!files.some((f) => f.path === p)) stale.push(`integrations/perplexity-plugin/${p} (not generated)`);
-  if (read(jsonOut) !== json) stale.push("apps/web/src/generated/perplexity-plugin.json");
-  if (stale.length) {
-    console.error(`The Perplexity plugin is out of date: run \`pnpm perplexity-plugin\`.\n${stale.map((s) => `  - ${s}`).join("\n")}`);
-    process.exit(1);
-  }
-  console.log("Perplexity plugin is up to date.");
-} else {
-  rmSync(pluginDir, { recursive: true, force: true });
-  for (const f of files) {
-    mkdirSync(dirname(join(pluginDir, f.path)), { recursive: true });
-    writeFileSync(join(pluginDir, f.path), f.content);
-  }
-  writeFileSync(jsonOut, json);
-  console.log(`Wrote integrations/perplexity-plugin/ (${files.length} files) and apps/web/src/generated/perplexity-plugin.json`);
-}
+writeOrCheck("Perplexity plugin", "pnpm perplexity-plugin", "integrations/perplexity-plugin", files, [
+  { path: "apps/web/src/generated/perplexity-plugin.json", content: `${JSON.stringify({ mcpUrl: MCP_URL, files }, null, 2)}\n` },
+]);

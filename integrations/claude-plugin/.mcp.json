@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "meerko": {
+      "type": "http",
+      "url": "https://api.meerko.ai/mcp"
+    }
+  }
+}

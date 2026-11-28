@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start --port 3000",
     "test": "vitest run src/lib",
-    "typecheck": "tsc --noEmit -p . && pnpm -w docs:reference --check && pnpm -w api:spec --check && pnpm -w perplexity-plugin --check"
+    "typecheck": "tsc --noEmit -p . && pnpm -w docs:reference --check && pnpm -w api:spec --check && pnpm -w perplexity-plugin --check && pnpm -w claude-plugin --check"
   },
   "dependencies": {
     "@meerko/sdk": "workspace:*",

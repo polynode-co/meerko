@@ -3,6 +3,7 @@ import { CodeBlock } from "@/components/lookout/docs/code-block";
 import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
 import { C, Callout, H2, H3, L, Step } from "@/components/lookout/docs/ui";
 import { mcp } from "@/lib/docs";
+import { CLAUDE_PLUGIN_GITHUB, CLAUDE_PLUGIN_ID, CLAUDE_PLUGIN_SERVER, CLAUDE_PLUGIN_SHELL_COMMAND, CLAUDE_PLUGIN_SLASH_COMMANDS } from "@/lib/claude-plugin";
 import { mcpUrl } from "@/lib/meerko";
 import { site } from "@/lib/site";
 import { docsSources } from "@/lib/sources";
@@ -47,6 +48,24 @@ export default function Page() {
           <C>--scope user</C> makes Meerko available in every project, not just this one (
           <L href={docsSources.claudeCodeMcp.url}>Claude Code&apos;s MCP docs</L>).
         </p>
+        <H3 id="plugin">Or install the Claude Code plugin</H3>
+        <p>
+          The Meerko plugin adds the same server plus {mcp.prompts.length} skills, one per workflow below, that Claude Code can pick on its
+          own when you ask for one of them. Type these in Claude Code:
+        </p>
+        <CodeBlock
+          title="claude"
+          code={CLAUDE_PLUGIN_SLASH_COMMANDS.join("\n")}
+          lines={CLAUDE_PLUGIN_SLASH_COMMANDS.map((text) => ({ text: `› ${text}`, tone: "accent" as const }))}
+        />
+        {sh("Or from your shell", [CLAUDE_PLUGIN_SHELL_COMMAND])}
+        <p>
+          The plugin&apos;s server shows up in <C>/mcp</C> as <C>{CLAUDE_PLUGIN_SERVER}</C>: sign in to it the same way. If you already added
+          Meerko with <C>claude mcp add</C>, Claude Code keeps that server and doesn&apos;t connect it twice (
+          <L href={docsSources.claudeCodePlugins.url}>Claude Code&apos;s plugin docs</L>). The plugin&apos;s files are in{" "}
+          <L href={CLAUDE_PLUGIN_GITHUB}>integrations/claude-plugin</L>. It connects to Meerko Cloud; for a{" "}
+          <L href="/docs/self-hosting">self-hosted</L> server, use the <C>claude mcp add</C> command with your own URL.
+        </p>
       </Step>
 
       <Step n={2} id="sign-in" title="Sign in">
@@ -80,6 +99,10 @@ export default function Page() {
             </div>
           ))}
         </dl>
+        <p>
+          With the <L href="#plugin">plugin</L>, the same workflows are also skills: <C>/meerko:{mcp.prompts[0]?.name}</C> and the others
+          under <C>/meerko:</C>, or just describe what you want and Claude Code picks the skill.
+        </p>
       </Step>
 
       <H2 id="manage">Check, sign out, remove</H2>
@@ -93,7 +116,7 @@ export default function Page() {
           Claude Code in Connections.
         </li>
         <li>
-          To remove it: <C>claude mcp remove meerko</C>.
+          To remove it: <C>claude mcp remove meerko</C>, or <C>claude plugin uninstall {CLAUDE_PLUGIN_ID}</C> for the plugin.
         </li>
       </ul>
 

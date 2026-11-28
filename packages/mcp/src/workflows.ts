@@ -1,5 +1,6 @@
 // Meerko's workflows: one source for the MCP prompts (server.ts registers them as slash commands) and the skills in
-// the Perplexity plugin (scripts/perplexity-plugin.mts writes integrations/perplexity-plugin/ from them). Each is a
+// the Perplexity and Claude plugins (scripts/perplexity-plugin.mts and scripts/claude-plugin.mts write
+// integrations/perplexity-plugin/ and integrations/claude-plugin/ from them). Each is a
 // short recipe over the tools; anything that emails someone waits for the user's OK. Plain data, no SDK imports, so
 // the scripts can read it without loading the server.
 
