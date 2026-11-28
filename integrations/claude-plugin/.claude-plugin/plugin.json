@@ -10,6 +10,9 @@
   "repository": "https://github.com/polynode-co/meerko",
   "license": "MIT",
   "privacyPolicyUrl": "https://meerko.ai/privacy",
+  "termsOfServiceUrl": "https://meerko.ai/terms",
+  "supportUrl": "mailto:contact@meerko.ai",
+  "documentationUrl": "https://meerko.ai/docs/claude-code",
   "keywords": [
     "sales",
     "outbound",

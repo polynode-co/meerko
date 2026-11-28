@@ -44,7 +44,12 @@ const plugin = {
   // MIT, like the clients (packages/mcp, sdk, cli) and unlike the AGPL server: the plugin is client config and skill
   // text, and its LICENSE is packages/mcp's.
   license: "MIT",
+  // The Directory's listing shows these; each returned 200 on 28 Nov 2026. meerko.ai has no /contact page, so support
+  // is the contact address the site already gives.
   privacyPolicyUrl: "https://meerko.ai/privacy",
+  termsOfServiceUrl: "https://meerko.ai/terms",
+  supportUrl: "mailto:contact@meerko.ai",
+  documentationUrl: "https://meerko.ai/docs/claude-code",
   keywords: ["sales", "outbound", "lead-generation", "cold-email", "email-sequences", "crm", "mcp"],
 };
 
