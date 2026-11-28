@@ -1,5 +1,5 @@
-// The assistant landing pages, /claude, /chatgpt and /perplexity: "Claude for sales", "ChatGPT for sales" and the
-// Perplexity plugin.
+// The assistant landing pages, /claude, /chatgpt, /perplexity and /mistral: "Claude for sales", "ChatGPT for sales",
+// the Perplexity plugin and the Mistral Vibe connector.
 //
 // Built the way Antwork's /automate/<client>/<platform> leaf pages are: few pages, each titled for the query people
 // type, the setup and example prompts on the page, a connect call to action, and at least one fact that is true of
@@ -7,11 +7,12 @@
 // there is no page per assistant × feature pair: one page per assistant carries its CRM, Gmail and lead queries.
 //
 // Every number is read from the code: the tool count from the MCP server's reference, prices and credits from
-// lib/pricing.ts. Facts about Claude, ChatGPT and Perplexity themselves cite their makers' help pages (`sources`).
+// lib/pricing.ts. Facts about Claude, ChatGPT, Perplexity and Mistral Vibe themselves cite their makers' help pages
+// (`sources`).
 
 import { mcp, needsApproval } from "@/lib/docs";
 import { addToClaudeUrl } from "@/lib/meerko";
-import { PERPLEXITY_PLUGIN_GITHUB, PERPLEXITY_PLUGIN_ZIP } from "@/lib/perplexity-plugin";
+import { PERPLEXITY_PLUGIN_GITHUB, PERPLEXITY_PLUGIN_ZIP, PLUGIN_SKILLS_GITHUB } from "@/lib/perplexity-plugin";
 import { FREE_CREDITS, proPrices } from "@/lib/pricing";
 import { docsSources } from "@/lib/sources";
 
@@ -20,7 +21,10 @@ export interface Source {
   url: string;
 }
 
-export type AssistantSlug = "claude" | "chatgpt" | "perplexity";
+export type AssistantSlug = "claude" | "chatgpt" | "perplexity" | "mistral";
+
+/** Mistral Vibe, formerly Le Chat. */
+const MISTRAL_VIBE_URL = "https://chat.mistral.ai";
 
 /** Meerko's listing in ChatGPT's plugin directory. */
 export const CHATGPT_PLUGIN_URL = "https://chatgpt.com/plugins/plugin_asdk_app_6b0463cf58c081919496d0d2f27ecaf0";
@@ -409,6 +413,123 @@ export const assistantPages: Record<AssistantSlug, AssistantPage> = {
     ],
     sources: [docsSources.perplexityPlugins, docsSources.perplexityConnectors],
     docs: "/docs/mcp-clients#perplexity",
+  },
+
+  mistral: {
+    slug: "mistral",
+    name: "Mistral Vibe",
+    integration: "mistral",
+    queries: `"mistral mcp", "mistral mcp server", "mistral connectors", "mistral vibe connectors", "mistral vibe mcp", "le chat mcp" and "le chat connectors" 10/mo each (no KD); the volume is in the brand, "mistral vibe" 1,300 (KD 48) and "le chat mistral" 2,400 (KD 53, falling since March); "mistral for sales" shows none (DataForSEO, US, Nov 2026)`,
+    title: "Mistral Vibe MCP Connector (Le Chat) for Sales: Find Leads and Send Sequences | Meerko",
+    description:
+      "Add Meerko to Mistral Vibe, formerly Le Chat, as a custom MCP connector: find and verify leads, send sequences from your own Gmail or Outlook with your approval, and answer replies.",
+    h1: "The Meerko MCP connector for Mistral Vibe: find leads, send sequences and follow up",
+    lede: `Add Meerko as a custom connector and Mistral Vibe, formerly Le Chat, gets ${toolCount} tools for outbound: it finds the people you sell to, verifies their work emails, sends a sequence from your own Gmail or Outlook and drafts answers to every reply. You approve each email before it goes.`,
+    cta: { label: "Add Meerko to Mistral Vibe →", href: MISTRAL_VIBE_URL },
+    question: "Can Mistral Vibe connect to an MCP server?",
+    answer: `Yes. Mistral Vibe, which was called Le Chat, adds remote MCP servers as custom connectors. Add Meerko's server URL and Vibe gets ${toolCount} tools to find and verify leads, send sequences from your own Gmail, Google Workspace or Outlook inbox, detect replies and track the pipeline. By default each email waits for your approval before it goes.`,
+    only: [
+      {
+        title: "Auto-detect finds the sign-in",
+        body: "Leave Authentication Method on Auto-detect: Vibe finds Meerko's OAuth and sends you to sign in. No API key to paste.",
+        source: docsSources.mistralConnectors,
+      },
+      {
+        title: "You're the admin on Free and Pro",
+        body: "Mistral lets admins add custom connectors. On Free, Pro and Student plans the account owner is the admin, so you can add Meerko yourself.",
+        source: docsSources.mistralConnectors,
+      },
+      {
+        title: "Meerko's skills fit Vibe's Skills",
+        body: `Vibe's Skills use SKILL.md files, the format of Meerko's ${skillCount} skills: find leads, first customers, write a sequence, triage replies and pipeline.`,
+        source: docsSources.mistralSkills,
+      },
+    ],
+    setup: {
+      title: "Connect Meerko to Mistral Vibe in four steps",
+      sub: "In Mistral Vibe on the web, at chat.mistral.ai.",
+      steps: [
+        {
+          title: "Open Connectors",
+          body: "In the left sidebar, open Context, then Connectors. Click New connector (top right) and choose Add custom connector.",
+          link: { href: MISTRAL_VIBE_URL, label: "Open Mistral Vibe" },
+        },
+        {
+          title: "Fill in the details",
+          body: "Server: paste the URL below. Title: Meerko. The description is optional, for example: Find leads, verify emails and send sequences from your own mailbox.",
+          copyUrl: true,
+        },
+        {
+          title: "Sign in",
+          body: "Leave Authentication Method on Auto-detect and click Add connector. Vibe sends you to Meerko: continue with Google and click Allow. Your Meerko account is made here if you don't have one.",
+        },
+        { title: "Ask", body: "In a new chat, ask in plain language, for example: find 5 CTOs at fintechs in Spain." },
+      ],
+      after:
+        "Under Connectors, the tabs are My connectors, Shared with me and All. A connector that still needs sign-in shows under Needs attention with a warning icon: click it to finish signing in. On first open, Vibe may show a New Connectors, powered by MCP dialog; View Connectors leads to the same page.",
+    },
+    alt: {
+      title: "Add Meerko's skills too",
+      body: `Mistral's docs put Skills under Context → Skills: click New Skill, give it a title and description, and paste the SKILL.md. Meerko's ${skillCount} skills are plain SKILL.md files in its public repo, the same ones as in the Perplexity plugin. Once saved, call one with / in a chat.`,
+      link: { href: PLUGIN_SKILLS_GITHUB, label: "The skills on GitHub" },
+    },
+    chat: {
+      window: "MISTRAL VIBE — NEW CHAT",
+      prompt: "Find 20 heads of growth at Series A fintechs in Spain and verify their emails.",
+      tools: ["Find people", "Find and verify emails"],
+      reply: "Found 20 and verified 17 work emails. They're in a table called “Fintech growth, Spain”. Want a 3-step sequence for them?",
+    },
+    prompts: [
+      {
+        group: "Find leads",
+        query: "Lead generation in Mistral Vibe",
+        items: [
+          "Read our website and set our ideal customer profile from it.",
+          "Find 30 heads of sales at B2B SaaS companies in France with 50 to 200 employees, and verify their work emails.",
+        ],
+      },
+      {
+        group: "Send emails",
+        query: "Mistral Vibe and your Gmail or Outlook",
+        items: ["Connect my Gmail to Meerko.", "Write a 3-step sequence for that table and show me a preview. Don't start it yet."],
+      },
+      {
+        group: "Replies",
+        query: "Vibe reads the answers",
+        items: ["Go through this week's replies, label each one, and draft answers for the people who are interested.", "Show me the drafts waiting for me."],
+      },
+      {
+        group: "Pipeline and CRM",
+        query: "Mistral Vibe as your CRM, or next to HubSpot",
+        items: ["Who replied this week, who booked a meeting, and what's waiting on me?", "Sync the contacted leads to HubSpot."],
+      },
+    ],
+    faq: [
+      [
+        "How do I add an MCP server to Mistral Vibe?",
+        "In the left sidebar, open Context, then Connectors. Click New connector and choose Add custom connector. Paste Meerko's server URL, title it Meerko, leave Authentication Method on Auto-detect and click Add connector. Then continue with Google on Meerko's page and click Allow.",
+      ],
+      [
+        "Is Mistral Vibe the same as Le Chat?",
+        "Yes. Mistral's assistant at chat.mistral.ai was called Le Chat and is now Mistral Vibe. Guides to Le Chat's connectors describe the same feature, though the menus have moved: connectors now sit under Context in the sidebar.",
+      ],
+      [
+        "Who can add a connector in Mistral Vibe?",
+        "Mistral says adding custom MCP connectors is for admins. On the Free, Pro and Student plans the account owner is the admin, so you can add Meerko yourself. On a team, ask your workspace admin.",
+      ],
+      [
+        "Can Mistral Vibe use Meerko's skills?",
+        `Mistral's docs say Vibe's Skills are SKILL.md files, made under Context → Skills → New Skill. Meerko's ${skillCount} skills are SKILL.md files in its public GitHub repo: paste one in, and with the connector added, Vibe can follow it. You don't need them: the connector alone gives Vibe every tool.`,
+      ],
+      crmFaq("Mistral Vibe"),
+      [
+        "Does Mistral Vibe send emails without asking?",
+        "No. By default the Meerko workspace holds every sequence email and reply draft until you approve it, whatever the assistant does. Vibe also lets you choose, tool by tool, which ones run without asking (Always allow, in the connector's Functions tab). You can switch Meerko's approvals off later, in Connections.",
+      ],
+      priceFaq("Mistral Vibe"),
+    ],
+    sources: [docsSources.mistralConnectors, docsSources.mistralSkills],
+    docs: "/docs/mcp-clients#mistral",
   },
 };
 

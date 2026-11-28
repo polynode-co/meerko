@@ -2,6 +2,7 @@ import { CodeBlock } from "@/components/lookout/docs/code-block";
 import { DocsShell, docsMetadata } from "@/components/lookout/docs/shell";
 import { C, Fields, H2, L } from "@/components/lookout/docs/ui";
 import { addToClaudeUrl, mcpUrl } from "@/lib/meerko";
+import { PLUGIN_SKILLS_GITHUB } from "@/lib/perplexity-plugin";
 import { docsSources } from "@/lib/sources";
 
 export const metadata = docsMetadata("mcp-clients", "Connect Meerko to Perplexity, Muse, Mistral Vibe and Gemini CLI");
@@ -16,8 +17,8 @@ export default function Page() {
         <p>
           Meerko&apos;s MCP server is a remote server that signs you in with OAuth, the way the MCP spec describes. Any client that supports
           remote servers and OAuth can connect with just the URL. Using Claude? <L href={addToClaudeUrl()}>Connect Claude to Meerko</L>{" "}
-          opens Claude&apos;s add-connector form already filled in. More in <L href="/claude">Claude for sales</L> and{" "}
-          <L href="/chatgpt">ChatGPT for sales</L>.
+          opens Claude&apos;s add-connector form already filled in. More in <L href="/claude">Claude for sales</L>,{" "}
+          <L href="/chatgpt">ChatGPT for sales</L>, <L href="/perplexity">Perplexity</L> and <L href="/mistral">Mistral Vibe</L>.
         </p>
       }
       toc={[
@@ -112,27 +113,51 @@ export default function Page() {
       </p>
 
       <H2 id="mistral">Mistral Vibe</H2>
-      <p>Mistral Vibe was called Le Chat.</p>
+      <p>
+        Mistral Vibe was called Le Chat. Add Meerko as a custom connector at <L href="https://chat.mistral.ai">chat.mistral.ai</L>, or see{" "}
+        <L href="/mistral">Meerko for Mistral Vibe</L> for what to ask once it&apos;s connected:
+      </p>
       <ol className="flex list-decimal flex-col gap-1.5 pl-6">
         <li>
-          At <L href="https://chat.mistral.ai">chat.mistral.ai</L>, open <strong className="text-fg">Connectors</strong>, then{" "}
-          <strong className="text-fg">Marketplace</strong>, then <strong className="text-fg">Add a custom connector</strong>.
+          In the left sidebar, open <strong className="text-fg">Context</strong>, then <strong className="text-fg">Connectors</strong>.
         </li>
         <li>
-          Name it <C>Meerko</C>, with this server URL. Sign-in switches to OAuth 2.1 by itself. Add the connector, then continue with Google
-          on Meerko&apos;s page and click <strong className="text-fg">Allow</strong>.
+          Click <strong className="text-fg">New connector</strong> (top right) and choose <strong className="text-fg">Add custom connector</strong>.
+        </li>
+        <li>
+          Under <strong className="text-fg">1. Details</strong>, set <strong className="text-fg">Server</strong> to this URL and{" "}
+          <strong className="text-fg">Title</strong> to <C>Meerko</C>. The <strong className="text-fg">Description</strong> is optional, for
+          example <C>Find leads, verify emails and send sequences from your own mailbox</C>.
         </li>
       </ol>
       <CodeBlock title="Server URL" code={url} lines={[{ text: url }]} />
-      <ol start={3} className="flex list-decimal flex-col gap-1.5 pl-6">
+      <ol start={4} className="flex list-decimal flex-col gap-1.5 pl-6">
         <li>
-          Ask Vibe: <C>find 5 CTOs at fintechs in Spain</C>.
+          Under <strong className="text-fg">2. Authentication</strong>, leave <strong className="text-fg">Authentication Method</strong> on{" "}
+          <strong className="text-fg">Auto-detect</strong>: it finds Meerko&apos;s OAuth.
+        </li>
+        <li>
+          Click <strong className="text-fg">Add connector</strong>, then continue with Google on Meerko&apos;s page and click{" "}
+          <strong className="text-fg">Allow</strong>.
+        </li>
+        <li>
+          In a new chat, ask: <C>find 5 CTOs at fintechs in Spain</C>.
         </li>
       </ol>
       <p>
-        Mistral&apos;s docs name a different path: <strong className="text-fg">+ Add Connector</strong>, then the{" "}
-        <strong className="text-fg">Custom MCP Connector</strong> tab. Adding a connector needs an admin; on the Free, Pro and Student plans
-        the account owner is the admin (<L href={docsSources.mistralConnectors.url}>Mistral&apos;s docs</L>).
+        The connectors list has the tabs <strong className="text-fg">My connectors</strong>, <strong className="text-fg">Shared with me</strong>{" "}
+        and <strong className="text-fg">All</strong>. A connector that still needs sign-in shows under{" "}
+        <strong className="text-fg">Needs attention</strong> with a warning icon: click it to finish signing in. On first open, Vibe may show a{" "}
+        <strong className="text-fg">New Connectors, powered by MCP</strong> dialog, whose <strong className="text-fg">View Connectors</strong>{" "}
+        button leads to the same page. Adding a custom connector needs an admin; on the Free, Pro and Student plans the account owner is the
+        admin (<L href={docsSources.mistralConnectors.url}>Mistral&apos;s docs</L>).
+      </p>
+      <p>
+        Vibe also has <strong className="text-fg">Skills</strong> under Context. Meerko&apos;s skills are{" "}
+        <L href={PLUGIN_SKILLS_GITHUB}>SKILL.md files on GitHub</L>, the
+        same as in the Perplexity plugin: per <L href={docsSources.mistralSkills.url}>Mistral&apos;s docs</L>, click{" "}
+        <strong className="text-fg">New Skill</strong> under <strong className="text-fg">Context</strong> →{" "}
+        <strong className="text-fg">Skills</strong> and paste one in.
       </p>
 
       <H2 id="config">Clients with a JSON config</H2>
