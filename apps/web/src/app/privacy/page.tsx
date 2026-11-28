@@ -2,6 +2,7 @@ import { BadgeCheck, Ban, Cookie, Download, Eye, Lock, MailCheck, Pencil, Trash2
 import type { Metadata } from "next";
 import { Bullets, ContactCard, LEGAL_ENTITY, LegalShell, Section, Table, Callout } from "@/components/legal/shell";
 import { site } from "@/lib/site";
+import { docsSources } from "@/lib/sources";
 
 export const metadata: Metadata = {
   title: "Privacy policy | Meerko",
@@ -20,7 +21,7 @@ const toc: [string, string][] = [
   ["protection", "How we protect it"],
   ["retention", "How long we keep it"],
   ["rights", "Your rights"],
-  ["recipients", "People you email"],
+  ["recipients", "People found or emailed"],
   ["cookies", "Cookies"],
   ["contact", "Contact"],
 ];
@@ -220,12 +221,58 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section n={10} id="recipients" title="People you email">
+      {/* The Claude Directory's policy check asks for this (polynode-co/meerko#92); the plugin README, the repo README and
+          /docs/claude say the same. Sources: sending/sender.ts and replies/classify.ts in packages/core, and lib/sources.ts. */}
+      <Section n={10} id="recipients" title="People found or emailed through Meerko">
         <p>
-          If you got an email sent through Meerko: it came from the sender&apos;s own Gmail account, and they decided to send it. Every
-          sequence email has an unsubscribe link; using it stops all of that sender&apos;s Meerko emails to you. To ask what data a sender
-          holds about you, contact them, or write to us and we&apos;ll pass it on.
+          Meerko users find B2B leads and email them. If you&apos;re one of those leads, this is where your details come from and how you
+          opt out.
         </p>
+        <Bullets
+          items={[
+            <>
+              <strong className="text-lk-fg">Where the data comes from.</strong> Lead search and email finding run on{" "}
+              <a href={docsSources.icypeas.url} className="text-lk-lime underline-offset-4 hover:underline">
+                Icypeas
+              </a>
+              , a B2B data provider. Emails it misses, and phone numbers, come from{" "}
+              <a href={docsSources.generectPrivacy.url} className="text-lk-lime underline-offset-4 hover:underline">
+                Generect
+              </a>
+              , which draws on public professional profiles, company websites and licensed data providers. A workspace can add its own
+              Firecrawl key for one more email search, and users can import their own leads. Meerko keeps no database of people of its
+              own: it stores only the leads a user&apos;s searches and imports put into their workspace, until they delete them or close
+              their account.
+            </>,
+            <>
+              <strong className="text-lk-fg">Legal basis.</strong> The Meerko user who holds your details, and emails you, is the
+              controller of that data, and we process it on their instructions (see <a href="#who-we-are" className="text-lk-lime underline-offset-4 hover:underline">Who we are</a>).
+              B2B prospecting relies on the sender&apos;s legitimate interest (GDPR Art. 6(1)(f)), and you can object to it at any time
+              (Art. 21).
+            </>,
+            <>
+              <strong className="text-lk-fg">Being removed.</strong> To be removed at the source, use{" "}
+              <a href={docsSources.icypeasOptOut.url} className="text-lk-lime underline-offset-4 hover:underline">
+                Icypeas&apos;s opt-out form
+              </a>{" "}
+              and email Generect as its{" "}
+              <a href={docsSources.generectPrivacy.url} className="text-lk-lime underline-offset-4 hover:underline">
+                privacy policy
+              </a>{" "}
+              says (subject &ldquo;Remove my data&rdquo;). To ask what data a sender holds about you, or to have it deleted, contact them, or
+              write to us and we&apos;ll pass your request on.
+            </>,
+            <>
+              <strong className="text-lk-fg">Stopping the emails.</strong> An email sent through Meerko comes from the sender&apos;s own
+              mailbox (Gmail, Outlook or another provider), and they decided to send it. Every sequence email ends with an unsubscribe link
+              and carries a one-click List-Unsubscribe header, so your mail app&apos;s own Unsubscribe button works too. Either one puts
+              your address on the sending workspace&apos;s do-not-email list: its sequences to you stop at once, and from any of its
+              mailboxes it can&apos;t put you in another sequence or send you a reply. Replying stops that workspace&apos;s sequences to
+              you, and a short opt-out reply (&ldquo;unsubscribe&rdquo;, &ldquo;remove me&rdquo;, in English, Spanish, French or German)
+              also puts you on the list.
+            </>,
+          ]}
+        />
       </Section>
 
       <Section n={11} id="cookies" title="Cookies">

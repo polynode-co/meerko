@@ -104,6 +104,14 @@ export const docsSources = {
   icypeas: { label: "Icypeas", url: "https://www.icypeas.com" },
   firecrawl: { label: "Firecrawl Alexandria", url: "https://docs.firecrawl.dev/features/alexandria" },
   generect: { label: "Generect API", url: "https://docs.generect.com/api-reference/introduction" },
+  /** Checked 28 Nov 2026: a form that removes the person's profile from Icypeas and keeps only a hash, to honour it. */
+  icypeasOptOut: { label: "Icypeas: Opt-out", url: "https://www.icypeas.com/opt-out" },
+  /**
+   * Checked 28 Nov 2026: its data on people comes "from publicly available professional sources (such as company websites
+   * and public professional networking profiles) and from licensed third-party data providers", on Art. 6(1)(f); a
+   * person emails the address it gives with the subject "Remove my data".
+   */
+  generectPrivacy: { label: "Generect: Privacy policy", url: "https://generect.com/privacy-policy" },
 };
 
 /** For /integrations/gmail and /integrations/outlook: what each mail product's own help pages say about mail merge. */
