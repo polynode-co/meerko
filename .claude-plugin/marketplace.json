@@ -10,7 +10,7 @@
       "name": "meerko",
       "source": {
         "source": "git-subdir",
-        "url": "polynode-co/meerko",
+        "url": "https://github.com/polynode-co/meerko.git",
         "path": "integrations/claude-plugin",
         "ref": "main"
       },

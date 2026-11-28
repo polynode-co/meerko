@@ -12,7 +12,7 @@ describe("the Claude Code plugin commands on the site", () => {
 
   it("install the plugin the marketplace lists, from this repository", () => {
     expect(CLAUDE_PLUGIN_ID).toBe(`${entry.name}@${marketplace.name}`);
-    expect(entry.source).toMatchObject({ source: "git-subdir", url: CLAUDE_PLUGIN_REPO, ref: "main" });
+    expect(entry.source).toMatchObject({ source: "git-subdir", url: `https://github.com/${CLAUDE_PLUGIN_REPO}.git`, ref: "main" });
     expect(CLAUDE_PLUGIN_GITHUB).toBe(`https://github.com/${CLAUDE_PLUGIN_REPO}/tree/main/${entry.source.path}`);
   });
 

@@ -53,7 +53,8 @@ const marketplace = {
   plugins: [
     {
       name: plugin.name,
-      source: { source: "git-subdir", url: REPO, path: FOLDER, ref: "main" },
+      // The full HTTPS URL: Claude Code clones an `owner/repo` shorthand over SSH, which fails without a GitHub SSH key.
+      source: { source: "git-subdir", url: `https://github.com/${REPO}.git`, path: FOLDER, ref: "main" },
       description: DESCRIPTION,
       category: "sales",
       homepage: plugin.homepage,
