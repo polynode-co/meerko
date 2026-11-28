@@ -22,7 +22,7 @@ export default function Page() {
         ["rules", "How stages move"],
         ["summary", "Seeing the pipeline"],
       ]}
-      tools={["pipeline", "move_stage", "query_rows"]}
+      tools={["list_tables", "update_rows", "query_rows"]}
     >
       <H2 id="stages">Stages</H2>
       <ol className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -40,7 +40,7 @@ export default function Page() {
       <ul className="flex list-disc flex-col gap-2 pl-6">
         <li>Automatic moves only go forward: a late reply never pulls a won lead back to replied, and a lost lead stays lost.</li>
         <li>
-          <Tool name="move_stage" /> sets any stage, for up to 1,000 leads per call. In the dashboard, change it from the leads table; from
+          <Tool name="update_rows" /> with a <C>stage</C> and <C>row_ids</C> sets any stage, for up to 1,000 leads per call. In the dashboard, change it from the leads table; from
           the terminal, <C>pnpm meerko tables stage &lt;tableId&gt; &lt;stage&gt; &lt;rowIds...&gt;</C>.
         </li>
         <li>
@@ -50,7 +50,7 @@ export default function Page() {
 
       <H2 id="summary">Seeing the pipeline</H2>
       <p>
-        <Tool name="pipeline" /> counts leads per stage, for one table or the whole workspace. The <C>/mcp__meerko__pipeline</C> command
+        <Tool name="list_tables" /> counts leads per stage, for one table or the whole workspace. The <C>/mcp__meerko__pipeline</C> command
         adds how each sequence is doing and what&apos;s waiting on you.
       </p>
       <AskAgent>/mcp__meerko__pipeline</AskAgent>

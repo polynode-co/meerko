@@ -69,7 +69,7 @@ export default function Page() {
           title="claude"
           lines={[
             { text: "› /mcp__meerko__find-leads heads of growth at Series A fintechs in Spain", tone: "accent" },
-            { text: "● meerko · find_people, then enrich_rows", tone: "muted" },
+            { text: "● meerko · find_leads, then enrich_rows", tone: "muted" },
           ]}
         />
         <dl className="flex flex-col">

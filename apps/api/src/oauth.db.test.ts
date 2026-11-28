@@ -127,12 +127,12 @@ describe.skipIf(!process.env.DATABASE_URL)("OAuth for MCP clients (db)", () => {
     );
     expect(init.status).toBe(200);
     const list = (await (await mcp({ jsonrpc: "2.0", id: 2, method: "tools/list" }, tokens.access_token)).json()) as { result: { tools: unknown[] } };
-    expect(list.result.tools).toHaveLength(52);
+    expect(list.result.tools).toHaveLength(26);
     const call = (await (
       await mcp({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "list_tables", arguments: {} } }, tokens.access_token)
     ).json()) as { result: { isError?: boolean; content: { text: string }[] } };
     expect(call.result.isError).toBeUndefined();
-    expect(JSON.parse(call.result.content[0]!.text)).toEqual([]);
+    expect(JSON.parse(call.result.content[0]!.text)).toMatchObject({ tables: [], pipeline: { total: 0 } });
 
     // An app token uses the API but can't mint keys or connect more apps.
     expect((await json("/v1/api-keys", { name: "x" }, tokens.access_token)).status).toBe(403);
@@ -149,17 +149,20 @@ describe.skipIf(!process.env.DATABASE_URL)("OAuth for MCP clients (db)", () => {
       expect(out.result.isError, out.result.content[0]?.text).toBeUndefined();
       return JSON.parse(out.result.content[0]!.text);
     };
-    const brand = await tool("create_workspace", { name: `Brand ${run}` });
-    expect((await tool("whoami")).workspace.id).toBe(workspaceId);
-    await tool("switch_workspace", { workspace_id: brand.id });
-    expect((await tool("whoami")).workspace).toEqual({ id: brand.id, name: `Brand ${run}` });
-    expect((await tool("list_workspaces")).map((w: { name: string; current: boolean }) => [w.name, w.current])).toEqual([
+    const brand = await tool("manage_workspace", { action: "create", name: `Brand ${run}` });
+    expect((await tool("get_workspace")).workspace.id).toBe(workspaceId);
+    await tool("manage_workspace", { action: "switch", workspace_id: brand.id });
+    const now = await tool("get_workspace");
+    expect(now.workspace).toEqual({ id: brand.id, name: `Brand ${run}` });
+    expect(now.workspaces.map((w: { name: string; current: boolean }) => [w.name, w.current])).toEqual([
       [`OAuth ${run}`, false],
       [`Brand ${run}`, true],
     ]);
     const me = (await (await app.request("/v1/me", { headers: { authorization: `Bearer ${session}` } })).json()) as { workspace: { id: string } };
     expect(me.workspace.id).toBe(workspaceId);
+    // A client with the tool list from before #81 still switches back by the old name.
     await tool("switch_workspace", { workspace_id: workspaceId });
+    expect((await tool("whoami")).workspace.id).toBe(workspaceId);
 
     // Refresh rotates both tokens.
     const refreshed = (await (await form("/oauth/token", { grant_type: "refresh_token", refresh_token: tokens.refresh_token, client_id: clientId })).json()) as {

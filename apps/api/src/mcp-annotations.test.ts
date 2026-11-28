@@ -31,14 +31,16 @@ describe("MCP tool annotations", async () => {
   // draft_reply and enroll_rows too: a draft goes at once in a workspace that sends automatically, and enrolling into
   // a running sequence gets the leads emailed (#89).
   it("marks every tool that can lead to an email as destructive and open-world", () => {
-    for (const name of ["send_test_email", "start_sequence", "approve_emails", "approve_draft", "draft_reply", "enroll_rows"]) {
+    for (const name of ["send_test_email", "start_sequence", "approve_emails", "draft_reply", "enroll_rows"]) {
       expect(tools.find((t) => t.name === name)?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: true });
     }
   });
 
   // OpenAI's MCP scan compares each hint with everything the tool can do, not with what it does by default (#16).
   it("marks tools that overwrite or replace the user's data as destructive", () => {
-    for (const name of ["add_column", "set_icp", "review_icp_fit", "enrich_rows", "update_rows", "update_sequence"]) {
+    // manage_table (add_column replaces an AI column's instruction), update_rows (cells, ICP adjustments) and
+    // manage_sequence (update replaces the steps) carry the hint for their overwriting action (#81).
+    for (const name of ["manage_table", "set_icp", "update_rows", "enrich_rows", "manage_sequence", "delete_data"]) {
       expect(tools.find((t) => t.name === name)?.annotations, name).toMatchObject({ readOnlyHint: false, destructiveHint: true });
     }
   });

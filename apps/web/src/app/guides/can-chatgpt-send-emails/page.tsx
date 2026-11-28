@@ -148,7 +148,7 @@ export default function Page() {
       <Callout>
         <p>
           Meerko marks the three tools that send real email (<code className="font-mono text-fg">send_test_email</code>,{" "}
-          <code className="font-mono text-fg">start_sequence</code> and <code className="font-mono text-fg">approve_draft</code>) as
+          <code className="font-mono text-fg">start_sequence</code> and <code className="font-mono text-fg">approve_emails</code>) as
           destructive, so ChatGPT and Claude ask before running them. Reply drafts wait for your approval: nothing is answered on its own.
         </p>
       </Callout>

@@ -1,5 +1,5 @@
 // The dashboard's "Find leads" form, turned into the Icypeas filters that /v1/search takes (the same query an agent
-// passes to find_people / find_companies). Only the common filters are fields here; agents can use the rest.
+// passes to find_leads). Only the common filters are fields here; agents can use the rest.
 import type { LeadKind, LeadQuery } from "@meerko/sdk";
 
 /** Comma- or newline-separated → trimmed, non-empty values. */

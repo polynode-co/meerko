@@ -23,7 +23,7 @@ export default function Page() {
         ["billing", "Plan and credits"],
         ["api-keys", "API keys"],
       ]}
-      tools={["whoami", "list_workspaces", "switch_workspace", "create_workspace", "rename_workspace"]}
+      tools={["get_workspace", "manage_workspace"]}
     >
       <H2 id="dashboard">In the dashboard</H2>
       <p>
@@ -33,9 +33,10 @@ export default function Page() {
 
       <H2 id="agents">From your agent</H2>
       <p>
-        <Tool name="list_workspaces" /> marks the one the connection acts on, and <Tool name="switch_workspace" /> moves it to another.
-        Switching moves that one connection only: your browser and other agents stay where they are. <Tool name="whoami" /> says where
-        an agent is now, which is worth asking before it sends anything.
+        <Tool name="get_workspace" /> lists your workspaces and marks the one the connection acts on, and{" "}
+        <Tool name="manage_workspace" /> (<C>action: &quot;switch&quot;</C>) moves it to another. Switching moves that one connection only:
+        your browser and other agents stay where they are. Asking where an agent is now, with <Tool name="get_workspace" />, is worth it
+        before it sends anything.
       </p>
 
       <H2 id="cli">From the CLI</H2>

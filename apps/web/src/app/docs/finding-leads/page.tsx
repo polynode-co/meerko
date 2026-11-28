@@ -24,7 +24,7 @@ export default function Page() {
         ["saved", "What gets saved"],
         ["limits", "Limits and cost"],
       ]}
-      tools={["read_website", "get_icp", "set_icp", "review_icp_fit", "find_people", "find_companies", "enrich_rows"]}
+      tools={["read_website", "get_workspace", "set_icp", "update_rows", "find_leads", "enrich_rows"]}
     >
       <H2 id="first-customers">Start from your website</H2>
       <p>
@@ -46,17 +46,17 @@ export default function Page() {
       </p>
       <p>
         Rules can&apos;t tell a denim factory from a fashion brand, so your agent can move a score by up to 30 points with a one-line
-        reason (<Tool name="review_icp_fit" />). Then spend credits where they count: Find &amp; verify emails offers <strong className="text-fg">Fit 70+ only</strong>,
+        reason (<Tool name="update_rows" /> with <C>icp_reviews</C>). Then spend credits where they count: Find &amp; verify emails offers <strong className="text-fg">Fit 70+ only</strong>,
         and agents pass <C>min_icp_score</C> to <Tool name="enrich_rows" />.
       </p>
       <AskAgent>Score the leads in my &quot;First customers&quot; table against my ICP, fix any score that looks wrong, then find emails for the ones at 70 or more.</AskAgent>
 
       <H2 id="people-companies">People and companies</H2>
       <p>
-        <Tool name="find_people" /> searches for people, <Tool name="find_companies" /> for companies. Both run on{" "}
+        <Tool name="find_leads" /> searches for people (<C>type: &quot;people&quot;</C>) or companies (<C>type: &quot;companies&quot;</C>). Both run on{" "}
         <L href={docsSources.icypeas.url}>Icypeas</L>&apos;s database and save each result as a row, in an existing table or a new one.
         When the description is mostly about the company (&quot;Series A fintechs in Spain&quot;), search companies first, then pass their{" "}
-        <C>company_urn</C> values to <Tool name="find_people" /> to get the people who work there.
+        <C>company_urn</C> values to a people search to get the people who work there.
       </p>
       <AskAgent>Find heads of growth at fintechs in Spain with 50 to 200 employees. Count them first.</AskAgent>
 

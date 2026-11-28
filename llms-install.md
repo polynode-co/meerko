@@ -16,7 +16,7 @@ and the user will say so if they do.
 1. Add a remote MCP server named `meerko` with the URL and transport above. Nothing to install or build.
 2. Start the client's OAuth sign-in for that server. The user's browser opens; they sign in to Meerko
    (or create an account) and approve the connection.
-3. Check it works: call the `whoami` tool. It answers with the user's account and workspace.
+3. Check it works: call the `get_workspace` tool. It answers with the user's account and workspace.
 
 ## Cline
 
@@ -73,7 +73,7 @@ Claude Code: `claude mcp add --transport http --scope user meerko https://api.me
 ## Good to know
 
 - Anything that emails someone waits for the user's approval. Don't try to work around it.
-- Finding and verifying leads spends credits; the `get_credits` tool shows the balance.
+- Finding and verifying leads spends credits; the `get_workspace` tool shows the balance.
 - Every tool is described in the [MCP tools reference](https://meerko.ai/docs/mcp-tools).
 - Self-hosting (only if the user asks): <https://meerko.ai/docs/self-hosting>. The server is then at
   `http://localhost:8787/mcp`.

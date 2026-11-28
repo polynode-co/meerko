@@ -23,69 +23,45 @@ const write = (title: string, openWorld = false): Entry => ({ title, readOnlyHin
 const destructive = (title: string, openWorld = false): Entry => ({ title, readOnlyHint: false, destructiveHint: true, openWorldHint: openWorld });
 
 export const TOOL_ANNOTATIONS: Record<string, Entry> = {
-  // Autopilot
-  manage_routine: destructive("Manage Autopilot routines", true), // delete; run_now calls the user's Claude routine or webhook
-  start_routine_run: write("Start an Autopilot run"),
+  // Workspace
+  get_workspace: read("Show the workspace and its settings"),
+  manage_workspace: write("Switch, create or rename a workspace"),
 
-  // Workspaces
-  whoami: read("Show the current workspace"),
-  list_workspaces: read("List workspaces"),
-  switch_workspace: write("Switch workspace"),
-  create_workspace: write("Create a workspace"),
-  rename_workspace: write("Rename a workspace"),
-
-  // Tables
-  list_tables: read("List lead tables"),
-  create_table: write("Create a lead table"),
-  add_column: destructive("Add a column"), // adding it again replaces an AI column's instruction
-  get_pending_cells: read("Get cells waiting for the agent"),
-  read_website: read("Read a website", true), // fetches any public site
-  get_icp: read("Get the ideal customer profile"),
-  set_icp: destructive("Set the ideal customer profile"), // replaces the whole profile and rescores every lead
-  review_icp_fit: destructive("Adjust ICP fit scores"), // overwrites a row's earlier adjustment and note
-  update_rows: destructive("Update rows"), // overwrites cell values
-  import_rows: write("Import rows"),
+  // Tables and rows
+  list_tables: read("List lead tables and the pipeline"),
+  manage_table: destructive("Create or rename a table, or add a column"), // adding a column again replaces an AI column's instruction
   query_rows: read("Query rows"),
-  get_lead: read("Get a lead and its emails"),
-  rename_table: write("Rename a table"),
-  delete_rows: destructive("Delete rows"),
-  delete_table: destructive("Delete a table"),
+  import_rows: write("Import rows"),
+  update_rows: destructive("Update rows, stages and ICP fit"), // overwrites cell values and a row's earlier ICP adjustment
+  delete_data: destructive("Delete a table, rows, a sequence or a draft"),
 
-  // Leads and enrichment: the lead database is outside the account, and results cost credits
-  find_people: write("Find people", true),
-  find_companies: write("Find companies", true),
+  // Finding leads: the lead database is outside the account, and results cost credits
+  find_leads: write("Find people or companies", true),
+  set_icp: destructive("Set the ideal customer profile"), // replaces the whole profile and rescores every lead
+  read_website: read("Read a website", true), // fetches any public site
   enrich_rows: destructive("Find and verify emails", true), // overwrite replaces earlier results; credits spent don't come back
-  get_credits: read("Show credit balance"),
 
   // Mailboxes
-  connect_gmail: write("Connect a mailbox"),
-  list_mailboxes: read("List mailboxes"),
-  update_mailbox: write("Update mailbox settings"),
-  check_domains: read("Check sending domains", true), // public DNS lookups
+  list_mailboxes: read("List mailboxes and check domains", true), // check_domains does public DNS lookups
+  manage_mailbox: write("Connect or update a mailbox"),
   send_test_email: destructive("Send a test email", true), // a real email, can't be unsent
 
   // Sequences
-  create_sequence: write("Create a sequence"),
-  update_sequence: destructive("Edit a sequence"), // overwrites the steps' text
-  preview_sequence: read("Preview a sequence email"),
+  list_sequences: read("List, preview and measure sequences"),
+  manage_sequence: destructive("Create, edit or pause a sequence"), // update overwrites the steps' text
   enroll_rows: destructive("Enroll rows in a sequence", true), // in a sequence that's already running, the leads get emailed
   start_sequence: destructive("Start sending a sequence", true), // real emails to real people
-  delete_sequence: destructive("Delete a sequence"),
-  pause_sequence: write("Pause a sequence"),
-  get_sending_mode: read("Get the sending mode"),
-  list_pending_emails: read("List emails waiting for approval"),
-  approve_emails: destructive("Approve emails to send", true), // real emails to real people
-  list_sequences: read("List sequences"),
-  sequence_stats: read("Show sequence stats"),
+  approve_emails: destructive("Approve emails and reply drafts to send", true), // real emails to real people
 
-  // Replies and pipeline
-  list_replies: read("List replies"),
+  // Replies
+  list_replies: read("List replies and drafts"),
   classify_reply: write("Classify a reply"),
   draft_reply: destructive("Draft (or send) a reply", true), // sent at once in a workspace that sends reply drafts automatically
-  list_drafts: read("List reply drafts"),
-  approve_draft: destructive("Approve and send a reply", true), // sends the reply
-  discard_draft: destructive("Discard a reply draft"),
-  pipeline: read("Show the pipeline"),
-  move_stage: write("Move leads to a pipeline stage"),
+
+  // CRM
   sync_crm: destructive("Push leads to the CRM", true), // creates contacts in HubSpot or Attio and overwrites the fields of the ones it matches
+
+  // Autopilot
+  manage_routine: destructive("Manage Autopilot routines", true), // delete; run_now calls the user's Claude routine or webhook
+  start_routine_run: write("Start an Autopilot run"),
 };

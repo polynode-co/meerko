@@ -83,14 +83,14 @@ describe.skipIf(!process.env.DATABASE_URL)("Autopilot routines and drafts-only c
       });
       return ((await res.json()).result.tools as { name: string }[]).map((t) => t.name).sort();
     };
-    expect(await list("/mcp/drafter")).toEqual(["classify_reply", "draft_reply", "list_drafts", "list_replies", "start_routine_run"]);
+    expect(await list("/mcp/drafter")).toEqual(["classify_reply", "draft_reply", "list_replies", "start_routine_run"]);
     expect((await list("/mcp")).length).toBeGreaterThan(20);
 
     // Even through a tool, the drafter endpoint can't approve: the API refuses the call.
     const res = await app.request("/mcp/drafter", {
       method: "POST",
       headers: { authorization: `Bearer ${fullKey}`, "content-type": "application/json", accept: "application/json, text/event-stream" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "approve_draft", arguments: { draft_id: "x" } } }),
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "approve_emails", arguments: { draft_id: "x" } } }),
     });
     expect(JSON.stringify(await res.json())).toMatch(/not found|isError/i);
   });

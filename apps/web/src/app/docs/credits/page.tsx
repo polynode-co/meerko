@@ -25,7 +25,7 @@ export default function Page() {
         ["generect", "Phone numbers and Generect"],
         ["self-hosted", "Self-hosted"],
       ]}
-      tools={["get_credits"]}
+      tools={["get_workspace"]}
     >
       <H2 id="costs">What costs credits</H2>
       <Fields
@@ -41,7 +41,7 @@ export default function Page() {
       />
       <p>
         AI columns cost nothing because your own agent answers them. Plans and prices are on the <L href="/pricing">pricing page</L>. Check
-        your balance with <Tool name="get_credits" />, <C>pnpm meerko credits</C> or the dashboard&apos;s Connections.
+        your balance with <Tool name="get_workspace" />, <C>pnpm meerko credits</C> or the dashboard&apos;s Connections.
       </p>
 
       <H2 id="running-out">Running out</H2>
@@ -59,7 +59,7 @@ export default function Page() {
         lapse soonest first. Cancel or change your card from Manage billing.
       </p>
       <p>
-        <Tool name="get_credits" /> shows your agent the balance, so it can warn you before a large search. Plans and
+        <Tool name="get_workspace" /> shows your agent the balance, so it can warn you before a large search. Plans and
         top-ups live in Connections, not in the chat: the Claude and ChatGPT app directories don&apos;t allow buying inside an app. The
         REST API&apos;s <C>GET /v1/credits</C> still returns the plan and a <C>buy_url</C> for your own scripts.
       </p>
@@ -109,7 +109,7 @@ export default function Page() {
       <H2 id="self-hosted">Self-hosted</H2>
       <p>
         Credits are off by default when you <L href="/docs/self-hosting">self-host</L>: everything runs on your own Icypeas key, and{" "}
-        <Tool name="get_credits" /> returns no balance.
+        <Tool name="get_workspace" /> returns no balance.
       </p>
     </DocsShell>
   );

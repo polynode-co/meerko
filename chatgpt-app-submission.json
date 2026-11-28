@@ -7,132 +7,44 @@
     "category": "Productivity"
   },
   "tools": {
-    "manage_routine": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": true },
-      "justifications": {
-        "read_only_justification": "Creates, edits, pauses, resumes and deletes the user's Autopilot routines (a saved brief plus when it runs); the list and get actions only read them.",
-        "open_world_justification": "The run_now action makes Meerko call a service outside the user's Meerko account: the Claude routine or the webhook URL the user connected in the dashboard, which starts the user's own AI. The other actions only change routine records in the user's workspace.",
-        "destructive_justification": "The delete action removes a routine for good, and update overwrites its name, brief and schedule."
-      }
-    },
-    "start_routine_run": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Records that a routine run has started, so it writes a run record, and returns the routine's brief.",
-        "open_world_justification": "Writes only to the user's own Meerko workspace.",
-        "destructive_justification": "Adds a run record and changes nothing that already exists."
-      }
-    },
-    "whoami": {
+    "get_workspace": {
       "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
       "justifications": {
-        "read_only_justification": "Returns which workspace the connection acts on and changes nothing.",
+        "read_only_justification": "Returns the workspace the connection acts on, the user's other workspaces, the credit balance, the sending mode and the ideal customer profile, changing nothing. It returns no plan, price or link to buy.",
         "open_world_justification": "Reads only the user's own Meerko account.",
         "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
       }
     },
-    "list_workspaces": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Lists the workspaces the user belongs to and marks the current one, changing nothing.",
-        "open_world_justification": "Reads only the user's own Meerko account.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "switch_workspace": {
+    "manage_workspace": {
       "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
       "justifications": {
-        "read_only_justification": "Saves which of the user's workspaces this connection acts on from now on.",
-        "open_world_justification": "Changes a setting on the user's own Meerko connection and nothing outside it.",
-        "destructive_justification": "Only moves a pointer between the user's workspaces; switching back restores it, and no data is removed or sent."
-      }
-    },
-    "create_workspace": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Creates a new, empty workspace for another brand.",
-        "open_world_justification": "The workspace is private to the user's Meerko account.",
-        "destructive_justification": "Only adds a workspace; existing workspaces and their data are untouched, and the connection is not switched to the new one."
-      }
-    },
-    "rename_workspace": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Changes a workspace's name.",
-        "open_world_justification": "The name is only shown inside the user's own Meerko account.",
-        "destructive_justification": "Changes a label only; no lead, sequence or email is removed or sent, and the name can be changed back."
+        "read_only_justification": "Switches which of the user's workspaces this connection acts on, creates a new empty workspace for another brand, or renames one.",
+        "open_world_justification": "Changes a setting on the user's own Meerko connection, or a workspace private to the user's Meerko account, and nothing outside it.",
+        "destructive_justification": "Switching only moves a pointer between the user's workspaces and switching back restores it; creating only adds an empty workspace; renaming changes a label that can be changed back. No lead, sequence or email is removed or sent."
       }
     },
     "list_tables": {
       "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
       "justifications": {
-        "read_only_justification": "Lists the workspace's lead tables with their columns and row counts, changing nothing.",
+        "read_only_justification": "Lists the workspace's lead tables with their columns and row counts, and the lead counts per pipeline stage, changing nothing.",
         "open_world_justification": "Reads only the user's own Meerko workspace.",
         "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
       }
     },
-    "create_table": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Creates a new lead table in the workspace.",
-        "open_world_justification": "The table is private to the user's Meerko workspace.",
-        "destructive_justification": "Only adds a table; no existing table or row is changed."
-      }
-    },
-    "add_column": {
+    "manage_table": {
       "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
       "justifications": {
-        "read_only_justification": "Adds a column to a table, or saves a new instruction for an existing AI column.",
-        "open_world_justification": "Changes only the table's definition in the user's Meerko workspace.",
-        "destructive_justification": "Adding a column that already exists with a new prompt overwrites that AI column's instruction, and the previous instruction is not kept. Rows' values are left as they are."
+        "read_only_justification": "Creates a lead table, renames one, or adds a column to one (or saves a new instruction for an existing AI column).",
+        "open_world_justification": "Changes only tables in the user's Meerko workspace.",
+        "destructive_justification": "Adding a column that already exists with a new prompt overwrites that AI column's instruction, and the previous instruction is not kept. Creating and renaming remove nothing, and rows' values are left as they are."
       }
     },
-    "get_pending_cells": {
+    "query_rows": {
       "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
       "justifications": {
-        "read_only_justification": "Returns the rows whose AI column is still empty, with the instruction for each, and writes nothing.",
-        "open_world_justification": "Reads only rows in the user's own Meerko workspace. Meerko does not run the instruction or call any model.",
+        "read_only_justification": "Reads rows from a table with their pipeline stage and ICP fit, one lead in full with its sequences and emails, or the rows whose AI column is still empty with the instruction for each, changing nothing.",
+        "open_world_justification": "Reads only the user's own Meerko workspace. Meerko does not run an AI column's instruction or call any model.",
         "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "read_website": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": true, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Fetches a company's public home page and returns its title, description, headings and visible text. Nothing is saved or changed.",
-        "open_world_justification": "Reads any public website the user names, which is outside the user's Meerko account. Private and internal addresses are refused.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "get_icp": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Returns the workspace's saved ideal customer profile, or null when none is set.",
-        "open_world_justification": "Reads only the user's own Meerko workspace.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "set_icp": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
-      "justifications": {
-        "read_only_justification": "Saves the workspace's ideal customer profile and rescores every lead against it.",
-        "open_world_justification": "Changes only a setting and the derived fit scores inside the user's Meerko workspace.",
-        "destructive_justification": "Replaces the whole saved profile: a field left out is cleared, and the previous profile is not kept. Every lead's fit score is then overwritten with one computed from the new profile. Leads, their data and their emails are kept."
-      }
-    },
-    "review_icp_fit": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
-      "justifications": {
-        "read_only_justification": "Saves a manual adjustment of -30 to 30, with a note, on rows' ICP fit scores.",
-        "open_world_justification": "Changes only scores inside the user's Meerko workspace.",
-        "destructive_justification": "Overwrites each row's ICP fit score, and replaces any adjustment and note saved on the row before; the earlier ones are not kept. Clearing the adjustment restores the rule-based score, and no lead data is removed."
-      }
-    },
-    "update_rows": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
-      "justifications": {
-        "read_only_justification": "Writes values into existing rows of a table.",
-        "open_world_justification": "Changes only rows in the user's own Meerko workspace.",
-        "destructive_justification": "A value written to a cell that already had one overwrites it, and the previous value is not kept."
       }
     },
     "import_rows": {
@@ -143,60 +55,44 @@
         "destructive_justification": "Only adds rows; existing rows are not changed or removed."
       }
     },
-    "query_rows": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Reads rows from a table with their pipeline stage and ICP fit, changing nothing.",
-        "open_world_justification": "Reads only the user's own Meerko workspace.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "get_lead": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Reads one lead with its sequences and the emails already sent to it or received from it, changing nothing.",
-        "open_world_justification": "Reads only the user's own Meerko workspace.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "rename_table": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Changes a lead table's name.",
-        "open_world_justification": "The name is only shown inside the user's own Meerko account.",
-        "destructive_justification": "Changes a label only; no lead, sequence or email is removed or sent, and the name can be changed back."
-      }
-    },
-    "delete_rows": {
+    "update_rows": {
       "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
       "justifications": {
-        "read_only_justification": "Deletes leads (rows) from a table and stops their sequences.",
-        "open_world_justification": "Deletes only from the user's own Meerko workspace.",
-        "destructive_justification": "The rows are deleted permanently and cannot be restored."
+        "read_only_justification": "Writes values into existing rows of a table, moves leads to a pipeline stage, or saves a manual adjustment of -30 to 30, with a note, on rows' ICP fit scores.",
+        "open_world_justification": "Changes only rows in the user's own Meerko workspace.",
+        "destructive_justification": "A value written to a cell that already had one overwrites it, and an ICP adjustment replaces the adjustment and note saved on the row before; the earlier ones are not kept."
       }
     },
-    "delete_table": {
+    "delete_data": {
       "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
       "justifications": {
-        "read_only_justification": "Deletes a table with all its rows and its paused or draft sequences.",
-        "open_world_justification": "Deletes only from the user's own Meerko workspace.",
-        "destructive_justification": "The table, its rows and those sequences are deleted permanently and cannot be restored."
+        "read_only_justification": "Deletes a table with its rows and its paused or draft sequences, leads (rows) from a table, a sequence with its steps and enrollments, or a pending reply draft.",
+        "open_world_justification": "Deletes only from the user's own Meerko workspace; nothing is sent.",
+        "destructive_justification": "What it deletes is deleted permanently and cannot be restored."
       }
     },
-    "find_people": {
+    "find_leads": {
       "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": false },
       "justifications": {
-        "read_only_justification": "Saves the people it finds as new rows in a table and spends one credit per result. With count_only it only returns a number.",
-        "open_world_justification": "Searches a third-party database of business contacts, which is outside the user's Meerko account.",
+        "read_only_justification": "Saves the people or companies it finds as new rows in a table and spends one credit per result. With count_only it only returns a number.",
+        "open_world_justification": "Searches a third-party database of business contacts and companies, which is outside the user's Meerko account.",
         "destructive_justification": "Only adds rows; nothing existing is changed or removed, and nobody is contacted."
       }
     },
-    "find_companies": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": false },
+    "set_icp": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
       "justifications": {
-        "read_only_justification": "Saves the companies it finds as new rows in a table and spends one credit per result. With count_only it only returns a number.",
-        "open_world_justification": "Searches a third-party database of companies, which is outside the user's Meerko account.",
-        "destructive_justification": "Only adds rows; nothing existing is changed or removed, and nobody is contacted."
+        "read_only_justification": "Saves the workspace's ideal customer profile and rescores every lead against it.",
+        "open_world_justification": "Changes only a setting and the derived fit scores inside the user's Meerko workspace.",
+        "destructive_justification": "Replaces the whole saved profile: a field left out is cleared, and the previous profile is not kept. Every lead's fit score is then overwritten with one computed from the new profile. Leads, their data and their emails are kept."
+      }
+    },
+    "read_website": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": true, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Fetches a company's public home page and returns its title, description, headings and visible text. Nothing is saved or changed.",
+        "open_world_justification": "Reads any public website the user names, which is outside the user's Meerko account. Private and internal addresses are refused.",
+        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
       }
     },
     "enrich_rows": {
@@ -207,44 +103,20 @@
         "destructive_justification": "Spends the user's credits for each email, verification or phone number found, and spent credits are not returned. With overwrite, a row that already has a result is run again and its earlier result is replaced; without it, only rows with no result are filled."
       }
     },
-    "get_credits": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Returns whether credits are on and the current balance. It returns no plan, price or link to buy.",
-        "open_world_justification": "Reads only the user's own Meerko account.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "connect_gmail": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Starts connecting a mailbox to the workspace: it returns a sign-in link, or the steps for an app password, that the user completes in the browser. It is marked as a write because the flow it starts ends with a new mailbox in the workspace.",
-        "open_world_justification": "It only hands the user a link to Meerko's connect page or to Google's or Microsoft's own sign-in; the tool itself contacts no mailbox and no password passes through the chat.",
-        "destructive_justification": "Nothing is connected, removed or sent until the user finishes the sign-in themselves."
-      }
-    },
     "list_mailboxes": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Lists the connected sending mailboxes with their limits, ramp and status, changing nothing.",
-        "open_world_justification": "Reads only the user's own Meerko workspace.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "update_mailbox": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Changes a mailbox's daily send limit, sender name or ramp, or lifts a hold Meerko put on it.",
-        "open_world_justification": "Changes only sending settings stored in the user's Meerko workspace; it sends no email itself.",
-        "destructive_justification": "Changes settings that can be set back at any time; no mailbox, lead or email is removed."
-      }
-    },
-    "check_domains": {
       "annotations": { "readOnlyHint": true, "openWorldHint": true, "destructiveHint": false },
       "justifications": {
-        "read_only_justification": "Looks up the SPF, DKIM and DMARC records of the domains the workspace sends from and reports what is missing.",
-        "open_world_justification": "Queries public DNS, which is outside the user's Meerko account.",
+        "read_only_justification": "Lists the connected sending mailboxes with their limits, ramp and status, and with check_domains looks up the SPF, DKIM and DMARC records of the domains they send from, changing nothing.",
+        "open_world_justification": "With check_domains it queries public DNS, which is outside the user's Meerko account. Without it, it reads only the user's own Meerko workspace.",
         "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
+      }
+    },
+    "manage_mailbox": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Starts connecting a mailbox to the workspace (it returns a sign-in link, or the steps for an app password, that the user completes in the browser), or changes a connected mailbox's daily send limit, sender name or ramp, or lifts a hold Meerko put on it.",
+        "open_world_justification": "Connecting only hands the user a link to Meerko's connect page or to Google's or Microsoft's own sign-in; the tool contacts no mailbox and no password passes through the chat. Updating changes only sending settings stored in the user's Meerko workspace and sends no email.",
+        "destructive_justification": "Nothing is connected until the user finishes the sign-in themselves, and mailbox settings can be set back at any time; no mailbox, lead or email is removed."
       }
     },
     "send_test_email": {
@@ -255,28 +127,20 @@
         "destructive_justification": "A sent email cannot be taken back."
       }
     },
-    "create_sequence": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Creates a new email sequence in draft status for a table.",
-        "open_world_justification": "A draft is stored in the user's Meerko workspace and sends nothing.",
-        "destructive_justification": "Only adds a draft sequence; no email goes out until leads are enrolled and the sequence is started with a separate tool."
-      }
-    },
-    "update_sequence": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
-      "justifications": {
-        "read_only_justification": "Edits a sequence's name, mailbox pool, send window or steps.",
-        "open_world_justification": "Changes only the sequence stored in the user's Meerko workspace; it sends no email itself.",
-        "destructive_justification": "New steps replace all the existing ones and the previous text is not kept; removing a mailbox from the pool stops the leads that were mid-thread on it."
-      }
-    },
-    "preview_sequence": {
+    "list_sequences": {
       "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
       "justifications": {
-        "read_only_justification": "Renders each step of a sequence for one row, as it would be sent, and saves nothing.",
+        "read_only_justification": "Lists the workspace's sequences, or returns one sequence's stats and mailbox pool usage, renders its steps for one row as they would be sent, or lists the sequence emails waiting for the user's approval. Nothing is saved or sent.",
         "open_world_justification": "Reads only the user's own Meerko workspace; nothing is sent.",
         "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
+      }
+    },
+    "manage_sequence": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
+      "justifications": {
+        "read_only_justification": "Creates an email sequence in draft status for a table, edits a sequence's name, mailbox pool, send window or steps, or pauses it.",
+        "open_world_justification": "Changes only sequences stored in the user's Meerko workspace; it sends no email itself, and pausing stops email rather than sending it.",
+        "destructive_justification": "New steps replace all the existing ones and the previous text is not kept; removing a mailbox from the pool stops the leads that were mid-thread on it. Creating only adds a draft, and pausing keeps every step and enrollment."
       }
     },
     "enroll_rows": {
@@ -295,67 +159,19 @@
         "destructive_justification": "Emails that have been sent cannot be taken back; pausing only stops the ones not yet sent."
       }
     },
-    "delete_sequence": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
-      "justifications": {
-        "read_only_justification": "Deletes a sequence with its steps and enrollments.",
-        "open_world_justification": "Deletes only from the user's own Meerko workspace.",
-        "destructive_justification": "The sequence, its steps and its enrollments are deleted permanently."
-      }
-    },
-    "pause_sequence": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Sets a sequence to paused.",
-        "open_world_justification": "Changes only the sequence's status in the user's Meerko workspace; it stops email rather than sending it.",
-        "destructive_justification": "Pausing keeps every step and enrollment and is undone by starting the sequence again."
-      }
-    },
-    "get_sending_mode": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Returns whether the user approves each email or Meerko sends on its own. The setting is only changed in the dashboard.",
-        "open_world_justification": "Reads only the user's own Meerko workspace.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "list_pending_emails": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Lists the sequence emails waiting for the user's approval, as each lead would get them.",
-        "open_world_justification": "Reads only the user's own Meerko workspace; nothing is sent.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
     "approve_emails": {
       "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": true },
       "justifications": {
-        "read_only_justification": "Marks leads' next sequence email as approved, which releases it to be sent when due.",
+        "read_only_justification": "Marks leads' next sequence email as approved, which releases it to be sent when due, or sends a reply draft as a reply in its email thread.",
         "open_world_justification": "The approved emails go from the user's mailbox to people's inboxes outside Meerko.",
-        "destructive_justification": "Once an approved email has been sent it cannot be taken back."
-      }
-    },
-    "list_sequences": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Lists the workspace's sequences with their status and enrollment counts.",
-        "open_world_justification": "Reads only the user's own Meerko workspace.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "sequence_stats": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Returns a sequence's enrollment states, emails sent, reply rate and mailbox pool usage.",
-        "open_world_justification": "Reads only figures stored in the user's own Meerko workspace.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
+        "destructive_justification": "Once an approved email or reply has been sent it cannot be taken back."
       }
     },
     "list_replies": {
       "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
       "justifications": {
-        "read_only_justification": "Lists replies to the user's sequences with the thread and the lead's row, changing nothing.",
-        "open_world_justification": "Reads replies Meerko has already stored in the user's workspace; the tool does not contact the mailbox provider.",
+        "read_only_justification": "Lists replies to the user's sequences with the thread and the lead's row, or the reply drafts waiting for the user, changing nothing.",
+        "open_world_justification": "Reads replies and drafts Meerko has already stored in the user's workspace; the tool does not contact the mailbox provider.",
         "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
       }
     },
@@ -371,48 +187,8 @@
       "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": true },
       "justifications": {
         "read_only_justification": "Saves a draft answer to a reply for the user to review, or sends it at once in a workspace the user has set to send reply drafts automatically.",
-        "open_world_justification": "In a workspace the user has switched to automatic sending, the draft is emailed at once to the person who replied, outside Meerko. By default it is only stored, and sending is the separate approve_draft tool.",
+        "open_world_justification": "In a workspace the user has switched to automatic sending, the draft is emailed at once to the person who replied, outside Meerko. By default it is only stored, and sending is the separate approve_emails tool.",
         "destructive_justification": "With automatic sending on, the draft goes out as a real email, which cannot be taken back. Drafting again for the same reply also replaces the pending draft's text."
-      }
-    },
-    "list_drafts": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Lists the reply drafts waiting for the user, with the reply and thread each one answers.",
-        "open_world_justification": "Reads only the user's own Meerko workspace.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "approve_draft": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": true },
-      "justifications": {
-        "read_only_justification": "Sends a draft as a reply in the email thread, from the user's mailbox.",
-        "open_world_justification": "A real email goes to the inbox of the person who replied, outside Meerko.",
-        "destructive_justification": "A sent email cannot be taken back."
-      }
-    },
-    "discard_draft": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
-      "justifications": {
-        "read_only_justification": "Removes a pending reply draft.",
-        "open_world_justification": "Deletes only from the user's own Meerko workspace; nothing is sent.",
-        "destructive_justification": "The draft's text is discarded and cannot be restored."
-      }
-    },
-    "pipeline": {
-      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Returns lead counts per pipeline stage, for one table or the whole workspace.",
-        "open_world_justification": "Reads only the user's own Meerko workspace.",
-        "destructive_justification": "Read-only: it deletes, overwrites and sends nothing."
-      }
-    },
-    "move_stage": {
-      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
-      "justifications": {
-        "read_only_justification": "Sets the pipeline stage of the given leads.",
-        "open_world_justification": "Changes only a field in the user's Meerko workspace.",
-        "destructive_justification": "A stage is a label that can be moved back; the lead and its history are kept."
       }
     },
     "sync_crm": {
@@ -421,6 +197,22 @@
         "read_only_justification": "Creates or updates contacts in the CRM the user connected (HubSpot or Attio) from the table's leads.",
         "open_world_justification": "Writes to a third-party CRM, which is outside Meerko, with the access the user granted in the dashboard.",
         "destructive_justification": "Creates contacts in the user's HubSpot or Attio (in Attio also a company record when none has the lead's domain), and for a contact it matches by email it overwrites the fields the lead has a value for (name, job title, company, and in HubSpot the Lead status); the CRM's earlier values are not kept by Meerko, and Meerko cannot undo the push. A lead's empty fields overwrite nothing, no contact is deleted and no message is sent."
+      }
+    },
+    "manage_routine": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": true },
+      "justifications": {
+        "read_only_justification": "Creates, edits, pauses, resumes and deletes the user's Autopilot routines (a saved brief plus when it runs); the list and get actions only read them.",
+        "open_world_justification": "The run_now action makes Meerko call a service outside the user's Meerko account: the Claude routine or the webhook URL the user connected in the dashboard, which starts the user's own AI. The other actions only change routine records in the user's workspace.",
+        "destructive_justification": "The delete action removes a routine for good, and update overwrites its name, brief and schedule."
+      }
+    },
+    "start_routine_run": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Records that a routine run has started, so it writes a run record, and returns the routine's brief.",
+        "open_world_justification": "Writes only to the user's own Meerko workspace.",
+        "destructive_justification": "Adds a run record and changes nothing that already exists."
       }
     }
   },
@@ -434,7 +226,7 @@
     {
       "description": "Preview a sequence email as a lead would receive it, without sending anything.",
       "user_prompt": "Show me my Meerko sequences and how the first email reads for one of the leads.",
-      "tools_triggered": "list_sequences, preview_sequence",
+      "tools_triggered": "list_sequences",
       "expected_output": "Shows one sequence, \"Founders: agent-run outbound\", paused, with 6 leads enrolled. Then shows its three steps rendered for one lead: the first has a subject like \"Ledgerline and outbound, Maya\" and a body that opens with the lead's first name, and the two follow-ups come 3 and 4 days later. No email is sent."
     },
     {
@@ -446,13 +238,13 @@
     {
       "description": "Report the pipeline and how the sequence is doing.",
       "user_prompt": "How is my outbound going in Meerko? Give me the pipeline and the numbers for my sequence.",
-      "tools_triggered": "pipeline, list_sequences, sequence_stats",
+      "tools_triggered": "list_tables, list_sequences",
       "expected_output": "Reports the pipeline for the demo workspace: 2 new, 3 contacted and 3 replied leads, none in meeting, won or lost. For the sequence \"Founders: agent-run outbound\" it reports 6 leads enrolled, 6 emails sent and 3 replies, and that the sequence is paused."
     },
     {
       "description": "Count matching leads in the lead database without saving them or spending credits.",
       "user_prompt": "With Meerko, how many CTOs at fintech companies in Spain could I reach? Just count them, don't save anything.",
-      "tools_triggered": "find_people",
+      "tools_triggered": "find_leads",
       "expected_output": "Returns the number of people matching a CTO title at financial-services companies in Spain. It says the count is free, and no rows are saved and no credits are spent."
     }
   ],

@@ -232,7 +232,7 @@ export async function getPendingCells(
   const table = await getTable(db, workspaceId, tableId);
   const key = toColumnKey(column);
   const col = table.columns.find((c) => c.key === key);
-  if (!col?.prompt) throw new NotFoundError(`Column "${column}" has no prompt. Add one with add_column.`);
+  if (!col?.prompt) throw new NotFoundError(`Column "${column}" has no prompt. Add one with manage_table (add_column).`);
 
   const conds = [eq(tableRows.tableId, tableId), sql`coalesce(${tableRows.data}->>${key}, '') = ''`];
   if (opts.filter && Object.keys(opts.filter).length > 0) conds.push(sql`${tableRows.data} @> ${JSON.stringify(opts.filter)}::jsonb`);
