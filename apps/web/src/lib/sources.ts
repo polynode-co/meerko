@@ -72,6 +72,8 @@ export const crmSources = {
 /** For /docs: the setup steps that depend on other products. */
 export const docsSources = {
   claudeCodeMcp: { label: "Claude Code docs: Connect Claude Code to tools via MCP", url: "https://code.claude.com/docs/en/mcp" },
+  /** Checked 28 Nov 2026: /plugin marketplace add owner/repo, /plugin install name@marketplace, plugin skills run as /plugin:skill. */
+  claudeCodePlugins: { label: "Claude Code docs: Install and manage plugins", url: "https://code.claude.com/docs/en/discover-plugins" },
   claudeConnectors: { label: "Claude Help: Getting started with custom connectors using remote MCP", url: "https://support.claude.com/en/articles/11175166-getting-started-with-custom-connectors-using-remote-mcp" },
   chatgptMcp: { label: "OpenAI Apps SDK: Connect from ChatGPT", url: "https://developers.openai.com/apps-sdk/deploy/connect-chatgpt" },
   codexMcp: { label: "OpenAI Codex docs: Model Context Protocol", url: "https://developers.openai.com/codex/mcp" },

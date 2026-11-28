@@ -1,0 +1,22 @@
+{
+  "name": "meerko",
+  "displayName": "Meerko",
+  "description": "Meerko, the open-source outbound engine: find B2B leads, verify their work emails, send email sequences from your own Gmail or Outlook, and sort and answer the replies. By default every email waits for your approval.",
+  "author": {
+    "name": "Polynode Technologies, S.L.",
+    "url": "https://meerko.ai"
+  },
+  "homepage": "https://meerko.ai",
+  "repository": "https://github.com/polynode-co/meerko",
+  "license": "AGPL-3.0-only",
+  "privacyPolicyUrl": "https://meerko.ai/privacy",
+  "keywords": [
+    "sales",
+    "outbound",
+    "lead-generation",
+    "cold-email",
+    "email-sequences",
+    "crm",
+    "mcp"
+  ]
+}

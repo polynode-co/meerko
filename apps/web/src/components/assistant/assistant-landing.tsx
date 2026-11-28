@@ -180,6 +180,12 @@ export function AssistantLanding({ slug }: { slug: AssistantSlug }) {
           <h3 className="text-[18px] font-semibold text-lk-fg">{p.alt.title}</h3>
           <p className="text-[15.5px] leading-[1.6] text-lk-muted">{p.alt.body}</p>
           {p.alt.command && <LookoutCommand command={p.alt.command.replace("{url}", url)} />}
+          {p.alt.also && (
+            <>
+              <p className="text-[15.5px] leading-[1.6] text-lk-muted">{p.alt.also.body}</p>
+              <LookoutCommand command={p.alt.also.command} />
+            </>
+          )}
           <a href={p.alt.link.href} className={`w-fit font-plex text-[13px] tracking-[0.6px] uppercase ${link}`}>
             {p.alt.link.label} →
           </a>
