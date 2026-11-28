@@ -89,8 +89,14 @@ export const docsSources = {
   museConnectors: { label: "Meta Help Center: How Muse works with Connectors", url: "https://www.meta.com/help/artificial-intelligence/1687253048996149/" },
   /** Checked 28 Nov 2026: "a personal AI agent available in the US and Canada". */
   museAvailability: { label: "Meta: The Future Is for Everyone: Muse for Small Business", url: "https://about.fb.com/news/2026/09/introducing-muse-small-business/" },
-  /** Checked 28 Nov 2026: + Add Connector → Custom MCP Connector; auth detected (OAuth 2.1); admin-only, account owner on Free, Pro and Student. */
+  /**
+   * Checked 28 Nov 2026: auth detected (none, bearer or basic, OAuth 2.1 with dynamic client registration); admin-only,
+   * the account owner on Free, Pro and Student. Its path (+ Add Connector → Custom MCP Connector) is older than the app's
+   * (Context → Connectors → New connector → Add custom connector, seen in Mistral Vibe on 28 Nov 2026).
+   */
   mistralConnectors: { label: "Mistral docs: MCP Connectors", url: "https://docs.mistral.ai/le-chat/knowledge-integrations/connectors/mcp-connectors" },
+  /** Checked 28 Nov 2026: Context → Skills → New Skill, with a Title, a Description and the SKILL.md; invoke with /name; Agent Skills format. */
+  mistralSkills: { label: "Mistral docs: Reuse work with Skills", url: "https://docs.mistral.ai/vibe/work/skills" },
   enableApis: { label: "Google Workspace: Enable Google Workspace APIs", url: "https://developers.google.com/workspace/guides/enable-apis" },
   refreshExpiry: { label: "Google: Using OAuth 2.0, refresh token expiration", url: "https://developers.google.com/identity/protocols/oauth2#expiration" },
   icypeas: { label: "Icypeas", url: "https://www.icypeas.com" },

@@ -5,7 +5,7 @@ description: "Build a lead list from your ideal customer, with verified emails. 
 
 # Find leads
 
-Use the tools of the Meerko connector that comes with this plugin. If they aren't available, ask me to connect Meerko on the plugin's page first.
+Use the tools of the Meerko connector. If they aren't available, ask me to connect Meerko first.
 
 Build a Meerko lead list for: the audience I describe (ask me who I sell to if I haven't said).
 1. Search with find_leads (type "people"; type "companies" first if the description is mostly about the company). Save results to a new table named after the audience.

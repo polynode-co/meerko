@@ -5,7 +5,7 @@ description: "Sort new replies by intent and draft answers for you to approve. U
 
 # Triage replies
 
-Use the tools of the Meerko connector that comes with this plugin. If they aren't available, ask me to connect Meerko on the plugin's page first.
+Use the tools of the Meerko connector. If they aren't available, ask me to connect Meerko first.
 
 Go through my new Meerko replies (list_replies).
 - Classify each one with classify_reply.

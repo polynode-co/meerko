@@ -37,7 +37,8 @@ const skill = (w: (typeof WORKFLOWS)[number]) =>
     "",
     `# ${w.title}`,
     "",
-    "Use the tools of the Meerko connector that comes with this plugin. If they aren't available, ask me to connect Meerko on the plugin's page first.",
+    // Not Perplexity-only: Mistral Vibe takes the same SKILL.md files (meerko.ai/mistral), with Meerko added as a connector.
+    "Use the tools of the Meerko connector. If they aren't available, ask me to connect Meerko first.",
     "",
     skillText(w),
     "",
@@ -54,6 +55,9 @@ const readme = [
   "",
   "Install it from https://meerko.ai/perplexity: download the zip and upload it under Plugins → Add custom → Upload plugin or skill,",
   "or choose Import plugin from GitHub and paste this folder's URL. Then connect Meerko on the plugin's page and sign in.",
+  "",
+  "The skills also work in Mistral Vibe (https://meerko.ai/mistral): add Meerko as a custom connector, then under",
+  "Context → Skills → New Skill paste a skill's SKILL.md.",
   "",
 ].join("\n");
 

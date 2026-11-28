@@ -13,7 +13,8 @@ import { mcpUrl } from "@/lib/meerko";
 import { FREE_CREDITS } from "@/lib/pricing";
 import { site } from "@/lib/site";
 
-// "Claude for sales" (/claude), "ChatGPT for sales" (/chatgpt) and the Perplexity plugin (/perplexity), in the landing's Lookout kit (Landing v2.1): the
+// "Claude for sales" (/claude), "ChatGPT for sales" (/chatgpt), the Perplexity plugin (/perplexity) and the Mistral Vibe
+// connector (/mistral), in the landing's Lookout kit (Landing v2.1): the
 // hero with a chat window, then one band per question a searcher has, in the order they have it. The same sequence
 // as Antwork's /automate/<client>/<platform> leaves: the answer, the setup, what to ask, what it can and can't do, FAQ.
 // The copy lives in lib/assistant-pages.ts.
@@ -22,6 +23,9 @@ const title = "text-[28px] leading-[1.1] font-semibold tracking-[-0.9px] text-lk
 const sub = "max-w-[760px] text-[16px] leading-[1.6] text-lk-muted sm:text-[17px]";
 const box = "bg-lk-box outline outline-1 -outline-offset-1 outline-lk-line";
 const link = "text-lk-lime underline-offset-4 hover:underline";
+
+/** The clients /docs/mcp-clients covers, named under "Other AI clients" (less the page's own). */
+const otherClients = ["Gemini CLI", "Muse", "Mistral Vibe", "Perplexity"];
 
 /** The most steps a sequence takes, from the MCP server's own schema. */
 const maxSteps = (toolByName("manage_sequence").inputSchema as { properties: { steps: { maxItems: number } } }).properties.steps.maxItems;
@@ -273,7 +277,7 @@ export function AssistantLanding({ slug }: { slug: AssistantSlug }) {
             { href: p.docs, name: `${p.name} setup docs`, text: "Every step, and how to disconnect." },
             p.guide
               ? { href: p.guide.href, name: p.guide.label, text: "What connectors are and how they work." }
-              : { href: "/docs/mcp-clients", name: "Other AI clients", text: "Gemini CLI, Muse, Mistral Vibe and more." },
+              : { href: "/docs/mcp-clients", name: "Other AI clients", text: `${otherClients.filter((n) => n !== p.name).slice(0, 3).join(", ")} and more.` },
             { href: "/docs/mcp-tools", name: "All the tools", text: `What ${p.name} can call, one by one.` },
           ].map((r) => (
             <li key={r.href}>

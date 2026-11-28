@@ -5,7 +5,7 @@ description: "From your website, find 10 companies that could buy from you and w
 
 # Find my first customers
 
-Use the tools of the Meerko connector that comes with this plugin. If they aren't available, ask me to connect Meerko on the plugin's page first.
+Use the tools of the Meerko connector. If they aren't available, ask me to connect Meerko first.
 
 Find the first customers for my company, the website I give you (ask me for it if I haven't), with Meerko.
 1. Read my site with read_website. From it, work out who I sell to: their industry (LinkedIn industry names), company size, countries (alpha-2 codes) and the job titles of the people who buy. Tell me in two or three lines and wait for me to confirm or correct it, then save it with set_icp.
