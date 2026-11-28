@@ -57,9 +57,9 @@ export default function Page() {
         Every sequence moves through the same five steps. Each one is a single MCP call, so you can drive it by asking your agent or call
         the tools yourself.
       </p>
-      <ol className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <ol className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
         {lifecycle.map(([stage, tool, detail], i) => (
-          <li key={stage} className="flex items-center gap-2 sm:flex-1">
+          <li key={stage} className="flex items-stretch gap-2 sm:flex-1">
             <a
               href={`/docs/mcp-tools#${tool}`}
               className={`flex flex-1 flex-col gap-1.5 rounded-[10px] border p-3.5 ${i === 3 ? "border-accent/35 bg-accent-soft" : "border-line bg-raised hover:border-muted"}`}
@@ -71,7 +71,7 @@ export default function Page() {
                 {detail && <span className="block opacity-75">{detail}</span>}
               </span>
             </a>
-            {i < lifecycle.length - 1 && <ChevronRight className="hidden size-3.5 shrink-0 sm:block" />}
+            {i < lifecycle.length - 1 && <ChevronRight className="hidden size-3.5 shrink-0 self-center sm:block" />}
           </li>
         ))}
       </ol>

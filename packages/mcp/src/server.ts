@@ -207,7 +207,7 @@ Meerko moves leads to contacted when the first email is sent and to replied when
   tool(
     "update_rows",
     {
-      description: `Change existing rows (leads) of a table by row id, in any of three ways, one or more per call:
+      description: `Change existing rows (leads) of a table by row id: write values, move leads to a pipeline stage, or adjust ICP fit scores, one or more per call.
 - updates: write values. Each update's \`data\` is merged into the row; new keys become new columns. Max 1,000 rows.
 - stage with row_ids: move leads to a pipeline stage, e.g. meeting when a call is booked, won or lost.
 - icp_reviews: adjust rows' ICP scores by judgement, where the rules can't see the whole picture (e.g. "a denim factory, not a fashion brand"). Moves each row's score by -30 to 30 with a one-line note the user sees; adjust null clears it. Max 200 rows.`,
@@ -408,7 +408,7 @@ With check_domains, also checks SPF, DKIM and DMARC for every domain the workspa
   tool(
     "list_sequences",
     {
-      description: `Sequences, read one of four ways (\`view\`):
+      description: `List sequences, or show one sequence's stats, its emails rendered for a row, or the emails waiting for approval (\`view\`).
 - list (the default without sequence_id): every sequence with status and enrollment counts.
 - stats (the default with sequence_id): its enrollment states (active, completed, replied, unsubscribed, failed...), emails sent, reply rate, and its mailbox pool: each mailbox's sends today against its limit, ramp day and number of leads.
 - preview (sequence_id, optional row_id): every step rendered for one row (the first row by default), exactly as it will be sent, plus any template variables that row is missing.
