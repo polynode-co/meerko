@@ -122,16 +122,14 @@ export default function Page() {
       {/* The Claude Directory's policy check asks for this (polynode-co/meerko#92); the plugin README and /privacy#recipients say the same. */}
       <H2 id="data">Data sources, legal basis and opt-out</H2>
       <p>
-        Meerko returns named people&apos;s work emails and, when asked, phone numbers, so here is where they come from and how a person
-        opts out. The same facts are in the <L href="/privacy#recipients">privacy policy</L>.
+        Meerko returns named people&apos;s work emails, so here is where they come from and how a person opts out. The same facts are in the <L href="/privacy#recipients">privacy policy</L>.
       </p>
       <ul className="flex list-disc flex-col gap-2 pl-6">
         <li>
           <strong className="text-fg">Sources.</strong> Lead search and email finding run on{" "}
-          <L href={docsSources.icypeas.url}>Icypeas</L>, a B2B data provider. Emails it misses, and phone numbers, come from{" "}
-          <L href={docsSources.generectPrivacy.url}>Generect</L>, which draws on public professional profiles, company websites and
-          licensed data providers. A workspace can add its own Firecrawl key for one more email search. Users can also import their own
-          leads (a CSV, say). Meerko keeps no database of people of its own: it stores only the leads a user&apos;s searches and imports
+          <L href={docsSources.icypeas.url}>Icypeas</L>, a B2B data provider. A data provider a workspace connects with its own API key
+          (on Pro, or self-hosted) also finds emails or phone numbers for that workspace. Users can also import their own leads (a CSV,
+          say). Meerko keeps no database of people of its own: it stores only the leads a user&apos;s searches and imports
           put into their workspace, until they delete them or close their account.
         </li>
         <li>
@@ -141,8 +139,7 @@ export default function Page() {
         </li>
         <li>
           <strong className="text-fg">If you&apos;re listed.</strong> To be removed at the source, use{" "}
-          <L href={docsSources.icypeasOptOut.url}>Icypeas&apos;s opt-out form</L> and email Generect as its{" "}
-          <L href={docsSources.generectPrivacy.url}>privacy policy</L> says (subject &quot;Remove my data&quot;). To ask a Meerko user
+          <L href={docsSources.icypeasOptOut.url}>Icypeas&apos;s opt-out form</L>. To ask a Meerko user
           about the data they hold on you, contact them, or write to <L href={`mailto:${site.contactEmail}`}>{site.contactEmail}</L> and
           we&apos;ll pass your request on.
         </li>

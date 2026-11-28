@@ -235,12 +235,8 @@ export default function PrivacyPage() {
               <a href={docsSources.icypeas.url} className="text-lk-lime underline-offset-4 hover:underline">
                 Icypeas
               </a>
-              , a B2B data provider. Emails it misses, and phone numbers, come from{" "}
-              <a href={docsSources.generectPrivacy.url} className="text-lk-lime underline-offset-4 hover:underline">
-                Generect
-              </a>
-              , which draws on public professional profiles, company websites and licensed data providers. A workspace can add its own
-              Firecrawl key for one more email search, and users can import their own leads. Meerko keeps no database of people of its
+              , a B2B data provider. A data provider a workspace connects with its own API key (on Pro, or self-hosted) also finds
+              emails or phone numbers for that workspace, and users can import their own leads. Meerko keeps no database of people of its
               own: it stores only the leads a user&apos;s searches and imports put into their workspace, until they delete them or close
               their account.
             </>,
@@ -254,12 +250,8 @@ export default function PrivacyPage() {
               <strong className="text-lk-fg">Being removed.</strong> To be removed at the source, use{" "}
               <a href={docsSources.icypeasOptOut.url} className="text-lk-lime underline-offset-4 hover:underline">
                 Icypeas&apos;s opt-out form
-              </a>{" "}
-              and email Generect as its{" "}
-              <a href={docsSources.generectPrivacy.url} className="text-lk-lime underline-offset-4 hover:underline">
-                privacy policy
-              </a>{" "}
-              says (subject &ldquo;Remove my data&rdquo;). To ask what data a sender holds about you, or to have it deleted, contact them, or
+              </a>
+              . To ask what data a sender holds about you, or to have it deleted, contact them, or
               write to us and we&apos;ll pass your request on.
             </>,
             <>

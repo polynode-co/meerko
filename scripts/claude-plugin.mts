@@ -71,27 +71,25 @@ const marketplace = {
 
 // The Directory's policy check (polynode-co/meerko#92) asks a product that returns named people's business contacts
 // to say where they come from, the legal basis, and how a listed person and an email's recipient opt out. Every line
-// matches the code: the providers are apps/api/src/app.ts's enrichment waterfall and core's search; the opt-outs are
-// core's sending/sender.ts (link, List-Unsubscribe, workspace suppression) and replies/classify.ts (opt-out replies,
-// in English, Spanish, French and German). The same passage is in README.md, /docs/claude and /privacy#recipients.
-// Icypeas's opt-out form and Generect's "Remove my data" are from their own pages, checked 28 Nov 2026.
+// matches the code: the providers are apps/api/src/app.ts's enrichment waterfall and core's search (Meerko Cloud runs
+// Icypeas; other providers only on a workspace's own key, so they're not named as ours); the opt-outs are core's
+// sending/sender.ts (link, List-Unsubscribe, workspace suppression) and replies/classify.ts (opt-out replies, in
+// English, Spanish, French and German). The same passage is in README.md, /docs/claude and /privacy#recipients.
+// Icypeas's opt-out form is from its own page, checked 28 Nov 2026.
 const DATA_AND_OPT_OUT = [
   "## Data sources, legal basis and opt-out",
   "",
-  "Meerko returns named people's work emails and, when asked, phone numbers, so here is where they come from and how",
-  "a person opts out.",
+  "Meerko returns named people's work emails, so here is where they come from and how a person opts out.",
   "",
-  "- **Sources.** Lead search and email finding run on [Icypeas](https://www.icypeas.com), a B2B data provider. Emails",
-  "  it misses, and phone numbers, come from [Generect](https://generect.com), which draws on public professional",
-  "  profiles, company websites and licensed data providers. A workspace can add its own Firecrawl key for one more",
-  "  email search. Users can also import their own leads (a CSV, say). Meerko keeps no database of people of its own:",
+  "- **Sources.** Lead search and email finding run on [Icypeas](https://www.icypeas.com), a B2B data provider. A data",
+  "  provider a workspace connects with its own API key (on Pro, or self-hosted) also finds emails or phone numbers for",
+  "  that workspace. Users can also import their own leads (a CSV, say). Meerko keeps no database of people of its own:",
   "  it stores only the leads a user's searches and imports put into their workspace, until they delete them or close",
   "  their account.",
   "- **Legal basis.** The Meerko user who holds the leads, and sends the emails, is the controller of that data; on",
   "  Meerko Cloud, Polynode Technologies, S.L. processes it on their instructions. B2B prospecting relies on the",
   "  sender's legitimate interest (GDPR Art. 6(1)(f)), and a person can object to it at any time (Art. 21).",
-  "- **If you're listed.** To be removed at the source, use [Icypeas's opt-out form](https://www.icypeas.com/opt-out)",
-  "  and email Generect as its [privacy policy](https://generect.com/privacy-policy) says (subject \"Remove my data\").",
+  "- **If you're listed.** To be removed at the source, use [Icypeas's opt-out form](https://www.icypeas.com/opt-out).",
   "  To ask a Meerko user about the data they hold on you, contact them, or write to contact@meerko.ai and we'll pass",
   "  your request on.",
   "- **If you got an email sent through Meerko.** Every sequence email ends with an unsubscribe link and carries a",
