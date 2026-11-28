@@ -77,6 +77,14 @@ export const docsSources = {
   codexMcp: { label: "OpenAI Codex docs: Model Context Protocol", url: "https://developers.openai.com/codex/mcp" },
   cursorMcp: { label: "Cursor docs: Model Context Protocol", url: "https://cursor.com/docs/context/mcp" },
   geminiMcp: { label: "Gemini CLI docs: MCP servers", url: "https://geminicli.com/docs/tools/mcp-server/" },
+  /** Checked 28 Nov 2026: Plugins → Add custom → Add MCP connector → Remote; OAuth, API key or none; the org toggle. */
+  perplexityConnectors: { label: "Perplexity Help Center: Adding custom remote connectors", url: "https://www.perplexity.ai/help-center/en/articles/13915507-adding-custom-remote-connectors" },
+  /** Checked 28 Nov 2026: Settings → Connectors, or ask Muse; Meta doesn't review custom connectors. */
+  museConnectors: { label: "Meta Help Center: How Muse works with Connectors", url: "https://www.meta.com/help/artificial-intelligence/1687253048996149/" },
+  /** Checked 28 Nov 2026: "a personal AI agent available in the US and Canada". */
+  museAvailability: { label: "Meta: The Future Is for Everyone: Muse for Small Business", url: "https://about.fb.com/news/2026/09/introducing-muse-small-business/" },
+  /** Checked 28 Nov 2026: + Add Connector → Custom MCP Connector; auth detected (OAuth 2.1); admin-only, account owner on Free, Pro and Student. */
+  mistralConnectors: { label: "Mistral docs: MCP Connectors", url: "https://docs.mistral.ai/le-chat/knowledge-integrations/connectors/mcp-connectors" },
   enableApis: { label: "Google Workspace: Enable Google Workspace APIs", url: "https://developers.google.com/workspace/guides/enable-apis" },
   refreshExpiry: { label: "Google: Using OAuth 2.0, refresh token expiration", url: "https://developers.google.com/identity/protocols/oauth2#expiration" },
   icypeas: { label: "Icypeas", url: "https://www.icypeas.com" },
