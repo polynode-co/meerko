@@ -149,7 +149,7 @@ interface HoldNotice {
 const advice: Record<MailboxHoldReason, string> = {
   bounces: "Check the list it was sending to: verify the emails, or drop the rows that bounced. Then resume it.",
   rejections:
-    "Mail providers are treating it as spam. Check its domain's SPF, DKIM and DMARC (check_domains), lower its daily limit, and give it a few days before resuming.",
+    "Mail providers are treating it as spam. Check its domain's SPF, DKIM and DMARC (list_mailboxes with check_domains), lower its daily limit, and give it a few days before resuming.",
 };
 
 /** The Slack line and the email's first sentence. */
@@ -168,7 +168,7 @@ export function mailboxHoldMail(n: HoldNotice & { to: string }): SystemMail {
     "",
     advice[n.reason],
     "",
-    settings ? `Resume it in Settings → Mailboxes: ${settings}` : "Resume it with `meerko mailboxes resume <id>` or from your agent (update_mailbox).",
+    settings ? `Resume it in Settings → Mailboxes: ${settings}` : "Resume it with `meerko mailboxes resume <id>` or from your agent (manage_mailbox).",
     "It won't resume on its own.",
   ].join("\n");
   const html = `<!doctype html><html><body style="margin:0;padding:32px 16px;background:#f6f6f3;font-family:system-ui,-apple-system,sans-serif;color:#0b0b0c">

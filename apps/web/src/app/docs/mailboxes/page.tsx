@@ -26,7 +26,7 @@ export default function Page() {
         ["test", "Sending a test"],
         ["reconnect", "When a mailbox needs reconnecting"],
       ]}
-      tools={["connect_gmail", "list_mailboxes", "update_mailbox", "send_test_email", "check_domains"]}
+      tools={["manage_mailbox", "list_mailboxes", "send_test_email"]}
     >
       <H2 id="connect">Connecting a mailbox</H2>
       <p>
@@ -47,7 +47,7 @@ export default function Page() {
         </li>
       </ol>
       <p>
-        Your agent&apos;s <Tool name="connect_gmail" /> gives you the same link: never paste the password into a chat. Google emails you a
+        Your agent&apos;s <Tool name="manage_mailbox" /> (<C>action: &quot;connect&quot;</C>) gives you the same link: never paste the password into a chat. Google emails you a
         security alert when the password is created and first used; that&apos;s expected.
       </p>
       <p>
@@ -123,7 +123,7 @@ export default function Page() {
         items={[
           ["Daily limit", "50", "Per mailbox by default, counted over the last 24 hours. Set 1 to 500."],
           ["Spacing", "3–7 min", "Between two sends from the same mailbox, at random, so they don't go out in bursts."],
-          ["Sender name", "Optional", "The name recipients see in From. Set it with update_mailbox."],
+          ["Sender name", "Optional", "The name recipients see in From. Set it with manage_mailbox."],
         ]}
       />
       <p>
@@ -140,7 +140,7 @@ export default function Page() {
         today&apos;s limit and the ramp day.
       </p>
       <p>
-        Connecting an inbox that already sends regularly? Turn the ramp off with <Tool name="update_mailbox" /> (<C>ramp: false</C>) or{" "}
+        Connecting an inbox that already sends regularly? Turn the ramp off with <Tool name="manage_mailbox" /> (<C>ramp: false</C>) or{" "}
         <C>pnpm meerko mailboxes set &lt;id&gt; --no-ramp</C>. <C>--ramp</C> starts it again from today.
       </p>
 

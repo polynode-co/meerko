@@ -22,7 +22,7 @@ export default function Page() {
         ["drafts", "Drafts and approval"],
         ["inbox", "The inbox"],
       ]}
-      tools={["list_replies", "classify_reply", "draft_reply", "list_drafts", "approve_draft", "discard_draft"]}
+      tools={["list_replies", "classify_reply", "draft_reply", "approve_emails", "delete_data"]}
     >
       <H2 id="detection">How replies are found</H2>
       <p>
@@ -70,7 +70,7 @@ export default function Page() {
       />
       <Callout>
         <p>
-          Your agent is told to call <Tool name="approve_draft" /> only after you&apos;ve read that specific draft and said to send it.
+          Your agent is told to call <Tool name="approve_emails" /> with a draft only after you&apos;ve read that specific draft and said to send it.
           Approval is refused for addresses that unsubscribed or bounced. Gmail doesn&apos;t add your signature to emails sent this way,
           so drafts sign off with your first name.
         </p>
@@ -95,7 +95,7 @@ export default function Page() {
       />
       <p>
         Answers you send count toward the mailbox&apos;s <L href="/docs/mailboxes#limits">daily limit</L>. They carry no unsubscribe line,
-        since they&apos;re a conversation, not outreach. Use <C>list_drafts</C> to see every draft waiting on you.
+        since they&apos;re a conversation, not outreach. Use <C>list_replies</C> with <C>view: &quot;drafts&quot;</C> to see every draft waiting on you.
       </p>
     </DocsShell>
   );

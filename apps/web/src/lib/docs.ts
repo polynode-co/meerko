@@ -112,7 +112,7 @@ export function toolByName(name: string) {
  * the rest: enrich_rows, manage_routine and sync_crm are destructive and open-world too, and send no email.
  * apps/api/src/mcp-annotations.test.ts holds the same list.
  */
-const EMAIL_TOOLS = ["send_test_email", "enroll_rows", "start_sequence", "approve_emails", "draft_reply", "approve_draft"];
+const EMAIL_TOOLS = ["send_test_email", "enroll_rows", "start_sequence", "approve_emails", "draft_reply"];
 {
   const wrong = EMAIL_TOOLS.filter((name) => {
     const hints = mcp.tools.find((t) => t.name === name)?.annotations;

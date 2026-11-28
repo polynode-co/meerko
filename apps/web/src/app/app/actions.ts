@@ -670,7 +670,7 @@ export type FindLeadsResult = ActionResult & { kind?: LeadKind; total?: number; 
 /**
  * The "Find leads" form. `intent=count` asks how many match (free); `intent=add` saves up to `limit` of them into a
  * new or existing table (1 credit each, none with your own Icypeas key) and opens it. The same /v1/search routes as
- * the find_people and find_companies tools.
+ * the find_leads tool.
  */
 export async function findLeads(_: FindLeadsResult | null, form: FormData): Promise<FindLeadsResult> {
   const kind = form.get("kind") === "companies" ? "companies" : "people";

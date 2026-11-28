@@ -143,7 +143,7 @@ export default function Page() {
       <Callout>
         <p>
           Meerko marks <code className="font-mono text-fg">send_test_email</code>,{" "}
-          <code className="font-mono text-fg">start_sequence</code> and <code className="font-mono text-fg">approve_draft</code> as
+          <code className="font-mono text-fg">start_sequence</code> and <code className="font-mono text-fg">approve_emails</code> as
           destructive, because each one sends real email. Sending also stays within the daily limit you set for each mailbox.
         </p>
       </Callout>

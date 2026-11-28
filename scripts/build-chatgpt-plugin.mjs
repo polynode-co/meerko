@@ -76,7 +76,7 @@ const manifest = {
           negative: negative.map((t) => ({ description: `${t.description} Expected: ${t.expected_output}`, prompt: t.user_prompt })),
         },
         ...(plugin.demoRecordingURL ? { demo_recording_url: plugin.demoRecordingURL } : {}),
-        // Nothing is sold in ChatGPT: no tool returns a price, a plan or a link to buy (see get_credits).
+        // Nothing is sold in ChatGPT: no tool returns a price, a plan or a link to buy (see get_workspace).
         commerce: false,
       },
       publication: {

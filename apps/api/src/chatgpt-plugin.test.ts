@@ -128,7 +128,7 @@ describe("the ChatGPT plugin package", async () => {
     expect(JSON.stringify([submission.test_cases, submission.negative_test_cases])).not.toMatch(/[\w.+-]+@[\w-]+\.[a-z]{2,}/i);
   });
 
-  // The app directories don't allow selling inside the app: get_credits returns the balance and nothing else.
+  // The app directories don't allow selling inside the app: get_workspace returns the credit balance and nothing else.
   it("keeps prices and links to buy out of what ChatGPT sees", () => {
     const seen = tools.map((t) => `${t.description} ${JSON.stringify(t.inputSchema)}`).join("\n");
     expect(seen).not.toMatch(/buy_url|checkout|\/pricing|\$\d/i);

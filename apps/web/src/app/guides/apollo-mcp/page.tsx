@@ -194,8 +194,7 @@ export default function Page() {
       <Callout>
         <p>
           Meerko marks the tools that send real email (<code className="font-mono text-fg">send_test_email</code>,{" "}
-          <code className="font-mono text-fg">start_sequence</code>, <code className="font-mono text-fg">approve_emails</code> and{" "}
-          <code className="font-mono text-fg">approve_draft</code>) as
+          <code className="font-mono text-fg">start_sequence</code> and <code className="font-mono text-fg">approve_emails</code>) as
           destructive, so your assistant asks before running them, and reply drafts wait for your approval.
         </p>
       </Callout>

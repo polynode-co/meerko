@@ -22,7 +22,7 @@ export default function Page() {
         ["variables", "Columns as variables"],
         ["querying", "Reading rows"],
       ]}
-      tools={["list_tables", "create_table", "add_column", "get_pending_cells", "update_rows", "import_rows", "query_rows"]}
+      tools={["list_tables", "manage_table", "query_rows", "import_rows", "update_rows", "delete_data"]}
     >
       <H2 id="rows-columns">Rows and columns</H2>
       <p>
@@ -64,10 +64,10 @@ export default function Page() {
       </p>
       <ol className="flex list-decimal flex-col gap-1.5 pl-6">
         <li>
-          <Tool name="add_column" /> creates the column with its prompt.
+          <Tool name="manage_table" /> (<C>action: &quot;add_column&quot;</C>) creates the column with its prompt.
         </li>
         <li>
-          <Tool name="get_pending_cells" /> returns rows where that column is still empty (25 by default, up to 200), each with the
+          <Tool name="query_rows" /> with <C>pending_column</C> returns rows where that column is still empty (25 by default, up to 200), each with the
           prompt already filled in from the row.
         </li>
         <li>

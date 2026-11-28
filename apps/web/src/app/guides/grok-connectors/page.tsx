@@ -97,7 +97,7 @@ export default function Page() {
       </Callout>
       <p>
         Meerko marks the tools that send real email as destructive (<code className="font-mono text-fg">send_test_email</code>,{" "}
-        <code className="font-mono text-fg">start_sequence</code>, <code className="font-mono text-fg">approve_draft</code>), which tells
+        <code className="font-mono text-fg">start_sequence</code>, <code className="font-mono text-fg">approve_emails</code>), which tells
         clients that support it to ask first.
       </p>
     </GuideShell>

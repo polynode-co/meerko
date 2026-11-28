@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Callout, citer, GuideShell, H2, Sample } from "@/components/lookout/docs/guide";
 import { docsSources } from "@/lib/sources";
 
-// Agent how-to #1. Every step is a real Meerko tool call: find_people (count_only,
-// then save), enrich_rows, query_rows, create_sequence. Credit prices are linked, not quoted, so they can't go stale.
+// Agent how-to #1. Every step is a real Meerko tool call: find_leads (count_only,
+// then save), enrich_rows, query_rows, manage_sequence. Credit prices are linked, not quoted, so they can't go stale.
 export const metadata: Metadata = {
   title: "How to Find 30 CTOs from Claude, with Verified Emails | Meerko",
   description:

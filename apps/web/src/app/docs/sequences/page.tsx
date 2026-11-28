@@ -5,12 +5,13 @@ import { AskAgent, C, Callout, Cards, Facts, Fields, H2, IconList, L, Tool } fro
 
 export const metadata = docsMetadata("sequences", "Cold email sequences from Gmail or Outlook, run by your agent | Meerko docs");
 
-const lifecycle: [string, string][] = [
-  ["Draft", "create_sequence"],
-  ["Preview", "preview_sequence"],
+/** Each step: its name, the MCP tool, and the action or view it takes. */
+const lifecycle: [string, string, string?][] = [
+  ["Draft", "manage_sequence", "create"],
+  ["Preview", "list_sequences", "preview"],
   ["Enroll", "enroll_rows"],
   ["Start", "start_sequence"],
-  ["Pause", "pause_sequence"],
+  ["Pause", "manage_sequence", "pause"],
 ];
 
 const steps = [
@@ -41,7 +42,7 @@ export default function Page() {
         ["stops", "When it stops for a lead"],
         ["ask", "Ask your agent"],
       ]}
-      tools={["create_sequence", "update_sequence", "preview_sequence", "enroll_rows", "start_sequence", "pause_sequence", "delete_sequence", "list_sequences", "sequence_stats"]}
+      tools={["manage_sequence", "list_sequences", "enroll_rows", "start_sequence", "approve_emails", "delete_data"]}
     >
       <Callout icon={ShieldCheck}>
         <p>
@@ -53,26 +54,29 @@ export default function Page() {
 
       <H2 id="lifecycle">Lifecycle</H2>
       <p>
-        Every sequence moves through the same five steps. Each one is a single MCP tool, so you can drive it by asking your agent or call
+        Every sequence moves through the same five steps. Each one is a single MCP call, so you can drive it by asking your agent or call
         the tools yourself.
       </p>
-      <ol className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        {lifecycle.map(([stage, tool], i) => (
-          <li key={stage} className="flex items-center gap-2 sm:flex-1">
+      <ol className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+        {lifecycle.map(([stage, tool, detail], i) => (
+          <li key={stage} className="flex items-stretch gap-2 sm:flex-1">
             <a
               href={`/docs/mcp-tools#${tool}`}
               className={`flex flex-1 flex-col gap-1.5 rounded-[10px] border p-3.5 ${i === 3 ? "border-accent/35 bg-accent-soft" : "border-line bg-raised hover:border-muted"}`}
             >
               <span className={`font-mono text-[12px] ${i === 3 ? "text-accent" : ""}`}>{String(i + 1).padStart(2, "0")}</span>
               <span className="font-semibold text-fg">{stage}</span>
-              <span className={`font-mono text-[12px] ${i === 3 ? "text-accent" : ""}`}>{tool}</span>
+              <span className={`font-mono text-[12px] ${i === 3 ? "text-accent" : ""}`}>
+                {tool}
+                {detail && <span className="block opacity-75">{detail}</span>}
+              </span>
             </a>
-            {i < lifecycle.length - 1 && <ChevronRight className="hidden size-3.5 shrink-0 sm:block" />}
+            {i < lifecycle.length - 1 && <ChevronRight className="hidden size-3.5 shrink-0 self-center sm:block" />}
           </li>
         ))}
       </ol>
       <p>
-        Once started, <Tool name="sequence_stats" /> shows emails sent, the reply rate and where every lead is. Pause before changing
+        Once started, <Tool name="list_sequences" /> (<C>view: &quot;stats&quot;</C>) shows emails sent, the reply rate and where every lead is. Pause before changing
         the steps of a running sequence.
       </p>
 
@@ -106,7 +110,7 @@ export default function Page() {
       />
       <p>
         Mailboxes that need reconnecting get no new leads, and their leads wait while the rest keep sending. Change the pool any time, from
-        the sequence&apos;s <strong className="text-fg">Edit pool</strong> button or with <Tool name="update_sequence" />: leads that
+        the sequence&apos;s <strong className="text-fg">Edit pool</strong> button or with <Tool name="manage_sequence" /> (<C>action: &quot;update&quot;</C>): leads that
         haven&apos;t been emailed yet move to the new pool. Leads already mid-thread stay on their mailbox, or stop if you removed
         that mailbox from the pool.
       </p>

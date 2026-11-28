@@ -12,7 +12,7 @@ const idSource: Record<string, string> = {
   sequence_id: "From list_sequences.",
   mailbox_id: "From list_mailboxes.",
   reply_id: "From list_replies.",
-  draft_id: "From list_drafts.",
+  draft_id: "From list_replies (view drafts).",
   row_id: "A row's id, from query_rows.",
   row_ids: "Row ids, from query_rows.",
 };

@@ -24,7 +24,7 @@ const box = "bg-lk-box outline outline-1 -outline-offset-1 outline-lk-line";
 const link = "text-lk-lime underline-offset-4 hover:underline";
 
 /** The most steps a sequence takes, from the MCP server's own schema. */
-const maxSteps = (toolByName("create_sequence").inputSchema as { properties: { steps: { maxItems: number } } }).properties.steps.maxItems;
+const maxSteps = (toolByName("manage_sequence").inputSchema as { properties: { steps: { maxItems: number } } }).properties.steps.maxItems;
 
 function Band({ id, kicker, heading, intro, children }: { id?: string; kicker: string; heading: string; intro?: string; children: React.ReactNode }) {
   return (

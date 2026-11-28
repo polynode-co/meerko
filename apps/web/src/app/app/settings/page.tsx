@@ -25,7 +25,7 @@ const providerIcon = { gmail: "bg-ws-red-soft text-ws-red", gmail_imap: "bg-ws-r
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Search> }) {
   // The API's Gmail OAuth callback redirects back here with the outcome.
-  // `?connect=gmail` (from an agent's connect_gmail, or Reconnect) opens the mailbox form.
+  // `?connect=gmail` (from an agent's manage_mailbox connect, or Reconnect) opens the mailbox form.
   const { gmail_connected, gmail_error, billing: paid, billing_error, connect, email, slack } = await searchParams;
   // Stripe now returns to Settings itself; this catches Checkout sessions started before that, and old links.
   if (paid || billing_error) {
