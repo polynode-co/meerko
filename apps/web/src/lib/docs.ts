@@ -26,7 +26,7 @@ export const docPages: DocPage[] = [
   { slug: "chatgpt", group: "Connect your agent", title: "ChatGPT", description: "Add Meerko to ChatGPT as a custom MCP server and use it in any conversation." },
   { slug: "claude-code", group: "Connect your agent", title: "Claude Code", description: "Add the hosted Meerko MCP server to Claude Code with one command and sign in with your browser." },
   { slug: "codex-cursor", group: "Connect your agent", title: "Codex & Cursor", description: "Add the hosted Meerko MCP server to OpenAI Codex or Cursor and sign in." },
-  { slug: "mcp-clients", group: "Connect your agent", title: "Other MCP clients", description: "Connect Gemini CLI or any MCP client that supports remote servers." },
+  { slug: "mcp-clients", group: "Connect your agent", title: "Other MCP clients", description: "Connect Gemini CLI, Perplexity, Muse, Mistral Vibe or any MCP client that supports remote servers." },
   { slug: "tables", group: "Concepts", title: "Tables & AI columns", description: "Leads live in rows. AI columns are answered by your agent, row by row." },
   { slug: "finding-leads", group: "Concepts", title: "Finding leads", description: "Search people and companies from your agent or the dashboard, and save them straight into a table." },
   { slug: "emails", group: "Concepts", title: "Emails & verification", description: "Find work emails for your leads and verify them before you send." },
