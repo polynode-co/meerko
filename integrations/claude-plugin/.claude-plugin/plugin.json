@@ -8,7 +8,7 @@
   },
   "homepage": "https://meerko.ai",
   "repository": "https://github.com/polynode-co/meerko",
-  "license": "AGPL-3.0-only",
+  "license": "MIT",
   "privacyPolicyUrl": "https://meerko.ai/privacy",
   "keywords": [
     "sales",
