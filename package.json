@@ -23,6 +23,7 @@
     "meerko": "tsx packages/cli/src/index.ts",
     "docs:reference": "tsx scripts/docs-reference.mts",
     "api:spec": "tsx scripts/openapi.mts",
+    "perplexity-plugin": "tsx scripts/perplexity-plugin.mts",
     "chatgpt-plugin": "node scripts/build-chatgpt-plugin.mjs"
   },
   "devDependencies": {

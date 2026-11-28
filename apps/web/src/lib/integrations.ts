@@ -34,6 +34,7 @@ export interface Integration {
 export const integrations: Integration[] = [
   { slug: "claude", name: "Claude", group: "AI agents", logo: "/logos/agents/claude.svg", setup: "Sign in", href: "/claude", summary: "Add Meerko as a connector in Claude on the web or desktop and run your outbound from a chat." },
   { slug: "chatgpt", name: "ChatGPT", group: "AI agents", logo: "/logos/agents/openai.svg", mono: true, setup: "Sign in", href: "/chatgpt", summary: "Add the Meerko plugin from ChatGPT's plugin directory and use it in any conversation." },
+  { slug: "perplexity", name: "Perplexity", group: "AI agents", logo: "/logos/agents/perplexity.svg", setup: "Sign in", href: "/perplexity", summary: "Upload the Meerko plugin to Perplexity: the connector plus skills for leads, sequences and replies." },
   { slug: "claude-code", name: "Claude Code", group: "AI agents", logo: "/logos/agents/claude.svg", setup: "One command", href: "/docs/claude-code", summary: "Add the hosted MCP server and run prospecting, sequences and replies from your terminal." },
   { slug: "cursor", name: "Cursor", group: "AI agents", logo: "/logos/agents/cursor.svg", mono: true, setup: "One command", href: "/docs/codex-cursor", summary: "Use Meerko's tools from Cursor's agent, signed in with your browser." },
   { slug: "codex", name: "Codex", group: "AI agents", logo: "/logos/agents/openai.svg", mono: true, setup: "One command", href: "/docs/codex-cursor", summary: "Add Meerko to OpenAI Codex as a remote MCP server." },
